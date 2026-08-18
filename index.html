@@ -230,6 +230,76 @@
   .toast.show{opacity:1;}
   .thumb{width:100%; max-height:220px; object-fit:cover; border-radius:8px; margin-top:6px;}
   .file-note{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
+
+  /* ---------- Menú hamburguesa (oculto en escritorio, aparece en celular) ---------- */
+  .nav-hamburger{display:none; background:transparent; border:none; font-size:22px; line-height:1; padding:4px 8px; margin-right:2px; color:var(--ink); cursor:pointer;}
+  .nav-overlay{display:none;}
+
+  /* ============================================================
+     MODO CELULAR — se activa a partir de aquí (pantallas angostas)
+     ============================================================ */
+  @media (max-width:820px){
+    main{padding:12px;}
+    h2.section-title{font-size:16.5px; margin:20px 0 10px;}
+    .banner{font-size:12.5px; padding:10px 12px;}
+
+    /* topbar más compacto */
+    header.topbar{padding:10px 12px;}
+    .brand{display:flex; align-items:center; gap:2px;}
+    .brand .delico-logo{font-size:14px;}
+    .brand-name{display:none;}
+    .who{gap:8px;}
+    .vista-toggle{display:none;} /* en celular el menú ya resuelve la navegación; no hace falta el switch */
+
+    /* botón hamburguesa visible */
+    .nav-hamburger{display:inline-flex; align-items:center; justify-content:center;}
+
+    /* la barra de tabs se convierte en un cajón (drawer) que se abre con el botón ☰ */
+    nav.tabs{
+      position:fixed; top:0; left:0; bottom:0; z-index:150;
+      width:78%; max-width:300px;
+      background:var(--surface); border-right:1px solid var(--line); border-bottom:none;
+      flex-direction:column; align-items:stretch; gap:0; padding:66px 0 20px;
+      overflow-y:auto; overflow-x:hidden;
+      transform:translateX(-105%); transition:transform .22s ease;
+      box-shadow:2px 0 18px rgba(0,0,0,.18);
+    }
+    nav.tabs.open{transform:translateX(0);}
+    nav.tabs .bloque-sep{padding:14px 18px 6px; font-size:10.5px;}
+    nav.tabs button{
+      width:100%; text-align:left; padding:14px 18px; font-size:15px; font-weight:600;
+      border-bottom:1px solid var(--line); border-left:3px solid transparent; white-space:normal;
+    }
+    nav.tabs button.active{background:var(--brand-soft); border-left-color:var(--brand); border-bottom-color:var(--line);}
+
+    .nav-overlay.open{display:block; position:fixed; inset:0; background:rgba(20,16,8,.4); z-index:140;}
+
+    /* tarjetas KPI: más grandes y legibles, dos por renglón */
+    .row{gap:10px;}
+    .kpi{min-width:calc(50% - 5px); flex:none; padding:14px;}
+    .kpi .value{font-size:21px;}
+
+    /* formularios / controles con objetivos de toque más grandes */
+    .controls-bar{gap:8px;}
+    .controls-bar select, .controls-bar input[type=text], select, input[type=text], input[type=number], input[type=date], input[type=password], textarea{
+      font-size:16px; /* evita que iOS haga zoom automático al enfocar */
+      padding:11px 10px;
+    }
+    .btn{padding:11px 16px; font-size:14.5px;}
+    .btn-block{width:100%;}
+    nav.tabs .bloque-sep + button, nav.tabs button:first-child{border-top:none;}
+
+    /* modales casi de pantalla completa */
+    .modal-bg{padding:0; align-items:stretch;}
+    .modal{max-width:100%; width:100%; min-height:100%; border-radius:0; padding:18px 16px 24px;}
+    .modal-actions{position:sticky; bottom:-24px; background:var(--surface); margin:18px -16px -24px; padding:12px 16px; border-top:1px solid var(--line);}
+
+    /* tablas: siguen con scroll horizontal, pero con más aire para el dedo */
+    table{font-size:12.5px;}
+    th, td{padding:8px 9px;}
+
+    footer.appfoot{padding:12px;}
+  }
 </style>
 </head>
 <body>
@@ -258,6 +328,7 @@
 <div id="app">
   <header class="topbar">
     <div class="brand">
+      <button id="navHamburger" class="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menú">☰</button>
       <div class="delico-logo">DELICO . ODV</div>
       <div class="brand-name vivemedi-word" style="font-size:16px;">#modoMEDI</div>
     </div>
@@ -275,6 +346,7 @@
   </header>
 
   <nav class="tabs" id="tabsNav"></nav>
+  <div class="nav-overlay" id="navOverlay" onclick="toggleMobileNav(false)"></div>
 
   <main>
     <div class="banner">
@@ -1045,12 +1117,21 @@ function boot(keepView){
   if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
 }
 
+function toggleMobileNav(force){
+  const nav = document.getElementById('tabsNav');
+  const overlay = document.getElementById('navOverlay');
+  if(!nav || !overlay) return;
+  const open = typeof force === 'boolean' ? force : !nav.classList.contains('open');
+  nav.classList.toggle('open', open);
+  overlay.classList.toggle('open', open);
+}
 function showView(key, btnEl){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+key).classList.add('active');
   document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
   if(btnEl) btnEl.classList.add('active');
   else { const tabs = tabsVisiblesParaMi(); const idx = tabs.findIndex(t=>t.key===key); const btns = [...document.querySelectorAll('nav.tabs button')]; if(idx>=0 && btns[idx]) btns[idx].classList.add('active'); }
+  toggleMobileNav(false); // si el menú móvil estaba abierto, se cierra al elegir una sección
   if(key==='reportes') renderReportes();
   if(key==='captura'){ renderCheckinBar(); renderMisCapturas(); }
   if(key==='planeacion'){ renderPlaneacion(); renderTareas(); }
