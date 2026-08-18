@@ -1006,6 +1006,8 @@ let currentUser = null;
 function fmtNum(n){ return Math.round(n).toLocaleString('es-MX'); }
 function fmtMoney(n){ return '$' + Math.round(n).toLocaleString('es-MX'); }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
+function horaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Mexico_City'}); }
+function fechaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // 'sv-SE' da formato AAAA-MM-DD
 function uid(){ return 'c' + Date.now() + Math.random().toString(16).slice(2,8); }
 /* Nuestros nombres vienen "APELLIDO1 APELLIDO2 NOMBRE(S)" — para mostrar queremos "Nombre Apellido1" */
 function nombreCorto(nombreCompleto){
@@ -1573,6 +1575,7 @@ function abrirPrioridadesCaptura(){
   document.getElementById('modalBg').classList.add('open');
 }
 function submitPrioridadesCaptura(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
   const checkin = getCheckin();
   const arr = getPrioridades().filter(p=>p.requiere_foto || p.requiere_confirmacion);
   const registros = getCumplimientosPrioridad();
@@ -2297,13 +2300,48 @@ function closeModal(){
   document.querySelectorAll('[id^="tscan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('tscan_',''); closeScannerLinea(key); } });
   document.getElementById('modalBg').classList.remove('open');
 }
+window._fotosPendientes = new Set(); // fotos que aún se están leyendo/comprimiendo — bloquea "Guardar" hasta que terminen
+function comprimirImagen(dataUrl, maxDim, calidad){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w >= h){ h = Math.round(h * maxDim / w); w = maxDim; } else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', calidad));
+      }catch(e){ resolve(dataUrl); } // si algo falla al comprimir, se usa la foto original
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
 function previewFile(key){
-  const input = document.getElementById('f_'+key);
+  // el id real del <input> puede venir como "f_"+key (formularios estándar) o ya venir completo (ej. prioridades)
+  const input = document.getElementById('f_'+key) || document.getElementById(key);
   const img = document.getElementById('prev_'+key);
+  if(!input) return;
   const file = input.files[0];
   if(!file) return;
+  window._fotosPendientes.add(key);
+  const note = input.parentElement ? input.parentElement.querySelector('.file-note') : null;
+  const notaOriginal = note ? note.textContent : null;
+  if(note) note.textContent = 'Procesando foto, espera un segundo antes de guardar…';
   const reader = new FileReader();
-  reader.onload = e => { img.src = e.target.result; img.classList.remove('hidden'); input.dataset.b64 = e.target.result; };
+  reader.onload = (e) => {
+    comprimirImagen(e.target.result, 1280, 0.72).then((comprimida) => {
+      if(img){ img.src = comprimida; img.classList.remove('hidden'); }
+      input.dataset.b64 = comprimida;
+      window._fotosPendientes.delete(key);
+      if(note) note.textContent = notaOriginal || 'Foto lista ✓';
+    });
+  };
+  reader.onerror = () => { window._fotosPendientes.delete(key); if(note) note.textContent = 'No se pudo leer la foto, intenta de nuevo.'; };
   reader.readAsDataURL(file);
 }
 function notaArchivoVideo(key){
@@ -2340,35 +2378,37 @@ function precioSospechoso(clave, precioIngresado){
   return null;
 }
 function submitForm(type){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
   const def = FORM_DEFS[type];
   const rec = { id: uid(), tipo: type, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString() };
   let missing = false;
+  let faltantes = [];
   def.fields.forEach(([key,type_,label,req])=>{
     if(type_==='file'){
-      const input = document.getElementById('f_'+key);
-      rec[key] = input.dataset.b64 || '';
-      if(req && !rec[key]) missing = true;
+      const input = document.getElementById('f_'+key) || document.getElementById(key);
+      rec[key] = input ? (input.dataset.b64 || '') : '';
+      if(req && !rec[key]){ missing = true; faltantes.push(label); }
     } else if(type_==='file_video'){
       const input = document.getElementById('f_'+key);
       rec[key] = input.files[0] ? input.files[0].name : '';
-      if(req && !rec[key]) missing = true;
+      if(req && !rec[key]){ missing = true; faltantes.push(label); }
     } else if(type_==='checkbox'){
       rec[key] = document.getElementById('f_'+key).checked;
     } else if(type_==='tienda_select'){
       const lockedInput = document.getElementById('f_'+key+'_locked');
       const val = lockedInput ? lockedInput.value : document.getElementById('f_'+key).value;
-      if(req && !val) missing = true;
+      if(req && !val){ missing = true; faltantes.push(label); }
       rec[key] = val;
       const sel = document.getElementById('f_'+key);
       const opt = sel.selectedOptions && sel.selectedOptions[0];
       rec.cadena = opt ? opt.dataset.cadena : (getCheckin()?.cadena || '');
     } else {
       const val = document.getElementById('f_'+key).value.trim();
-      if(req && !val) missing = true;
+      if(req && !val){ missing = true; faltantes.push(label); }
       rec[key] = val;
     }
   });
-  if(missing){ toast('Faltan campos obligatorios'); return; }
+  if(missing){ toast('Falta: ' + faltantes.join(', ')); return; }
   if(rec.clave && (rec.precio_delico || rec.costo)){
     const advertencia = precioSospechoso(rec.clave, parseFloat(rec.precio_delico || rec.costo));
     if(advertencia && !confirm(advertencia + '\n\nAceptar para guardar de todas formas, Cancelar para corregir.')) return;
@@ -2467,7 +2507,7 @@ function renderLeySillaModal(){
     <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:10px 0 4px;">Hoy</div>
     <div class="table-scroll">
       <table><thead><tr><th>Tipo</th><th>Hora</th></tr></thead><tbody>
-        ${mios.map(r=>`<tr><td>${r.tipo==='entrada'?'▶️ Entrada':'⏹ Salida'}</td><td>${r.fecha_registro.slice(11,16)}</td></tr>`).join('') || `<tr><td colspan="2" class="empty-state">Aún no registras descansos hoy.</td></tr>`}
+        ${mios.map(r=>`<tr><td>${r.tipo==='entrada'?'▶️ Entrada':'⏹ Salida'}</td><td>${horaLocal(r.fecha_registro)}</td></tr>`).join('') || `<tr><td colspan="2" class="empty-state">Aún no registras descansos hoy.</td></tr>`}
       </tbody></table>
     </div>
     <div class="modal-actions">
@@ -2488,7 +2528,7 @@ function exportLeySilla(){
   if(!arr.length){ toast('Sin registros de Ley Silla todavía.'); return; }
   let csv = 'persona,usuario,tipo,fecha,hora\n';
   arr.forEach(r=>{
-    csv += `"${r.persona}",${r.usuario},${r.tipo},${r.fecha_registro.slice(0,10)},${r.fecha_registro.slice(11,16)}\n`;
+    csv += `"${r.persona}",${r.usuario},${r.tipo},${fechaLocal(r.fecha_registro)},${horaLocal(r.fecha_registro)}\n`;
   });
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -2663,6 +2703,7 @@ function actualizarTotalTicket(){
   if(el) el.textContent = `Total del ticket: $${total.toFixed(2)}`;
 }
 function submitGastoTicket(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
   const checkin = getCheckin();
   const tiendaSel = document.getElementById('ticketTienda');
   const tienda = checkin ? checkin.tienda : tiendaSel.value;
@@ -4734,11 +4775,19 @@ function previewNewsFoto(){
   const img = document.getElementById('newsFotoPrev');
   const file = input.files[0];
   if(!file) return;
+  window._fotosPendientes.add('newsFoto');
   const reader = new FileReader();
-  reader.onload = e => { img.src = e.target.result; img.classList.remove('hidden'); input.dataset.b64 = e.target.result; };
+  reader.onload = (e) => {
+    comprimirImagen(e.target.result, 1280, 0.72).then((comprimida) => {
+      img.src = comprimida; img.classList.remove('hidden'); input.dataset.b64 = comprimida;
+      window._fotosPendientes.delete('newsFoto');
+    });
+  };
+  reader.onerror = () => window._fotosPendientes.delete('newsFoto');
   reader.readAsDataURL(file);
 }
 function publicarNoticia(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
   const texto = document.getElementById('newsTexto').value.trim();
   const fotoInput = document.getElementById('newsFoto');
   const foto = fotoInput.dataset.b64 || '';
