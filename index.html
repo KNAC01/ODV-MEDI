@@ -291,8 +291,8 @@
 
     /* modales casi de pantalla completa */
     .modal-bg{padding:0; align-items:stretch;}
-    .modal{max-width:100%; width:100%; min-height:100%; border-radius:0; padding:18px 16px 24px;}
-    .modal-actions{position:sticky; bottom:-24px; background:var(--surface); margin:18px -16px -24px; padding:12px 16px; border-top:1px solid var(--line);}
+    .modal{max-width:100%; width:100%; min-height:100%; min-height:100dvh; border-radius:0; padding:18px 16px 24px; display:flex; flex-direction:column;}
+    .modal-actions{background:var(--surface); margin:18px -16px -24px; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line);}
 
     /* tablas: siguen con scroll horizontal, pero con más aire para el dedo */
     table{font-size:12.5px;}
@@ -320,7 +320,7 @@
     </div>
     <button class="btn btn-brand btn-block" onclick="doLogin()">Entrar</button>
     <div class="error-msg" id="loginError"></div>
-    <div class="login-hint">Prototipo local — cada dispositivo guarda su propia información. La sincronización entre todo el equipo se conecta en la siguiente fase (ver aviso dentro de la app).</div>
+    <div class="login-hint">Tu información se guarda en este dispositivo. La sincronización en vivo entre todo el equipo llega en la siguiente fase.</div>
   </div>
 </div>
 
@@ -350,7 +350,7 @@
 
   <main>
     <div class="banner">
-      <b>Prototipo v1 (local):</b> este HTML corre en tu navegador/celular sin servidor todavía. Cada captura se guarda solo en <i>este</i> dispositivo (localStorage) y las cuotas son de <b>Agosto 2026</b> (LA COMER, WALMART, SAMS, HEB) tomadas de tu archivo real de ODV. Cuando valides el flujo, el siguiente paso es conectar un backend (Google Sheets o Firebase) para que todo el equipo comparta la misma información en vivo, y sumar las alertas de venta cero / inventario fantasma con tu data de BI.
+      <b>Cómo funciona por ahora:</b> cada captura se guarda en <i>este</i> dispositivo, y las cuotas son de <b>Agosto 2026</b> (LA COMER, WALMART, SAMS, HEB) tomadas de tu archivo real de ODV. El siguiente paso es conectar todo esto con Power Apps para que todo el equipo comparta la misma información en vivo.
     </div>
 
     <!-- ---------- INICIO ---------- -->
@@ -381,12 +381,17 @@
         </label>
         <div id="objCadenaSingleWrap"><select id="cadenaSelect"><option value="">Todas</option></select></div>
         <div id="objCadenaMultiWrap" class="hidden" style="display:flex; gap:5px; flex-wrap:wrap; max-width:420px;"></div>
-        <label>Supervisor(a):</label>
-        <select id="objSupervisor"><option value="">Todos</option></select>
+        <span id="filtroSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
+        <select id="objSupervisor"><option value="">Todos</option></select></span>
         <label>Embajador(a):</label>
         <select id="objEmbajador"><option value="">Todos</option></select>
         <label>Buscar tienda:</label>
-        <input type="text" id="tiendaSearch" placeholder="Nombre de tienda...">
+        <span style="display:inline-flex; gap:5px; align-items:center;">
+          <input type="text" id="tiendaSearch" list="tiendaSearchList" placeholder="Escribe para buscar..." onkeydown="if(event.key==='Enter'){ event.preventDefault(); agregarTiendaFiltro(); }">
+          <datalist id="tiendaSearchList"></datalist>
+          <button type="button" class="btn btn-ghost" style="padding:8px 10px;" onclick="agregarTiendaFiltro()" title="Agregar tienda a la selección">+ Agregar</button>
+        </span>
+        <div id="tiendaFiltroChips" style="display:flex; gap:5px; flex-wrap:wrap; max-width:100%;"></div>
         <button class="btn btn-brand" onclick="renderPlaneacion()">Filtrar</button>
         <button class="btn btn-ghost" onclick="restablecerFiltrosObjetivos()">↺ Restablecer filtros</button>
       </div>
@@ -446,6 +451,7 @@
         </div>
       </div>
 
+      <div id="tareaAsignarSeccion">
       <h2 class="section-title" style="margin-top:22px;">Tareas personales</h2>
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Asigna tareas puntuales a una persona (no es obligatorio, pero le aparece en sus Prioridades). Se quedan abiertas — pueden llevar varias retroalimentaciones — hasta que se marquen como finalizadas con una conclusión.</p>
       <div class="card" style="margin-bottom:18px;">
@@ -458,6 +464,8 @@
         </div>
         <button class="btn btn-brand" style="margin-top:10px;" onclick="agregarTarea()">+ Agregar nueva</button>
       </div>
+      </div>
+      <h2 class="section-title" id="tareasMisTitulo" style="margin-top:22px; display:none;">Mis tareas</h2>
       <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
         <div id="tareasResumenBreve" style="font-size:12px; color:var(--ink-soft);"></div>
         <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarTareas()">⬇ Excel</button>
@@ -924,7 +932,7 @@
     <section class="view" id="view-vacaciones">
       <div class="bloque-tag bloque-retro">Retroalimentación · completo</div>
       <h2 class="section-title">Vacaciones</h2>
-      <p style="font-size:11.5px; color:var(--ink-soft); margin:-6px 0 14px;">Saldo de ejemplo: 12 días para todos (dato de prototipo — cuando me pases el archivo real de saldos lo conectamos).</p>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:-6px 0 14px;">Saldo de ejemplo: 12 días para todos (dato provisional — pendiente de conectar el archivo real de saldos).</p>
       <div class="row" style="margin-bottom:16px;">
         <div class="card kpi"><div class="label">Mi saldo total</div><div class="value" id="vacSaldoTotal">12</div></div>
         <div class="card kpi warn"><div class="label">Tomados (aprobados)</div><div class="value" id="vacTomados">0</div></div>
@@ -976,7 +984,7 @@
     </section>
   </main>
 
-  <footer class="appfoot">DELICO . ODV · #modoMEDI · Prototipo interno · datos locales al dispositivo</footer>
+  <footer class="appfoot">DELICO . ODV · #modoMEDI · datos guardados en este dispositivo</footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1023,12 +1031,12 @@ function doLogin(){
   const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === u.toLowerCase() && x.password === p);
   if(!found){ errBox.textContent = 'Usuario o contraseña incorrectos.'; return; }
   currentUser = found;
-  sessionStorage.setItem('delico_odv_session', JSON.stringify(found));
+  localStorage.setItem('delico_odv_session', JSON.stringify(found));
   errBox.textContent = '';
   boot();
 }
 function doLogout(){
-  sessionStorage.removeItem('delico_odv_session');
+  localStorage.removeItem('delico_odv_session');
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -1084,6 +1092,15 @@ function boot(keepView){
   const vista = getVista();
   document.getElementById('vistaBtnEscritorio').classList.toggle('active', vista==='escritorio');
   document.getElementById('vistaBtnCelular').classList.toggle('active', vista==='celular');
+
+  // secciones administrativas de Objetivos: ocultas para el perfil Embajador
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const supWrap = document.getElementById('filtroSupervisorWrap');
+  if(supWrap) supWrap.style.display = esEmbajador ? 'none' : '';
+  const tareaAsignar = document.getElementById('tareaAsignarSeccion');
+  if(tareaAsignar) tareaAsignar.style.display = esEmbajador ? 'none' : '';
+  const tareasMisTitulo = document.getElementById('tareasMisTitulo');
+  if(tareasMisTitulo) tareasMisTitulo.style.display = esEmbajador ? '' : 'none';
 
   const nav = document.getElementById('tabsNav');
   nav.innerHTML = '';
@@ -1212,11 +1229,43 @@ function toggleObjFiltroSemana(semana){
   renderObjSemanaChips();
   renderPlaneacion();
 }
+/* ---------- Filtro de tienda en Objetivos: autocompletar + selección de una o varias ---------- */
+let objFiltroTiendas = new Set(); // vacío = sin selección puntual (usa el texto escrito como filtro libre)
+function poblarTiendaSearchList(){
+  const dl = document.getElementById('tiendaSearchList');
+  if(!dl) return;
+  const nombres = [...new Set(storesScopeParaMi().map(s=>s.tienda))].sort();
+  dl.innerHTML = nombres.map(n=>`<option value="${n}"></option>`).join('');
+}
+function agregarTiendaFiltro(){
+  const input = document.getElementById('tiendaSearch');
+  if(!input) return;
+  const val = input.value.trim();
+  if(!val) return;
+  const match = storesScopeParaMi().find(s=> s.tienda.toLowerCase()===val.toLowerCase());
+  if(!match){ toast('Elige una tienda de la lista de sugerencias'); return; }
+  objFiltroTiendas.add(match.tienda);
+  input.value = '';
+  renderTiendaFiltroChips();
+  renderPlaneacion();
+}
+function quitarTiendaFiltro(nombre){
+  objFiltroTiendas.delete(nombre);
+  renderTiendaFiltroChips();
+  renderPlaneacion();
+}
+function renderTiendaFiltroChips(){
+  const el = document.getElementById('tiendaFiltroChips');
+  if(!el) return;
+  el.innerHTML = [...objFiltroTiendas].map(n=>`<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; background:var(--brand-dark); color:#fff;">${n}<button type="button" onclick="quitarTiendaFiltro('${n.replace(/'/g,"\\'")}')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:13px; line-height:1; padding:2px;">✕</button></span>`).join('');
+}
 function restablecerFiltrosObjetivos(){
   document.getElementById('cadenaSelect').value = '';
   document.getElementById('objSupervisor').value = '';
   document.getElementById('objEmbajador').value = '';
   document.getElementById('tiendaSearch').value = '';
+  objFiltroTiendas.clear();
+  renderTiendaFiltroChips();
   objFiltroSemanas.clear();
   renderObjSemanaChips();
   objFiltroCadenas.clear();
@@ -1547,8 +1596,8 @@ function submitPrioridadesCaptura(){
 
 /* ---------- CHECK-IN ---------- */
 const CHECKIN_KEY = 'delico_odv_checkin';
-function getCheckin(){ return JSON.parse(sessionStorage.getItem(CHECKIN_KEY) || 'null'); }
-function setCheckin(v){ v ? sessionStorage.setItem(CHECKIN_KEY, JSON.stringify(v)) : sessionStorage.removeItem(CHECKIN_KEY); }
+function getCheckin(){ return JSON.parse(localStorage.getItem(CHECKIN_KEY) || 'null'); }
+function setCheckin(v){ v ? localStorage.setItem(CHECKIN_KEY, JSON.stringify(v)) : localStorage.removeItem(CHECKIN_KEY); }
 function misTiendasHoy(){
   const hoy = todayISO();
   return getRutas().filter(a => a.usuario===currentUser.usuario && a.tipo==='visita' && a.tienda && a.fecha>=hoy).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,10);
@@ -3887,7 +3936,8 @@ function storesScopeObjetivos(){
   }
   if(sup) scope = scope.filter(s=> mismaPersona(supervisorDeTienda(s), sup));
   if(emb) scope = scope.filter(s=> s.sector===emb);
-  if(q) scope = scope.filter(s=> s.tienda.toLowerCase().includes(q));
+  if(objFiltroTiendas.size) scope = scope.filter(s=> objFiltroTiendas.has(s.tienda));
+  else if(q) scope = scope.filter(s=> s.tienda.toLowerCase().includes(q));
   return scope;
 }
 function nombresSupervisorUnicos(){
@@ -3908,6 +3958,8 @@ function poblarFiltrosObjetivos(){
   }
   renderObjSemanaChips();
   renderObjCadenaChips();
+  poblarTiendaSearchList();
+  renderTiendaFiltroChips();
 }
 function visitasPorTienda(storesScope){
   const hoy = new Date();
@@ -5328,7 +5380,7 @@ function exportRutaExcel(){
 
 /* ---------- Sesión persistente ---------- */
 (function initSession(){
-  const raw = sessionStorage.getItem('delico_odv_session');
+  const raw = localStorage.getItem('delico_odv_session');
   if(raw){ currentUser = JSON.parse(raw); boot(); }
 })();
 document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
