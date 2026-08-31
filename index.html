@@ -147,8 +147,11 @@
   .mdi-tile .t{font-weight:700; font-size:15px; margin-bottom:3px;}
   .mdi-tile .d{font-size:12.5px; color:var(--ink-soft); line-height:1.4;}
 
-  .modal-bg{display:none; position:fixed; inset:0; background:rgba(36,27,20,.45); z-index:100; align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 16px;}
+  .modal-bg{display:none; position:fixed; inset:0; background:rgba(36,27,20,.45); z-index:100; align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:30px 16px;}
   .modal-bg.open{display:flex;}
+  /* Con el modal abierto, la página de fondo queda fija (no se puede scrollear a la vez que el modal).
+     Esto evita el bug de iOS/Android donde el fondo "se transparenta" al hacer scroll dentro del modal. */
+  body.modal-lock{position:fixed; left:0; right:0; overflow:hidden; width:100%;}
   .modal{background:var(--surface); border-radius:16px; max-width:560px; width:100%; padding:24px; box-shadow:var(--shadow);}
   .modal h3{margin:0 0 4px; color:var(--brand-dark);}
   .modal p.d{margin:0 0 18px; color:var(--ink-soft); font-size:13.5px;}
@@ -5455,6 +5458,26 @@ function iniciarApp(){
 }
 iniciarApp();
 document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+/* ---------- Bloquea el scroll de fondo cuando hay un modal abierto (fix de "transparencia" al escrolear en celular) ---------- */
+(function(){
+  const modalBg = document.getElementById('modalBg');
+  let scrollGuardado = 0;
+  new MutationObserver(() => {
+    const abierto = modalBg.classList.contains('open');
+    const yaBloqueado = document.body.classList.contains('modal-lock');
+    if(abierto && !yaBloqueado){
+      scrollGuardado = window.scrollY || window.pageYOffset || 0;
+      document.body.style.top = (-scrollGuardado) + 'px';
+      document.body.classList.add('modal-lock');
+      modalBg.scrollTop = 0;
+    } else if(!abierto && yaBloqueado){
+      document.body.classList.remove('modal-lock');
+      document.body.style.top = '';
+      window.scrollTo(0, scrollGuardado);
+    }
+  }).observe(modalBg, {attributes:true, attributeFilter:['class']});
+})();
 
 /* ---------- PWA: registrar service worker para poder instalar la app en el celular ---------- */
 if('serviceWorker' in navigator){
