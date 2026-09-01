@@ -384,9 +384,18 @@
     <section class="view" id="view-planeacion">
       <div class="bloque-tag bloque-planeacion">Planeación</div>
       <h2 class="section-title">Objetivos</h2>
+      <div class="controls-bar" style="align-items:center; background:var(--brand-soft); border-radius:10px; margin-bottom:8px;">
+        <label style="font-weight:700;">Meta a comparar:</label>
+        <div id="objMetaTipoWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <span id="objMetaTipoNota" style="font-size:11px; color:var(--ink-soft);"></span>
+      </div>
       <div class="controls-bar" style="align-items:flex-start;">
-        <label>YTD hasta:</label>
-        <select id="mesSelect"></select>
+        <label>Mes(es):</label>
+        <div id="objMesWrap" style="display:flex; gap:5px; flex-wrap:wrap; max-width:320px;"></div>
+        <span style="display:flex; gap:5px;">
+          <button type="button" class="btn btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="objMesTodo()">Todo</button>
+          <button type="button" class="btn btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="objMesNinguno()">Ninguno</button>
+        </span>
         <label>Semana(s):</label>
         <div id="objSemanaWrap" style="display:flex; gap:5px; flex-wrap:wrap; max-width:320px;"></div>
         <label style="display:flex; align-items:center; gap:5px;">
@@ -495,7 +504,7 @@
       <p id="planeacionScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:-8px 0 10px;"></p>
       <div class="table-scroll">
         <table>
-          <thead><tr id="storesBodyHead"><th>Cadena</th><th># Tda</th><th>Tienda</th><th class="num">SKUs</th><th class="num">Cuota (pzas)</th><th class="num">Cuota ($)</th></tr></thead>
+          <thead><tr id="storesBodyHead"><th>Cadena</th><th># Tda</th><th>Tienda</th><th>Ruta (sept.)</th><th class="num">SKUs</th><th class="num">Cuota (pzas)</th><th class="num">Cuota ($)</th></tr></thead>
           <tbody id="storesBody"></tbody>
         </table>
       </div>
@@ -577,6 +586,8 @@
         <button class="mdi-tile" onclick="abrirCargaAnaquel()"><div class="icon">📐</div><div class="t">Carga de anaquel</div><div class="d">Frentes y profundidad por producto — como tabla, con foto de cada SKU.</div></button>
         <button class="mdi-tile" onclick="openForm('foto')"><div class="icon">📷</div><div class="t">Categoría</div><div class="d">Tipo de exhibición (refri, barco, búnker, otro) y foto.</div></button>
         <button class="mdi-tile hidden" id="tileOnboarding" onclick="abrirOnboarding()"><div class="icon">🧭</div><div class="t">Onboarding</div><div class="d">Checklist completo de onboarding — lo llenan juntas Supervisor y la persona nueva.</div></button>
+        <button class="mdi-tile hidden" id="tileAuditoria" onclick="showView('auditoria')"><div class="icon">🕵️</div><div class="t">Registrar supervisión</div><div class="d">Evalúa conocimiento de ruta/tienda, comunicación, proactividad y ejecución MEDI.</div></button>
+        <button class="mdi-tile hidden" id="tileEval360" onclick="showView('eval360')"><div class="icon">⭐</div><div class="t">Evaluación 360°</div><div class="d">Uniforme, higiene, herramientas, charola y lineamientos de marca — resultado al momento.</div></button>
       </div>
 
       <h2 class="section-title">Mis últimas capturas</h2>
@@ -607,6 +618,39 @@
       <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Evaluaciones registradas</h3>
       <div class="table-scroll">
         <table><thead><tr id="audBodyHead"><th>Persona</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Promedio</th><th>Detalle</th><th>Pendiente</th></tr></thead><tbody id="audBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ---------- EVALUACIÓN 360° DEMOSTRADORAS (Supervisor+ — se abre desde el tile de Captura MEDI) ---------- -->
+    <section class="view" id="view-eval360">
+      <div class="bloque-tag bloque-ejecucion">Ejecución</div>
+      <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="showView('captura')">← Volver a Captura MEDI</button>
+      <h2 class="section-title">Evaluación 360° — Demostradoras</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Uniforme e imagen (20%) · Seguridad e higiene (15%) · Herramientas (15%) · Presentación de charola (25%) · Lineamientos de marca (25%). El resultado se calcula al momento conforme calificas.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="form-grid">
+          <div class="field"><label>Demostradora</label><select id="ev360Persona"></select></div>
+          <div class="field"><label>Bodega / Tienda</label><select id="ev360Tienda"><option value="">Selecciona tienda...</option></select></div>
+          <div class="field"><label>Fecha</label><input type="date" id="ev360Fecha"></div>
+        </div>
+        <div id="ev360Categorias" style="display:flex; flex-direction:column; gap:16px; margin-top:14px;"></div>
+        <div class="card" id="ev360ResultadoBox" style="margin-top:14px; background:var(--bg-soft, #f7f7f5); border:1px dashed var(--line);">
+          <div style="font-size:13px; font-weight:700; color:var(--brand-dark); margin-bottom:8px;">Resultado (al momento)</div>
+          <div id="ev360ResultadoDetalle" style="font-size:12px; color:var(--ink-soft); line-height:1.7;"></div>
+          <div id="ev360ResultadoTotal" style="font-size:20px; font-weight:800; margin-top:6px;"></div>
+        </div>
+        <div class="field full" style="margin-top:10px;"><label>Observaciones</label><textarea id="ev360Observaciones" rows="2"></textarea></div>
+        <div class="field full" style="margin-top:10px;"><label>Compromiso / plan de acción</label><textarea id="ev360Compromiso" rows="2" placeholder="Qué se compromete a mejorar la demostradora antes de la próxima visita..."></textarea></div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="guardarEval360()">Guardar evaluación</button>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Evaluaciones registradas</h3>
+      <div class="table-scroll">
+        <table><thead><tr id="ev360BodyHead"><th>Demostradora</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Total</th><th>Clasificación</th><th>Detalle</th></tr></thead><tbody id="ev360Body"></tbody></table>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:20px 0 8px;">Elegibilidad trimestral (reconocimiento)</h3>
+      <p style="font-size:12px; color:var(--ink-soft); margin:-4px 0 10px;">Requiere 3 evaluaciones en el trimestre, promedio trimestral ≥ 90/100 y ningún mes por debajo de 80/100. Empates: prioriza Lineamientos de Marca y después Presentación de Charola.</p>
+      <div class="table-scroll">
+        <table><thead><tr><th>Demostradora</th><th>Trimestre</th><th># Evaluaciones</th><th>Promedio</th><th>Mín. mensual</th><th>Elegible</th></tr></thead><tbody id="ev360TrimBody"></tbody></table>
       </div>
     </section>
 
@@ -1142,7 +1186,8 @@ function boot(keepView){
   const targetKey = (prevKey && tabs.some(t=>t.key===prevKey)) ? prevKey : tabs[0].key;
   showView(targetKey);
 
-  populateMesSelect();
+  renderObjMesChips();
+  renderObjMetaTipoChips();
   populateCadenaSelect();
   renderPlaneacion();
   renderTareas();
@@ -1180,17 +1225,54 @@ function showView(key, btnEl){
   if(key==='kpis') renderKpis();
   if(key==='distribucion') renderDistribucion();
   if(key==='auditoria') renderAuditoria();
+  if(key==='eval360') renderEval360();
   if(key==='catalogo') renderCatalogo();
 }
 
 /* ---------- PLANEACIÓN ---------- */
-function populateMesSelect(){
-  const sel = document.getElementById('mesSelect');
-  sel.innerHTML = '';
-  APP_DATA.meses_disponibles.forEach(m=>{
-    const o = document.createElement('option'); o.value = m; o.textContent = 'YTD - ' + m + ' 2026'; sel.appendChild(o);
-  });
-  sel.onchange = renderPlaneacion;
+/* ---------- Filtro de MES en Objetivos: selección múltiple (chips) con Todo/Ninguno ---------- */
+let objFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
+function mesesDisponiblesObj(){ return APP_DATA.meses_disponibles || []; }
+function asegurarObjFiltroMesesInicial(){
+  if(objFiltroMeses === null) objFiltroMeses = new Set(mesesDisponiblesObj());
+}
+function objMesTodo(){ objFiltroMeses = new Set(mesesDisponiblesObj()); renderObjMesChips(); renderObjSemanaChips(); renderPlaneacion(); }
+function objMesNinguno(){ objFiltroMeses = new Set(); renderObjMesChips(); renderObjSemanaChips(); renderPlaneacion(); }
+function toggleObjFiltroMes(m){
+  asegurarObjFiltroMesesInicial();
+  if(objFiltroMeses.has(m)) objFiltroMeses.delete(m); else objFiltroMeses.add(m);
+  renderObjMesChips(); renderObjSemanaChips(); renderPlaneacion();
+}
+function renderObjMesChips(){
+  const el = document.getElementById('objMesWrap');
+  if(!el) return;
+  asegurarObjFiltroMesesInicial();
+  const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  el.innerHTML = mesesDisponiblesObj().map(m=> chip(m, objFiltroMeses.has(m), `toggleObjFiltroMes('${m}')`)).join('');
+}
+/* semanas (numero ISO) que pertenecen a los meses actualmente elegidos, segun bi_meta.semanas_cuota_<mes>_2026 */
+function semanasDeMesesSeleccionados(){
+  asegurarObjFiltroMesesInicial();
+  const set = new Set();
+  [...objFiltroMeses].forEach(m => semanasCuotaMes(m).forEach(s=>set.add(s)));
+  return set;
+}
+/* ---------- Toggle de META en Objetivos: Cuota (para sueldo) vs Escalón Bono ---------- */
+let objMetaTipo = 'cuota'; // 'cuota' | 'escalon'
+function metaUni(row){ return objMetaTipo==='escalon' ? (row.escalon_uni ?? null) : (row.cuota_uni ?? 0); }
+function metaPesos(row){ return objMetaTipo==='escalon' ? (row.escalon_pesos ?? null) : (row.cuota_pesos ?? 0); }
+function sumMetaUni(rows){ return rows.reduce((a,r)=>a+(metaUni(r)||0),0); }
+function sumMetaPesos(rows){ return rows.reduce((a,r)=>a+(metaPesos(r)||0),0); }
+function setObjMetaTipo(t){ objMetaTipo = t; renderObjMetaTipoChips(); renderPlaneacion(); }
+function renderObjMetaTipoChips(){
+  const el = document.getElementById('objMetaTipoWrap');
+  if(!el) return;
+  const chip = (label, val, activo) => `<button type="button" onclick="setObjMetaTipo('${val}')" style="padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  el.innerHTML = chip('Cuota (para sueldo)', 'cuota', objMetaTipo==='cuota') + chip('Escalón Bono', 'escalon', objMetaTipo==='escalon');
+  const nota = document.getElementById('objMetaTipoNota');
+  if(nota) nota.textContent = objMetaTipo==='escalon'
+    ? 'Comparando contra la meta más alta que activa el Bono "Valor al Esfuerzo". Solo existe para los meses/semanas donde ya se cargó el escalón (por ahora, septiembre).'
+    : 'Comparando contra la cuota base (la que el equipo necesita cubrir para que sea rentable/sueldo).';
 }
 function populateCadenaSelect(){
   const sel = document.getElementById('cadenaSelect');
@@ -1232,7 +1314,10 @@ function getObjSemanasSeleccionadas(){ return [...objFiltroSemanas].map(String).
 function renderObjSemanaChips(){
   const el = document.getElementById('objSemanaWrap');
   if(!el) return;
-  const semanas = [...new Set((APP_DATA.cumplimiento_semanal||[]).map(c=>c.semana))].sort((a,b)=>a-b);
+  const semanasMes = semanasDeMesesSeleccionados();
+  const semanas = [...new Set((APP_DATA.cumplimiento_semanal||[]).map(c=>c.semana))].filter(s=>semanasMes.has(s)).sort((a,b)=>a-b);
+  // si el mes seleccionado cambio y una semana marcada ya no aplica, se destilra sola
+  [...objFiltroSemanas].forEach(s=>{ if(!semanasMes.has(s)) objFiltroSemanas.delete(s); });
   const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
   let html = chip('Todas (mes a la fecha)', objFiltroSemanas.size===0, 'toggleObjFiltroSemana(null)');
   html += semanas.map(s=> chip('Sem '+s, objFiltroSemanas.has(s), `toggleObjFiltroSemana(${s})`)).join('');
@@ -1283,12 +1368,16 @@ function restablecerFiltrosObjetivos(){
   objFiltroTiendas.clear();
   renderTiendaFiltroChips();
   objFiltroSemanas.clear();
+  objFiltroMeses = new Set(mesesDisponiblesObj());
+  renderObjMesChips();
   renderObjSemanaChips();
   objFiltroCadenas.clear();
   objCadenaMultiActivo = false;
   document.getElementById('objCadenaMultiToggle').checked = false;
   document.getElementById('objCadenaSingleWrap').classList.remove('hidden');
   document.getElementById('objCadenaMultiWrap').classList.add('hidden');
+  objMetaTipo = 'cuota';
+  renderObjMetaTipoChips();
   toast('Filtros de Objetivos restablecidos');
   renderPlaneacion();
 }
@@ -1306,28 +1395,30 @@ function renderPlaneacion(){
   window.render_storesBody = function(){
     const rows2 = window._storesBodyRows || [];
     const head = document.getElementById('storesBodyHead');
-    if(head) head.innerHTML = `${colHead('storesBody','cadena','Cadena',false)}${colHead('storesBody','num_tienda','# Tda',false)}${colHead('storesBody','tienda','Tienda',false)}${colHead('storesBody','skus','SKUs',true)}${colHead('storesBody','cuota_uds','Cuota (pzas)',true)}${colHead('storesBody','cuota_pesos','Cuota ($)',true)}`;
+    if(head) head.innerHTML = `${colHead('storesBody','cadena','Cadena',false)}${colHead('storesBody','num_tienda','# Tda',false)}${colHead('storesBody','tienda','Tienda',false)}<th>Ruta (sept.)</th>${colHead('storesBody','skus','SKUs',true)}${colHead('storesBody','cuota_uds','Cuota (pzas)',true)}${colHead('storesBody','cuota_pesos','Cuota ($)',true)}`;
     const filas = ordenarFilas('storesBody', rows2, 'cuota_pesos');
     const tbody = document.getElementById('storesBody');
-    tbody.innerHTML = filas.map(s => `<tr><td>${s.cadena}</td><td>${s.num_tienda ?? ''}</td><td>${s.tienda}</td><td class="num">${s.skus}</td><td class="num">${fmtNum(s.cuota_uds)}</td><td class="num">${fmtMoney(s.cuota_pesos)}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-state">Sin tiendas para este filtro.</td></tr>`;
+    tbody.innerHTML = filas.map(s => {
+      const personas = personasDeTienda(s.cadena, s.num_tienda);
+      const rutaTxt = personas.length ? personas.map(p=>nombreCorto(p.nombre)).join(' + ') : '—';
+      const compartida = personas.length>1;
+      return `<tr><td>${s.cadena}</td><td>${s.num_tienda ?? ''}</td><td>${s.tienda}</td><td style="font-size:11.5px; ${compartida?'font-weight:700; color:var(--info);':'color:var(--ink-soft);'}">${compartida?'👥 ':''}${rutaTxt}</td><td class="num">${s.skus}</td><td class="num">${fmtNum(s.cuota_uds)}</td><td class="num">${fmtMoney(s.cuota_pesos)}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty-state">Sin tiendas para este filtro.</td></tr>`;
   };
   window.render_storesBody();
 
   const fSemanas = getObjSemanasSeleccionadas();
+  const semanasEfectivas = fSemanas.length ? fSemanas : [...semanasDeMesesSeleccionados()].map(String);
+  const metaLabel = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
   let totalUds, totalPesos;
-  if(fSemanas.length){
+  {
     const rowKeysSem = new Set(rows.map(s=>s.cadena+'|'+s.num_tienda));
-    const semRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>rowKeysSem.has(c.cadena+'|'+c.num_tienda) && fSemanas.includes(String(c.semana)));
-    totalUds = semRows.reduce((a,r)=>a+r.cuota_uni,0);
-    totalPesos = semRows.reduce((a,r)=>a+r.cuota_pesos,0);
-    const etiquetaSem = 'Semana'+(fSemanas.length>1?'s':'')+' '+fSemanas.join(', ');
-    document.getElementById('kpiUdsLabel').textContent = `Cuota ${etiquetaSem} (piezas)`;
-    document.getElementById('kpiPesosLabel').textContent = `Cuota ${etiquetaSem} ($)`;
-  } else {
-    totalUds = rows.reduce((a,s)=>a+s.cuota_uds,0);
-    totalPesos = rows.reduce((a,s)=>a+s.cuota_pesos,0);
-    document.getElementById('kpiUdsLabel').textContent = 'Cuota del periodo (piezas)';
-    document.getElementById('kpiPesosLabel').textContent = 'Cuota del periodo ($)';
+    const semRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>rowKeysSem.has(c.cadena+'|'+c.num_tienda) && semanasEfectivas.includes(String(c.semana)));
+    totalUds = sumMetaUni(semRows);
+    totalPesos = sumMetaPesos(semRows);
+    const etiquetaSem = semanasEfectivas.length ? ('Semana'+(semanasEfectivas.length>1?'s':'')+' '+semanasEfectivas.join(', ')) : 'sin semanas en el periodo elegido';
+    document.getElementById('kpiUdsLabel').textContent = `${metaLabel} ${etiquetaSem} (piezas)`;
+    document.getElementById('kpiPesosLabel').textContent = `${metaLabel} ${etiquetaSem} ($)`;
   }
   document.getElementById('kpiUds').innerHTML = fmtNum(totalUds) + ' <small>pzas</small>';
   document.getElementById('kpiPesos').textContent = fmtMoney(totalPesos);
@@ -2228,6 +2319,10 @@ function actualizarTilesMEDI(){
   }
   const tileOnb = document.getElementById('tileOnboarding');
   if(tileOnb) tileOnb.classList.toggle('hidden', currentUser.perfil==='Embajador');
+  const tileAud = document.getElementById('tileAuditoria');
+  if(tileAud) tileAud.classList.toggle('hidden', currentUser.perfil==='Embajador');
+  const tileEv360 = document.getElementById('tileEval360');
+  if(tileEv360) tileEv360.classList.toggle('hidden', currentUser.perfil==='Embajador');
   const hint = document.getElementById('mercadeoOnboardingHint');
   if(hint) hint.textContent = '';
 }
@@ -3923,12 +4018,220 @@ function renderAuditoria(){
   window.render_audBody();
 }
 
+/* ---------- EVALUACIÓN 360° DEMOSTRADORAS ---------- */
+const EVAL360_KEY = 'delico_odv_eval360_v1';
+const EVAL360_CATEGORIAS = [
+  {key:'uniforme',      label:'Uniforme e imagen',        peso:20, items:['U1 Uniforme completo','U2 Uniforme limpio','U3 Imagen personal']},
+  {key:'seguridad',     label:'Seguridad e higiene',      peso:15, items:['S1 Material seguridad','S3 Buenas prácticas higiene','S4 Estación limpia']},
+  {key:'herramientas',  label:'Herramientas',             peso:15, items:['H1 Herramientas completas','H3 Utensilios limpios']},
+  {key:'charola',       label:'Presentación de charola',  peso:25, items:['C1 Charola limpia/atractiva','C2 Producto presentado','C3 Porciones uniformes']},
+  {key:'marca',         label:'Lineamientos de marca',    peso:25, items:['M1 Montaje','M4 Actitud consumidor','M5 Respeta promociones/recetas']},
+];
+const EVAL360_ESCALA = [
+  {v:5, label:'Excelente',   desc:'Cumple completamente y destaca en la ejecución.'},
+  {v:4, label:'Muy bien',    desc:'Cumple; presenta únicamente detalles menores.'},
+  {v:3, label:'Aceptable',   desc:'Cumple parcialmente; requiere algunas mejoras.'},
+  {v:2, label:'Deficiente',  desc:'Presenta varios incumplimientos.'},
+  {v:1, label:'No cumple',   desc:'Incumplimiento evidente o ausencia del requisito.'},
+];
+const EVAL360_PARAMS = {promedioMinimo:90, calMensualMinima:80, evalsPorTrimestre:3};
+function getEval360(){ return JSON.parse(localStorage.getItem(EVAL360_KEY) || '[]'); }
+function saveEval360(arr){ localStorage.setItem(EVAL360_KEY, JSON.stringify(arr)); }
+function clasificacionEval360(total){
+  if(total===null || total===undefined) return null;
+  if(total>=95) return 'Ejecución sobresaliente';
+  if(total>=90) return 'Excelente';
+  if(total>=80) return 'Muy buena';
+  if(total>=70) return 'Cumple con oportunidades';
+  return 'Requiere seguimiento';
+}
+function calcularEval360(itemScores){
+  const subtotales = {};
+  let total = 0, completo = true;
+  EVAL360_CATEGORIAS.forEach(cat=>{
+    const vals = cat.items.map(it=>itemScores[it]).filter(v=>v!==null && v!==undefined && v!=='');
+    if(vals.length < cat.items.length){ subtotales[cat.key] = null; completo = false; return; }
+    const avg = vals.reduce((s,v)=>s+Number(v),0) / vals.length;
+    const sub = avg/5*cat.peso;
+    subtotales[cat.key] = sub;
+    total += sub;
+  });
+  return {subtotales, total: completo ? total : null, clasificacion: completo ? clasificacionEval360(total) : null};
+}
+function personasEvaluablesEval360(){ return personasEvaluablesPorMi(); }
+function poblarEval360Selects(){
+  const perSel = document.getElementById('ev360Persona');
+  if(!perSel.options.length){
+    personasEvaluablesEval360().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; perSel.appendChild(o);
+    });
+  }
+  const tiendaSel = document.getElementById('ev360Tienda');
+  if(tiendaSel.options.length<=1){
+    [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).forEach(s=>{
+      const o=document.createElement('option'); o.value=s.tienda; o.dataset.cadena=s.cadena; o.textContent=`${s.tienda} (${s.cadena})`; tiendaSel.appendChild(o);
+    });
+  }
+  const fechaInp = document.getElementById('ev360Fecha');
+  if(fechaInp && !fechaInp.value) fechaInp.value = todayISO();
+  const catBox = document.getElementById('ev360Categorias');
+  if(!catBox.children.length){
+    catBox.innerHTML = EVAL360_CATEGORIAS.map(cat=>`
+      <div>
+        <div style="font-size:13px; font-weight:700; color:var(--brand-dark); margin-bottom:6px;">${cat.label} <span style="font-weight:400; color:var(--ink-soft); font-size:11.5px;">(${cat.peso}%)</span></div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${cat.items.map(it=>`
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <label style="font-size:12px; min-width:190px;">${it}</label>
+              <div style="display:flex; gap:3px;">
+                ${EVAL360_ESCALA.map(e=>`<label style="cursor:pointer;" title="${e.label}: ${e.desc}"><input type="radio" name="ev360_${it.replace(/[^A-Za-z0-9]/g,'_')}" value="${e.v}" style="display:none;" onchange="actualizarEval360Resultado()"><span class="st">☆</span></label>`).join('')}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+    // pintar estrellas al click, similar patrón que Auditoría
+    catBox.querySelectorAll('input[type=radio]').forEach(inp=>{
+      inp.addEventListener('change', function(){
+        const n = parseInt(this.value);
+        this.closest('div').querySelectorAll('span.st').forEach((s,idx)=> s.textContent = idx<n ? '⭐' : '☆');
+      });
+    });
+  }
+}
+function leerItemScoresEval360(){
+  const scores = {};
+  EVAL360_CATEGORIAS.forEach(cat=>{
+    cat.items.forEach(it=>{
+      const sel = document.querySelector(`input[name="ev360_${it.replace(/[^A-Za-z0-9]/g,'_')}"]:checked`);
+      scores[it] = sel ? parseInt(sel.value) : null;
+    });
+  });
+  return scores;
+}
+function actualizarEval360Resultado(){
+  const scores = leerItemScoresEval360();
+  const r = calcularEval360(scores);
+  const detalle = document.getElementById('ev360ResultadoDetalle');
+  const totalBox = document.getElementById('ev360ResultadoTotal');
+  if(!detalle || !totalBox) return;
+  detalle.innerHTML = EVAL360_CATEGORIAS.map(cat=>{
+    const v = r.subtotales[cat.key];
+    return `${cat.label}: <b>${v===null?'—':v.toFixed(1)}</b> / ${cat.peso}`;
+  }).join(' &nbsp;·&nbsp; ');
+  if(r.total===null){
+    totalBox.innerHTML = `<span style="color:var(--ink-soft); font-size:13px; font-weight:600;">Faltan ítems por calificar...</span>`;
+  } else {
+    const color = r.total>=90 ? 'var(--good)' : (r.total>=80 ? 'var(--warn)' : 'var(--bad)');
+    totalBox.innerHTML = `<span style="color:${color};">${r.total.toFixed(1)} / 100 — ${r.clasificacion}</span>`;
+  }
+  return r;
+}
+function guardarEval360(){
+  const persona = document.getElementById('ev360Persona').value;
+  const tiendaSel = document.getElementById('ev360Tienda');
+  const tienda = tiendaSel.value;
+  const fecha = document.getElementById('ev360Fecha').value || todayISO();
+  if(!persona || !tienda){ toast('Elige demostradora y tienda'); return; }
+  const scores = leerItemScoresEval360();
+  const r = calcularEval360(scores);
+  if(r.total===null){ toast('Califica los 13 ítems para poder guardar'); return; }
+  const u = APP_DATA.equipo.find(x=>x.usuario===persona);
+  const d = new Date(fecha+'T12:00:00');
+  const anio = d.getFullYear(), mes = d.getMonth()+1, trimestre = 'T'+Math.ceil(mes/3);
+  const arr = getEval360();
+  arr.unshift({
+    id: uid(), persona_usuario: persona, persona_nombre: u?u.nombre:'',
+    tienda, cadena: tiendaSel.selectedOptions[0]?.dataset.cadena||'',
+    fecha, anio, mes, trimestre,
+    evaluador: currentUser.nombre,
+    itemScores: scores, subtotales: r.subtotales, total: r.total, clasificacion: r.clasificacion,
+    observaciones: document.getElementById('ev360Observaciones').value.trim(),
+    compromiso: document.getElementById('ev360Compromiso').value.trim(),
+  });
+  saveEval360(arr);
+  if(persona){
+    crearNotificacion(persona, `⭐ Nueva Evaluación 360° en ${tienda}: ${r.total.toFixed(1)}/100 (${r.clasificacion}).${document.getElementById('ev360Compromiso').value.trim() ? ' Compromiso: '+document.getElementById('ev360Compromiso').value.trim() : ''}`, 'eval360');
+    const sup = supervisorDePersona(u ? u.nombre : '');
+    const supU = sup ? APP_DATA.equipo.find(x=>mismaPersona(x.nombre, sup)) : null;
+    if(supU && supU.usuario !== currentUser.usuario) crearNotificacion(supU.usuario, `⭐ Se evaluó (360°) a ${nombreCorto(u.nombre)} en ${tienda}: ${r.total.toFixed(1)}/100.`, 'eval360');
+  }
+  document.getElementById('ev360Observaciones').value='';
+  document.getElementById('ev360Compromiso').value='';
+  document.querySelectorAll('#ev360Categorias input[type=radio]').forEach(inp=>inp.checked=false);
+  document.querySelectorAll('#ev360Categorias span.st').forEach(s=>s.textContent='☆');
+  actualizarEval360Resultado();
+  toast('Evaluación 360° guardada ✓');
+  renderEval360();
+}
+function calcularElegibilidadTrimestral(registros){
+  // agrupa por persona + año + trimestre
+  const grupos = {};
+  registros.forEach(r=>{
+    const k = r.persona_usuario+'|'+r.anio+'|'+r.trimestre;
+    (grupos[k] = grupos[k] || []).push(r);
+  });
+  return Object.entries(grupos).map(([k, regs])=>{
+    const [usuario, anio, trimestre] = k.split('|');
+    const nombre = regs[0].persona_nombre;
+    const nEval = regs.length;
+    const promedio = regs.reduce((s,r)=>s+r.total,0)/nEval;
+    const minMensual = Math.min(...regs.map(r=>r.total));
+    const elegible = nEval >= EVAL360_PARAMS.evalsPorTrimestre && promedio >= EVAL360_PARAMS.promedioMinimo && minMensual >= EVAL360_PARAMS.calMensualMinima;
+    // tie-break: promedio de subtotal Marca, luego Charola (para uso al ordenar la tabla)
+    const promMarca = regs.reduce((s,r)=>s+(r.subtotales.marca||0),0)/nEval;
+    const promCharola = regs.reduce((s,r)=>s+(r.subtotales.charola||0),0)/nEval;
+    return {usuario, nombre, anio, trimestre, nEval, promedio, minMensual, elegible, promMarca, promCharola};
+  }).sort((a,b)=> b.elegible-a.elegible || b.promedio-a.promedio || b.promMarca-a.promMarca || b.promCharola-a.promCharola);
+}
+function renderEval360(){
+  poblarEval360Selects();
+  actualizarEval360Resultado();
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getEval360().filter(a=> currentUser.perfil==='Embajador' ? a.persona_usuario===currentUser.usuario : visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre);
+  window._ev360BodyRows = arr;
+  window.render_ev360Body = function(){
+    const rows2 = window._ev360BodyRows || [];
+    const head = document.getElementById('ev360BodyHead');
+    if(head) head.innerHTML = `${colHead('ev360Body','persona_nombre','Demostradora',false)}${colHead('ev360Body','tienda','Tienda',false)}${colHead('ev360Body','fecha','Fecha',false)}${colHead('ev360Body','evaluador','Evaluó',false)}${colHead('ev360Body','total','Total',true)}${colHead('ev360Body','clasificacion','Clasificación',false)}<th>Detalle</th>`;
+    const filas = ordenarFilas('ev360Body', rows2, 'fecha');
+    document.getElementById('ev360Body').innerHTML = filas.map(a=>{
+      const det = EVAL360_CATEGORIAS.map(cat=>`${cat.label.split(' ')[0]}: ${a.subtotales[cat.key]!==null?a.subtotales[cat.key].toFixed(1):'—'}`).join(' · ');
+      return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${a.fecha}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.total.toFixed(1)}</td><td>${a.clasificacion}</td><td style="font-size:11px; color:var(--ink-soft);">${det}${a.observaciones?' — '+a.observaciones:''}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty-state">Sin evaluaciones registradas todavía.</td></tr>`;
+  };
+  window.render_ev360Body();
+  const elegibilidad = calcularElegibilidadTrimestral(arr);
+  document.getElementById('ev360TrimBody').innerHTML = elegibilidad.map(e=>`
+    <tr>
+      <td>${nombreCorto(e.nombre)}</td>
+      <td>${e.trimestre} ${e.anio}</td>
+      <td class="num">${e.nEval} / ${EVAL360_PARAMS.evalsPorTrimestre}</td>
+      <td class="num">${e.promedio.toFixed(1)}</td>
+      <td class="num">${e.minMensual.toFixed(1)}</td>
+      <td>${e.elegible ? '<span style="color:var(--good); font-weight:700;">✅ Elegible</span>' : '<span style="color:var(--ink-soft);">No cumple aún</span>'}</td>
+    </tr>`).join('') || `<tr><td colspan="6" class="empty-state">Aún no hay evaluaciones suficientes para calcular elegibilidad trimestral.</td></tr>`;
+}
+
 /* ---------- INFORMACIÓN PARA TIENDA (solo lectura, no confidencial) ---------- */
 /* ---------- BI REAL: cruce de cuotas, distribución y venta cero (fuente: 2.CUOTAS / 3.PIPELINE ODV / 2.SELL OUT) ---------- */
+/* ---------- Ruta de septiembre (Asignación tiendas septiembre.xlsx): permite que una tienda tenga 2+ personas asignadas ---------- */
+function personasDeTienda(cadena, numTienda){
+  return (APP_DATA.asignacion_rutas_sep||[]).filter(a => a.cadena===cadena && a.num_tienda===numTienda);
+}
+function tiendasDeRutaSeptiembre(usuario){
+  return (APP_DATA.asignacion_rutas_sep||[]).filter(a => a.usuario===usuario);
+}
 function storesScopeParaMi(){
   if(currentUser.perfil === 'Embajador'){
     const extra = tiendasExtraAprobadasParaMi();
-    return APP_DATA.stores.filter(s => s.sector === currentUser.usuario || extra.includes(s.tienda));
+    const deSector = APP_DATA.stores.filter(s => s.sector === currentUser.usuario);
+    const deRutaSep = tiendasDeRutaSeptiembre(currentUser.usuario).map(a=>
+      APP_DATA.stores.find(s=>s.cadena===a.cadena && s.num_tienda===a.num_tienda)
+    ).filter(Boolean);
+    const vistas = new Map();
+    [...deSector, ...deRutaSep].forEach(s=> vistas.set(s.cadena+'|'+s.num_tienda, s));
+    APP_DATA.stores.filter(s=>extra.includes(s.tienda)).forEach(s=> vistas.set(s.cadena+'|'+s.num_tienda, s));
+    return [...vistas.values()];
   }
   return APP_DATA.stores;
 }
@@ -4103,7 +4406,10 @@ function storesScopeObjetivos(){
     if(cadena) scope = scope.filter(s=>s.cadena===cadena);
   }
   if(sup) scope = scope.filter(s=> mismaPersona(supervisorDeTienda(s), sup));
-  if(emb) scope = scope.filter(s=> s.sector===emb);
+  if(emb){
+    const rutaKeys = new Set(tiendasDeRutaSeptiembre(emb).map(a=>a.cadena+'|'+a.num_tienda));
+    scope = scope.filter(s=> s.sector===emb || rutaKeys.has(s.cadena+'|'+s.num_tienda));
+  }
   if(objFiltroTiendas.size) scope = scope.filter(s=> objFiltroTiendas.has(s.tienda));
   else if(q) scope = scope.filter(s=> s.tienda.toLowerCase().includes(q));
   return scope;
@@ -4323,12 +4629,14 @@ function renderAnalisisObjetivos(){
   // Si hay semana seleccionada, cuota/real de "vs Cuota" salen de cumplimiento_semanal (sí tiene corte semanal);
   // "vs Año anterior" es un dato mensual (Pipeline no trae YTD por semana), así que se oculta cuando hay semana elegida.
   const keysTot = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const usaSemanal = fSemanas.length>0 || objMetaTipo==='escalon';
+  const semanasEfectivasTot = fSemanas.length ? fSemanas : [...semanasDeMesesSeleccionados()].map(String);
   let totales;
-  if(fSemanas.length){
-    const semRowsTot = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keysTot.has(c.cadena+'|'+c.num_tienda) && fSemanas.includes(String(c.semana)));
+  if(usaSemanal){
+    const semRowsTot = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keysTot.has(c.cadena+'|'+c.num_tienda) && semanasEfectivasTot.includes(String(c.semana)));
     totales = {
-      cuota_uni: semRowsTot.reduce((a,r)=>a+r.cuota_uni,0), real_uni: semRowsTot.reduce((a,r)=>a+r.real_uni,0),
-      cuota_pesos: semRowsTot.reduce((a,r)=>a+r.cuota_pesos,0), real_pesos: semRowsTot.reduce((a,r)=>a+r.real_pesos,0),
+      cuota_uni: sumMetaUni(semRowsTot), real_uni: semRowsTot.reduce((a,r)=>a+r.real_uni,0),
+      cuota_pesos: sumMetaPesos(semRowsTot), real_pesos: semRowsTot.reduce((a,r)=>a+r.real_pesos,0),
     };
   } else {
     totales = agregarPorDimension(storesScope, ()=> 'TOTAL')[0] || {cuota_uni:0,real_uni:0,cuota_pesos:0,real_pesos:0};
@@ -4348,22 +4656,24 @@ function renderAnalisisObjetivos(){
     <div><div style="font-weight:700; font-size:12px;">${label}</div><div style="font-size:11px; color:var(--ink-soft);">${meta}</div></div>
     <div style="text-align:right;"><span style="color:${delta<0?'var(--bad)':'var(--good)'}; font-weight:700; font-size:12.5px;">${delta<0?'▼':'▲'} ${pct!==null?(pct>=0?'+':'')+pct+'%':'—'}</span><br><span style="font-size:10.5px; color:var(--ink-soft);">${delta>=0?'+':''}${valor(delta)}</span></div>
   </div>`;
-  const etiquetaSemAnz = 'Semana'+(fSemanas.length>1?'s':'')+' '+fSemanaLabel;
-  const metaLabelUni = fSemanas.length ? `Meta ${etiquetaSemAnz} · ${fmtNum(totales.cuota_uni||0)} pz` : 'Meta agosto · '+fmtNum(totales.cuota_uni||0)+' pz';
-  const metaLabelPesos = fSemanas.length ? `Meta ${etiquetaSemAnz} · ${fmtMoney(totales.cuota_pesos||0)}` : 'Meta agosto · '+fmtMoney(totales.cuota_pesos||0);
+  const metaLabelTxt = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const etiquetaSemAnz = semanasEfectivasTot.length ? ('Semana'+(semanasEfectivasTot.length>1?'s':'')+' '+semanasEfectivasTot.join(', ')) : 'sin semanas en el periodo elegido';
+  const metaLabelUni = usaSemanal ? `Meta ${metaLabelTxt} ${etiquetaSemAnz} · ${fmtNum(totales.cuota_uni||0)} pz` : 'Meta agosto · '+fmtNum(totales.cuota_uni||0)+' pz';
+  const metaLabelPesos = usaSemanal ? `Meta ${metaLabelTxt} ${etiquetaSemAnz} · ${fmtMoney(totales.cuota_pesos||0)}` : 'Meta agosto · '+fmtMoney(totales.cuota_pesos||0);
   const uniEl = document.getElementById('anzUniResumen');
-  if(uniEl) uniEl.innerHTML = `<div style="font-size:22px; font-weight:800;">${fmtNum(totales.real_uni||0)} <small style="font-size:12px; font-weight:600; color:var(--ink-soft);">pzas vendidas${pctUni!==null?' · '+pctUni+'% de la cuota':''}${fSemanas.length?' ('+etiquetaSemAnz+')':''}</small></div>`
-    + renglon('vs Cuota', metaLabelUni, v=>fmtNum(v), gapUni, gapUniPct)
-    + (fSemanas.length ? `<div style="font-size:11px; color:var(--ink-soft); margin-top:6px;">vs Año anterior no disponible por semana — es un dato mensual (Pipeline). Quita el filtro de semana para verlo.</div>` : renglon('vs Año anterior (AA)', 'YTD 25 · '+fmtNum(ytd25), v=>fmtNum(v), gapAA, pctAA));
+  if(uniEl) uniEl.innerHTML = `<div style="font-size:22px; font-weight:800;">${fmtNum(totales.real_uni||0)} <small style="font-size:12px; font-weight:600; color:var(--ink-soft);">pzas vendidas${pctUni!==null?' · '+pctUni+'% de la '+metaLabelTxt.toLowerCase():''}${usaSemanal?' ('+etiquetaSemAnz+')':''}</small></div>`
+    + renglon('vs '+metaLabelTxt, metaLabelUni, v=>fmtNum(v), gapUni, gapUniPct)
+    + (usaSemanal ? `<div style="font-size:11px; color:var(--ink-soft); margin-top:6px;">vs Año anterior no disponible por semana — es un dato mensual (Pipeline). Quita el filtro de semana y usa meta "Cuota" para verlo.</div>` : renglon('vs Año anterior (AA)', 'YTD 25 · '+fmtNum(ytd25), v=>fmtNum(v), gapAA, pctAA));
   const pesosEl = document.getElementById('anzPesosResumen');
-  if(pesosEl) pesosEl.innerHTML = `<div style="font-size:22px; font-weight:800;">${fmtMoney(totales.real_pesos||0)} <small style="font-size:12px; font-weight:600; color:var(--ink-soft);">vendidos${pctPesos!==null?' · '+pctPesos+'% de la cuota':''}${fSemanas.length?' ('+etiquetaSemAnz+')':''}</small></div>`
-    + renglon('vs Cuota', metaLabelPesos, v=>fmtMoney(v), gapPesos, gapPesosPct);
+  if(pesosEl) pesosEl.innerHTML = `<div style="font-size:22px; font-weight:800;">${fmtMoney(totales.real_pesos||0)} <small style="font-size:12px; font-weight:600; color:var(--ink-soft);">vendidos${pctPesos!==null?' · '+pctPesos+'% de la '+metaLabelTxt.toLowerCase():''}${usaSemanal?' ('+etiquetaSemAnz+')':''}</small></div>`
+    + renglon('vs '+metaLabelTxt, metaLabelPesos, v=>fmtMoney(v), gapPesos, gapPesosPct);
 
   // Gráfico + tabla de cubrimiento por semana (cuota vs real), dentro del scope filtrado
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
-  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda));
+  const semanasMesChart = semanasDeMesesSeleccionados();
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanasMesChart.has(c.semana));
   const porSemana = {};
-  cumpRows.forEach(c=>{ (porSemana[c.semana] = porSemana[c.semana] || {cuota:0, real:0, cuota_pesos:0, real_pesos:0}); porSemana[c.semana].cuota += c.cuota_uni; porSemana[c.semana].real += c.real_uni; porSemana[c.semana].cuota_pesos += c.cuota_pesos; porSemana[c.semana].real_pesos += c.real_pesos; });
+  cumpRows.forEach(c=>{ (porSemana[c.semana] = porSemana[c.semana] || {cuota:0, real:0, cuota_pesos:0, real_pesos:0}); porSemana[c.semana].cuota += (metaUni(c)||0); porSemana[c.semana].real += c.real_uni; porSemana[c.semana].cuota_pesos += (metaPesos(c)||0); porSemana[c.semana].real_pesos += c.real_pesos; });
   const semanas = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
   const maxVal = Math.max(1, ...semanas.map(s=>Math.max(porSemana[s].cuota, porSemana[s].real)));
   window._anzSemanaData = semanas.map(s=>({semana:s, ...porSemana[s], pct: porSemana[s].cuota ? Math.round(porSemana[s].real/porSemana[s].cuota*1000)/10 : null}));
@@ -4384,12 +4694,12 @@ function renderAnalisisObjetivos(){
         </div>`;
       }).join('')}
     </div>
-    <div style="display:flex; gap:14px; font-size:11.5px; color:var(--ink-soft);"><span>🟦 Cuota</span><span>🟧 Real</span></div>`
+    <div style="display:flex; gap:14px; font-size:11.5px; color:var(--ink-soft);"><span>🟦 ${metaLabelTxt}</span><span>🟧 Real</span></div>`
     : `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin semanas con datos todavía para este filtro.</p>`;
   }
   const tablaSemanaWrap = document.getElementById('anzTablaSemanaWrap');
   if(tablaSemanaWrap){
-    tablaSemanaWrap.innerHTML = semanas.length ? `<table><thead><tr>${colHead('anzTablaSemana','semana','Semana',true)}${colHead('anzTablaSemana','cuota','Cuota pz',true)}${colHead('anzTablaSemana','real','Real pz',true)}${colHead('anzTablaSemana','pct','% cubrimiento pz',true)}${colHead('anzTablaSemana','cuota_pesos','Cuota $',true)}${colHead('anzTablaSemana','real_pesos','Real $',true)}<th class="num">% cubrimiento $</th></tr></thead>
+    tablaSemanaWrap.innerHTML = semanas.length ? `<table><thead><tr>${colHead('anzTablaSemana','semana','Semana',true)}${colHead('anzTablaSemana','cuota',metaLabelTxt+' pz',true)}${colHead('anzTablaSemana','real','Real pz',true)}${colHead('anzTablaSemana','pct','% cubrimiento pz',true)}${colHead('anzTablaSemana','cuota_pesos',metaLabelTxt+' $',true)}${colHead('anzTablaSemana','real_pesos','Real $',true)}<th class="num">% cubrimiento $</th></tr></thead>
       <tbody>${ordenarFilas('anzTablaSemana', window._anzSemanaData, 'semana').map(s=>`<tr style="${fSemanas.includes(String(s.semana))?'background:var(--brand-soft); font-weight:800;':''}"><td>Semana ${s.semana}${fSemanas.includes(String(s.semana))?' ★':''}</td><td class="num">${fmtNum(s.cuota)}</td><td class="num">${fmtNum(s.real)}</td><td class="num" style="font-weight:700; color:${s.pct===null?'var(--ink-soft)':s.pct<80?'var(--bad)':s.pct<100?'var(--warn)':'var(--good)'};">${s.pct!==null?s.pct+'%':'—'}</td><td class="num">${fmtMoney(s.cuota_pesos)}</td><td class="num">${fmtMoney(s.real_pesos)}</td><td class="num">${s.cuota_pesos?Math.round(s.real_pesos/s.cuota_pesos*1000)/10+'%':'—'}</td></tr>`).join('')}</tbody></table>`
     : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">Sin semanas con datos.</p>`;
   }
