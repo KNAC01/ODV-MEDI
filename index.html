@@ -568,6 +568,7 @@
         <button class="mdi-tile mdi-oblig" onclick="openForm('caducidad')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">⏳</div><div class="t">Caducidades</div><div class="d">Producto, fecha de caducidad y piezas en riesgo.</div></button>
         <button class="mdi-tile" id="tilePrioridades" onclick="abrirPrioridadesCaptura()"><span class="mdi-badge b-oblig hidden" id="prioridadesObligBadge">Obligatoria</span><div class="icon">🎯</div><div class="t">Prioridades<span class="cal-badge hidden" id="prioridadesBadge">0</span></div><div class="d">Del mes y tareas asignadas a ti — confirma activas y sube foto donde lo pidan.</div></button>
         <button class="mdi-tile" onclick="abrirPipeline()"><div class="icon">📦</div><div class="t">Pipeline</div><div class="d">Inventarios por tienda — pendiente de conectar tu archivo.</div></button>
+        <button class="mdi-tile" onclick="abrirBono()"><div class="icon">🏆</div><div class="t">Bono</div><div class="d">Plan "Valor al Esfuerzo" — hasta $1,500 por Sell Out y Distribución.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="abrirLeySilla()"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">🪑</div><div class="t">Ley Silla</div><div class="d">Registra tus 2 descansos de 15 min al día (obligación y derecho legal).</div></button>
         <button class="mdi-tile" onclick="openGastoTicket()"><div class="icon">🧾</div><div class="t">Gasto (ticket)</div><div class="d">Un solo ticket, varias líneas: producto Delico, insumos, material.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="openForm('precio_delico')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">💲</div><div class="t">Precio Delico</div><div class="d">Precio en piso de nuestro producto.</div></button>
@@ -3965,6 +3966,119 @@ function resumenCumplimientoGlobal(storesScope, semana){
     pctUni: cuotaUni ? Math.round(realUni/cuotaUni*1000)/10 : null};
 }
 
+/* ---------- BONO "Valor al Esfuerzo" — Sell Out 60% + Distribución 40%, vs. Escalón Bono (cuota alta) ---------- */
+const BONO_IMPACTO_SELLOUT = 900;   // pesos posibles al mes por Sell Out (60% de $1,500)
+const BONO_IMPACTO_DISTRIB = 600;   // pesos posibles al mes por Distribución (40% de $1,500)
+function ratingBonoSellOut(pct){
+  if(pct === null || pct === undefined) return 0;
+  if(pct > 120) return 1.20;
+  if(pct >= 101) return 1.10;
+  if(pct >= 95) return 1.00;
+  if(pct >= 90) return 0.50;
+  return 0.00;
+}
+function ratingBonoDistribucion(pct){
+  if(pct === null || pct === undefined) return 0;
+  if(pct >= 100) return 1.00;
+  if(pct >= 95) return 0.80;
+  if(pct >= 90) return 0.50;
+  return 0.00;
+}
+function semanasCuotaMes(mesLabel){
+  // "Septiembre" -> semanas_cuota_septiembre_2026, "Agosto" -> semanas_cuota_agosto_2026, etc.
+  const meta = APP_DATA.bi_meta || {};
+  const key = 'semanas_cuota_' + (mesLabel||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') + '_2026';
+  return meta[key] || [];
+}
+function mesesConEscalonDisponibles(){
+  return (APP_DATA.meses_disponibles||[]).filter(m => semanasCuotaMes(m).length>0);
+}
+function calcularBono(storesScope, mesLabel){
+  const semanas = semanasCuotaMes(mesLabel);
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const rows = (APP_DATA.cumplimiento_semanal||[]).filter(c => keys.has(c.cadena+'|'+c.num_tienda) && semanas.includes(c.semana) && c.escalon_pesos!=null);
+  const escalonPesos = rows.reduce((a,r)=>a+(r.escalon_pesos||0),0);
+  const realPesos = rows.reduce((a,r)=>a+(r.real_pesos||0),0);
+  const pctSellOut = escalonPesos ? Math.round(realPesos/escalonPesos*1000)/10 : null;
+  const distrib = resumenDistribucionGlobal(storesScope);
+  const pctDistrib = distrib.pct;
+  const ratingSO = ratingBonoSellOut(pctSellOut);
+  const ratingDist = ratingBonoDistribucion(pctDistrib);
+  const bonoSellOut = Math.round(ratingSO * BONO_IMPACTO_SELLOUT);
+  const bonoDistrib = Math.round(ratingDist * BONO_IMPACTO_DISTRIB);
+  const bonoTotal = bonoSellOut + bonoDistrib;
+  const hayVentaSemana = rows.some(r=>r.real_pesos>0);
+  return {semanas, escalonPesos, realPesos, pctSellOut, pctDistrib, ratingSO, ratingDist, bonoSellOut, bonoDistrib, bonoTotal, rows, hayVentaSemana};
+}
+function abrirBono(){
+  const body = document.getElementById('modalBody');
+  const meses = mesesConEscalonDisponibles();
+  const mesDefault = meses[meses.length-1] || (APP_DATA.meses_disponibles||[])[0];
+  const esPropio = currentUser.perfil === 'Embajador';
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🏆 Bono — Plan "Valor al Esfuerzo"</h3>
+    <p class="d">Bono adicional mensual posible: hasta <b>$1,500</b> por embajadora (60% Sell Out + 40% Distribución), + reconocimientos trimestrales para Top Performers.</p>
+    <div class="form-grid">
+      ${esPropio ? '' : `<div class="field"><label>Embajadora</label>
+        <select id="bonoEmbSel" onchange="renderBono()">
+          <option value="">${currentUser.perfil==='Supervisor'?'Todo mi equipo':'Todas'}</option>
+          ${equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>`<option value="${u.usuario}">${nombreCorto(u.nombre)}</option>`).join('')}
+        </select>
+      </div>`}
+      <div class="field"><label>Mes (meta de escalón cargada)</label>
+        <select id="bonoMesSel" onchange="renderBono()">
+          ${meses.map(m=>`<option value="${m}" ${m===mesDefault?'selected':''}>${m} 2026</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div id="bonoModalBody"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+  renderBono();
+}
+function tarjetaBono(nombre, r){
+  const colorSO = r.ratingSO>=1 ? 'var(--good)' : (r.ratingSO>0 ? 'var(--warn,#c98a1b)' : 'var(--bad)');
+  const colorDist = r.ratingDist>=1 ? 'var(--good)' : (r.ratingDist>0 ? 'var(--warn,#c98a1b)' : 'var(--bad)');
+  return `<div class="card" style="margin-bottom:12px;">
+    ${nombre ? `<div class="lbl" style="font-size:12.5px; font-weight:700; color:var(--brand-dark); margin-bottom:8px;">${nombre}</div>` : ''}
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+      <div class="kpi" style="flex:1; min-width:120px;"><div class="label">Sell Out (60%)</div><div class="num" style="color:${colorSO};">${r.pctSellOut==null?'—':r.pctSellOut+'%'}</div><div style="font-size:11px; color:var(--ink-soft);">rating ${r.ratingSO.toFixed(2)} → $${r.bonoSellOut}</div></div>
+      <div class="kpi" style="flex:1; min-width:120px;"><div class="label">Distribución (40%)</div><div class="num" style="color:${colorDist};">${r.pctDistrib==null?'—':r.pctDistrib+'%'}</div><div style="font-size:11px; color:var(--ink-soft);">rating ${r.ratingDist.toFixed(2)} → $${r.bonoDistrib}</div></div>
+    </div>
+    <div style="background:var(--surface-2); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:12.5px; font-weight:700; color:var(--brand-dark);">Bono estimado del mes</span>
+      <span style="font-size:20px; font-weight:800; color:var(--brand-dark);">$${r.bonoTotal.toLocaleString('es-MX')}</span>
+    </div>
+    ${!r.hayVentaSemana ? `<p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">Aún no hay venta real cargada para este mes — el % de Sell Out se actualizará solo cuando se suba el Sell Out correspondiente.</p>` : ''}
+  </div>`;
+}
+function renderBono(){
+  const box = document.getElementById('bonoModalBody');
+  if(!box) return;
+  const mesSel = document.getElementById('bonoMesSel');
+  const mes = mesSel ? mesSel.value : (mesesConEscalonDisponibles().slice(-1)[0]);
+  const embSel = document.getElementById('bonoEmbSel');
+  const embUsuario = embSel ? embSel.value : (currentUser.perfil==='Embajador' ? currentUser.usuario : '');
+  if(!mes){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">Todavía no hay una meta de "Escalón Bono" cargada para calcular el bono.</p>`; return; }
+
+  if(embUsuario){
+    const scope = APP_DATA.stores.filter(s=>s.sector===embUsuario);
+    const r = calcularBono(scope, mes);
+    const u = APP_DATA.equipo.find(x=>x.usuario===embUsuario);
+    box.innerHTML = tarjetaBono(u?nombreCorto(u.nombre):null, r) +
+      `<p style="font-size:11px; color:var(--ink-soft);">Rango Sell Out: &gt;120%→1.20 · 101-120%→1.10 · 95-100%→1.00 · 90-94.9%→0.50 · &lt;90%→0.00. Rango Distribución: 100%→1.00 · 95-99.9%→0.80 · 90-94.9%→0.50 · &lt;90%→0.00.</p>`;
+    return;
+  }
+  // vista de equipo: una tarjeta por embajadora en mi scope
+  const equipoScope = equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if(!equipoScope.length){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">No hay embajadoras en tu equipo.</p>`; return; }
+  box.innerHTML = equipoScope.map(u=>{
+    const scope = APP_DATA.stores.filter(s=>s.sector===u.usuario);
+    if(!scope.length) return '';
+    const r = calcularBono(scope, mes);
+    return tarjetaBono(nombreCorto(u.nombre), r);
+  }).join('');
+}
 function supervisorDeTienda(store){
   if(!store || !store.sector) return '';
   const u = APP_DATA.equipo.find(x=>x.usuario===store.sector);
