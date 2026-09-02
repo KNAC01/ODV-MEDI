@@ -1,4 +1,4 @@
-const CACHE_NAME = 'delico-odv-v43';
+const CACHE_NAME = 'delico-odv-v44';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
