@@ -1116,6 +1116,10 @@ const auth = firebase.auth();
    un dominio ficticio propio (@delico-odv.app) solo para que Firebase tenga un correo válido único
    por persona — nunca se manda ningún correo real a esa dirección. */
 function emailSinteticoDe(usuario){ return usuario.trim().toLowerCase() + '@delico-odv.app'; }
+/* Firebase exige contraseñas de mínimo 6 caracteres, y varias del equipo son más cortas (ej. "#Pob").
+   Para que cada persona siga tecleando exactamente su misma contraseña de siempre, "alargamos" por
+   dentro lo que le mandamos a Firebase con un sufijo fijo — invisible para el usuario, nunca cambia. */
+function passwordFirebaseDe(passwordOriginal){ return passwordOriginal + '_odvDelico26'; }
 
 function doLogin(){
   const u = document.getElementById('loginUser').value.trim();
@@ -1123,7 +1127,7 @@ function doLogin(){
   const errBox = document.getElementById('loginError');
   if(!u || !p){ errBox.textContent = 'Escribe tu usuario y tu contraseña.'; return; }
   errBox.textContent = 'Entrando…';
-  auth.signInWithEmailAndPassword(emailSinteticoDe(u), p)
+  auth.signInWithEmailAndPassword(emailSinteticoDe(u), passwordFirebaseDe(p))
     .then(() => {
       const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === u.toLowerCase());
       if(!found){ errBox.textContent = 'Tu cuenta existe pero ya no está en el equipo activo. Contacta a tu coordinador(a).'; auth.signOut(); return; }
@@ -1156,7 +1160,7 @@ async function migrarCuentasFirebase(){
   for(const u of APP_DATA.equipo){
     const email = emailSinteticoDe(u.usuario);
     try {
-      await secAuth.createUserWithEmailAndPassword(email, u.password);
+      await secAuth.createUserWithEmailAndPassword(email, passwordFirebaseDe(u.password));
       await secAuth.signOut();
       creadas++;
     } catch(err){
