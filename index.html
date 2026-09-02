@@ -1155,9 +1155,13 @@ async function migrarCuentasFirebase(){
   if(btn){ btn.disabled = true; btn.textContent = '🔐 Migrando…'; }
   const secApp = firebase.initializeApp(firebaseConfig, 'migracion_' + Date.now());
   const secAuth = secApp.auth();
-  let creadas = 0, yaExistian = 0;
+  let creadas = 0, yaExistian = 0, sinPassword = 0;
   const errores = [];
   for(const u of APP_DATA.equipo){
+    // Las contraseñas ya no viven en app_data.json una vez migrada la persona (por seguridad) — si
+    // alguien nuevo aún no tiene su cuenta en Firebase Y tampoco trae "password" en este archivo,
+    // se salta con aviso (significa que hace falta pedir que se le agregue temporalmente esa vez).
+    if(!u.password){ sinPassword++; continue; }
     const email = emailSinteticoDe(u.usuario);
     try {
       await secAuth.createUserWithEmailAndPassword(email, passwordFirebaseDe(u.password));
@@ -1170,7 +1174,7 @@ async function migrarCuentasFirebase(){
   }
   await secApp.delete();
   if(btn){ btn.disabled = false; btn.textContent = '🔐 Migrar cuentas'; }
-  let msg = `Migración terminada.\nCuentas creadas ahora: ${creadas}\nYa existían: ${yaExistian}`;
+  let msg = `Migración terminada.\nCuentas creadas ahora: ${creadas}\nYa existían (o sin password en este archivo): ${yaExistian + sinPassword}`;
   if(errores.length) msg += `\n\nCon error (revisar):\n` + errores.join('\n');
   alert(msg);
 }
