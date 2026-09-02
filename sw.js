@@ -1,8 +1,4 @@
-// Service worker de Délico ODV — permite instalar la app y usarla sin conexión.
-// IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
-// también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
-// celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v42';
+const CACHE_NAME = 'delico-odv-v43';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
