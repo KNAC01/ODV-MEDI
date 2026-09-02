@@ -139,7 +139,7 @@
 
   .mdi-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
   @media (max-width:900px){.mdi-grid{grid-template-columns:repeat(2,1fr);}}
-  @media (max-width:600px){.mdi-grid{grid-template-columns:1fr;}}
+  @media (max-width:600px){.mdi-grid{grid-template-columns:repeat(2,1fr); gap:8px;}}
   .mdi-tile{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); cursor:pointer; text-align:left;}
   .icon-pick{display:flex; flex-direction:column; align-items:center; gap:2px; width:76px; padding:8px 4px; border:2px solid var(--line); border-radius:10px; background:#fff; cursor:pointer;}
   .icon-pick.active{border-color:var(--brand); background:var(--brand-soft);}
@@ -149,13 +149,23 @@
   .mdi-tile .icon{font-size:26px; margin-bottom:8px;}
   .mdi-tile .t{font-weight:700; font-size:15px; margin-bottom:3px;}
   .mdi-tile .d{font-size:12.5px; color:var(--ink-soft); line-height:1.4;}
+  /* Captura MEDI en celular: tarjetas más chicas y centradas en el ícono, para ver más de un vistazo y escrolear menos. */
+  @media (max-width:600px){
+    .mdi-tile{padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; min-height:104px;}
+    .mdi-tile .icon{font-size:26px; margin-bottom:4px;}
+    .mdi-tile .t{font-size:12px; margin-bottom:0; line-height:1.2;}
+    .mdi-tile .d{display:none;}
+    .mdi-tile .mdi-badge{position:absolute; top:4px; right:4px; font-size:8.5px; padding:1px 5px;}
+  }
 
-  .modal-bg{display:none; position:fixed; inset:0; background:rgba(36,27,20,.45); z-index:100; align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:30px 16px;}
+  .modal-bg{display:none; position:fixed; inset:0; background:rgba(36,27,20,.45); z-index:100; align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:30px 16px; overscroll-behavior:contain;}
   .modal-bg.open{display:flex;}
   /* Con el modal abierto, la página de fondo queda fija (no se puede scrollear a la vez que el modal).
-     Esto evita el bug de iOS/Android donde el fondo "se transparenta" al hacer scroll dentro del modal. */
+     Esto evita el bug de iOS/Android donde el fondo "se transparenta" al hacer scroll dentro del modal.
+     overscroll-behavior:contain evita que el "rebote" (bounce) del scroll dentro del modal deje ver
+     el fondo semitransparente detrás — esa es la causa real de la "transparencia" al escrolear. */
   body.modal-lock{position:fixed; left:0; right:0; overflow:hidden; width:100%;}
-  .modal{background:var(--surface); border-radius:16px; max-width:560px; width:100%; padding:24px; box-shadow:var(--shadow);}
+  .modal{background:var(--surface); border-radius:16px; max-width:560px; width:100%; padding:24px; box-shadow:var(--shadow); overscroll-behavior:contain;}
   .modal h3{margin:0 0 4px; color:var(--brand-dark);}
   .modal p.d{margin:0 0 18px; color:var(--ink-soft); font-size:13.5px;}
   .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
@@ -295,8 +305,17 @@
     .btn-block{width:100%;}
     nav.tabs .bloque-sep + button, nav.tabs button:first-child{border-top:none;}
 
-    /* modales casi de pantalla completa */
-    .modal-bg{padding:0; align-items:stretch;}
+    /* Calendario en celular: una sola columna (como calendario real, sin scroll horizontal entre días) */
+    .cal-board{grid-template-columns:1fr; overflow-x:visible; gap:10px;}
+    .cal-col{min-height:0;}
+    .cal-col .day-head, .cal-col .day-date{display:inline;}
+    .cal-col .day-head{font-size:13.5px;}
+    .cal-col .day-date{font-size:11.5px; margin-left:6px;}
+    .cal-card{font-size:13px; padding:9px 10px;}
+
+    /* modales casi de pantalla completa: fondo sólido (no translúcido) para que el rebote del
+       scroll dentro del modal nunca deje ver un fondo "transparente" detrás. */
+    .modal-bg{padding:0; align-items:stretch; background:var(--surface);}
     .modal{max-width:100%; width:100%; min-height:100%; min-height:100dvh; border-radius:0; padding:18px 16px 24px; display:flex; flex-direction:column;}
     .modal-actions{background:var(--surface); margin:18px -16px -24px; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line);}
 
@@ -380,20 +399,20 @@
   <div class="nav-overlay" id="navOverlay" onclick="toggleMobileNav(false)"></div>
 
   <main>
-    <div class="banner">
-      <b>Cómo funciona por ahora:</b> cada captura se guarda en <i>este</i> dispositivo, y las cuotas son de <b>Agosto 2026</b> (LA COMER, WALMART, SAMS, HEB) tomadas de tu archivo real de ODV. El siguiente paso es conectar todo esto con Power Apps para que todo el equipo comparta la misma información en vivo.
-    </div>
-
     <!-- ---------- INICIO ---------- -->
     <section class="view" id="view-inicio">
       <h2 class="section-title" id="inicioSaludo">Hola</h2>
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 16px;" id="inicioFecha"></p>
       <div class="row" style="margin-bottom:10px;">
-        <div class="card kpi" id="inicioCardRutas"><div class="label">Rutas activas esta semana</div><div class="value">—</div></div>
+        <div class="card kpi" id="inicioCardRutas"><div class="label" id="inicioCardRutasLabel">Rutas activas esta semana</div><div class="value">—</div></div>
         <div class="card kpi warn" id="inicioCardVacPendientes"><div class="label">Vacaciones por autorizar</div><div class="value">—</div></div>
-        <div class="card kpi good" id="inicioCardVacProximas"><div class="label">Vacaciones próximas / en curso</div><div class="value">—</div></div>
+        <div class="card kpi good" id="inicioCardVacProximas"><div class="label" id="inicioCardVacProximasLabel">Vacaciones próximas / en curso</div><div class="value">—</div></div>
         <div class="card kpi bad" id="inicioCardCaducidad"><div class="label">Alertas de caducidad próxima</div><div class="value">—</div></div>
       </div>
+      <div id="inicioRutasListaWrap" class="hidden" style="margin-bottom:14px;">
+        <div class="card"><div class="lbl" style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin-bottom:8px;">Tus tiendas asignadas esta semana</div><div id="inicioRutasLista"></div></div>
+      </div>
+      <div id="inicioMiniIconos" class="hidden" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
       <div id="inicioNotificaciones" style="margin-bottom:14px;"></div>
       <div id="inicioAlertas"></div>
     </section>
@@ -416,20 +435,30 @@
         </span>
         <label>Semana(s):</label>
         <div id="objSemanaWrap" style="display:flex; gap:5px; flex-wrap:wrap; max-width:320px;"></div>
+        <span id="objCadenaFiltroWrap" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <label style="display:flex; align-items:center; gap:5px;">
           <input type="checkbox" id="objCadenaMultiToggle" onchange="toggleObjCadenaMulti()"> Cadena (varias)
         </label>
         <div id="objCadenaSingleWrap"><select id="cadenaSelect"><option value="">Todas</option></select></div>
         <div id="objCadenaMultiWrap" class="hidden" style="display:flex; gap:5px; flex-wrap:wrap; max-width:420px;"></div>
+        </span>
         <span id="filtroSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
         <select id="objSupervisor"><option value="">Todos</option></select></span>
+        <span id="objEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;">
         <label>Embajador(a):</label>
         <select id="objEmbajador"><option value="">Todos</option></select>
+        </span>
+        <span id="tiendaSearchTextWrap" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <label>Buscar tienda:</label>
         <span style="display:inline-flex; gap:5px; align-items:center;">
           <input type="text" id="tiendaSearch" list="tiendaSearchList" placeholder="Escribe para buscar..." onkeydown="if(event.key==='Enter'){ event.preventDefault(); agregarTiendaFiltro(); }">
           <datalist id="tiendaSearchList"></datalist>
           <button type="button" class="btn btn-ghost" style="padding:8px 10px;" onclick="agregarTiendaFiltro()" title="Agregar tienda a la selección">+ Agregar</button>
+        </span>
+        </span>
+        <span id="tiendaMultiWrap" class="hidden" style="display:inline-flex; gap:8px; align-items:center;">
+        <label>Tienda(s):</label>
+        <select id="objTiendaMulti" multiple size="4" style="min-width:220px;" onchange="onObjTiendaMultiChange()"></select>
         </span>
         <div id="tiendaFiltroChips" style="display:flex; gap:5px; flex-wrap:wrap; max-width:100%;"></div>
         <button class="btn btn-brand" onclick="renderPlaneacion()">Filtrar</button>
@@ -440,7 +469,6 @@
         <div class="card kpi"><div class="label" id="kpiUdsLabel">Cuota del periodo (piezas)</div><div class="value" id="kpiUds">—</div></div>
         <div class="card kpi"><div class="label" id="kpiPesosLabel">Cuota del periodo ($)</div><div class="value" id="kpiPesos">—</div></div>
         <div class="card kpi"><div class="label"># Tiendas en vista</div><div class="value" id="kpiTiendas">—</div></div>
-        <div class="card kpi warn"><div class="label">Alertas venta cero (SKU c/inventario sin venta)</div><div class="value" id="kpiAlertasVentaCero">—</div></div>
       </div>
 
       <h2 class="section-title" style="margin-top:22px;">Análisis de cumplimiento (agosto 2026, a la fecha)</h2>
@@ -487,6 +515,10 @@
             <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="prioridadReqFoto"> Requiere foto obligatoria al ejecutarla</label>
             <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="prioridadReqConfirm"> Requiere confirmar si está activa (sí/no)</label>
           </div>
+          <div>
+            <label style="font-size:11.5px; color:var(--ink-soft); display:block; margin-bottom:5px;">Persona(s) específica(s) (opcional — vacío = para todo el equipo que aplique por cadena):</label>
+            <select id="prioridadUsuariosPick" multiple size="4" style="width:100%; padding:6px; border:1px solid #d8dba0; border-radius:8px; font-size:12.5px;"></select>
+          </div>
           <button class="btn btn-brand" style="align-self:flex-start;" onclick="agregarPrioridad()">+ Agregar</button>
         </div>
       </div>
@@ -515,8 +547,6 @@
       <h2 class="section-title" style="margin-top:10px;">Visitas objetivo vs. visitas cumplidas</h2>
       <div class="card" id="visitasPorCadenaCard"></div>
       <p style="font-size:11px; color:var(--ink-soft); margin:6px 0 0;">Cruce contra venta real (sell-in/sell-out) y alertas de venta cero / inventario fantasma: siguiente fase, conectando tus archivos de Sell Out y BI.</p>
-
-      <div id="extraTiendaBox" style="margin-top:22px;"></div>
 
       <h2 class="section-title" style="margin-top:22px;">Cuotas por tienda</h2>
       <p id="planeacionScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:-8px 0 10px;"></p>
@@ -738,16 +768,18 @@
         <input type="date" id="cumpHasta">
         <label>Cadena:</label>
         <select id="cumpCadena"><option value="">Todas</option></select>
-        <label>Región:</label>
-        <select id="cumpRegion"><option value="">Todas</option></select>
-        <label>Cluster:</label>
-        <select id="cumpCluster"><option value="">Todos</option></select>
-        <label>Supervisor:</label>
-        <select id="cumpSupervisor"><option value="">Todos</option></select>
-        <label>Embajador:</label>
-        <select id="cumpEmbajador"><option value="">Todos</option></select>
-        <label>Tienda:</label>
-        <select id="cumpTienda"><option value="">Todas</option></select>
+        <span id="cumpRegionWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Región:</label>
+        <select id="cumpRegion"><option value="">Todas</option></select></span>
+        <span id="cumpClusterWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Cluster:</label>
+        <select id="cumpCluster"><option value="">Todos</option></select></span>
+        <span id="cumpSupervisorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Supervisor:</label>
+        <select id="cumpSupervisor"><option value="">Todos</option></select></span>
+        <span id="cumpEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Embajador:</label>
+        <select id="cumpEmbajador"><option value="">Todos</option></select></span>
+        <span id="cumpTiendaSingleWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda:</label>
+        <select id="cumpTienda"><option value="">Todas</option></select></span>
+        <span id="cumpTiendaMultiWrap" class="hidden" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda(s):</label>
+        <select id="cumpTiendaMulti" multiple size="4" style="min-width:200px;" onchange="renderCumplimiento()"></select></span>
         <input type="text" id="cumpPersonaBusca" placeholder="Buscar persona / tienda..." style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;">
         <button class="btn btn-brand" onclick="renderCumplimiento()">Filtrar</button>
         <button class="btn btn-ghost" onclick="restablecerFiltrosCumplimiento()">↺ Restablecer filtros</button>
@@ -868,10 +900,10 @@
       <div class="controls-bar">
         <label>Cadena:</label>
         <select id="calFiltroCadena" onchange="renderCalendario()"><option value="">Todas</option></select>
-        <label>Supervisor:</label>
-        <select id="calFiltroSupervisor" onchange="renderCalendario()"><option value="">Todos</option></select>
-        <label>Cluster:</label>
-        <select id="calFiltroCluster" onchange="renderCalendario()"><option value="">Todos</option></select>
+        <span id="calFiltroSupervisorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Supervisor:</label>
+        <select id="calFiltroSupervisor" onchange="renderCalendario()"><option value="">Todos</option></select></span>
+        <span id="calFiltroClusterWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Cluster:</label>
+        <select id="calFiltroCluster" onchange="renderCalendario()"><option value="">Todos</option></select></span>
       </div>
       <div class="cal-board" id="calBoard"></div>
       <h2 class="section-title" style="margin-top:20px;">Participación por visita, por cadena</h2>
@@ -924,6 +956,9 @@
       <div class="table-scroll">
         <table><thead><tr id="uniformesBodyHead"><th>Persona</th><th>Ítems</th><th>Comentarios</th><th>Fecha</th><th>Estado</th><th>Entrega</th><th>Acción</th></tr></thead><tbody id="uniformesBody"></tbody></table>
       </div>
+
+      <h2 class="section-title">Acceso a otra tienda</h2>
+      <div id="extraTiendaBox" style="margin-top:6px;"></div>
     </section>
 
     <!-- ---------- INVENTARIO DE MATERIALES (Admin) ---------- -->
@@ -979,16 +1014,18 @@
       <div class="controls-bar">
         <label>Cadena:</label>
         <select id="distCadena"><option value="">Todas</option></select>
-        <label>Región:</label>
-        <select id="distRegion"><option value="">Todas</option></select>
-        <label>Cluster:</label>
-        <select id="distCluster"><option value="">Todos</option></select>
-        <label>Supervisor:</label>
-        <select id="distSupervisor"><option value="">Todos</option></select>
-        <label>Embajador:</label>
-        <select id="distEmbajador"><option value="">Todos</option></select>
-        <label>Tienda:</label>
-        <select id="distTienda"><option value="">Todas</option></select>
+        <span id="distRegionWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Región:</label>
+        <select id="distRegion"><option value="">Todas</option></select></span>
+        <span id="distClusterWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Cluster:</label>
+        <select id="distCluster"><option value="">Todos</option></select></span>
+        <span id="distSupervisorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Supervisor:</label>
+        <select id="distSupervisor"><option value="">Todos</option></select></span>
+        <span id="distEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Embajador:</label>
+        <select id="distEmbajador"><option value="">Todos</option></select></span>
+        <span id="distTiendaSingleWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda:</label>
+        <select id="distTienda"><option value="">Todas</option></select></span>
+        <span id="distTiendaMultiWrap" class="hidden" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda(s):</label>
+        <select id="distTiendaMulti" multiple size="4" style="min-width:200px;" onchange="renderDistribucion()"></select></span>
         <label>Desde:</label>
         <input type="date" id="distDesde">
         <label>Hasta:</label>
@@ -1239,6 +1276,35 @@ function boot(keepView){
   const tareasMisTitulo = document.getElementById('tareasMisTitulo');
   if(tareasMisTitulo) tareasMisTitulo.style.display = esEmbajador ? '' : 'none';
 
+  // Objetivos: para Embajador, ya tiene sus tiendas asignadas — no tiene sentido filtrar por cadena
+  // ni por embajador(a), y "buscar tienda" se reemplaza por una lista desplegable de sus tiendas.
+  const objCadenaWrap = document.getElementById('objCadenaFiltroWrap');
+  if(objCadenaWrap) objCadenaWrap.style.display = esEmbajador ? 'none' : '';
+  const objEmbWrap = document.getElementById('objEmbajadorWrap');
+  if(objEmbWrap) objEmbWrap.style.display = esEmbajador ? 'none' : '';
+  const tiendaTextWrap = document.getElementById('tiendaSearchTextWrap');
+  if(tiendaTextWrap) tiendaTextWrap.style.display = esEmbajador ? 'none' : '';
+  const tiendaMultiWrap = document.getElementById('tiendaMultiWrap');
+  if(tiendaMultiWrap){ tiendaMultiWrap.classList.toggle('hidden', !esEmbajador); if(esEmbajador) poblarObjTiendaMulti(); }
+
+  // Cumplimiento y Distribución: para Embajador, ocultar filtros que no le aplican (ya solo ve su propia info).
+  ['cumpRegionWrap','cumpClusterWrap','cumpSupervisorWrap','cumpEmbajadorWrap','cumpTiendaSingleWrap','distRegionWrap','distClusterWrap','distSupervisorWrap','distEmbajadorWrap','distTiendaSingleWrap'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = esEmbajador ? 'none' : '';
+  });
+  ['cumpTiendaMultiWrap','distTiendaMultiWrap'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('hidden', !esEmbajador);
+  });
+  if(esEmbajador){ poblarCumpTiendaMulti(); poblarDistTiendaMulti(); }
+
+  // Calendario: para Embajador, solo tiene un supervisor (quien le asigna rutas) — ese filtro no aplica,
+  // únicamente le sirve filtrar por cadena.
+  const calSupWrap = document.getElementById('calFiltroSupervisorWrap');
+  if(calSupWrap) calSupWrap.style.display = esEmbajador ? 'none' : '';
+  const calClusterWrap = document.getElementById('calFiltroClusterWrap');
+  if(calClusterWrap) calClusterWrap.style.display = esEmbajador ? 'none' : '';
+
   const nav = document.getElementById('tabsNav');
   nav.innerHTML = '';
   const tabs = tabsVisiblesParaMi();
@@ -1442,6 +1508,8 @@ function restablecerFiltrosObjetivos(){
   document.getElementById('objSupervisor').value = '';
   document.getElementById('objEmbajador').value = '';
   document.getElementById('tiendaSearch').value = '';
+  const objTiendaMultiSel = document.getElementById('objTiendaMulti');
+  if(objTiendaMultiSel) [...objTiendaMultiSel.options].forEach(o=>o.selected=false);
   objFiltroTiendas.clear();
   renderTiendaFiltroChips();
   objFiltroSemanas.clear();
@@ -1500,10 +1568,6 @@ function renderPlaneacion(){
   document.getElementById('kpiUds').innerHTML = fmtNum(totalUds) + ' <small>pzas</small>';
   document.getElementById('kpiPesos').textContent = fmtMoney(totalPesos);
   document.getElementById('kpiTiendas').textContent = rows.length;
-  const rowKeys = new Set(rows.map(s=>s.cadena+'|'+s.num_tienda));
-  const alertasEnVista = (APP_DATA.alertas_venta_cero||[]).filter(a=> rowKeys.has(a.cadena+'|'+a.num_tienda));
-  const alertasEl = document.getElementById('kpiAlertasVentaCero');
-  if(alertasEl) alertasEl.textContent = alertasEnVista.length;
 
   renderPrioridades();
   renderVisitasPorCadena();
@@ -1635,6 +1699,13 @@ function toggleFiltroPrioridadCadena(cadena){
   renderPrioridadCadenaPick();
   renderPrioridades();
 }
+function poblarPrioridadUsuariosPick(){
+  const sel = document.getElementById('prioridadUsuariosPick');
+  if(!sel || sel.options.length) return;
+  APP_DATA.equipo.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    const o = document.createElement('option'); o.value = u.usuario; o.textContent = nombreCorto(u.nombre)+' · '+u.rol; sel.appendChild(o);
+  });
+}
 function agregarPrioridad(){
   const input = document.getElementById('prioridadNueva');
   const val = input.value.trim();
@@ -1645,8 +1716,10 @@ function agregarPrioridad(){
   const desde = document.getElementById('prioridadDesde').value || todayISO();
   const hasta = document.getElementById('prioridadHasta').value || '';
   const cadenas = [...prioridadFiltroCadenas]; // vacío = aplica a todas las cadenas
+  const usuariosSel = document.getElementById('prioridadUsuariosPick');
+  const usuarios = usuariosSel ? [...usuariosSel.selectedOptions].map(o=>o.value) : []; // vacío = para todo el equipo que aplique por cadena
   const arr = getPrioridades();
-  arr.unshift({id: uid(), texto: val, marcador, fecha: todayISO(), autor: currentUser.nombre, requiere_foto: requiereFoto, requiere_confirmacion: requiereConfirm, desde, hasta, cadenas});
+  arr.unshift({id: uid(), texto: val, marcador, fecha: todayISO(), autor: currentUser.nombre, requiere_foto: requiereFoto, requiere_confirmacion: requiereConfirm, desde, hasta, cadenas, usuarios});
   savePrioridades(arr);
   input.value = '';
   document.getElementById('prioridadMarcador').value = '';
@@ -1654,7 +1727,8 @@ function agregarPrioridad(){
   document.getElementById('prioridadHasta').value = '';
   document.getElementById('prioridadReqFoto').checked = false;
   document.getElementById('prioridadReqConfirm').checked = false;
-  toast('Prioridad agregada' + (cadenas.length ? ` para ${cadenas.join(', ')}` : ' para todas las cadenas'));
+  if(usuariosSel) [...usuariosSel.options].forEach(o=>o.selected=false);
+  toast('Prioridad agregada' + (cadenas.length ? ` para ${cadenas.join(', ')}` : ' para todas las cadenas') + (usuarios.length ? `, para ${usuarios.length} persona(s) específica(s)` : ''));
   renderPrioridades();
 }
 function quitarPrioridad(id){
@@ -1677,9 +1751,14 @@ function renderPrioridades(){
   renderPrioridadCadenaPick();
   const canEdit = ['Admin','Coordinador'].includes(currentUser.perfil);
   if(editWrap) editWrap.classList.toggle('hidden', !canEdit);
+  if(canEdit) poblarPrioridadUsuariosPick();
   let arr = getPrioridades();
   if(prioridadFiltroCadenas.size){
     arr = arr.filter(p => !p.cadenas || !p.cadenas.length || p.cadenas.some(c=>prioridadFiltroCadenas.has(c)));
+  }
+  if(currentUser.perfil === 'Embajador'){
+    // Solo prioridades para todo el equipo (sin persona específica) o asignadas puntualmente a esta persona.
+    arr = arr.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
   }
   const registros = getCumplimientosPrioridad();
   const conRequisito = arr.filter(p=>p.requiere_foto||p.requiere_confirmacion);
@@ -1727,6 +1806,9 @@ function abrirPrioridadesCaptura(){
   let arr = getPrioridades();
   if(checkinTmp && checkinTmp.cadena){
     arr = arr.filter(p => !p.cadenas || !p.cadenas.length || p.cadenas.includes(checkinTmp.cadena));
+  }
+  if(currentUser.perfil === 'Embajador'){
+    arr = arr.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
   }
   const accionables = arr.filter(p=>p.requiere_foto || p.requiere_confirmacion);
   const body = document.getElementById('modalBody');
@@ -1792,7 +1874,10 @@ function updatePrioridadesBadge(){
   const tile = document.getElementById('tilePrioridades');
   const obligBadge = document.getElementById('prioridadesObligBadge');
   if(!badge || !tile) return;
-  const accionables = getPrioridades().filter(p=>p.requiere_foto || p.requiere_confirmacion);
+  let accionables = getPrioridades().filter(p=>p.requiere_foto || p.requiere_confirmacion);
+  if(currentUser.perfil === 'Embajador'){
+    accionables = accionables.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
+  }
   const misTareas = getTareas().filter(t=>t.asignado_a===currentUser.usuario && t.estado==='abierta');
   const count = accionables.length + misTareas.length;
   badge.textContent = count;
@@ -3085,8 +3170,32 @@ function poblarSelectFiltro(id, valores){
     const o=document.createElement('option'); o.value=vv; o.textContent=vv; sel.appendChild(o);
   });
 }
+/* ---------- Selects múltiples de "Tienda(s)" para el perfil Embajador (Objetivos, Cumplimiento, Distribución):
+   se llenan solo con las tiendas asignadas a esa persona, no con el catálogo completo. ---------- */
+function poblarSelectMultipleTiendas(selId, storesArr){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  const nombres = [...new Set(storesArr.map(s=>s.tienda))].sort();
+  const actuales = new Set([...sel.options].map(o=>o.value));
+  const nuevos = new Set(nombres);
+  if(actuales.size===nuevos.size && [...actuales].every(v=>nuevos.has(v))) return; // ya está poblado con lo mismo
+  const seleccionPrevia = new Set([...sel.selectedOptions].map(o=>o.value));
+  sel.innerHTML = nombres.map(n=>`<option value="${n}"${seleccionPrevia.has(n)?' selected':''}>${n}</option>`).join('');
+}
+function poblarObjTiendaMulti(){ poblarSelectMultipleTiendas('objTiendaMulti', storesScopeParaMi()); }
+function onObjTiendaMultiChange(){
+  const sel = document.getElementById('objTiendaMulti');
+  if(!sel) return;
+  objFiltroTiendas = new Set([...sel.selectedOptions].map(o=>o.value));
+  renderTiendaFiltroChips();
+  renderPlaneacion();
+}
+function poblarCumpTiendaMulti(){ poblarSelectMultipleTiendas('cumpTiendaMulti', storesScopeParaMi()); }
+function poblarDistTiendaMulti(){ poblarSelectMultipleTiendas('distTiendaMulti', storesScopeParaMi()); }
 function restablecerFiltrosCumplimiento(){
   ['cumpCadena','cumpRegion','cumpCluster','cumpSupervisor','cumpEmbajador','cumpTienda'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const cumpTiendaMultiSel = document.getElementById('cumpTiendaMulti');
+  if(cumpTiendaMultiSel) [...cumpTiendaMultiSel.options].forEach(o=>o.selected=false);
   document.getElementById('cumpPersonaBusca').value = '';
   const hoy = new Date();
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -3116,6 +3225,7 @@ function poblarFiltrosCumplimiento(){
     });
   }
   poblarSelectFiltro('cumpTienda', [...new Set(APP_DATA.stores.map(s=>s.tienda))].sort());
+  if(currentUser.perfil === 'Embajador') poblarCumpTiendaMulti();
   if(!document.getElementById('cumpDesde').value){
     const hoy = new Date();
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -3133,6 +3243,8 @@ function renderCumplimiento(){
   const fSupervisor = document.getElementById('cumpSupervisor').value;
   const fEmbajador = document.getElementById('cumpEmbajador').value;
   const fTienda = document.getElementById('cumpTienda').value;
+  const cumpTiendaMultiSel = document.getElementById('cumpTiendaMulti');
+  const fTiendasMulti = cumpTiendaMultiSel ? [...cumpTiendaMultiSel.selectedOptions].map(o=>o.value) : [];
   const q = (document.getElementById('cumpPersonaBusca').value || '').trim().toLowerCase();
 
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
@@ -3142,7 +3254,8 @@ function renderCumplimiento(){
   if(fCluster) plan = plan.filter(a=>{ const s=storeInfo(a.cadena,a.tienda); return s && s.cluster===fCluster; });
   if(fSupervisor) plan = plan.filter(a=> mismaPersona(supervisorDePersona(a.nombre), fSupervisor));
   if(fEmbajador) plan = plan.filter(a=> a.usuario===fEmbajador);
-  if(fTienda) plan = plan.filter(a=> a.tienda===fTienda);
+  if(fTiendasMulti.length) plan = plan.filter(a=> fTiendasMulti.includes(a.tienda));
+  else if(fTienda) plan = plan.filter(a=> a.tienda===fTienda);
   if(q) plan = plan.filter(a=> a.nombre.toLowerCase().includes(q) || (a.tienda||'').toLowerCase().includes(q));
 
   const capturas = getCapturas();
@@ -3386,7 +3499,7 @@ function renderCalendario(){
       } else {
         cls = 'cal-futuro'; icono = '🔵'; texto = 'Próxima';
       }
-      return `<div class="cal-card ${cls}"><b>${icono} ${nombreCorto(a.nombre)}</b><br>${a.tienda}<br><span style="color:var(--ink-soft);">${a.cadena||''} · ${texto}</span></div>`;
+      return `<div class="cal-card ${cls}"><b>${icono} ${nombreCorto(a.nombre)}</b><br>🏬 ${a.tienda}<br><span style="color:var(--ink-soft);">${a.cadena||''} · ${texto}</span></div>`;
     }).join('') || `<div style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:16px;">Sin ruta este día</div>`;
     col.innerHTML = `<div class="day-head">${DAY_NAMES[i]}</div><div class="day-date">${fmtDateLabel(d)}</div>` + cardsHtml;
     board.appendChild(col);
@@ -3566,6 +3679,7 @@ function renderCartas(){
   renderCartaTiendaList();
   renderIconPickGrid('materialIconGrid', 'materiales', MATERIAL_ITEMS);
   renderIconPickGrid('uniformeIconGrid', 'uniformes', UNIFORME_ITEMS);
+  renderExtraTiendaBox();
 
   const cartas = getCartas().filter(c=>puedeVerSolicitud(c, currentUser, false));
   window._cartasBodyRows = cartas;
@@ -3853,22 +3967,73 @@ function renderVacaciones(){
 }
 
 /* ---------- INICIO (dashboard de entrada) ---------- */
+function resumenCuotaEscalonInicio(){
+  const scope = storesScopeParaMi();
+  const keys = new Set(scope.map(s=>s.cadena+'|'+s.num_tienda));
+  const rows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda));
+  const cuotaUni = rows.reduce((a,r)=>a+(r.cuota_uni||0),0);
+  const realUni = rows.reduce((a,r)=>a+(r.real_uni||0),0);
+  const escalonUni = rows.reduce((a,r)=>a+(r.escalon_uni||0),0);
+  return {
+    pctCuota: cuotaUni ? Math.round(realUni/cuotaUni*100) : null,
+    pctEscalon: escalonUni ? Math.round(realUni/escalonUni*100) : null,
+  };
+}
 function renderInicio(){
   const primerNombre = nombreCorto(currentUser.nombre).split(' ')[0];
   document.getElementById('inicioSaludo').textContent = `Hola, ${primerNombre.charAt(0)+primerNombre.slice(1).toLowerCase()}`;
   const hoy = new Date();
   document.getElementById('inicioFecha').textContent = `Hoy es ${hoy.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})}`;
 
+  const esEmbajador = currentUser.perfil === 'Embajador';
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
   const {startISO, endISO} = visibleDateRange();
   const rutasActivas = getRutas().filter(a=>a.tipo==='visita' && a.fecha>=startISO && a.fecha<=endISO && visibleUsuarios.has(a.usuario));
   document.getElementById('inicioCardRutas').querySelector('.value').textContent = rutasActivas.length;
 
+  const rutasLabel = document.getElementById('inicioCardRutasLabel');
+  const rutasListaWrap = document.getElementById('inicioRutasListaWrap');
+  if(esEmbajador){
+    if(rutasLabel) rutasLabel.textContent = 'Tus tiendas asignadas esta semana';
+    const misTiendasSemana = [...new Map(rutasActivas.map(a=>[a.cadena+'|'+a.tienda, a])).values()].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+    if(rutasListaWrap){
+      rutasListaWrap.classList.toggle('hidden', misTiendasSemana.length===0);
+      const listaEl = document.getElementById('inicioRutasLista');
+      if(listaEl) listaEl.innerHTML = misTiendasSemana.length
+        ? misTiendasSemana.map(a=>`<div style="padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; display:flex; justify-content:space-between; gap:8px;"><span>🏬 ${a.tienda} <small style="color:var(--ink-soft);">(${a.cadena})</small></span><small style="color:var(--ink-soft);">${a.fecha}</small></div>`).join('')
+        : '';
+    }
+  } else if(rutasListaWrap){
+    rutasListaWrap.classList.add('hidden');
+    if(rutasLabel) rutasLabel.textContent = 'Rutas activas esta semana';
+  }
+
+  const vacPendCard = document.getElementById('inicioCardVacPendientes');
   const vacaciones = getVacaciones();
   const pendientes = vacaciones.filter(v=>v.estado==='pendiente' && puedeAprobarVacacion(v, currentUser));
-  document.getElementById('inicioCardVacPendientes').querySelector('.value').textContent = pendientes.length;
+  if(esEmbajador){
+    // Un(a) embajador(a) nunca autoriza vacaciones de nadie (ni las propias) — esa tarjeta no le aplica.
+    if(vacPendCard) vacPendCard.style.display = 'none';
+  } else {
+    if(vacPendCard) vacPendCard.style.display = '';
+    document.getElementById('inicioCardVacPendientes').querySelector('.value').textContent = pendientes.length;
+  }
+  const vacProxLabel = document.getElementById('inicioCardVacProximasLabel');
+  if(vacProxLabel) vacProxLabel.textContent = esEmbajador ? 'Mis vacaciones próximas / en curso' : 'Vacaciones próximas / en curso';
   const proximas = vacaciones.filter(v=>v.estado==='aprobada' && v.hasta>=todayISO() && puedeVerVacacion(v, currentUser));
   document.getElementById('inicioCardVacProximas').querySelector('.value').textContent = proximas.length;
+
+  const miniIconos = document.getElementById('inicioMiniIconos');
+  if(miniIconos){
+    if(esEmbajador){
+      const {pctCuota, pctEscalon} = resumenCuotaEscalonInicio();
+      const chip = (icon, label, pct) => `<div class="card kpi" style="min-width:150px;"><div class="label">${icon} ${label}</div><div class="value" style="font-size:18px;">${pct!==null?pct+'%':'—'}</div></div>`;
+      miniIconos.innerHTML = chip('💰','Cubrimiento de cuota', pctCuota) + chip('🏆','Escalón bono', pctEscalon);
+      miniIconos.classList.remove('hidden');
+    } else {
+      miniIconos.classList.add('hidden');
+    }
+  }
 
   const en7dias = new Date(hoy); en7dias.setDate(en7dias.getDate()+7);
   const caducidades = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_caducidad && c.fecha_caducidad>=todayISO() && c.fecha_caducidad<=isoDate(en7dias));
@@ -3954,7 +4119,11 @@ function exportarTareas(){
 }
 function renderTareas(){
   poblarAsignarA();
-  const arr = getTareas().slice().sort((a,b)=> (a.estado===b.estado?0:a.estado==='abierta'?-1:1) || a.prioridad.localeCompare(b.prioridad) || b.fecha_creacion.localeCompare(a.fecha_creacion));
+  let arr = getTareas().slice().sort((a,b)=> (a.estado===b.estado?0:a.estado==='abierta'?-1:1) || a.prioridad.localeCompare(b.prioridad) || b.fecha_creacion.localeCompare(a.fecha_creacion));
+  if(currentUser.perfil === 'Embajador'){
+    // Un(a) embajador(a) solo debe ver las tareas que le fueron asignadas a ella/él, nunca las de otras personas.
+    arr = arr.filter(t => t.asignado_a === currentUser.usuario);
+  }
   const resumenEl = document.getElementById('tareasResumenBreve');
   if(resumenEl){
     const abiertas = arr.filter(t=>t.estado==='abierta').length;
@@ -4510,6 +4679,7 @@ function poblarFiltrosObjetivos(){
   renderObjSemanaChips();
   renderObjCadenaChips();
   poblarTiendaSearchList();
+  if(currentUser.perfil === 'Embajador') poblarObjTiendaMulti();
   renderTiendaFiltroChips();
 }
 function visitasPorTienda(storesScope){
@@ -4953,6 +5123,8 @@ function renderAnalisisObjetivos(){
 }
 function restablecerFiltrosDistribucion(){
   ['distCadena','distRegion','distCluster','distSupervisor','distEmbajador','distTienda','distDesde','distHasta'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const distTiendaMultiSel = document.getElementById('distTiendaMulti');
+  if(distTiendaMultiSel) [...distTiendaMultiSel.options].forEach(o=>o.selected=false);
   toast('Filtros de Distribución restablecidos');
   renderDistribucion();
 }
@@ -4972,12 +5144,15 @@ function renderDistribucion(){
     });
   }
   poblarSelectFiltro('distTienda', [...new Set(APP_DATA.stores.map(s=>s.tienda))].sort());
+  if(currentUser.perfil === 'Embajador') poblarDistTiendaMulti();
   const fCadena = document.getElementById('distCadena').value;
   const fRegion = document.getElementById('distRegion').value;
   const fCluster = document.getElementById('distCluster').value;
   const fSupervisor = document.getElementById('distSupervisor').value;
   const fEmbajador = document.getElementById('distEmbajador').value;
   const fTienda = document.getElementById('distTienda').value;
+  const distTiendaMultiSel = document.getElementById('distTiendaMulti');
+  const fTiendasMulti = distTiendaMultiSel ? [...distTiendaMultiSel.selectedOptions].map(o=>o.value) : [];
 
   let storesScope = storesScopeParaMi();
   if(fCadena) storesScope = storesScope.filter(s=>s.cadena===fCadena);
@@ -4985,7 +5160,8 @@ function renderDistribucion(){
   if(fCluster) storesScope = storesScope.filter(s=>s.cluster===fCluster);
   if(fSupervisor) storesScope = storesScope.filter(s=> mismaPersona(supervisorDeTienda(s), fSupervisor));
   if(fEmbajador) storesScope = storesScope.filter(s=> s.sector===fEmbajador);
-  if(fTienda) storesScope = storesScope.filter(s=> s.tienda===fTienda);
+  if(fTiendasMulti.length) storesScope = storesScope.filter(s=> fTiendasMulti.includes(s.tienda));
+  else if(fTienda) storesScope = storesScope.filter(s=> s.tienda===fTienda);
   const g = resumenDistribucionGlobal(storesScope);
   window._distribucionExport = {rows: g.rows, storesScope};
   let html = `<div class="row" style="margin-bottom:14px;">
@@ -5042,11 +5218,6 @@ function renderDistribucion(){
     return rowHtml;
   }).join('') || `<tr><td colspan="8" class="empty-state">Sin tiendas para tu vista.</td></tr>`;
   html += `</tbody></table></div>`;
-
-  const alertas = (APP_DATA.alertas_venta_cero||[]).filter(a => storesScope.some(s=>s.cadena===a.cadena && s.num_tienda===a.num_tienda));
-  html += `<h2 class="section-title" style="margin-top:22px;">⚠️ Alertas de venta cero (SKU con inventario que no vendió)</h2>`;
-  html += alertas.length ? `<div class="table-scroll"><table><thead><tr><th>Cadena</th><th>Tienda</th><th>SKU</th><th class="num">Días de inventario</th></tr></thead><tbody>${alertas.map(a=>`<tr><td>${a.cadena}</td><td>${a.tienda}</td><td>${a.item}</td><td class="num">${a.dias_inventario??'—'}</td></tr>`).join('')}</tbody></table></div>`
-    : `<div class="card"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin alertas de venta cero en tu vista. ✓</p></div>`;
 
   box.innerHTML = html;
   renderDistribucionCampo(storesScope);
