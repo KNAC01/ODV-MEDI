@@ -15,6 +15,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase (login real por persona) — SDK "compat" para poder usarlo con <script> normal, sin herramientas de build -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <style>
   :root{
     /* Paleta oficial Delico, en orden de prioridad: 1 oliva, 2 crema, 3 lila, 4 naranja (solo acentos, con medida) */
@@ -307,8 +310,22 @@
 </head>
 <body>
 
+<!-- ============ ACCESO (barrera temporal — se retira cuando esté el login real con backend) ============ -->
+<div id="gateScreen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#faf3d7;z-index:10000;padding:24px;text-align:center;">
+  <div class="delico-logo lg">DELICO . ODV</div>
+  <div style="color:#4a4a2a; font-size:13px; max-width:320px;">Esta app es de uso interno del equipo Délico. Ingresa la clave de acceso que te compartió tu coordinador(a).</div>
+  <div class="login-card" style="box-shadow:none; border:1px solid #e2d9a8; margin-top:4px;">
+    <div class="field">
+      <label for="gatePass">Clave de acceso</label>
+      <input id="gatePass" type="password" placeholder="••••••••" autocomplete="off">
+    </div>
+    <button class="btn btn-brand btn-block" onclick="verificarClaveAcceso()">Entrar</button>
+    <div class="error-msg" id="gateError"></div>
+  </div>
+</div>
+
 <!-- ============ CARGANDO ============ -->
-<div id="loadingScreen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#faf3d7;z-index:9999;padding:24px;text-align:center;">
+<div id="loadingScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#faf3d7;z-index:9999;padding:24px;text-align:center;">
   <div class="delico-logo lg">DELICO . ODV</div>
   <div id="loadingTexto" style="color:#4a4a2a;">Cargando información…</div>
   <div id="loadingError" style="display:none;color:#8a1f1f;max-width:320px;">
@@ -354,6 +371,7 @@
         <div id="whoName" style="font-weight:700;"></div>
         <span class="perfil-badge" id="whoPerfil"></span>
       </div>
+      <button class="btn btn-ghost hidden" id="btnMigrarFirebase" onclick="migrarCuentasFirebase()" title="Crea la cuenta real de acceso (Firebase) para cada persona del equipo que todavía no la tenga.">🔐 Migrar cuentas</button>
       <button class="btn btn-ghost" onclick="doLogout()">Salir</button>
     </div>
   </header>
@@ -1083,25 +1101,74 @@ function saveCapturas(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr
 function getPrioridades(){ return JSON.parse(localStorage.getItem(PRIORIDAD_KEY) || '[]'); }
 function savePrioridades(arr){ localStorage.setItem(PRIORIDAD_KEY, JSON.stringify(arr)); }
 
-/* ---------- LOGIN ---------- */
+/* ---------- LOGIN (Firebase Authentication real — cada persona tiene su propia cuenta) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCdt0mdxaaOIrnFuoNSoDhXUN4aWgZHkAE",
+  authDomain: "cbcdeli.firebaseapp.com",
+  projectId: "cbcdeli",
+  storageBucket: "cbcdeli.firebasestorage.app",
+  messagingSenderId: "31634686442",
+  appId: "1:31634686442:web:8300ba092585524bfc3293"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+/* Firebase Authentication exige un correo. Como el equipo usa "usuario" (ej. DCDM01), le agregamos
+   un dominio ficticio propio (@delico-odv.app) solo para que Firebase tenga un correo válido único
+   por persona — nunca se manda ningún correo real a esa dirección. */
+function emailSinteticoDe(usuario){ return usuario.trim().toLowerCase() + '@delico-odv.app'; }
+
 function doLogin(){
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value.trim();
   const errBox = document.getElementById('loginError');
-  const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === u.toLowerCase() && x.password === p);
-  if(!found){ errBox.textContent = 'Usuario o contraseña incorrectos.'; return; }
-  currentUser = found;
-  localStorage.setItem('delico_odv_session', JSON.stringify(found));
-  errBox.textContent = '';
-  boot();
+  if(!u || !p){ errBox.textContent = 'Escribe tu usuario y tu contraseña.'; return; }
+  errBox.textContent = 'Entrando…';
+  auth.signInWithEmailAndPassword(emailSinteticoDe(u), p)
+    .then(() => {
+      const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === u.toLowerCase());
+      if(!found){ errBox.textContent = 'Tu cuenta existe pero ya no está en el equipo activo. Contacta a tu coordinador(a).'; auth.signOut(); return; }
+      currentUser = found;
+      errBox.textContent = '';
+      boot();
+    })
+    .catch(() => { errBox.textContent = 'Usuario o contraseña incorrectos.'; });
 }
 function doLogout(){
-  localStorage.removeItem('delico_odv_session');
+  auth.signOut();
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
+}
+
+/* ---------- Migración: crea la cuenta real de Firebase para cada persona del equipo (Admin, una sola vez) ----------
+   Usa una instancia SECUNDARIA de Firebase para no cerrar la sesión del Admin mientras se crean las demás cuentas
+   (Firebase inicia sesión automáticamente como el usuario recién creado si se usa la instancia principal). */
+async function migrarCuentasFirebase(){
+  if(!confirm('Esto crea (si no existe ya) la cuenta real de acceso de cada persona del equipo, usando su usuario y contraseña actuales. Se puede correr varias veces sin duplicar a nadie. ¿Continuar?')) return;
+  const btn = document.getElementById('btnMigrarFirebase');
+  if(btn){ btn.disabled = true; btn.textContent = '🔐 Migrando…'; }
+  const secApp = firebase.initializeApp(firebaseConfig, 'migracion_' + Date.now());
+  const secAuth = secApp.auth();
+  let creadas = 0, yaExistian = 0;
+  const errores = [];
+  for(const u of APP_DATA.equipo){
+    const email = emailSinteticoDe(u.usuario);
+    try {
+      await secAuth.createUserWithEmailAndPassword(email, u.password);
+      await secAuth.signOut();
+      creadas++;
+    } catch(err){
+      if(err.code === 'auth/email-already-in-use'){ yaExistian++; }
+      else { errores.push(u.usuario + ': ' + err.message); }
+    }
+  }
+  await secApp.delete();
+  if(btn){ btn.disabled = false; btn.textContent = '🔐 Migrar cuentas'; }
+  let msg = `Migración terminada.\nCuentas creadas ahora: ${creadas}\nYa existían: ${yaExistian}`;
+  if(errores.length) msg += `\n\nCon error (revisar):\n` + errores.join('\n');
+  alert(msg);
 }
 
 /* ---------- BOOT / NAV ---------- */
@@ -1148,6 +1215,8 @@ function boot(keepView){
   const badge = document.getElementById('whoPerfil');
   badge.textContent = currentUser.perfil + ' · ' + currentUser.rol;
   badge.className = 'perfil-badge badge-' + currentUser.perfil;
+  const btnMigrar = document.getElementById('btnMigrarFirebase');
+  if(btnMigrar) btnMigrar.classList.toggle('hidden', currentUser.perfil !== 'Admin');
 
   const vista = getVista();
   document.getElementById('vistaBtnEscritorio').classList.toggle('active', vista==='escritorio');
@@ -5864,24 +5933,72 @@ function exportRutaExcel(){
   toast('Excel exportado ✓');
 }
 
-/* ---------- Carga de datos (app_data.json) + sesión persistente ---------- */
+/* ---------- Carga de datos (app_data.json) + sesión persistente (validada por Firebase, no por localStorage a ciegas) ---------- */
 function iniciarApp(){
   fetch('app_data.json', {cache:'no-store'})
     .then(r => { if(!r.ok) throw new Error('http '+r.status); return r.json(); })
     .then(data => {
       APP_DATA = data;
       document.getElementById('loadingScreen').style.display = 'none';
-      const raw = localStorage.getItem('delico_odv_session');
-      if(raw){ currentUser = JSON.parse(raw); boot(); }
-      else { document.getElementById('loginScreen').style.display = 'flex'; }
+      // onAuthStateChanged es la fuente de verdad de la sesión: Firebase ya trae su propia
+      // persistencia entre recargas, así que ya no confiamos en un valor de localStorage editable a mano.
+      auth.onAuthStateChanged(fbUser => {
+        if(fbUser && fbUser.email){
+          const usuarioDesdeEmail = fbUser.email.split('@')[0];
+          const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === usuarioDesdeEmail);
+          if(found){ currentUser = found; boot(); return; }
+        }
+        currentUser = null;
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+      });
     })
     .catch(() => {
       document.getElementById('loadingTexto').style.display = 'none';
       document.getElementById('loadingError').style.display = 'block';
     });
 }
-iniciarApp();
 document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+/* ---------- Barrera de acceso temporal (clave compartida del equipo) ---------- */
+/* Esto NO es un login real por persona — es solo un candado a la puerta mientras se construye
+   el backend con autenticación real (Firebase). Para cambiar la clave: genera el SHA-256 de la
+   nueva clave y reemplaza GATE_HASH (por ejemplo en la consola del navegador:
+   crypto.subtle.digest('SHA-256', new TextEncoder().encode('tu_clave_nueva')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))) ) */
+const GATE_HASH = 'a33b7536deaf73fa1b6b1d45ff1220c2ace2a97877759fa65223a34e5796b178';
+const GATE_KEY = 'delico_odv_gate_ok_v1';
+async function sha256Hex(texto){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function verificarClaveAcceso(){
+  const val = document.getElementById('gatePass').value;
+  const errBox = document.getElementById('gateError');
+  errBox.textContent = '';
+  if(!val){ errBox.textContent = 'Escribe la clave de acceso.'; return; }
+  let hash;
+  try { hash = await sha256Hex(val); } catch(e){ errBox.textContent = 'Este navegador no puede verificar la clave (usa https). Contacta a tu coordinador(a).'; return; }
+  if(hash === GATE_HASH){
+    localStorage.setItem(GATE_KEY, '1');
+    abrirTrasClaveAcceso();
+  } else {
+    errBox.textContent = 'Clave incorrecta.';
+  }
+}
+function abrirTrasClaveAcceso(){
+  document.getElementById('gateScreen').style.display = 'none';
+  document.getElementById('loadingScreen').style.display = 'flex';
+  iniciarApp();
+}
+(function(){
+  if(localStorage.getItem(GATE_KEY) === '1'){
+    abrirTrasClaveAcceso();
+  } else {
+    const gp = document.getElementById('gatePass');
+    gp.addEventListener('keydown', e=>{ if(e.key==='Enter') verificarClaveAcceso(); });
+    gp.focus();
+  }
+})();
 
 /* ---------- Bloquea el scroll de fondo cuando hay un modal abierto (fix de "transparencia" al escrolear en celular) ---------- */
 (function(){
