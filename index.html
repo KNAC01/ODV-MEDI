@@ -15,6 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
 <!-- Firebase (login real por persona) — SDK "compat" para poder usarlo con <script> normal, sin herramientas de build -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -483,11 +484,11 @@
       <div id="anzInsights"></div>
       <div id="anzTablas"></div>
 
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:22px 0 8px;">
+        <h2 class="section-title" style="margin:0;">Prioridades</h2>
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPrioridades()">⬇ Excel</button>
+      </div>
       <div class="prioridad-box" style="padding:18px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-          <div class="lbl" style="margin:0;">Prioridades</div>
-          <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPrioridades()">⬇ Excel</button>
-        </div>
         <div id="prioridadResumenBreve" style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;"></div>
         <div style="margin-bottom:12px;">
           <label style="font-size:11.5px; color:var(--ink-soft); display:block; margin-bottom:5px;">Cadena(s) a la(s) que aplica:</label>
@@ -530,8 +531,12 @@
       </div>
       </div>
       <h2 class="section-title" id="tareasMisTitulo" style="margin-top:22px; display:none;">Mis tareas</h2>
-      <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
-        <div id="tareasResumenBreve" style="font-size:12px; color:var(--ink-soft);"></div>
+      <div class="row" id="tareaKpiRow" style="margin-bottom:10px;">
+        <div class="card kpi"><div class="label">Tareas en total</div><div class="value" id="tareaKpiTotal">—</div></div>
+        <div class="card kpi warn"><div class="label">Abiertas</div><div class="value" id="tareaKpiAbiertas">—</div></div>
+        <div class="card kpi good"><div class="label">Finalizadas</div><div class="value" id="tareaKpiFinalizadas">—</div></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin:0 0 8px;">
         <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarTareas()">⬇ Excel</button>
       </div>
       <div id="tareasGrid" style="display:flex; flex-direction:column; gap:12px; margin-bottom:22px;"></div>
@@ -1081,13 +1086,8 @@
         <select id="catFamilia"><option value="">Todas</option></select>
         <input type="text" id="catBusca" placeholder="Buscar producto, clave o código de barras...">
         <button class="btn btn-brand" onclick="renderCatalogo()">Filtrar</button>
-        <button class="btn btn-ghost" onclick="toggleScannerCatalogo()">📷 Escanear código</button>
         <button class="btn btn-ghost" onclick="document.getElementById('catCadena').value='';document.getElementById('catFamilia').value='';document.getElementById('catBusca').value='';renderCatalogo();">↺ Restablecer filtros</button>
         <button class="btn btn-outline" onclick="exportarCatalogoCSV()">⬇ Excel</button>
-      </div>
-      <div id="scan_catalogo" class="hidden" style="margin-bottom:14px;">
-        <video id="vid_catalogo" style="width:100%; max-width:420px; border-radius:8px; background:#000;" muted playsinline></video>
-        <button type="button" class="btn btn-ghost" style="margin-top:6px;" onclick="closeScannerCatalogo()">Cerrar cámara</button>
       </div>
       <div id="catalogoGrid" class="viz-root" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:14px;"></div>
     </section>
@@ -1235,10 +1235,59 @@ function nombreCorto(nombreCompleto){
   if(partes.length<2) return nombreCompleto||'';
   return partes[partes.length-1] + ' ' + partes[0];
 }
-function toast(msg){
+function toast(msg, duracionMs){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  setTimeout(()=>t.classList.remove('show'), duracionMs || 2200);
+}
+/* Red de seguridad: si algo truena en el código (por ejemplo al guardar una captura) nunca debe
+   quedarse "sin hacer nada" en silencio — siempre debe avisar con un mensaje, para poder diagnosticarlo.
+   Antes de esto, un error de JavaScript en medio de un guardado simplemente no hacía nada visible. */
+window.addEventListener('error', (ev)=>{
+  try{ toast('⚠️ Algo falló: ' + (ev && ev.message ? ev.message : 'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
+});
+window.addEventListener('unhandledrejection', (ev)=>{
+  try{ toast('⚠️ Algo falló: ' + (ev && ev.reason ? (ev.reason.message||ev.reason) : 'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
+});
+/* Confirmación personalizada — evita usar window.confirm(), que en varios celulares con la app
+   instalada como app (modo standalone/PWA) NO funciona: la llamada no hace nada visible y el código
+   simplemente se detiene ahí sin guardar ni avisar nada. Esta versión usa una tarjeta propia. */
+function confirmarPersonalizado(mensaje, onAceptar, onCancelar){
+  const existente = document.getElementById('confirmOverlay');
+  if(existente) existente.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'confirmOverlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(20,20,10,.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;';
+  overlay.innerHTML = `<div style="background:#fff; border-radius:14px; padding:18px 20px; max-width:360px; width:100%; box-shadow:0 8px 30px rgba(0,0,0,.25);">
+    <div style="font-size:13.5px; line-height:1.5; white-space:pre-line; margin-bottom:16px;">${mensaje}</div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" class="btn btn-ghost" id="confirmBtnCancelar">Cancelar</button>
+      <button type="button" class="btn btn-brand" id="confirmBtnAceptar">Aceptar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  const cerrar = () => { overlay.remove(); };
+  document.getElementById('confirmBtnAceptar').onclick = () => { cerrar(); if(onAceptar) onAceptar(); };
+  document.getElementById('confirmBtnCancelar').onclick = () => { cerrar(); if(onCancelar) onCancelar(); };
+}
+/* Aviso informativo (reemplaza window.alert(), con el mismo problema que window.confirm() en apps
+   instaladas como standalone/PWA) — solo un botón "Entendido", no bloquea nada si algo sale mal. */
+function avisoPersonalizado(mensaje){
+  try{
+    const existente = document.getElementById('confirmOverlay');
+    if(existente) existente.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'confirmOverlay';
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(20,20,10,.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;';
+    overlay.innerHTML = `<div style="background:#fff; border-radius:14px; padding:18px 20px; max-width:360px; width:100%; box-shadow:0 8px 30px rgba(0,0,0,.25);">
+      <div style="font-size:13.5px; line-height:1.5; white-space:pre-line; margin-bottom:16px;">${mensaje}</div>
+      <div style="display:flex; justify-content:flex-end;">
+        <button type="button" class="btn btn-brand" id="avisoBtnOk">Entendido</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('avisoBtnOk').onclick = () => overlay.remove();
+  }catch(e){}
 }
 function getCapturas(){ return JSON.parse(JSON.stringify(_capturasCache)); }
 function saveCapturas(arr){
@@ -2310,44 +2359,23 @@ function closeScanner(key){
   if(scannerStream){ scannerStream.getTracks().forEach(t=>t.stop()); scannerStream = null; }
 }
 /* Escanear código de barras (UPC/EAN) directo en el Catálogo, para buscar el producto sin escribir nada. */
-async function toggleScannerCatalogo(){
-  const wrap = document.getElementById('scan_catalogo');
-  if(wrap.classList.contains('hidden')){
-    if(!('BarcodeDetector' in window)){ toast('Tu navegador no soporta escaneo de código de barras aquí — usa el buscador de texto.'); return; }
-    wrap.classList.remove('hidden');
-    try{
-      scannerStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-      const video = document.getElementById('vid_catalogo');
-      video.srcObject = scannerStream;
-      await video.play();
-      const detector = new BarcodeDetector({formats:['ean_13','upc_a','code_128']});
-      const tick = async () => {
-        if(wrap.classList.contains('hidden')) return;
-        try{
-          const codes = await detector.detect(video);
-          if(codes.length){
-            const val = codes[0].rawValue;
-            const prod = APP_DATA.catalogo_productos.find(p=>p.barcode===val);
-            const buscaInput = document.getElementById('catBusca');
-            if(buscaInput) buscaInput.value = val;
-            closeScannerCatalogo();
-            renderCatalogo();
-            toast(prod ? 'Producto detectado: ' + prod.nombre : 'Código escaneado (' + val + ') — no coincide con ningún producto del catálogo.');
-            return;
-          }
-        }catch(e){}
-        requestAnimationFrame(tick);
-      };
-      tick();
-    }catch(e){ toast('No se pudo acceder a la cámara.'); wrap.classList.add('hidden'); }
-  } else {
-    closeScannerCatalogo();
+/* Genera el código de barras real (las líneas), no solo el número, para que se pueda escanear
+   directo de la pantalla — usa el formato según la longitud del código (EAN-13/UPC-A/CODE128). */
+function pintarBarcodeEn(svgEl, valor){
+  if(!svgEl || !valor) return;
+  if(typeof JsBarcode === 'undefined'){ return; } // sin internet la primera vez: se queda solo el texto del código
+  const limpio = String(valor).trim();
+  const formato = /^\d{13}$/.test(limpio) ? 'EAN13' : /^\d{12}$/.test(limpio) ? 'UPC' : 'CODE128';
+  try{
+    JsBarcode(svgEl, limpio, {format:formato, width:1.4, height:38, fontSize:11, margin:2, displayValue:true});
+  }catch(e){
+    try{ JsBarcode(svgEl, limpio, {format:'CODE128', width:1.4, height:38, fontSize:11, margin:2, displayValue:true}); }catch(e2){}
   }
 }
-function closeScannerCatalogo(){
-  const wrap = document.getElementById('scan_catalogo');
-  wrap.classList.add('hidden');
-  if(scannerStream){ scannerStream.getTracks().forEach(t=>t.stop()); scannerStream = null; }
+function pintarBarcodesCatalogoVisibles(){
+  document.querySelectorAll('#catalogoGrid svg[data-barcode]').forEach(svg=>{
+    pintarBarcodeEn(svg, svg.getAttribute('data-barcode'));
+  });
 }
 
 /* ---------- CAPTURA MEDI ---------- */
@@ -2356,7 +2384,7 @@ const FORM_DEFS = {
     title:'Registro — Check-in', icon:'🚪',
     fields:[
       ['tienda','tienda_select','Tienda',true],
-      ['foto','file','Foto de cómo encontraste la tienda',true],
+      ['foto','file_multi','Foto(s) de cómo encontraste la tienda — puedes subir varias',true],
       ['notas','textarea','Notas (opcional)',false],
     ]
   },
@@ -2372,7 +2400,7 @@ const FORM_DEFS = {
       ['acomodo_seguro','checkbox','Acomodo seguro',false],
       ['exhibicion_impecable','checkbox','Exhibición impecable',false],
       ['gestion_inventarios','checkbox','Gestión de inventarios',false],
-      ['foto','file','Foto (opcional)',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
       ['comentarios','textarea','Comentarios (opcional)',false],
     ]
   },
@@ -2383,7 +2411,7 @@ const FORM_DEFS = {
       ['clave','producto','Producto',true],
       ['fecha_caducidad','date','Fecha de caducidad',true],
       ['piezas','entero','Piezas en riesgo',true],
-      ['foto','file','Foto (opcional)',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
     ]
   },
   incidencia: {
@@ -2392,7 +2420,7 @@ const FORM_DEFS = {
       ['tienda','tienda_select','Tienda',true],
       ['tipo_incidencia','select','Tipo de incidencia',true,['Inventario (ajuste/no coincide)','Maltrato de producto','Calidad (olor/consistencia/objeto ajeno)','Tienda / instalaciones (remodelación, accesos)','Refrigeración (gotea, no enfría)','Visita fuera de ruta asignada','Otro']],
       ['descripcion','textarea','Describe la incidencia',true],
-      ['foto','file','Foto (opcional)',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
     ]
   },
   degustacion:{
@@ -2421,9 +2449,9 @@ const FORM_DEFS = {
       ['marca_competencia','text','Marca / producto de competencia',true],
       ['precio_competencia','decimal','Precio competencia ($)',true],
       ['promo_competencia','textarea','Promoción o degustación de competencia vista',false],
-      ['foto','file','Foto (opcional)',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
       ['activacion_comentario','textarea','¿Viste alguna activación de otra marca? Comentarios',false],
-      ['activacion_foto','file','Foto de la activación (opcional)',false],
+      ['activacion_foto','file_multi','Foto(s) de la activación — opcional, puedes subir varias',false],
       ['activacion_video','file_video','Video de la activación (opcional)',false],
     ]
   },
@@ -2432,7 +2460,7 @@ const FORM_DEFS = {
     fields:[
       ['tienda','tienda_select','Tienda',true],
       ['seccion','select','Tipo de exhibición',true,['Refri','Barco','Búnker','Otro']],
-      ['foto','file','Foto de la categoría',true],
+      ['foto','file_multi','Foto(s) de la categoría — puedes subir varias',true],
       ['notas','textarea','Notas (competencia alrededor, participación de espacio, etc.)',false],
     ]
   },
@@ -2443,7 +2471,7 @@ const FORM_DEFS = {
       ['clima','icon_single','Clima',false,['Soleado','Nublado','Lluvia','Frío','Calor extremo']],
       ['afluencia','icon_single','Afluencia de gente',false,['Muy baja','Baja','Normal','Alta','Muy alta']],
       ['tendencia','textarea','¿Qué viste? (tendencias, temporada, comentarios de shoppers, etc.)',false],
-      ['foto','file','Foto/video (opcional)',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
       ['comentarios','textarea','Comentarios generales (opcional)',false],
     ]
   },
@@ -2451,7 +2479,7 @@ const FORM_DEFS = {
     title:'Registro — Check-out', icon:'🚶',
     fields:[
       ['tienda','tienda_select','Tienda',true],
-      ['foto','file','Foto de cómo dejaste la tienda',true],
+      ['foto','file_multi','Foto(s) de cómo dejaste la tienda — puedes subir varias',true],
       ['notas','textarea','Notas (opcional)',false],
     ]
   },
@@ -2610,10 +2638,13 @@ function renderCatalogo(){
       ${p.imagen ? `<img src="${p.imagen}" style="width:100%; height:120px; object-fit:contain; border-radius:8px; background:#fff;">` : `<div style="width:100%; height:120px; border-radius:8px; background:#f1f2e6; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:11px;">Sin foto</div>`}
       <div style="font-weight:700; font-size:12px; margin-top:8px; line-height:1.3;">${p.nombre}</div>
       <div style="font-size:10.5px; color:var(--ink-soft); margin:2px 0 6px;">${p.familia} · ${p.clave}</div>
-      <div style="font-size:10.5px; font-family:monospace; color:var(--ink-soft); margin-bottom:6px;">${p.barcode || 'Sin código'}</div>
+      ${p.barcode
+        ? `<div style="background:#fff; border-radius:6px; padding:4px 0; margin-bottom:6px;"><svg data-barcode="${p.barcode}" style="width:100%; max-width:180px;"></svg></div>`
+        : `<div style="font-size:10.5px; color:var(--ink-soft); margin-bottom:6px;">Sin código de barras</div>`}
       <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;">${cadenasBadges}</div>
     </div>`;
   }).join('') || `<div class="empty-state" style="grid-column:1/-1;">Sin productos para este filtro.</div>`;
+  pintarBarcodesCatalogoVisibles();
 }
 function exportarCatalogoCSV(){
   const productos = window._catalogoExport || APP_DATA.catalogo_productos;
@@ -2634,7 +2665,11 @@ function renderChecklistRows(prefix, items){
   </div>`;
 }
 function leerChecklistRows(prefix, items){
-  return items.map((it,i)=>({item:it, cumple: document.getElementById(`${prefix}_${i}_cumple`).checked, comentario: document.getElementById(`${prefix}_${i}_com`).value.trim()}));
+  return items.map((it,i)=>{
+    const chk = document.getElementById(`${prefix}_${i}_cumple`);
+    const com = document.getElementById(`${prefix}_${i}_com`);
+    return {item:it, cumple: chk ? chk.checked : false, comentario: com ? com.value.trim() : ''};
+  });
 }
 function renderSkuNumTable(prefix, grupos, cols){
   return Object.keys(grupos).sort().map(fam=>`
@@ -2712,32 +2747,35 @@ function abrirMercadeo(){
   document.getElementById('modalBg').classList.add('open');
 }
 function submitMercadeo(){
-  const checkin = getCheckin();
-  const tiendaSel = document.getElementById('merc_tienda');
-  const tienda = checkin ? checkin.tienda : tiendaSel.value;
-  const cadena = checkin ? checkin.cadena : (tiendaSel.selectedOptions[0]?.dataset.cadena || '');
-  if(!tienda){ toast('Selecciona la tienda'); return; }
-  const esSup = currentUser.perfil !== 'Embajador';
-  const prepItems = [...PREP_ITEMS_BASE, ...(esSup?PREP_ITEMS_SUP_EXTRA:[])];
-  const camItems = [...CAMARA_ITEMS_BASE, ...(esSup?CAMARA_ITEMS_SUP_EXTRA:[])];
-  const grupos = familiasParaDistribucion();
-  const rec = {
-    id:uid(), tipo:'mercadeo', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:new Date().toISOString(), tienda, cadena,
-    perfil_forma: esSup?'supervisor':'embajador',
-    preparacion: leerChecklistRows('prep', prepItems),
-    camara: leerChecklistRows('cam', camItems),
-    degustacion_checklist: esSup ? leerChecklistRows('deg', DEGUSTACION_ITEMS) : [],
-    distribucion: leerSkuBinaryTable('dist', grupos, [{key:'req',label:'Requerido'},{key:'real',label:'Real'}]),
-    mercadeo: leerChecklistRows('merc', MERCADEO_ITEMS),
-    comentarios_generales: document.getElementById('mercComentariosGenerales').value.trim(),
-  };
-  const arr = getCapturas();
-  arr.push(rec);
-  saveCapturas(arr);
-  closeModal();
-  toast('Mercadeo guardado ✓');
-  renderMisCapturas();
-  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+  try{
+    const checkin = getCheckin();
+    const tiendaSel = document.getElementById('merc_tienda');
+    const tienda = checkin ? checkin.tienda : (tiendaSel ? tiendaSel.value : '');
+    const cadena = checkin ? checkin.cadena : (tiendaSel && tiendaSel.selectedOptions[0]?.dataset.cadena || '');
+    if(!tienda){ toast('Selecciona la tienda'); return; }
+    const esSup = currentUser.perfil !== 'Embajador';
+    const prepItems = [...PREP_ITEMS_BASE, ...(esSup?PREP_ITEMS_SUP_EXTRA:[])];
+    const camItems = [...CAMARA_ITEMS_BASE, ...(esSup?CAMARA_ITEMS_SUP_EXTRA:[])];
+    const grupos = familiasParaDistribucion();
+    const comentariosEl = document.getElementById('mercComentariosGenerales');
+    const rec = {
+      id:uid(), tipo:'mercadeo', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:new Date().toISOString(), tienda, cadena,
+      perfil_forma: esSup?'supervisor':'embajador',
+      preparacion: leerChecklistRows('prep', prepItems),
+      camara: leerChecklistRows('cam', camItems),
+      degustacion_checklist: esSup ? leerChecklistRows('deg', DEGUSTACION_ITEMS) : [],
+      distribucion: leerSkuBinaryTable('dist', grupos, [{key:'req',label:'Requerido'},{key:'real',label:'Real'}]),
+      mercadeo: leerChecklistRows('merc', MERCADEO_ITEMS),
+      comentarios_generales: comentariosEl ? comentariosEl.value.trim() : '',
+    };
+    const arr = getCapturas();
+    arr.push(rec);
+    saveCapturas(arr);
+    closeModal();
+    toast('Mercadeo guardado ✓');
+    renderMisCapturas();
+    if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+  }catch(e){ toast('⚠️ No se pudo guardar Mercadeo: ' + e.message, 6500); }
 }
 
 function abrirOnboarding(){
@@ -3024,7 +3062,7 @@ function mostrarProyeccionCaducidad(rec){
     (caducarian>0
       ? `⚠️ En el escenario esperado, quedarían ~${caducarian} pieza(s) caducadas. Para asegurar 0 caducados hay que vender las ${piezas} piezas antes del ${rec.fecha_caducidad}.`
       : `✅ Con ese ritmo de venta, no se esperan piezas caducadas — de todas formas, vender las ${piezas} antes del ${rec.fecha_caducidad} lo garantiza.`);
-  alert(msg);
+  avisoPersonalizado(msg);
 }
 function precioSospechoso(clave, precioIngresado){
   const p = claveAProducto(clave);
@@ -3036,56 +3074,65 @@ function precioSospechoso(clave, precioIngresado){
   return null;
 }
 function submitForm(type){
-  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
-  const def = FORM_DEFS[type];
-  const rec = { id: uid(), tipo: type, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString() };
-  let missing = false;
-  let faltantes = [];
-  def.fields.forEach(([key,type_,label,req])=>{
-    if(type_==='file'){
-      const input = document.getElementById('f_'+key) || document.getElementById(key);
-      rec[key] = input ? (input.dataset.b64 || '') : '';
-      if(req && !rec[key]){ missing = true; faltantes.push(label); }
-    } else if(type_==='file_multi'){
-      const fotos = (window._fotosMulti[key]||[]).map(f=>f.b64);
-      rec[key] = fotos;
-      if(req && !fotos.length){ missing = true; faltantes.push(label); }
-    } else if(type_==='file_video'){
-      const input = document.getElementById('f_'+key);
-      rec[key] = input.files[0] ? input.files[0].name : '';
-      if(req && !rec[key]){ missing = true; faltantes.push(label); }
-    } else if(type_==='checkbox'){
-      rec[key] = document.getElementById('f_'+key).checked;
-    } else if(type_==='tienda_select'){
-      const lockedInput = document.getElementById('f_'+key+'_locked');
-      const val = lockedInput ? lockedInput.value : document.getElementById('f_'+key).value;
-      if(req && !val){ missing = true; faltantes.push(label); }
-      rec[key] = val;
-      const sel = document.getElementById('f_'+key);
-      const opt = sel.selectedOptions && sel.selectedOptions[0];
-      rec.cadena = opt ? opt.dataset.cadena : (getCheckin()?.cadena || '');
-    } else {
-      const val = document.getElementById('f_'+key).value.trim();
-      if(req && !val){ missing = true; faltantes.push(label); }
-      rec[key] = val;
+  try{
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+    const def = FORM_DEFS[type];
+    const rec = { id: uid(), tipo: type, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString() };
+    let missing = false;
+    let faltantes = [];
+    def.fields.forEach(([key,type_,label,req])=>{
+      if(type_==='file'){
+        const input = document.getElementById('f_'+key) || document.getElementById(key);
+        rec[key] = input ? (input.dataset.b64 || '') : '';
+        if(req && !rec[key]){ missing = true; faltantes.push(label); }
+      } else if(type_==='file_multi'){
+        const fotos = ((window._fotosMulti||{})[key]||[]).map(f=>f.b64);
+        rec[key] = fotos;
+        if(req && !fotos.length){ missing = true; faltantes.push(label); }
+      } else if(type_==='file_video'){
+        const input = document.getElementById('f_'+key);
+        rec[key] = (input && input.files[0]) ? input.files[0].name : '';
+        if(req && !rec[key]){ missing = true; faltantes.push(label); }
+      } else if(type_==='checkbox'){
+        const el = document.getElementById('f_'+key);
+        rec[key] = el ? el.checked : false;
+      } else if(type_==='tienda_select'){
+        const lockedInput = document.getElementById('f_'+key+'_locked');
+        const sel = document.getElementById('f_'+key);
+        const val = lockedInput ? lockedInput.value : (sel ? sel.value : '');
+        if(req && !val){ missing = true; faltantes.push(label); }
+        rec[key] = val;
+        const opt = sel && sel.selectedOptions && sel.selectedOptions[0];
+        rec.cadena = opt ? opt.dataset.cadena : (getCheckin()?.cadena || '');
+      } else {
+        const el = document.getElementById('f_'+key);
+        const val = el ? el.value.trim() : '';
+        if(req && !val){ missing = true; faltantes.push(label); }
+        rec[key] = val;
+      }
+    });
+    if(missing){ toast('Falta: ' + faltantes.join(', ')); return; }
+    const continuarGuardado = () => {
+      try{
+        const arr = getCapturas();
+        arr.push(rec);
+        saveCapturas(arr);
+        closeModal();
+        toast('Captura guardada ✓');
+        if(type==='caducidad') mostrarProyeccionCaducidad(rec);
+        if(type==='entrada_tienda' && rec.tienda){ setCheckin({tienda:rec.tienda, cadena:rec.cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}); }
+        if(type==='salida_tienda'){ setCheckin(null); }
+        renderMisCapturas();
+        renderCheckinBar();
+        if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+      }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
+    };
+    if(rec.clave && (rec.precio_delico || rec.costo)){
+      const advertencia = precioSospechoso(rec.clave, parseFloat(rec.precio_delico || rec.costo));
+      if(advertencia){ confirmarPersonalizado(advertencia + '\n\n¿Guardar de todas formas? "Cancelar" para corregir el precio.', continuarGuardado); return; }
     }
-  });
-  if(missing){ toast('Falta: ' + faltantes.join(', ')); return; }
-  if(rec.clave && (rec.precio_delico || rec.costo)){
-    const advertencia = precioSospechoso(rec.clave, parseFloat(rec.precio_delico || rec.costo));
-    if(advertencia && !confirm(advertencia + '\n\nAceptar para guardar de todas formas, Cancelar para corregir.')) return;
-  }
-  const arr = getCapturas();
-  arr.push(rec);
-  saveCapturas(arr);
-  closeModal();
-  toast('Captura guardada ✓');
-  if(type==='caducidad') mostrarProyeccionCaducidad(rec);
-  if(type==='entrada_tienda' && rec.tienda){ setCheckin({tienda:rec.tienda, cadena:rec.cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}); }
-  if(type==='salida_tienda'){ setCheckin(null); }
-  renderMisCapturas();
-  renderCheckinBar();
-  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+    continuarGuardado();
+  }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
 }
 
 /* ---------- Carga de anaquel (frentes y profundidad por SKU) ---------- */
@@ -3228,6 +3275,8 @@ const MATERIALES = ['Vasitos','Capacillos','Cucharas','Guantes','Cubrebocas','Ot
 const INSUMOS = ['Galletas','Pan','Totopos','Palitos','Verdura','Fruta','Otros'];
 function openGastoTicket(){
   ticketLineas = [{id:uid(), tipo:'producto', clave:'', piezas:'', origen:'Comprado en tienda', costo:'', detalle:''}];
+  window._fotosMulti = window._fotosMulti || {};
+  window._fotosMulti['ticketFoto'] = [];
   renderGastoTicketModal();
 }
 function renderGastoTicketModal(){
@@ -3245,8 +3294,9 @@ function renderGastoTicketModal(){
           ${opts.map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}" ${checkin && checkin.tienda===s.tienda?'selected':''}>${s.tienda} (${s.cadena})</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Foto del ticket (opcional, o de cada producto)</label>
-        <input type="file" id="f_ticketFoto" accept="image/*" capture="environment" onchange="previewFile('ticketFoto')"><img id="prev_ticketFoto" class="thumb hidden">
+      <div class="field"><label>Foto(s) del ticket — puedes subir varias (opcional, o de cada producto)</label>
+        <input type="file" id="f_ticketFoto" accept="image/*" capture="environment" multiple onchange="previewFileMulti('ticketFoto')">
+        <div id="prev_ticketFoto" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"></div>
       </div>
     </div>
     <div id="ticketLineasWrap" style="margin-top:14px;"></div>
@@ -3258,6 +3308,7 @@ function renderGastoTicketModal(){
     </div>`;
   body.innerHTML = html;
   renderTicketLineas();
+  renderFotosMultiPreview('ticketFoto');
   document.getElementById('modalBg').classList.add('open');
 }
 function renderTicketLineas(){
@@ -3387,37 +3438,41 @@ function actualizarTotalTicket(){
   if(el) el.textContent = `Total del ticket: $${total.toFixed(2)}`;
 }
 function submitGastoTicket(){
-  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
-  const checkin = getCheckin();
-  const tiendaSel = document.getElementById('ticketTienda');
-  const tienda = checkin ? checkin.tienda : tiendaSel.value;
-  if(!tienda){ toast('Selecciona la tienda'); return; }
-  const cadena = checkin ? checkin.cadena : (tiendaSel.selectedOptions[0]?.dataset.cadena || '');
-  const lineasValidas = ticketLineas.filter(l=> l.costo!=='' && ((l.tipo==='producto' && l.clave) || (l.tipo!=='producto' && l.detalle)));
-  if(!lineasValidas.length){ toast('Agrega al menos una línea completa (producto/insumo/material + costo)'); return; }
-  const fotoInput = document.getElementById('f_ticketFoto');
-  const foto = fotoInput ? fotoInput.dataset.b64 || '' : '';
-  const total = lineasValidas.reduce((s,l)=> s + (parseFloat(l.costo)||0), 0);
-  const resumenLineas = lineasValidas.map(l=>{
-    const nombreLinea = l.tipo==='producto' ? nombreProducto(l.clave) : l.detalle;
-    return `• ${nombreLinea} — $${(parseFloat(l.costo)||0).toFixed(2)}`;
-  }).join('\n');
-  const confirmMsg = `¿Confirmas guardar este ticket?\n\n${resumenLineas}\n\nTotal: $${total.toFixed(2)}`;
-  if(!confirm(confirmMsg)) return;
-  const rec = {
-    id: uid(), tipo:'gasto_ticket', usuario: currentUser.usuario, persona: currentUser.nombre,
-    fecha_registro: new Date().toISOString(), tienda, cadena, foto, total: total.toFixed(2),
-    lineas: lineasValidas.map(l=> l.tipo==='producto'
-      ? {tipo:'Producto Delico', detalle: nombreProducto(l.clave), piezas:l.piezas, origen:l.origen, costo:l.costo}
-      : {tipo: l.tipo==='insumo'?'Insumo':'Material', detalle:l.detalle, costo:l.costo})
-  };
-  const arr = getCapturas();
-  arr.push(rec);
-  saveCapturas(arr);
-  closeModal();
-  toast('Ticket guardado ✓');
-  renderMisCapturas();
-  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+  try{
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+    const checkin = getCheckin();
+    const tiendaSel = document.getElementById('ticketTienda');
+    const tienda = checkin ? checkin.tienda : (tiendaSel ? tiendaSel.value : '');
+    if(!tienda){ toast('Selecciona la tienda'); return; }
+    const cadena = checkin ? checkin.cadena : (tiendaSel && tiendaSel.selectedOptions[0]?.dataset.cadena || '');
+    const lineasValidas = ticketLineas.filter(l=> l.costo!=='' && ((l.tipo==='producto' && l.clave) || (l.tipo!=='producto' && l.detalle)));
+    if(!lineasValidas.length){ toast('Agrega al menos una línea completa (producto/insumo/material + costo)'); return; }
+    const fotos = ((window._fotosMulti||{})['ticketFoto']||[]).map(f=>f.b64);
+    const total = lineasValidas.reduce((s,l)=> s + (parseFloat(l.costo)||0), 0);
+    const resumenLineas = lineasValidas.map(l=>{
+      const nombreLinea = l.tipo==='producto' ? nombreProducto(l.clave) : l.detalle;
+      return `• ${nombreLinea} — $${(parseFloat(l.costo)||0).toFixed(2)}`;
+    }).join('\n');
+    const confirmMsg = `¿Confirmas guardar este ticket?\n\n${resumenLineas}\n\nTotal: $${total.toFixed(2)}`;
+    confirmarPersonalizado(confirmMsg, () => {
+      try{
+        const rec = {
+          id: uid(), tipo:'gasto_ticket', usuario: currentUser.usuario, persona: currentUser.nombre,
+          fecha_registro: new Date().toISOString(), tienda, cadena, foto: fotos, total: total.toFixed(2),
+          lineas: lineasValidas.map(l=> l.tipo==='producto'
+            ? {tipo:'Producto Delico', detalle: nombreProducto(l.clave), piezas:l.piezas, origen:l.origen, costo:l.costo}
+            : {tipo: l.tipo==='insumo'?'Insumo':'Material', detalle:l.detalle, costo:l.costo})
+        };
+        const arr = getCapturas();
+        arr.push(rec);
+        saveCapturas(arr);
+        closeModal();
+        toast('Ticket guardado ✓');
+        renderMisCapturas();
+        if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+      }catch(e){ toast('⚠️ No se pudo guardar el ticket: ' + e.message, 6500); }
+    });
+  }catch(e){ toast('⚠️ No se pudo guardar el ticket: ' + e.message, 6500); }
 }
 
 function nombreProducto(clave){ const p = claveAProducto(clave); return p ? p.nombre : (clave||''); }
@@ -4593,12 +4648,12 @@ function renderTareas(){
     // Un(a) embajador(a) solo debe ver las tareas que le fueron asignadas a ella/él, nunca las de otras personas.
     arr = arr.filter(t => t.asignado_a === currentUser.usuario);
   }
-  const resumenEl = document.getElementById('tareasResumenBreve');
-  if(resumenEl){
-    const abiertas = arr.filter(t=>t.estado==='abierta').length;
-    const finalizadas = arr.length - abiertas;
-    resumenEl.textContent = `${arr.length} tarea(s) en total · ${abiertas} abierta(s) · ${finalizadas} finalizada(s).`;
-  }
+  const abiertas = arr.filter(t=>t.estado==='abierta').length;
+  const finalizadas = arr.length - abiertas;
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  setTxt('tareaKpiTotal', arr.length);
+  setTxt('tareaKpiAbiertas', abiertas);
+  setTxt('tareaKpiFinalizadas', finalizadas);
   const grid = document.getElementById('tareasGrid');
   grid.innerHTML = arr.map(t=>`
     <div class="card" style="opacity:${t.estado==='finalizada'?0.75:1};">
@@ -5021,10 +5076,20 @@ function mesYaFinalizado(mesLabel){
 function calcularBono(storesScope, mesLabel){
   const semanas = semanasCuotaMes(mesLabel);
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
-  const rows = (APP_DATA.cumplimiento_semanal||[]).filter(c => keys.has(c.cadena+'|'+c.num_tienda) && semanas.includes(c.semana) && c.escalon_pesos!=null);
-  const escalonPesos = rows.reduce((a,r)=>a+(r.escalon_pesos||0),0);
+  const rowsMes = (APP_DATA.cumplimiento_semanal||[]).filter(c => keys.has(c.cadena+'|'+c.num_tienda) && semanas.includes(c.semana));
+  // El Bono "Valor al Esfuerzo" se calcula normalmente contra el Escalón (una meta más alta que la cuota base).
+  // Pero si a ese mes específico todavía no se le cargó el escalón (ej. porque el plan de bono arrancó después),
+  // en vez de decir "sin datos" cuando la venta real de ese mismo periodo SÍ existe, usamos la cuota base como
+  // referencia de respaldo — así siempre se filtra exactamente el mismo periodo en el que se dio la venta.
+  let rows = rowsMes.filter(c=>c.escalon_pesos!=null);
+  let usoCuotaComoFallback = false;
+  if(!rows.length){
+    rows = rowsMes.filter(c=>c.cuota_pesos!=null);
+    usoCuotaComoFallback = rows.length>0;
+  }
+  const metaPesos = rows.reduce((a,r)=>a+((usoCuotaComoFallback ? r.cuota_pesos : r.escalon_pesos)||0),0);
   const realPesos = rows.reduce((a,r)=>a+(r.real_pesos||0),0);
-  const pctSellOut = escalonPesos ? Math.round(realPesos/escalonPesos*1000)/10 : null;
+  const pctSellOut = metaPesos ? Math.round(realPesos/metaPesos*1000)/10 : null;
   const distrib = resumenDistribucionGlobal(storesScope);
   const pctDistrib = distrib.pct;
   const ratingSO = ratingBonoSellOut(pctSellOut);
@@ -5034,7 +5099,7 @@ function calcularBono(storesScope, mesLabel){
   const bonoTotal = bonoSellOut + bonoDistrib;
   const hayVentaSemana = rows.some(r=>r.real_pesos>0);
   const mesFinalizado = mesYaFinalizado(mesLabel);
-  return {semanas, escalonPesos, realPesos, pctSellOut, pctDistrib, ratingSO, ratingDist, bonoSellOut, bonoDistrib, bonoTotal, rows, hayVentaSemana, mesFinalizado, mesLabel};
+  return {semanas, escalonPesos:metaPesos, realPesos, pctSellOut, pctDistrib, ratingSO, ratingDist, bonoSellOut, bonoDistrib, bonoTotal, rows, hayVentaSemana, mesFinalizado, mesLabel, usoCuotaComoFallback};
 }
 function abrirBono(){
   const body = document.getElementById('modalBody');
@@ -5086,6 +5151,7 @@ function tarjetaBono(nombre, r){
       <span style="font-size:20px; font-weight:800; color:var(--brand-dark);">$${r.bonoTotal.toLocaleString('es-MX')}</span>
     </div>
     ${!r.hayVentaSemana && !r.mesFinalizado ? `<p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">Aún no hay venta real cargada para este mes — el % de Sell Out se actualizará solo cuando se suba el Sell Out correspondiente.</p>` : ''}
+    ${r.usoCuotaComoFallback ? `<p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">ℹ️ A ${r.mesLabel} todavía no se le cargó el Escalón de Bono, así que el % de Sell Out de arriba se calculó contra la <b>cuota base</b> del mismo periodo (mismas semanas en las que se dio esa venta) — en cuanto se cargue el escalón real, este % se ajusta.</p>` : ''}
   </div>`;
 }
 function renderBono(){
@@ -5648,6 +5714,7 @@ function renderCvInsights(storesScope, semanas){
   box.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
 }
 let cvTiendaExpandida = null;
+let cvSemanaTiendaExpandida = null;
 function renderCvTablaTienda(storesScope, semanas){
   const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
@@ -5718,10 +5785,26 @@ function renderCvPorSemanaTienda(){
     return {cadena:c.cadena, num_tienda:c.num_tienda, tienda: st?st.tienda:'', meta, real, falta: Math.max(0, meta-real), pct: meta ? Math.round(real/meta*1000)/10 : null};
   }).filter(f=>f.tienda);
   window._cvSemanaTiendaData = filas;
+  window.toggleCvSemanaTiendaExpandida = function(key){ cvSemanaTiendaExpandida = cvSemanaTiendaExpandida===key ? null : key; window.render_cvSemanaTienda(); };
   window.render_cvSemanaTienda = function(){
     const ordenadas = ordenarFilas('cvSemanaTienda', window._cvSemanaTiendaData, 'falta');
-    box.innerHTML = `<table><thead><tr>${colHead('cvSemanaTienda','num_tienda','# Tienda',true)}<th>Tienda</th><th>Cadena</th>${colHead('cvSemanaTienda','meta',metaLabelTxt+' (piezas)',true)}${colHead('cvSemanaTienda','real','Real (piezas)',true)}${colHead('cvSemanaTienda','pct','%',true)}${colHead('cvSemanaTienda','falta','Falta',true)}</tr></thead>
-      <tbody>${ordenadas.map(f=>`<tr><td>${f.num_tienda}</td><td>${f.tienda}</td><td>${f.cadena}</td><td class="num">${fmtNum(f.meta)}</td><td class="num">${fmtNum(f.real)}</td><td class="num">${f.pct!=null?f.pct+'%':'—'}</td><td class="num">${fmtNum(f.falta)}</td></tr>`).join('') || `<tr><td colspan="7" class="empty-state">Sin datos para esta semana.</td></tr>`}</tbody></table>`;
+    const rowsHtml = ordenadas.map(f=>{
+      const key = f.cadena+'|'+f.num_tienda;
+      let fila = `<tr style="cursor:pointer;" onclick="toggleCvSemanaTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${cvSemanaTiendaExpandida===key?'▼':'▶'} ${f.num_tienda}</td><td>${f.tienda}</td><td>${f.cadena}</td><td class="num">${fmtNum(f.meta)}</td><td class="num">${fmtNum(f.real)}</td><td class="num">${f.pct!=null?f.pct+'%':'—'}</td><td class="num">${fmtNum(f.falta)}</td></tr>`;
+      if(cvSemanaTiendaExpandida===key){
+        const skus = (APP_DATA.ventas_cuota_sku||[]).filter(v=>v.cadena===f.cadena && v.num_tienda===f.num_tienda);
+        fila += skus.length ? `<tr style="background:#f7f8ee;"><td colspan="7" style="padding:6px 10px 2px 26px; font-size:11px; color:var(--ink-soft);">Detalle por código (SKU) — cuota y venta real del periodo completo con datos cargados, no solo de esta semana:</td></tr>`
+          + skus.sort((a,b)=>(b.cuota_uni||0)-(a.cuota_uni||0)).map(v=>{
+            const metaSku = cvMetaTipo==='escalon' ? (v.escalon_sep_uni ?? null) : (v.cuota_uni ?? 0);
+            const pctSku = metaSku ? Math.round((v.real_uni||0)/metaSku*1000)/10 : null;
+            return `<tr style="background:#f7f8ee;"><td colspan="2" style="padding-left:26px; font-size:12px;">${v.clave}</td><td style="font-size:12px;">${v.familia||''}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(metaSku):'—'}</td><td class="num" style="font-size:12px;">${fmtNum(v.real_uni||0)}</td><td class="num" style="font-size:12px;">${pctSku!=null?pctSku+'%':'—'}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(Math.max(0,metaSku-(v.real_uni||0))):'—'}</td></tr>`;
+          }).join('')
+          : `<tr style="background:#f7f8ee;"><td colspan="7" style="padding-left:26px; font-size:12px; color:var(--ink-soft);">Sin detalle por código disponible para esta tienda.</td></tr>`;
+      }
+      return fila;
+    }).join('');
+    box.innerHTML = `<table><thead><tr>${colHead('cvSemanaTienda','num_tienda','# Tienda (clic para ver el detalle por código)',true)}<th>Tienda</th><th>Cadena</th>${colHead('cvSemanaTienda','meta',metaLabelTxt+' (piezas)',true)}${colHead('cvSemanaTienda','real','Real (piezas)',true)}${colHead('cvSemanaTienda','pct','%',true)}${colHead('cvSemanaTienda','falta','Falta',true)}</tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="7" class="empty-state">Sin datos para esta semana.</td></tr>`}</tbody></table>`;
   };
   window.render_cvSemanaTienda();
 }
