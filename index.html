@@ -596,6 +596,7 @@
       <h2 class="section-title">Captura MEDI</h2>
 
       <div class="card" id="checkinBar" style="margin-bottom:18px;"></div>
+      <div id="extraTiendaBox"></div>
 
       <p style="font-size:11.5px; color:var(--ink-soft); margin:-2px 0 10px;"><span style="color:var(--bad); font-weight:700;">■</span> Obligatorio en cada visita &nbsp; <span style="color:var(--warn); font-weight:700;">■</span> Según tu rol &nbsp; <span style="color:var(--line); font-weight:700;">■</span> Opcional</p>
       <div class="mdi-grid">
@@ -943,7 +944,7 @@
     <section class="view" id="view-calendario">
       <div class="bloque-tag bloque-planeacion">Planeación</div>
       <h2 class="section-title">Calendario</h2>
-      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Vista semanal, igual que Asignación de rutas pero con lo ya ejecutado: <b style="color:var(--good);">🟢 verde</b> = realizada, <b style="color:var(--bad);">🔴 rojo</b> = no realizada, <b style="color:#1d4ed8;">🔵 azul</b> = próxima, <b style="color:#946600;">🟡 amarillo</b> = hoy (en curso / pendiente).</p>
+      <p id="calLeyenda" style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;"></p>
       <div class="controls-bar">
         <label>Inicio de vista:</label>
         <input type="date" id="calWeekPicker" oninput="onCalWeekPickerChange(this.value)">
@@ -1013,9 +1014,6 @@
       <div class="table-scroll">
         <table><thead><tr id="uniformesBodyHead"><th>Persona</th><th>Ítems</th><th>Comentarios</th><th>Fecha</th><th>Estado</th><th>Entrega</th><th>Acción</th></tr></thead><tbody id="uniformesBody"></tbody></table>
       </div>
-
-      <h2 class="section-title">Acceso a otra tienda</h2>
-      <div id="extraTiendaBox" style="margin-top:6px;"></div>
     </section>
 
     <!-- ---------- INVENTARIO DE MATERIALES (Admin) ---------- -->
@@ -1554,7 +1552,7 @@ function showView(key, btnEl){
   else { const tabs = tabsVisiblesParaMi(); const idx = tabs.findIndex(t=>t.key===key); const btns = [...document.querySelectorAll('nav.tabs button')]; if(idx>=0 && btns[idx]) btns[idx].classList.add('active'); }
   toggleMobileNav(false); // si el menú móvil estaba abierto, se cierra al elegir una sección
   if(key==='reportes') renderReportes();
-  if(key==='captura'){ renderCheckinBar(); renderMisCapturas(); }
+  if(key==='captura'){ renderCheckinBar(); renderMisCapturas(); renderExtraTiendaBox(); }
   if(key==='planeacion'){ renderPlaneacion(); renderTareas(); }
   if(key==='ruta') renderRuta();
   if(key==='noticias') renderNoticias();
@@ -1804,59 +1802,23 @@ function saveExtraTiendas(arr){ _extraTiendasSync.save(arr); }
 function tiendasExtraAprobadasParaMi(){
   return getExtraTiendas().filter(e => e.usuario===currentUser.usuario && e.estado==='aprobada').map(e=>e.tienda);
 }
-function solicitarTiendaExtra(){
-  const tienda = document.getElementById('extraTiendaSelect').value;
-  const motivo = document.getElementById('extraTiendaMotivo').value.trim();
-  if(!tienda){ toast('Selecciona la tienda'); return; }
-  const arr = getExtraTiendas();
-  arr.unshift({id:uid(), persona:currentUser.nombre, usuario:currentUser.usuario, tienda, motivo, fecha:todayISO(), estado:'pendiente'});
-  saveExtraTiendas(arr);
-  document.getElementById('extraTiendaSelect').value = '';
-  document.getElementById('extraTiendaMotivo').value = '';
-  toast('Solicitud de acceso a otra tienda enviada — tu jefe inmediato debe habilitarla.');
-  renderExtraTiendaBox();
-}
-function resolverTiendaExtra(id, estado){
-  const arr = getExtraTiendas();
-  const e = arr.find(x=>x.id===id);
-  if(e){ e.estado = estado; e.resolvio = currentUser.nombre; saveExtraTiendas(arr); renderExtraTiendaBox(); renderPlaneacion(); }
-}
+/* El acceso a otra tienda ya no se pide manualmente: se detecta solo cuando alguien hace check-in
+   (ver hacerCheckinOtraTienda/confirmarCheckinFueraRuta en Captura MEDI) y queda aprobado al instante,
+   con una incidencia automática — este bloque es nada más el registro de esas incidencias para que
+   Supervisor/Coordinador/Admin las vean. */
 function renderExtraTiendaBox(){
   const box = document.getElementById('extraTiendaBox');
   if(!box) return;
-  const all = getExtraTiendas();
-  let html = '';
-  if(currentUser.perfil === 'Embajador'){
-    const mias = all.filter(e=>e.usuario===currentUser.usuario);
-    html += `<div class="card" style="margin-bottom:14px;">
-      <div class="lbl" style="font-weight:700; margin-bottom:8px;">Solicitar acceso a otra tienda (temporal)</div>
-      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 10px;">Para casos de vacaciones u otra incidencia con cambio de tienda. Necesita ser habilitada por tu supervisor, coordinador o un administrativo — mientras no esté aprobada, no verás información de esa tienda.</p>
-      <div class="form-grid">
-        <div class="field"><label>Tienda</label>
-          <select id="extraTiendaSelect"><option value="">Selecciona...</option>${[...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).map(s=>`<option value="${s.tienda}">${s.tienda} (${s.cadena})</option>`).join('')}</select>
-        </div>
-        <div class="field full"><label>Motivo</label><input type="text" id="extraTiendaMotivo" placeholder="Ej. cubro vacaciones de..."></div>
-      </div>
-      <button class="btn btn-brand" style="margin-top:8px;" onclick="solicitarTiendaExtra()">+ Solicitar</button>
-      ${mias.length ? `<div style="margin-top:12px; display:flex; flex-direction:column; gap:6px;">
-        ${mias.map(e=>`<div style="font-size:12.5px; display:flex; justify-content:space-between; gap:8px; border-bottom:1px solid #d8dba0; padding:6px 0;">
-          <span>${e.tienda}${e.motivo?' · '+e.motivo:''} <small style="color:var(--ink-soft);">${e.fecha}</small></span>${pillEstado(e.estado)}</div>`).join('')}
-      </div>` : ''}
-    </div>`;
-  }
-  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)){
-    const pend = all.filter(e => e.estado==='pendiente' && (currentUser.perfil!=='Supervisor' || mismaPersona(supervisorDePersona(e.persona), currentUser.nombre)));
-    if(pend.length){
-      html += `<div class="card" style="margin-bottom:14px; border-color:var(--brand);">
-        <div class="lbl" style="font-weight:700; margin-bottom:8px;">Solicitudes de acceso a otra tienda por aprobar</div>
-        ${pend.map(e=>`<div style="font-size:12.5px; display:flex; justify-content:space-between; align-items:center; gap:8px; border-bottom:1px solid #d8dba0; padding:6px 0;">
-          <span><b>${e.persona}</b> → ${e.tienda}${e.motivo?' · '+e.motivo:''} <small style="color:var(--ink-soft);">${e.fecha}</small></span>
-          <span style="display:flex; gap:6px;"><button class="btn btn-brand" style="padding:4px 10px; font-size:11px;" onclick="resolverTiendaExtra('${e.id}','aprobada')">Aprobar</button><button class="btn btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="resolverTiendaExtra('${e.id}','rechazada')">Rechazar</button></span>
-        </div>`).join('')}
-      </div>`;
-    }
-  }
-  box.innerHTML = html;
+  if(!['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)){ box.innerHTML=''; return; }
+  const all = getExtraTiendas().filter(e=>e.auto);
+  const propias = all.filter(e => currentUser.perfil!=='Supervisor' || mismaPersona(supervisorDePersona(e.persona), currentUser.nombre));
+  const ordenadas = [...propias].sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
+  box.innerHTML = ordenadas.length ? `<div class="card" style="margin-bottom:14px;">
+    <div class="lbl" style="font-weight:700; margin-bottom:8px;">⚠️ Visitas fuera de ruta (check-in automático, con motivo)</div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      ${ordenadas.slice(0,20).map(e=>`<div style="font-size:12.5px; border-bottom:1px solid #d8dba0; padding:6px 0;"><b>${e.persona}</b> → ${e.tienda}${e.cadena?' ('+e.cadena+')':''}${e.motivo?' · '+e.motivo:''} <small style="color:var(--ink-soft);">${e.fecha}</small></div>`).join('')}
+    </div>
+  </div>` : '';
 }
 function renderVisitasPorCadena(){
   const box = document.getElementById('visitasPorCadenaCard');
@@ -2123,18 +2085,28 @@ function renderCheckinBar(){
     return;
   }
   const opciones = misTiendasHoy();
-  if(!opciones.length){
-    box.innerHTML = `<div class="checkin-empty"><span style="font-size:13px; color:var(--ink-soft);">No tienes tiendas asignadas para hoy en tu ruta. Puedes capturar de todas formas escribiendo la tienda a mano en cada formulario.</span></div>`;
-    return;
+  let html = '';
+  if(opciones.length){
+    html += `<div class="checkin-empty">
+      <span style="font-size:13px; font-weight:700; color:var(--brand-dark);">Haz check-in en tu tienda de hoy:</span>
+      <select id="checkinSelect" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
+        <option value="">Selecciona tu tienda...</option>
+        ${opciones.map((o,i)=>`<option value="${i}">${o.fecha} — ${o.tienda} (${o.cadena||''} · ${o.rol||''})</option>`).join('')}
+      </select>
+      <button class="btn btn-brand" onclick="hacerCheckin()">Check-in</button>
+    </div>`;
+  } else {
+    html += `<div class="checkin-empty"><span style="font-size:13px; color:var(--ink-soft);">No tienes tiendas asignadas para hoy en tu ruta.</span></div>`;
   }
-  box.innerHTML = `<div class="checkin-empty">
-    <span style="font-size:13px; font-weight:700; color:var(--brand-dark);">Haz check-in en tu tienda de hoy:</span>
-    <select id="checkinSelect" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
-      <option value="">Selecciona tu tienda...</option>
-      ${opciones.map((o,i)=>`<option value="${i}">${o.fecha} — ${o.tienda} (${o.cadena||''} · ${o.rol||''})</option>`).join('')}
+  html += `<div class="checkin-empty" style="margin-top:8px; border-top:1px dashed var(--line); padding-top:10px;">
+    <span style="font-size:12.5px; color:var(--ink-soft);">¿Vas a una tienda fuera de tu ruta de hoy (cambio, cobertura, vacaciones de alguien más, etc.)?</span>
+    <select id="checkinOtraSelect" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
+      <option value="">Selecciona la tienda...</option>
+      ${[...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}">${s.tienda} (${s.cadena})</option>`).join('')}
     </select>
-    <button class="btn btn-brand" onclick="hacerCheckin()">Check-in</button>
+    <button class="btn btn-outline" onclick="hacerCheckinOtraTienda()">Check-in aquí</button>
   </div>`;
+  box.innerHTML = html;
 }
 function hacerCheckin(){
   const idx = document.getElementById('checkinSelect').value;
@@ -2145,6 +2117,51 @@ function hacerCheckin(){
   toast('Check-in hecho en ' + o.tienda);
 }
 function salirCheckin(){ setCheckin(null); renderCheckinBar(); }
+/* Check-in en una tienda que no está en la ruta de hoy: si de verdad no está en la ruta, pide un motivo
+   breve y genera la incidencia automáticamente (ya no hay que pedir permiso antes ni esperar aprobación). */
+function hacerCheckinOtraTienda(){
+  const sel = document.getElementById('checkinOtraSelect');
+  if(!sel || !sel.value){ toast('Elige una tienda'); return; }
+  const tienda = sel.value;
+  const opt = sel.selectedOptions[0];
+  const cadena = opt ? opt.getAttribute('data-cadena') : '';
+  const enRuta = misTiendasHoy().some(o=>o.tienda===tienda);
+  if(enRuta){
+    setCheckin({tienda, cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
+    renderCheckinBar();
+    toast('Check-in hecho en ' + tienda);
+    return;
+  }
+  abrirMotivoFueraRuta(tienda, cadena);
+}
+function abrirMotivoFueraRuta(tienda, cadena){
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>⚠️ Tienda fuera de tu ruta</h3>
+    <p class="d"><b>${tienda}</b>${cadena?' ('+cadena+')':''} no está en tu ruta asignada de hoy. Se va a registrar una incidencia automática con un motivo breve — no necesitas pedir permiso antes, pero tu jefe la va a ver.</p>
+    <div class="field full"><label>Motivo (breve) *</label><textarea id="motivoFueraRuta" rows="2" placeholder="Ej. cubro vacaciones de..., cambio de última hora..."></textarea></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" onclick="confirmarCheckinFueraRuta('${tienda.replace(/'/g,"\\'")}','${(cadena||'').replace(/'/g,"\\'")}')">Confirmar check-in</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function confirmarCheckinFueraRuta(tienda, cadena){
+  const motivoInput = document.getElementById('motivoFueraRuta');
+  const motivo = motivoInput ? motivoInput.value.trim() : '';
+  if(!motivo){ toast('Escribe un motivo breve'); return; }
+  const recIncidencia = { id: uid(), tipo:'incidencia', usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), tienda, cadena, tipo_incidencia:'Visita fuera de ruta asignada', descripcion: motivo, foto:'' };
+  const capturasArr = getCapturas();
+  capturasArr.push(recIncidencia);
+  saveCapturas(capturasArr);
+  const extraArr = getExtraTiendas();
+  extraArr.unshift({id:uid(), persona:currentUser.nombre, usuario:currentUser.usuario, tienda, cadena, motivo, fecha:todayISO(), estado:'aprobada', auto:true});
+  saveExtraTiendas(extraArr);
+  setCheckin({tienda, cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
+  closeModal();
+  toast('Check-in hecho en ' + tienda + ' — se registró la incidencia de ruta.');
+  renderCheckinBar();
+  renderMisCapturas();
+  renderExtraTiendaBox();
+  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+}
 
 /* ---------- Catálogo de productos (familia > producto) ---------- */
 function familiasProducto(){ return [...new Set(APP_DATA.catalogo_productos.map(p=>p.familia))]; }
@@ -2278,7 +2295,7 @@ const FORM_DEFS = {
     title:'Incidencias', icon:'⚠️',
     fields:[
       ['tienda','tienda_select','Tienda',true],
-      ['tipo_incidencia','select','Tipo de incidencia',true,['Inventario (ajuste/no coincide)','Maltrato de producto','Calidad (olor/consistencia/objeto ajeno)','Tienda / instalaciones (remodelación, accesos)','Refrigeración (gotea, no enfría)','Otro']],
+      ['tipo_incidencia','select','Tipo de incidencia',true,['Inventario (ajuste/no coincide)','Maltrato de producto','Calidad (olor/consistencia/objeto ajeno)','Tienda / instalaciones (remodelación, accesos)','Refrigeración (gotea, no enfría)','Visita fuera de ruta asignada','Otro']],
       ['descripcion','textarea','Describe la incidencia',true],
       ['foto','file','Foto (opcional)',false],
     ]
@@ -3680,6 +3697,13 @@ function renderCalendario(){
   const end = new Date(start); end.setDate(end.getDate()+6);
   document.getElementById('calWeekLabel').textContent = `Vista del ${fmtDateLabel(start)} al ${fmtDateLabel(end)}`;
   document.getElementById('calWeekPicker').value = isoDate(start);
+  const leyendaBox = document.getElementById('calLeyenda');
+  if(leyendaBox){
+    const leyendaColores = `<b style="color:var(--good);">🟢 verde</b> = realizada, <b style="color:var(--bad);">🔴 rojo</b> = no realizada, <b style="color:#1d4ed8;">🔵 azul</b> = próxima, <b style="color:#946600;">🟡 amarillo</b> = hoy (en curso / pendiente).`;
+    leyendaBox.innerHTML = currentUser.perfil === 'Embajador'
+      ? leyendaColores
+      : `Vista semanal, igual que Asignación de rutas pero con lo ya ejecutado: ${leyendaColores}`;
+  }
 
   poblarSelectFiltro('calFiltroCadena', [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort());
   poblarSelectFiltro('calFiltroSupervisor', nombresSupervisorUnicos());
