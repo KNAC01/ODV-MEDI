@@ -201,6 +201,7 @@
   .cal-card.cal-hoy{background:var(--warn-soft); border-left-color:var(--warn);}
   .cal-card.cal-futuro{background:#dbe6fb; border-left-color:#1d4ed8;}
   .cal-badge{display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--bad); color:#fff; font-size:10px; font-weight:700; margin-left:6px;}
+  .cal-badge-dot{display:inline-block; width:9px; height:9px; border-radius:999px; background:var(--bad); margin-left:6px; vertical-align:middle;}
   .mdi-tile.mdi-tile-alert{box-shadow:0 0 0 2px var(--warn) inset;}
   .mdi-tile{position:relative; border-left:5px solid var(--line);}
   .mdi-tile.mdi-oblig{border-left-color:var(--bad);}
@@ -612,14 +613,16 @@
         <button class="mdi-tile mdi-oblig" onclick="abrirMercadeo()"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">🧹</div><div class="t">Mercadeo</div><div class="d">Checklist completo — cambia según tu perfil (Embajador/Promotor o Supervisor).</div></button>
         <button class="mdi-tile mdi-condicional" onclick="openForm('degustacion')"><span class="mdi-badge b-condicional">Según tu rol</span><div class="icon">🥄</div><div class="t">Degustación</div><div class="d">Producto degustado, con qué, reacción del shopper. Foto obligatoria.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="openForm('caducidad')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">⏳</div><div class="t">Caducidades</div><div class="d">Producto, fecha de caducidad y piezas en riesgo.</div></button>
-        <button class="mdi-tile" id="tilePrioridades" onclick="abrirPrioridadesCaptura()"><span class="mdi-badge b-oblig hidden" id="prioridadesObligBadge">Obligatoria</span><div class="icon">🎯</div><div class="t">Prioridades y tareas<span class="cal-badge hidden" id="prioridadesBadge">0</span></div><div class="d">Prioridades del mes (confirma activas, sube foto donde lo pidan) y tareas asignadas a ti — respóndelas aquí mismo.</div></button>
-        <button class="mdi-tile" onclick="abrirPipeline()"><div class="icon">📦</div><div class="t">Pipeline</div><div class="d">Inventarios por tienda — pendiente de conectar tu archivo.</div></button>
-        <button class="mdi-tile" onclick="showView('bono')"><div class="icon">🏆</div><div class="t">Bono</div><div class="d">Plan "Valor al Esfuerzo" — hasta $1,500 por Sell Out y Distribución. Ahora vive en Retroalimentación.</div></button>
+        <button class="mdi-tile" id="tilePrioridades" onclick="abrirPrioridadesCaptura()"><span class="mdi-badge b-oblig hidden" id="prioridadesObligBadge">Obligatoria</span><div class="icon">🎯</div><div class="t">Prioridades y tareas<span class="cal-badge-dot hidden" id="prioridadesBadge"></span></div><div class="d">Prioridades del mes (confirma activas, sube foto donde lo pidan) y tareas asignadas a ti — respóndelas aquí mismo.</div></button>
+        <button class="mdi-tile" onclick="abrirPipeline()"><span class="cal-badge hidden" id="pipelineAccionablesBadge">0</span><div class="icon">📦</div><div class="t">Pipeline</div><div class="d">Inventarios por tienda — pendiente de conectar tu archivo.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="abrirLeySilla()"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">🪑</div><div class="t">Ley Silla</div><div class="d">Registra tus 2 descansos de 15 min al día (obligación y derecho legal).</div></button>
         <button class="mdi-tile" onclick="openGastoTicket()"><div class="icon">🧾</div><div class="t">Gasto (ticket)</div><div class="d">Un solo ticket, varias líneas: producto Delico, insumos, material.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="openForm('precio_delico')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">💲</div><div class="t">Precio Delico</div><div class="d">Precio en piso de nuestro producto.</div></button>
         <button class="mdi-tile" onclick="openForm('precio_competencia')"><div class="icon">🏷️</div><div class="t">Precio competencia</div><div class="d">Marca, producto, precio, promos, fotos/videos de activaciones de otras marcas y comentarios.</div></button>
         <button class="mdi-tile" onclick="openForm('incidencia')"><div class="icon">⚠️</div><div class="t">Incidencias</div><div class="d">Inventario, calidad, tienda/instalaciones, refrigeración, otro.</div></button>
+        <button class="mdi-tile" onclick="openForm('incapacidad')"><div class="icon">🩺</div><div class="t">Incapacidad</div><div class="d">Registra tu incapacidad — puedes adjuntar receta médica (opcional).</div></button>
+        <button class="mdi-tile" onclick="openForm('inasistencia')"><div class="icon">🚫</div><div class="t">Inasistencia</div><div class="d">Registra una inasistencia — indica el motivo en comentarios.</div></button>
+        <button class="mdi-tile" onclick="showView('vacaciones')"><div class="icon">🌴</div><div class="t">Vacaciones</div><div class="d">Solicita tus vacaciones directo en el registro — ahí se aprueban y se ven tus días.</div></button>
         <button class="mdi-tile" onclick="abrirCargaAnaquel()"><div class="icon">📐</div><div class="t">Carga de anaquel</div><div class="d">Frentes y profundidad por producto — como tabla, con foto de cada SKU.</div></button>
         <button class="mdi-tile" onclick="openForm('foto')"><div class="icon">📷</div><div class="t">Categoría</div><div class="d">Tipo de exhibición (refri, barco, búnker, otro) y foto.</div></button>
         <button class="mdi-tile hidden" id="tileOnboarding" onclick="abrirOnboarding()"><div class="icon">🧭</div><div class="t">Onboarding</div><div class="d">Checklist completo de onboarding — lo llenan juntas Supervisor y la persona nueva.</div></button>
@@ -707,6 +710,8 @@
           <option value="mercadeo">Mercadeo</option>
           <option value="caducidad">Caducidades</option>
           <option value="incidencia">Incidencias</option>
+          <option value="incapacidad">Incapacidad</option>
+          <option value="inasistencia">Inasistencia</option>
           <option value="degustacion">Degustación</option>
           <option value="precio_delico">Precio Delico</option>
           <option value="precio_competencia">Precio competencia</option>
@@ -1125,7 +1130,7 @@
     <!-- ---------- CUBRIMIENTO DE DISTRIBUCIÓN ---------- -->
     <section class="view" id="view-distribucion">
       <div class="bloque-tag bloque-retro">Retroalimentación · Pipeline ODV</div>
-      <h2 class="section-title">Cubrimiento de distribución</h2>
+      <h2 class="section-title">Cumplimiento de distribución</h2>
       <div class="controls-bar">
         <label>Cadena:</label>
         <select id="distCadena"><option value="">Todas</option></select>
@@ -1219,6 +1224,23 @@
         <button class="btn btn-brand" style="margin-top:10px;" onclick="publicarNoticia()">Publicar</button>
       </div>
       <div id="noticiasGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px;"></div>
+    </section>
+
+    <section class="view" id="view-escucha">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">👂 Délico te escucha</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Espacio libre para comentar lo que quieras — dudas, ideas, algo que te gustaría platicar. Puedes adjuntar una o varias fotos.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="form-grid">
+          <div class="field full"><label>Tu comentario</label><textarea id="escuchaTexto" rows="3" placeholder="Escribe aquí lo que quieras compartir..."></textarea></div>
+          <div class="field full"><label>Foto(s) — opcional, puedes subir varias</label>
+            <input type="file" id="f_escucha" accept="image/*" capture="environment" multiple onchange="previewFileMulti('escucha')">
+            <div id="prev_escucha" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+          </div>
+        </div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="publicarEscucha()">Enviar</button>
+      </div>
+      <div id="escuchaLista" style="display:flex; flex-direction:column; gap:12px;"></div>
     </section>
   </main>
 
@@ -1504,6 +1526,7 @@ const _notificacionesSync = crearColeccionSincronizada('notificaciones', 'delico
 const _eval360Sync = crearColeccionSincronizada('eval360', 'delico_odv_eval360_v1', ()=>{ if(currentUser) renderEval360(); });
 const _noticiasSync = crearColeccionSincronizada('noticias', 'delico_odv_noticias_v1', ()=>{ if(currentUser) renderNoticias(); });
 const _rutasSync = crearColeccionSincronizada('rutas', 'delico_odv_rutas_v1', ()=>{ if(currentUser){ renderRuta(); renderPreplan(); renderCalendario(); } });
+const _escuchaSync = crearColeccionSincronizada('delico_escucha', 'delico_odv_escucha_v1', ()=>{ if(currentUser) renderEscucha(); });
 
 let _syncIniciado = false;
 function iniciarTodaLaSincronizacion(){
@@ -1512,7 +1535,7 @@ function iniciarTodaLaSincronizacion(){
   iniciarSincronizacionCapturas();
   [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
    _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
-   _eval360Sync, _noticiasSync, _rutasSync].forEach(s=>s.iniciarSync());
+   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync].forEach(s=>s.iniciarSync());
 }
 
 function doLogin(){
@@ -1589,14 +1612,15 @@ const ALL_TABS = [
   {key:'captura',       label:'Captura MEDI',                     perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'ejecucion'},
   {key:'monitoreo',     label:'Monitoreo tiempo real',             perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'ejecucion', disabled:true},
   {key:'cumpventa',     label:'Cumplimiento de venta',             perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'distribucion',  label:'Cumplimiento de distribución',      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'cumpprioridades', label:'Cumplimiento de prioridades',     perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'bono',          label:'Bono',                              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
-  {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
-  {key:'distribucion',  label:'Cubrimiento de distribución',       perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'kpis',          label:'KPIs por tienda',                   perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'reportes',      label:'Reportes del equipo',               perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
   {key:'vacaciones',    label:'Vacaciones',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'noticias',      label:'Daily News',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'escucha',       label:'Délico te escucha',                 perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
 ];
 const BLOQUE_LABEL = {planeacion:'Planeación', ejecucion:'Ejecución', retro:'Retroalimentación'};
 
@@ -1735,6 +1759,7 @@ function showView(key, btnEl){
   if(key==='auditoria') renderAuditoria();
   if(key==='eval360') renderEval360();
   if(key==='catalogo') renderCatalogo();
+  if(key==='escucha') renderEscucha();
 }
 
 /* ---------- PLANEACIÓN ---------- */
@@ -2244,17 +2269,28 @@ function updatePrioridadesBadge(){
   }
   const misTareas = getTareas().filter(t=>t.asignado_a===currentUser.usuario && t.estado==='abierta');
   const count = accionables.length + misTareas.length;
-  badge.textContent = count;
   badge.classList.toggle('hidden', count===0);
   tile.classList.toggle('mdi-tile-alert', count>0);
   /* Obligatoria solo cuando aplica: hay prioridades/tareas pendientes que exigen acción */
   tile.classList.toggle('mdi-oblig', count>0);
   if(obligBadge) obligBadge.classList.toggle('hidden', count===0);
 }
+function updatePipelineAccionablesBadge(){
+  const badge = document.getElementById('pipelineAccionablesBadge');
+  if(!badge) return;
+  const checkin = getCheckin();
+  if(!checkin){ badge.classList.add('hidden'); return; }
+  const store = APP_DATA.stores.find(s=>s.tienda===checkin.tienda && (!checkin.cadena || s.cadena===checkin.cadena));
+  const filas = (APP_DATA.combinaciones||[]).filter(c=> c.tienda===checkin.tienda && (!store || (c.cadena===store.cadena && c.num_tienda===store.num_tienda)));
+  const count = filas.filter(f=>!f.con_venta).length + filas.filter(f=>f.inv_negativo).length + filas.filter(f=>f.excedente).length;
+  badge.textContent = count;
+  badge.classList.toggle('hidden', count===0);
+}
 function renderCheckinBar(){
   const box = document.getElementById('checkinBar');
   if(!box) return;
   updatePrioridadesBadge();
+  updatePipelineAccionablesBadge();
   actualizarTilesMEDI();
   const activo = getCheckin();
   if(activo){
@@ -2499,11 +2535,28 @@ const FORM_DEFS = {
       ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
     ]
   },
+  incapacidad:{
+    title:'Incapacidad', icon:'🩺',
+    fields:[
+      ['fecha','date','Fecha',true],
+      ['receta_medica','file_multi','Receta médica (opcional, puedes subir varias fotos)',false],
+      ['comentarios','textarea','Comentarios (opcional)',false],
+    ]
+  },
+  inasistencia:{
+    title:'Inasistencia', icon:'🚫',
+    fields:[
+      ['fecha','date','Fecha',true],
+      ['comentarios','textarea','Motivo / comentarios',true],
+    ]
+  },
   degustacion:{
     title:'Degustación', icon:'🥄',
     fields:[
       ['tienda','tienda_select','Tienda',true],
       ['clave','producto','Producto degustado',true],
+      ['clave2','producto','Producto degustado #2 (opcional — si en la charola van varios)',false],
+      ['clave3','producto','Producto degustado #3 (opcional)',false],
       ['con_que','icon_multi','¿Con qué se degustó?',false,['Baguette/Bolillo','Galletas','Pan artesanal Delico','En vaso','Bastones de verdura','Fruta dulce','Palitos de pan','Espagueti','Cebollín','Aceite de oliva','Totopos','Papas','Otro']],
       ['reacciones','textarea','Reacciones / comentarios del shopper (puedes agregarlas después)',false],
       ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
@@ -2578,6 +2631,8 @@ function toggleIconMulti(key, opt){
   if(seleccionados.has(opt)){ seleccionados.delete(opt); btn.classList.remove('active'); }
   else { seleccionados.add(opt); btn.classList.add('active'); }
   hidden.value = [...seleccionados].join('|');
+  const otroWrap = document.getElementById('fotrowrap_'+key);
+  if(otroWrap) otroWrap.classList.toggle('hidden', !seleccionados.has('Otro'));
 }
 function pickIconSingle(key, opt){
   const wrap = document.getElementById('ficons_'+key);
@@ -2955,6 +3010,7 @@ function openForm(type){
     }
     if(type_==='icon_multi' || type_==='icon_single'){
       const iconos = iconosPara(key);
+      const tieneOtro = (options||[]).includes('Otro');
       html += `<div class="field full"><label>${label}${req?' *':''}</label>
         <input type="hidden" id="f_${key}" value="">
         <div id="ficons_${key}" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
@@ -2962,6 +3018,9 @@ function openForm(type){
             <span class="icon-pick-emoji">${iconos[o]||'•'}</span><span class="icon-pick-label">${o}</span>
           </button>`).join('')}
         </div>
+        ${tieneOtro ? `<div id="fotrowrap_${key}" class="hidden" style="margin-top:8px;">
+          <input type="text" id="f_${key}_otro" placeholder="¿Con qué otro?">
+        </div>` : ''}
       </div>`;
       return;
     }
@@ -3182,8 +3241,12 @@ function submitForm(type){
         rec.cadena = opt ? opt.dataset.cadena : (getCheckin()?.cadena || '');
       } else {
         const el = document.getElementById('f_'+key);
-        const val = el ? el.value.trim() : '';
+        let val = el ? el.value.trim() : '';
         if(req && !val){ missing = true; faltantes.push(label); }
+        const otroEl = document.getElementById('f_'+key+'_otro');
+        if(otroEl && val.split('|').includes('Otro') && otroEl.value.trim()){
+          val = val.split('|').map(v=>v==='Otro' ? `Otro: ${otroEl.value.trim()}` : v).join('|');
+        }
         rec[key] = val;
       }
     });
@@ -3552,6 +3615,7 @@ function submitGastoTicket(){
 }
 
 function nombreProducto(clave){ const p = claveAProducto(clave); return p ? p.nombre : (clave||''); }
+function nombreProductosDegustacion(c){ return [c.clave, c.clave2, c.clave3].filter(Boolean).map(nombreProducto).join(' + '); }
 function detalleCaptura(c){
   switch(c.tipo){
     case 'entrada_tienda': return `Entrada · ${c.notas||''}`;
@@ -3568,7 +3632,9 @@ function detalleCaptura(c){
     }
     case 'caducidad': return `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
     case 'incidencia': return `${c.tipo_incidencia}: ${c.descripcion}`;
-    case 'degustacion': return `${nombreProducto(c.clave)} — ${c.reacciones}`;
+    case 'incapacidad': return `${c.fecha||''}${c.comentarios? ' — '+c.comentarios:''}${(c.receta_medica&&c.receta_medica.length)?' · con receta médica':''}`;
+    case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}`;
+    case 'degustacion': return `${nombreProductosDegustacion(c)} — ${c.reacciones}`;
     case 'precio_delico': return `${nombreProducto(c.clave)} — $${c.precio_delico}`;
     case 'precio_competencia': return `${c.marca_competencia} — $${c.precio_competencia}${c.promo_competencia? ' · '+c.promo_competencia:''}`;
     case 'foto': return `${c.seccion} — ${c.notas||''}`;
@@ -3578,7 +3644,7 @@ function detalleCaptura(c){
     default: return '';
   }
 }
-const TIPO_LABEL = {entrada_tienda:'Registro — Check-in',salida_tienda:'Registro — Check-out',mercadeo:'Mercadeo',caducidad:'Caducidad',incidencia:'Incidencia',degustacion:'Degustación',precio_delico:'Precio Delico',precio_competencia:'Precio competencia',foto:'Categoría',factores_ambiente:'Factores ambiente',gasto_ticket:'Gasto (ticket)',carga_anaquel:'Carga de anaquel',onboarding:'Onboarding'};
+const TIPO_LABEL = {entrada_tienda:'Registro — Check-in',salida_tienda:'Registro — Check-out',mercadeo:'Mercadeo',caducidad:'Caducidad',incidencia:'Incidencia',incapacidad:'Incapacidad',inasistencia:'Inasistencia',degustacion:'Degustación',precio_delico:'Precio Delico',precio_competencia:'Precio competencia',foto:'Categoría',factores_ambiente:'Factores ambiente',gasto_ticket:'Gasto (ticket)',carga_anaquel:'Carga de anaquel',onboarding:'Onboarding'};
 
 function renderMisCapturas(){
   const arr = getCapturas().filter(c=>c.usuario===currentUser.usuario).sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,30)
@@ -3603,12 +3669,12 @@ function renderDegustacionesRecientes(){
     .sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,8);
   if(!mias.length){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Aún no tienes degustaciones registradas.</p>`; return; }
   box.innerHTML = mias.map(c=>{
-    const prod = claveAProducto(c.clave);
+    const nombreProds = nombreProductosDegustacion(c) || 'Producto';
     const retros = c.retro_shopper || [];
     return `<div class="card" style="margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
         <div>
-          <div style="font-weight:700; font-size:13px;">${prod?prod.nombre:(c.clave||'Producto')}</div>
+          <div style="font-weight:700; font-size:13px;">${nombreProds}</div>
           <div style="font-size:11.5px; color:var(--ink-soft);">${c.tienda||''} · ${c.fecha_registro.slice(0,16).replace('T',' ')}</div>
           ${c.reacciones ? `<div style="font-size:12.5px; margin-top:6px;"><b>Al momento:</b> ${c.reacciones}</div>` : ''}
         </div>
@@ -4587,14 +4653,17 @@ function renderInicio(){
 
   const esEmbajador = currentUser.perfil === 'Embajador';
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
-  const {startISO, endISO} = visibleDateRange();
+  /* Resumen de Inicio: siempre acotado al mes en curso (no a la semana que se esté viendo en Asignación de rutas) */
+  const inicioMesStartISO = todayISO().slice(0,7)+'-01';
+  const inicioMesEndISO = isoDate(new Date(hoy.getFullYear(), hoy.getMonth()+1, 0));
+  const startISO = inicioMesStartISO, endISO = inicioMesEndISO;
   const rutasActivas = getRutas().filter(a=>a.tipo==='visita' && a.fecha>=startISO && a.fecha<=endISO && visibleUsuarios.has(a.usuario));
   document.getElementById('inicioCardRutas').querySelector('.value').textContent = rutasActivas.length;
 
   const rutasLabel = document.getElementById('inicioCardRutasLabel');
   const rutasListaWrap = document.getElementById('inicioRutasListaWrap');
   if(esEmbajador){
-    if(rutasLabel) rutasLabel.textContent = 'Tus tiendas asignadas esta semana';
+    if(rutasLabel) rutasLabel.textContent = 'Tus tiendas asignadas este mes';
     const misTiendasSemana = [...new Map(rutasActivas.map(a=>[a.cadena+'|'+a.tienda, a])).values()].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
     if(rutasListaWrap){
       rutasListaWrap.classList.toggle('hidden', misTiendasSemana.length===0);
@@ -4605,7 +4674,7 @@ function renderInicio(){
     }
   } else if(rutasListaWrap){
     rutasListaWrap.classList.add('hidden');
-    if(rutasLabel) rutasLabel.textContent = 'Rutas activas esta semana';
+    if(rutasLabel) rutasLabel.textContent = 'Rutas activas este mes';
   }
 
   const vacPendCard = document.getElementById('inicioCardVacPendientes');
@@ -4636,7 +4705,8 @@ function renderInicio(){
   }
 
   const en7dias = new Date(hoy); en7dias.setDate(en7dias.getDate()+7);
-  const caducidades = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_caducidad && c.fecha_caducidad>=todayISO() && c.fecha_caducidad<=isoDate(en7dias));
+  const finVentanaCaducidad = isoDate(en7dias) < inicioMesEndISO ? isoDate(en7dias) : inicioMesEndISO;
+  const caducidades = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_caducidad && c.fecha_caducidad>=todayISO() && c.fecha_caducidad<=finVentanaCaducidad);
   document.getElementById('inicioCardCaducidad').querySelector('.value').textContent = caducidades.length;
 
   const alertas = [];
@@ -6512,7 +6582,7 @@ function renderKpis(){
     <div class="card" style="margin-bottom:18px;">${ventaCeroStore.map(a=>`<div style="padding:5px 0; font-size:13px; border-bottom:1px solid var(--line);">${a.clave} — ${a.item_desc||''} (${a.familia}) — ${a.dias_inventario!=null?Math.round(a.dias_inventario)+' días de inventario sin vender':''}</div>`).join('')}</div>` : ''}
     <h2 class="section-title">⏰ Caducidad reportada</h2>
     ${caducidades.length ? `<div class="table-scroll" style="margin-bottom:18px;"><table><thead><tr><th>Producto</th><th class="num">Piezas</th><th>Fecha caducidad</th><th>Reportó</th><th>Fecha reporte</th></tr></thead><tbody>
-      ${caducidades.map(c=>`<tr><td>${nombreProducto(c.clave)}</td><td class="num">${c.piezas??''}</td><td>${c.fecha_caducidad}</td><td>${nombreCorto(c.persona||'')}</td><td>${(c.fecha_registro||'').slice(0,10)}</td></tr>`).join('')}
+      ${caducidades.map(c=>`<tr><td>${nombreProducto(c.clave)}</td><td class="num">${c.piezas??''}</td><td>${c.fecha_caducidad}</td><td>${nombreCorto(c.persona||'')}</td><td>${(c.fecha_registro||'').slice(0,16).replace('T',' ')}</td></tr>`).join('')}
     </tbody></table></div>` : `<div class="card" style="margin-bottom:18px;"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin caducidad reportada próxima en esta tienda. ✓</p></div>`}
     <h2 class="section-title">📋 Reportes hechos en esta tienda${rangoPersonalizado?' ('+fDesde+' a '+fHasta+')':''}</h2>
     ${capturas.length ? `<div class="table-scroll"><table><thead><tr><th>Tipo</th><th>Persona</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody>
@@ -6596,10 +6666,42 @@ function renderNoticias(){
       </div>
     </div>`).join('') || `<div class="empty-state" style="grid-column:1/-1;">Aún no hay publicaciones. ¡Sé el primero en compartir algo!</div>`;
 }
+function getEscucha(){ return _escuchaSync.get(); }
+function saveEscucha(arr){ _escuchaSync.save(arr); }
+function publicarEscucha(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+  const texto = (document.getElementById('escuchaTexto').value||'').trim();
+  const fotos = ((window._fotosMulti||{}).escucha||[]).map(f=>f.b64);
+  if(!texto && !fotos.length){ toast('Escribe algo o adjunta una foto'); return; }
+  const arr = getEscucha();
+  arr.unshift({id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, perfil:currentUser.perfil, fecha:new Date().toISOString(), texto, fotos});
+  saveEscucha(arr);
+  document.getElementById('escuchaTexto').value = '';
+  window._fotosMulti = window._fotosMulti || {}; window._fotosMulti.escucha = [];
+  renderFotosMultiPreview('escucha');
+  renderEscucha();
+  toast('Enviado ✓');
+}
+function renderEscucha(){
+  const box = document.getElementById('escuchaLista');
+  if(!box) return;
+  window._fotosMulti = window._fotosMulti || {};
+  if(!window._fotosMulti.escucha) window._fotosMulti.escucha = [];
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getEscucha().filter(m=>visibleUsuarios.has(m.usuario));
+  box.innerHTML = arr.map(m=>`<div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+        <div style="font-weight:700; font-size:12.5px;">${nombreCorto(m.persona)} <span style="font-weight:500; color:var(--ink-soft); font-size:11px;">· ${m.perfil||''}</span></div>
+        <div style="font-size:11px; color:var(--ink-soft);">${(m.fecha||'').slice(0,16).replace('T',' ')}</div>
+      </div>
+      ${m.texto ? `<div style="font-size:13px; margin-top:6px; white-space:pre-wrap;">${m.texto}</div>` : ''}
+      ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${m.fotos.map(f=>`<img src="${f}" style="width:76px; height:76px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}</div>` : ''}
+    </div>`).join('') || `<div class="empty-state">Aún no hay comentarios. ¡Sé el primero en escribir algo!</div>`;
+}
 function exportCSV(){
   const arr = capturasFiltradasReporte();
   if(!arr.length){ toast('No hay capturas para exportar'); return; }
-  const cols = ['tipo','persona','usuario','fecha_registro','tienda','clave','fecha_caducidad','piezas','tipo_incidencia','descripcion','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
+  const cols = ['tipo','persona','usuario','fecha_registro','tienda','clave','clave2','clave3','fecha_caducidad','piezas','tipo_incidencia','descripcion','fecha','comentarios','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
   let csv = cols.join(',') + '\n';
   arr.forEach(c=>{
     csv += cols.map(k=>{
@@ -6839,6 +6941,9 @@ function rolSugeridoParaUsuario(u){
   if(/DEGUST/.test(u.rol||'')) return 'Degustación';
   return 'Promotoría';
 }
+function vacacionEnFecha(usuario, fechaISO){
+  return getVacaciones().find(v => v.usuario===usuario && (v.tipo||'vacaciones')==='vacaciones' && v.estado!=='rechazada' && v.desde<=fechaISO && v.hasta>=fechaISO) || null;
+}
 function onDropPersona(e, dateISO){
   e.preventDefault();
   e.currentTarget.classList.remove('dragover');
@@ -6860,17 +6965,28 @@ function onDropPersona(e, dateISO){
   }
   const rolSugerido = rolSugeridoParaUsuario(u);
   let creados = 0;
+  let diasVacacion = [];
   for(let i=0;i<7;i++){
     const d = new Date(start); d.setDate(d.getDate()+i);
     const iso = isoDate(d);
     if(existentesEnVentana.has(iso)) continue;
-    const sug = sugerencias.length ? sugerencias[i % sugerencias.length] : null;
-    arr.push({id:uid()+'_'+i, fecha:iso, usuario:u.usuario, nombre:u.nombre, tipo:'visita', cadena: sug?sug.s.cadena:'', tienda: sug?sug.s.tienda:'', rol: sug?rolSugerido:''});
+    const vac = vacacionEnFecha(u.usuario, iso);
+    if(vac){
+      arr.push({id:uid()+'_'+i, fecha:iso, usuario:u.usuario, nombre:u.nombre, tipo:'vacacion', cadena:'', tienda:'', rol:''});
+      diasVacacion.push(iso);
+    } else {
+      const sug = sugerencias.length ? sugerencias[i % sugerencias.length] : null;
+      arr.push({id:uid()+'_'+i, fecha:iso, usuario:u.usuario, nombre:u.nombre, tipo:'visita', cadena: sug?sug.s.cadena:'', tienda: sug?sug.s.tienda:'', rol: sug?rolSugerido:''});
+    }
     creados++;
   }
   saveRutas(arr);
   renderRuta();
-  toast(creados ? `Se agregó a ${nombreCorto(u.nombre)} en los 7 días — quita o edita los que no apliquen.` : 'Esa persona ya tenía los 7 días cubiertos en esta ventana.');
+  if(diasVacacion.length){
+    avisoPersonalizado(`⚠️ ${nombreCorto(u.nombre)} tiene vacaciones solicitadas/aprobadas que cubren ${diasVacacion.length} día(s) de esta semana (${diasVacacion.join(', ')}). Se marcaron como "Vacación" automáticamente — revísalas.`);
+  } else {
+    toast(creados ? `Se agregó a ${nombreCorto(u.nombre)} en los 7 días — quita o edita los que no apliquen.` : 'Esa persona ya tenía los 7 días cubiertos en esta ventana.');
+  }
 }
 function renderRutaCard(a, locked){
   const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
@@ -6898,7 +7014,9 @@ function renderRutaCard(a, locked){
       </div>
       ${locked?'':`<button type="button" class="btn btn-ghost" style="font-size:10px; padding:3px 6px; margin-top:5px;" onclick="agregarOtraTiendaMismoDia('${a.id}')">+ otra tienda ese día</button>`}`;
   }
+  const vacAlerta = a.tipo==='visita' ? vacacionEnFecha(a.usuario, a.fecha) : null;
   return `<div class="ruta-card tipo-${a.tipo}">
+    ${vacAlerta ? `<div style="background:#fbe4e0; color:var(--bad); font-size:9.5px; font-weight:700; border-radius:5px; padding:2px 5px; margin-bottom:3px;">⚠️ Vacaciones ${vacAlerta.estado} este día</div>` : ''}
     <div class="rc-name">${shortName}${locked?'🔒':`<button class="rc-del" onclick="delRutaCard('${a.id}')" title="Quitar">✕</button>`}</div>
     <div style="display:flex; gap:3px; flex-wrap:wrap; margin-bottom:2px;">
       ${TIPO_DIA.map(([v,l])=>`<button type="button" ${dis} class="rc-tipobtn ${a.tipo===v?'active':''}" onclick="updRuta('${a.id}','tipo','${v}')" title="${l}">${l.replace('Visita a tienda','Tienda').replace('Día de descanso','Descanso').replace('Home office','Home')}</button>`).join('')}
