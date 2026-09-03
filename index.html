@@ -18,6 +18,7 @@
 <!-- Firebase (login real por persona) — SDK "compat" para poder usarlo con <script> normal, sin herramientas de build -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <style>
   :root{
     /* Paleta oficial Delico, en orden de prioridad: 1 oliva, 2 crema, 3 lila, 4 naranja (solo acentos, con medida) */
@@ -1133,10 +1134,15 @@ function toast(msg){
   t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2200);
 }
-function getCapturas(){ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-function saveCapturas(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
-function getPrioridades(){ return JSON.parse(localStorage.getItem(PRIORIDAD_KEY) || '[]'); }
-function savePrioridades(arr){ localStorage.setItem(PRIORIDAD_KEY, JSON.stringify(arr)); }
+function getCapturas(){ return JSON.parse(JSON.stringify(_capturasCache)); }
+function saveCapturas(arr){
+  const idsPrevios = new Set(_capturasCache.map(d=>d.id));
+  arr.forEach(d=>{ if(d && d.id && !idsPrevios.has(d.id)) subirAColeccion('capturas_medi', d); });
+  _capturasCache = arr;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+function getPrioridades(){ return _prioridadesSync.get(); }
+function savePrioridades(arr){ _prioridadesSync.save(arr); }
 
 /* ---------- LOGIN (Firebase Authentication real — cada persona tiene su propia cuenta) ---------- */
 const firebaseConfig = {
@@ -1157,6 +1163,142 @@ function emailSinteticoDe(usuario){ return usuario.trim().toLowerCase() + '@deli
    Para que cada persona siga tecleando exactamente su misma contraseña de siempre, "alargamos" por
    dentro lo que le mandamos a Firebase con un sufijo fijo — invisible para el usuario, nunca cambia. */
 function passwordFirebaseDe(passwordOriginal){ return passwordOriginal + '_odvDelico26'; }
+
+/* ---------- Sincronización en la nube (Firestore) — comparte la información entre los ~30 celulares del equipo.
+   Si Firestore no está disponible (sin internet, o el proyecto todavía no lo tiene activado), la app sigue
+   funcionando exactamente igual que antes, guardando solo en este dispositivo. ---------- */
+let db = null;
+try{
+  db = firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+}catch(e){ console.warn('Firestore no disponible — se sigue guardando solo en este dispositivo.', e); db = null; }
+
+const SYNC_LISTENERS = {};
+const SYNC_DESUSCRIPCIONES = {};
+
+function iniciarSincronizacion(coleccion, onCambio, onBorrado){
+  SYNC_LISTENERS[coleccion] = onCambio;
+  if(!db || SYNC_DESUSCRIPCIONES[coleccion]) return;
+  SYNC_DESUSCRIPCIONES[coleccion] = db.collection(coleccion).onSnapshot(snap=>{
+    snap.docChanges().forEach(change=>{
+      if(change.type==='removed'){ if(onBorrado) onBorrado(change.doc.id); return; }
+      onCambio({...change.doc.data(), id: change.doc.id});
+    });
+  }, err=>{ console.warn('Firestore: no se pudo escuchar la colección "'+coleccion+'".', err); });
+}
+function subirAColeccion(coleccion, documento){
+  if(!db || !documento || !documento.id) return;
+  const data = {...documento};
+  db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
+    .catch(err=> console.warn('No se pudo subir a la nube ('+coleccion+'):', err));
+}
+function borrarDeColeccion(coleccion, id){
+  if(!db || !id) return;
+  db.collection(coleccion).doc(String(id)).delete()
+    .catch(err=> console.warn('No se pudo borrar en la nube ('+coleccion+'):', err));
+}
+
+function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
+  const estado = { cache: JSON.parse(localStorage.getItem(storageKey) || '[]'), iniciado:false };
+  function get(){ return JSON.parse(JSON.stringify(estado.cache)); }
+  function save(arrNuevo){
+    const previoPorId = new Map(estado.cache.map(d=>[d.id, JSON.stringify(d)]));
+    const idsNuevos = new Set(arrNuevo.filter(d=>d && d.id).map(d=>d.id));
+    arrNuevo.forEach(d=>{
+      if(!d || !d.id) return;
+      if(previoPorId.get(d.id) !== JSON.stringify(d)) subirAColeccion(nombreColeccion, d);
+    });
+    estado.cache.forEach(d=>{ if(d && d.id && !idsNuevos.has(d.id)) borrarDeColeccion(nombreColeccion, d.id); });
+    estado.cache = arrNuevo;
+    localStorage.setItem(storageKey, JSON.stringify(arrNuevo));
+  }
+  function iniciarSync(){
+    if(estado.iniciado) return;
+    estado.iniciado = true;
+    iniciarSincronizacion(nombreColeccion,
+      (doc)=>{
+        const idx = estado.cache.findIndex(d=>d.id===doc.id);
+        const firmaLocal = idx>=0 ? JSON.stringify(estado.cache[idx]) : null;
+        if(firmaLocal === JSON.stringify(doc)) return;
+        estado.cache = idx>=0 ? estado.cache.map((d,i)=> i===idx?doc:d) : [...estado.cache, doc];
+        localStorage.setItem(storageKey, JSON.stringify(estado.cache));
+        if(alRefrescar) alRefrescar();
+      },
+      (idBorrado)=>{
+        if(!estado.cache.some(d=>d.id===idBorrado)) return;
+        estado.cache = estado.cache.filter(d=>d.id!==idBorrado);
+        localStorage.setItem(storageKey, JSON.stringify(estado.cache));
+        if(alRefrescar) alRefrescar();
+      }
+    );
+  }
+  return {get, save, iniciarSync};
+}
+
+function crearDocumentoSincronizado(nombreColeccion, idDocumento, storageKey, valorInicial, alRefrescar){
+  const estado = { valor: JSON.parse(localStorage.getItem(storageKey) || 'null') || valorInicial, iniciado:false };
+  function get(){ return JSON.parse(JSON.stringify(estado.valor)); }
+  function save(obj){
+    const cambio = JSON.stringify(estado.valor) !== JSON.stringify(obj);
+    estado.valor = obj;
+    localStorage.setItem(storageKey, JSON.stringify(obj));
+    if(cambio) subirAColeccion(nombreColeccion, {...obj, id: idDocumento});
+  }
+  function iniciarSync(){
+    if(estado.iniciado) return;
+    estado.iniciado = true;
+    iniciarSincronizacion(nombreColeccion, (doc)=>{
+      if(doc.id !== idDocumento) return;
+      const data = {...doc}; delete data.id;
+      if(JSON.stringify(estado.valor) === JSON.stringify(data)) return;
+      estado.valor = data;
+      localStorage.setItem(storageKey, JSON.stringify(data));
+      if(alRefrescar) alRefrescar();
+    });
+  }
+  return {get, save, iniciarSync};
+}
+
+/* Capturas MEDI: caso especial — solo se crean (nunca se editan/borran), basta con detectar altas nuevas */
+let _capturasCache = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+function iniciarSincronizacionCapturas(){
+  iniciarSincronizacion('capturas_medi', (doc)=>{
+    if(_capturasCache.some(d=>d.id===doc.id)) return;
+    _capturasCache = [..._capturasCache, doc];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(_capturasCache));
+    try{ renderMisCapturas(); }catch(e){}
+    try{ renderReportes(); }catch(e){}
+    try{ renderCheckinBar(); }catch(e){}
+  });
+}
+
+/* Un objeto de sincronización por cada tipo de información compartida. Las funciones get/save de cada
+   una (definidas junto a su código original más abajo) solo llaman a estos objetos. */
+const _prioridadesSync = crearColeccionSincronizada('prioridades', 'delico_odv_prioridades_v2', ()=>{ if(currentUser){ renderPrioridades(); updatePrioridadesBadge(); } });
+const _tareasSync = crearColeccionSincronizada('tareas', 'delico_odv_tareas_v1', ()=>{ if(currentUser) renderTareas(); });
+const _vacacionesSync = crearColeccionSincronizada('vacaciones', 'delico_odv_vacaciones_v1', ()=>{ if(currentUser) renderVacaciones(); });
+const _extraTiendasSync = crearColeccionSincronizada('extra_tiendas', 'delico_odv_extra_tiendas_v1', ()=>{ if(currentUser){ renderExtraTiendaBox(); renderPlaneacion(); } });
+const _cumpPrioridadSync = crearColeccionSincronizada('cumplimiento_prioridades', 'delico_odv_cumplimiento_prioridades_v1', ()=>{ if(currentUser) renderPrioridades(); });
+const _leySillaSync = crearColeccionSincronizada('ley_silla', 'delico_odv_leysilla_v1', ()=>{ if(currentUser){ try{ renderLeySillaModal(); }catch(e){} } });
+const _cartasSync = crearColeccionSincronizada('cartas', 'delico_odv_cartas_v1', ()=>{ if(currentUser) renderCartas(); });
+const _materialesSync = crearColeccionSincronizada('materiales', 'delico_odv_materiales_v1', ()=>{ if(currentUser) renderCartas(); });
+const _uniformesSync = crearColeccionSincronizada('uniformes', 'delico_odv_uniformes_v1', ()=>{ if(currentUser) renderCartas(); });
+const _inventarioSync = crearDocumentoSincronizado('inventario', 'global', 'delico_odv_inventario_materiales_v1', {materiales:{}, uniformes:{}}, ()=>{ if(currentUser){ try{ renderInventario(); }catch(e){} } });
+const _auditoriasSync = crearColeccionSincronizada('auditorias', 'delico_odv_auditoria_v1', ()=>{ if(currentUser) renderAuditoria(); });
+const _notificacionesSync = crearColeccionSincronizada('notificaciones', 'delico_odv_notificaciones_v1', ()=>{ if(currentUser) renderInicio(); });
+const _eval360Sync = crearColeccionSincronizada('eval360', 'delico_odv_eval360_v1', ()=>{ if(currentUser) renderEval360(); });
+const _noticiasSync = crearColeccionSincronizada('noticias', 'delico_odv_noticias_v1', ()=>{ if(currentUser) renderNoticias(); });
+const _rutasSync = crearColeccionSincronizada('rutas', 'delico_odv_rutas_v1', ()=>{ if(currentUser){ renderRuta(); renderPreplan(); renderCalendario(); } });
+
+let _syncIniciado = false;
+function iniciarTodaLaSincronizacion(){
+  if(_syncIniciado) return;
+  _syncIniciado = true;
+  iniciarSincronizacionCapturas();
+  [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
+   _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
+   _eval360Sync, _noticiasSync, _rutasSync].forEach(s=>s.iniciarSync());
+}
 
 function doLogin(){
   const u = document.getElementById('loginUser').value.trim();
@@ -1336,6 +1478,8 @@ function boot(keepView){
   renderTareas();
   renderMisCapturas();
   if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+
+  iniciarTodaLaSincronizacion();
 }
 
 function toggleMobileNav(force){
@@ -1577,8 +1721,8 @@ function renderPlaneacion(){
 
 /* ---------- OTRA TIENDA (excepción temporal, ej. vacaciones/cobertura) ---------- */
 const EXTRA_TIENDAS_KEY = 'delico_odv_extra_tiendas_v1';
-function getExtraTiendas(){ return JSON.parse(localStorage.getItem(EXTRA_TIENDAS_KEY) || '[]'); }
-function saveExtraTiendas(arr){ localStorage.setItem(EXTRA_TIENDAS_KEY, JSON.stringify(arr)); }
+function getExtraTiendas(){ return _extraTiendasSync.get(); }
+function saveExtraTiendas(arr){ _extraTiendasSync.save(arr); }
 function tiendasExtraAprobadasParaMi(){
   return getExtraTiendas().filter(e => e.usuario===currentUser.usuario && e.estado==='aprobada').map(e=>e.tienda);
 }
@@ -1799,8 +1943,8 @@ function exportarPrioridades(){
 }
 /* ---------- Cumplimiento de prioridades (para embajadores en campo) ---------- */
 const CUMP_PRIORIDAD_KEY = 'delico_odv_cumplimiento_prioridades_v1';
-function getCumplimientosPrioridad(){ return JSON.parse(localStorage.getItem(CUMP_PRIORIDAD_KEY) || '[]'); }
-function saveCumplimientosPrioridad(arr){ localStorage.setItem(CUMP_PRIORIDAD_KEY, JSON.stringify(arr)); }
+function getCumplimientosPrioridad(){ return _cumpPrioridadSync.get(); }
+function saveCumplimientosPrioridad(arr){ _cumpPrioridadSync.save(arr); }
 function abrirPrioridadesCaptura(){
   const checkinTmp = getCheckin();
   let arr = getPrioridades();
@@ -2756,8 +2900,8 @@ function submitCargaAnaquel(){
 
 /* ---------- Ley Silla (registro de descansos de 15 min) ---------- */
 const LEYSILLA_KEY = 'delico_odv_leysilla_v1';
-function getLeySilla(){ return JSON.parse(localStorage.getItem(LEYSILLA_KEY) || '[]'); }
-function saveLeySilla(arr){ localStorage.setItem(LEYSILLA_KEY, JSON.stringify(arr)); }
+function getLeySilla(){ return _leySillaSync.get(); }
+function saveLeySilla(arr){ _leySillaSync.save(arr); }
 function abrirLeySilla(){
   renderLeySillaModal();
 }
@@ -3536,8 +3680,8 @@ function renderCalParticipacionCadena(plan){
 
 /* ---------- SOLICITUD DE CARTAS / MATERIALES ---------- */
 const CARTAS_KEY = 'delico_odv_cartas_v1';
-function getCartas(){ return JSON.parse(localStorage.getItem(CARTAS_KEY) || '[]'); }
-function saveCartas(arr){ localStorage.setItem(CARTAS_KEY, JSON.stringify(arr)); }
+function getCartas(){ return _cartasSync.get(); }
+function saveCartas(arr){ _cartasSync.save(arr); }
 function renderCartaTiendaList(){
   const sel = document.getElementById('cartaTiendaSelect');
   if(!sel || sel.options.length>1) return;
@@ -3569,10 +3713,10 @@ const MATERIAL_ITEMS = [['Servilletas','🧻'],['Capacillos','🧁'],['Vaso cris
 const UNIFORME_ITEMS = [['Camisa','👔'],['Mandil','🥼'],['Playera','🎽'],['Charola','🍽️'],['Hielera','🧊'],['Filipina','🧥'],['Cuchillo','🔪'],['Tabla','🪵'],['Otro','➕']];
 const MATERIALES_KEY = 'delico_odv_materiales_v1';
 const UNIFORMES_KEY = 'delico_odv_uniformes_v1';
-function getMateriales(){ return JSON.parse(localStorage.getItem(MATERIALES_KEY) || '[]'); }
-function saveMateriales(arr){ localStorage.setItem(MATERIALES_KEY, JSON.stringify(arr)); }
-function getUniformes(){ return JSON.parse(localStorage.getItem(UNIFORMES_KEY) || '[]'); }
-function saveUniformes(arr){ localStorage.setItem(UNIFORMES_KEY, JSON.stringify(arr)); }
+function getMateriales(){ return _materialesSync.get(); }
+function saveMateriales(arr){ _materialesSync.save(arr); }
+function getUniformes(){ return _uniformesSync.get(); }
+function saveUniformes(arr){ _uniformesSync.save(arr); }
 
 /* Visibilidad jerárquica: le llega a tu jefe inmediato (+ Coordinador/Admin como respaldo, incluyendo a Marketing que en tu equipo es perfil Admin) */
 function esMarketing(u){ return !!(u && u.rol && u.rol.toUpperCase().includes('MARKETING')); }
@@ -3740,8 +3884,8 @@ const INVENTARIO_SEED = {
   uniformes: { 'Playera':210, 'Mandil':30, 'Filipina':210, 'Charola':30, 'Cuchillo':4, 'Tabla':4, 'Hielera':4 }
 };
 function getInventario(){
-  let inv = JSON.parse(localStorage.getItem(INVENTARIO_KEY) || 'null');
-  if(!inv){
+  let inv = _inventarioSync.get();
+  if(!inv || (!Object.keys(inv.materiales||{}).length && !Object.keys(inv.uniformes||{}).length)){
     inv = {materiales:{}, uniformes:{}};
     Object.entries(INVENTARIO_SEED.materiales).forEach(([k,v])=>{ inv.materiales[k] = {existencia:v, minimo: Math.max(5, Math.round(v*0.2))}; });
     Object.entries(INVENTARIO_SEED.uniformes).forEach(([k,v])=>{ inv.uniformes[k] = {existencia:v, minimo: Math.max(2, Math.round(v*0.2))}; });
@@ -3749,7 +3893,7 @@ function getInventario(){
   }
   return inv;
 }
-function saveInventario(obj){ localStorage.setItem(INVENTARIO_KEY, JSON.stringify(obj)); }
+function saveInventario(obj){ _inventarioSync.save(obj); }
 function actualizarInventarioItem(grupo, item, campo, valor){
   const inv = getInventario();
   inv[grupo] = inv[grupo] || {};
@@ -3857,8 +4001,8 @@ function renderPreplan(){
 /* ---------- VACACIONES ---------- */
 const VACA_KEY = 'delico_odv_vacaciones_v1';
 const VACA_DIAS_TOTALES = 12; // dato inventado de prototipo — reemplazar con archivo real de saldos
-function getVacaciones(){ return JSON.parse(localStorage.getItem(VACA_KEY) || '[]'); }
-function saveVacaciones(arr){ localStorage.setItem(VACA_KEY, JSON.stringify(arr)); }
+function getVacaciones(){ return _vacacionesSync.get(); }
+function saveVacaciones(arr){ _vacacionesSync.save(arr); }
 function diasEntre(desde, hasta){
   const d1 = new Date(desde+'T00:00:00'), d2 = new Date(hasta+'T00:00:00');
   return Math.max(1, Math.round((d2-d1)/86400000)+1);
@@ -4060,8 +4204,8 @@ function renderInicio(){
 
 /* ---------- TAREAS PERSONALES ---------- */
 const TAREAS_KEY = 'delico_odv_tareas_v1';
-function getTareas(){ return JSON.parse(localStorage.getItem(TAREAS_KEY) || '[]'); }
-function saveTareas(arr){ localStorage.setItem(TAREAS_KEY, JSON.stringify(arr)); }
+function getTareas(){ return _tareasSync.get(); }
+function saveTareas(arr){ _tareasSync.save(arr); }
 const PRIORIDAD_TAREA_LABEL = {A:'🔴 Prioridad A', B:'🟡 Prioridad B', C:'🟢 Prioridad C'};
 function poblarAsignarA(){
   const sel = document.getElementById('tareaAsignarA');
@@ -4164,8 +4308,8 @@ function renderTareas(){
 /* ---------- REGISTRAR SUPERVISIÓN (auditoría de campo) ---------- */
 const AUDITORIA_KEY = 'delico_odv_auditoria_v1';
 const DIMENSIONES_AUDITORIA = ['Conocimiento de ruta','Conocimiento de tienda','Comunicación','Proactividad','Ejecución MEDI (mercadeo, degustación, precios)'];
-function getAuditorias(){ return JSON.parse(localStorage.getItem(AUDITORIA_KEY) || '[]'); }
-function saveAuditorias(arr){ localStorage.setItem(AUDITORIA_KEY, JSON.stringify(arr)); }
+function getAuditorias(){ return _auditoriasSync.get(); }
+function saveAuditorias(arr){ _auditoriasSync.save(arr); }
 function personasEvaluablesPorMi(){
   if(currentUser.perfil==='Supervisor') return APP_DATA.equipo.filter(u=>u.perfil==='Embajador' && mismaPersona(supervisorDePersona(u.nombre), currentUser.nombre));
   if(currentUser.perfil==='Coordinador') return APP_DATA.equipo.filter(u=>u.perfil==='Embajador' || u.perfil==='Supervisor');
@@ -4197,8 +4341,8 @@ function poblarAuditoriaSelects(){
 }
 /* ---------- NOTIFICACIONES ---------- */
 const NOTIF_KEY = 'delico_odv_notificaciones_v1';
-function getNotificaciones(){ return JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]'); }
-function saveNotificaciones(arr){ localStorage.setItem(NOTIF_KEY, JSON.stringify(arr)); }
+function getNotificaciones(){ return _notificacionesSync.get(); }
+function saveNotificaciones(arr){ _notificacionesSync.save(arr); }
 function crearNotificacion(paraUsuario, texto, tipo){
   const arr = getNotificaciones();
   arr.unshift({id:uid(), para:paraUsuario, texto, tipo:tipo||'info', fecha:todayISO(), leida:false});
@@ -4281,8 +4425,8 @@ const EVAL360_ESCALA = [
   {v:1, label:'No cumple',   desc:'Incumplimiento evidente o ausencia del requisito.'},
 ];
 const EVAL360_PARAMS = {promedioMinimo:90, calMensualMinima:80, evalsPorTrimestre:3};
-function getEval360(){ return JSON.parse(localStorage.getItem(EVAL360_KEY) || '[]'); }
-function saveEval360(arr){ localStorage.setItem(EVAL360_KEY, JSON.stringify(arr)); }
+function getEval360(){ return _eval360Sync.get(); }
+function saveEval360(arr){ _eval360Sync.save(arr); }
 function clasificacionEval360(total){
   if(total===null || total===undefined) return null;
   if(total>=95) return 'Ejecución sobresaliente';
@@ -5453,8 +5597,8 @@ function exportarKpiSkuTienda(){
 
 /* ---------- DAILY NEWS ---------- */
 const NOTICIAS_KEY = 'delico_odv_noticias_v1';
-function getNoticias(){ return JSON.parse(localStorage.getItem(NOTICIAS_KEY) || '[]'); }
-function saveNoticias(arr){ localStorage.setItem(NOTICIAS_KEY, JSON.stringify(arr)); }
+function getNoticias(){ return _noticiasSync.get(); }
+function saveNoticias(arr){ _noticiasSync.save(arr); }
 function previewNewsFoto(){
   const input = document.getElementById('newsFoto');
   const img = document.getElementById('newsFotoPrev');
@@ -5609,8 +5753,8 @@ function isoWeekNumber(d){
   return 1 + Math.round(((t-first)/86400000 - 3 + ((first.getUTCDay()+6)%7)) / 7);
 }
 function fmtDateLabel(d){ return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}); }
-function getRutas(){ return JSON.parse(localStorage.getItem(RUTA_KEY) || '[]'); }
-function saveRutas(arr){ localStorage.setItem(RUTA_KEY, JSON.stringify(arr)); }
+function getRutas(){ return _rutasSync.get(); }
+function saveRutas(arr){ _rutasSync.save(arr); }
 function getSemanasPublicadas(){ return JSON.parse(localStorage.getItem('delico_odv_semanas_publicadas') || '[]'); }
 /* Semanas ya guardadas quedan bloqueadas para edición; se desbloquean manualmente con el lápiz.
    rutaUnlockedWeeks vive solo en memoria (se re-bloquea al recargar la página o al re-guardar). */
