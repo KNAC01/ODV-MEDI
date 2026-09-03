@@ -325,7 +325,15 @@
     th, td{padding:8px 9px;}
 
     footer.appfoot{padding:12px;}
-  }
+  }/* ---------- Dropdown-checklist reutilizable (Mes(es), Tienda(s), etc.) — reemplaza los <select multiple> nativos ---------- */
+.tienda-dd{ position:relative; display:inline-block; }
+.tienda-dd-btn{ padding:8px 14px; border-radius:8px; border:1.5px solid #d8dba0; background:#fff; color:var(--ink); font-size:12.5px; font-weight:700; cursor:pointer; min-width:140px; text-align:left; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.tienda-dd-btn::after{ content:'▾'; font-size:10px; opacity:.7; }
+.tienda-dd-panel{ position:absolute; z-index:50; top:calc(100% + 4px); left:0; min-width:220px; max-width:320px; max-height:280px; overflow-y:auto; background:#fff; border:1.5px solid #d8dba0; border-radius:10px; box-shadow:0 8px 24px rgba(38,38,15,.18); padding:6px; }
+.tienda-dd-item{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:6px; font-size:12.5px; cursor:pointer; }
+.tienda-dd-item:hover{ background:var(--brand-soft); }
+.tienda-dd-accion{ display:flex; gap:6px; padding:4px 4px 8px; border-bottom:1px solid #eee; margin-bottom:4px; }
+.tienda-dd-accion button{ flex:1; padding:5px 8px; font-size:11px; font-weight:700; border-radius:6px; border:1px solid #d8dba0; background:#fff; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -427,59 +435,36 @@
         <div id="objMetaTipoWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
         <span id="objMetaTipoNota" style="font-size:11px; color:var(--ink-soft);"></span>
       </div>
-      <div class="controls-bar" style="align-items:flex-start;">
+      <div class="controls-bar" style="align-items:center;">
         <label>Mes(es):</label>
-        <div id="objMesWrap" style="display:flex; gap:5px; flex-wrap:wrap; max-width:320px;"></div>
-        <span style="display:flex; gap:5px;">
-          <button type="button" class="btn btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="objMesTodo()">Todo</button>
-          <button type="button" class="btn btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="objMesNinguno()">Ninguno</button>
-        </span>
-        <label>Semana(s):</label>
-        <div id="objSemanaWrap" style="display:flex; gap:5px; flex-wrap:wrap; max-width:320px;"></div>
-        <span id="objCadenaFiltroWrap" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <label style="display:flex; align-items:center; gap:5px;">
-          <input type="checkbox" id="objCadenaMultiToggle" onchange="toggleObjCadenaMulti()"> Cadena (varias)
-        </label>
-        <div id="objCadenaSingleWrap"><select id="cadenaSelect"><option value="">Todas</option></select></div>
-        <div id="objCadenaMultiWrap" class="hidden" style="display:flex; gap:5px; flex-wrap:wrap; max-width:420px;"></div>
-        </span>
+        <div class="tienda-dd" id="objMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objMesDd')" id="objMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="objMesDdPanel"></div>
+        </div>
         <span id="filtroSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
         <select id="objSupervisor"><option value="">Todos</option></select></span>
         <span id="objEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;">
         <label>Embajador(a):</label>
         <select id="objEmbajador"><option value="">Todos</option></select>
         </span>
-        <span id="tiendaSearchTextWrap" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <label>Buscar tienda:</label>
-        <span style="display:inline-flex; gap:5px; align-items:center;">
-          <input type="text" id="tiendaSearch" list="tiendaSearchList" placeholder="Escribe para buscar..." onkeydown="if(event.key==='Enter'){ event.preventDefault(); agregarTiendaFiltro(); }">
-          <datalist id="tiendaSearchList"></datalist>
-          <button type="button" class="btn btn-ghost" style="padding:8px 10px;" onclick="agregarTiendaFiltro()" title="Agregar tienda a la selección">+ Agregar</button>
-        </span>
-        </span>
-        <span id="tiendaMultiWrap" class="hidden" style="display:inline-flex; gap:8px; align-items:center;">
         <label>Tienda(s):</label>
-        <select id="objTiendaMulti" multiple size="4" style="min-width:220px;" onchange="onObjTiendaMultiChange()"></select>
-        </span>
-        <div id="tiendaFiltroChips" style="display:flex; gap:5px; flex-wrap:wrap; max-width:100%;"></div>
+        <div class="tienda-dd" id="objTiendaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objTiendaDd')" id="objTiendaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="objTiendaDdPanel"></div>
+        </div>
+        <select id="objTiendaMulti" multiple style="display:none;"></select>
         <button class="btn btn-brand" onclick="renderPlaneacion()">Filtrar</button>
         <button class="btn btn-ghost" onclick="restablecerFiltrosObjetivos()">↺ Restablecer filtros</button>
       </div>
 
       <div class="row" style="margin-bottom:6px;">
-        <div class="card kpi"><div class="label" id="kpiUdsLabel">Cuota del periodo (piezas)</div><div class="value" id="kpiUds">—</div></div>
-        <div class="card kpi"><div class="label" id="kpiPesosLabel">Cuota del periodo ($)</div><div class="value" id="kpiPesos">—</div></div>
+        <div class="card kpi" style="min-width:240px;"><div class="label" id="kpiUdsLabel">Cuota del periodo (piezas)</div><div class="value" id="kpiUds">—</div></div>
         <div class="card kpi"><div class="label"># Tiendas en vista</div><div class="value" id="kpiTiendas">—</div></div>
       </div>
 
-      <h2 class="section-title" style="margin-top:22px;">Análisis de cumplimiento (agosto 2026, a la fecha)</h2>
-      <div class="row" style="margin-bottom:14px; align-items:stretch;">
-        <div class="card kpi" style="min-width:260px;"><div class="label">Cuota piezas — cubrimiento</div><div id="anzUniResumen">—</div></div>
-        <div class="card kpi" style="min-width:260px;"><div class="label">Cuota $ — cubrimiento</div><div id="anzPesosResumen">—</div></div>
-      </div>
       <div class="card" style="margin-bottom:18px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-          <div class="lbl" style="font-weight:700;">Cubrimiento por semana (cuota vs. real)</div>
+          <div class="lbl" style="font-weight:700;">Piezas pedidas por semana</div>
           <div style="display:flex; gap:6px;">
             <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" id="anzSemanaToggleBtn" onclick="toggleAnzSemanaVista()">Ver tabla</button>
             <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarAnzSemana()">⬇ Excel</button>
@@ -488,6 +473,12 @@
         <div id="anzChartSemana"></div>
         <div id="anzTablaSemanaWrap" class="hidden" style="margin-top:10px;"></div>
       </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div class="lbl" style="font-weight:700; margin-bottom:10px;">Participación por cadena (piezas pedidas)</div>
+        <div id="objPieParticipacion"></div>
+      </div>
+
       <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
       <div id="anzInsights"></div>
       <div id="anzTablas"></div>
@@ -544,19 +535,7 @@
         <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarTareas()">⬇ Excel</button>
       </div>
       <div id="tareasGrid" style="display:flex; flex-direction:column; gap:12px; margin-bottom:22px;"></div>
-
-      <h2 class="section-title" style="margin-top:10px;">Visitas objetivo vs. visitas cumplidas</h2>
-      <div class="card" id="visitasPorCadenaCard"></div>
-      <p style="font-size:11px; color:var(--ink-soft); margin:6px 0 0;">Cruce contra venta real (sell-in/sell-out) y alertas de venta cero / inventario fantasma: siguiente fase, conectando tus archivos de Sell Out y BI.</p>
-
-      <h2 class="section-title" style="margin-top:22px;">Cuotas por tienda</h2>
-      <p id="planeacionScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:-8px 0 10px;"></p>
-      <div class="table-scroll">
-        <table>
-          <thead><tr id="storesBodyHead"><th>Cadena</th><th># Tda</th><th>Tienda</th><th>Ruta (sept.)</th><th class="num">SKUs</th><th class="num">Cuota (pzas)</th><th class="num">Cuota ($)</th></tr></thead>
-          <tbody id="storesBody"></tbody>
-        </table>
-      </div>
+      <p id="planeacionScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:0 0 10px;"></p>
     </section>
 
     <!-- ---------- ASIGNACIÓN DE RUTA (Supervisor/Coordinador/Admin) ---------- -->
@@ -1473,7 +1452,6 @@ function boot(keepView){
 
   renderObjMesChips();
   renderObjMetaTipoChips();
-  populateCadenaSelect();
   renderPlaneacion();
   renderTareas();
   renderMisCapturas();
@@ -1523,19 +1501,69 @@ function mesesDisponiblesObj(){ return APP_DATA.meses_disponibles || []; }
 function asegurarObjFiltroMesesInicial(){
   if(objFiltroMeses === null) objFiltroMeses = new Set(mesesDisponiblesObj());
 }
-function objMesTodo(){ objFiltroMeses = new Set(mesesDisponiblesObj()); renderObjMesChips(); renderObjSemanaChips(); renderPlaneacion(); }
-function objMesNinguno(){ objFiltroMeses = new Set(); renderObjMesChips(); renderObjSemanaChips(); renderPlaneacion(); }
+function objMesTodo(){ objFiltroMeses = new Set(mesesDisponiblesObj()); renderObjMesChips(); renderPlaneacion(); }
+function objMesNinguno(){ objFiltroMeses = new Set(); renderObjMesChips(); renderPlaneacion(); }
 function toggleObjFiltroMes(m){
   asegurarObjFiltroMesesInicial();
   if(objFiltroMeses.has(m)) objFiltroMeses.delete(m); else objFiltroMeses.add(m);
-  renderObjMesChips(); renderObjSemanaChips(); renderPlaneacion();
+  renderObjMesChips(); renderPlaneacion();
 }
+/* Mes(es) ahora es una lista desplegable (checklist) — misma lógica de datos de antes, solo cambia la UI. */
 function renderObjMesChips(){
-  const el = document.getElementById('objMesWrap');
-  if(!el) return;
+  const panel = document.getElementById('objMesDdPanel');
+  const btn = document.getElementById('objMesDdBtn');
+  if(!panel || !btn) return;
   asegurarObjFiltroMesesInicial();
-  const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
-  el.innerHTML = mesesDisponiblesObj().map(m=> chip(m, objFiltroMeses.has(m), `toggleObjFiltroMes('${m}')`)).join('');
+  const meses = mesesDisponiblesObj();
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objMesTodo()">Todo</button><button type="button" onclick="objMesNinguno()">Ninguno</button></div>`
+    + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${objFiltroMeses.has(m)?'checked':''} onchange="toggleObjFiltroMes('${m}')"> ${m}</label>`).join('');
+  const sel = meses.filter(m=>objFiltroMeses.has(m));
+  btn.textContent = sel.length===0 ? 'Ninguno seleccionado' : sel.length===meses.length ? 'Todos los meses' : sel.join(', ');
+}
+/* ---------- Dropdown genérico (Mes(es) / Tienda(s) en Objetivos) — abrir/cerrar + clic afuera cierra ---------- */
+function toggleObjDropdown(cual){
+  const ids = ['objMesDd','objTiendaDd'];
+  ids.forEach(id=>{
+    const p = document.getElementById(id+'Panel');
+    if(!p) return;
+    if(id===cual) p.classList.toggle('hidden');
+    else p.classList.add('hidden');
+  });
+}
+document.addEventListener('click', (e)=>{
+  ['objMesDdRoot','objTiendaDdRoot'].forEach(rootId=>{
+    const root = document.getElementById(rootId);
+    if(root && !root.contains(e.target)){
+      const panel = root.querySelector('.tienda-dd-panel');
+      if(panel) panel.classList.add('hidden');
+    }
+  });
+});
+/* Tienda(s) — dropdown checklist sobre el <select multiple> oculto que ya usa storesScopeObjetivos() */
+function renderObjTiendaDropdown(){
+  const panel = document.getElementById('objTiendaDdPanel');
+  const btn = document.getElementById('objTiendaDdBtn');
+  const sel = document.getElementById('objTiendaMulti');
+  if(!panel || !btn || !sel) return;
+  const opciones = [...sel.options];
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objTiendaTodasDD(true)">Todo</button><button type="button" onclick="objTiendaTodasDD(false)">Ninguno</button></div>`
+    + (opciones.map(o=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${o.value.replace(/"/g,'&quot;')}" ${o.selected?'checked':''} onchange="onObjTiendaDdCheck(this)"> ${o.textContent}</label>`).join('') || `<div style="padding:8px; font-size:12px; color:var(--ink-soft);">Sin tiendas.</div>`);
+  const marcadas = opciones.filter(o=>o.selected);
+  btn.textContent = (marcadas.length===0 || marcadas.length===opciones.length) ? 'Todas' : (marcadas.length + ' seleccionada' + (marcadas.length>1?'s':''));
+}
+function onObjTiendaDdCheck(chk){
+  const sel = document.getElementById('objTiendaMulti');
+  const val = chk.getAttribute('data-val');
+  const opt = [...sel.options].find(o=>o.value===val);
+  if(opt) opt.selected = chk.checked;
+  onObjTiendaMultiChange();
+  renderObjTiendaDropdown();
+}
+function objTiendaTodasDD(marcar){
+  const sel = document.getElementById('objTiendaMulti');
+  [...sel.options].forEach(o=>o.selected=marcar);
+  onObjTiendaMultiChange();
+  renderObjTiendaDropdown();
 }
 /* semanas (numero ISO) que pertenecen a los meses actualmente elegidos, segun bi_meta.semanas_cuota_<mes>_2026 */
 function semanasDeMesesSeleccionados(){
@@ -1597,7 +1625,7 @@ function toggleObjFiltroCadena(cadena){
 }
 /* ---------- Filtro de semana en Objetivos: selección múltiple (chips) ---------- */
 let objFiltroSemanas = new Set(); // vacío = todas (mes a la fecha)
-function getObjSemanasSeleccionadas(){ return [...objFiltroSemanas].map(String).sort((a,b)=>a-b); }
+function getObjSemanasSeleccionadas(){ return []; } // Objetivos ya no filtra por semana individual — siempre usa el/los mes(es) completo(s)
 function renderObjSemanaChips(){
   const el = document.getElementById('objSemanaWrap');
   if(!el) return;
@@ -1648,23 +1676,14 @@ function renderTiendaFiltroChips(){
   el.innerHTML = [...objFiltroTiendas].map(n=>`<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; background:var(--brand-dark); color:#fff;">${n}<button type="button" onclick="quitarTiendaFiltro('${n.replace(/'/g,"\\'")}')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:13px; line-height:1; padding:2px;">✕</button></span>`).join('');
 }
 function restablecerFiltrosObjetivos(){
-  document.getElementById('cadenaSelect').value = '';
   document.getElementById('objSupervisor').value = '';
   document.getElementById('objEmbajador').value = '';
-  document.getElementById('tiendaSearch').value = '';
   const objTiendaMultiSel = document.getElementById('objTiendaMulti');
   if(objTiendaMultiSel) [...objTiendaMultiSel.options].forEach(o=>o.selected=false);
   objFiltroTiendas.clear();
-  renderTiendaFiltroChips();
-  objFiltroSemanas.clear();
   objFiltroMeses = new Set(mesesDisponiblesObj());
   renderObjMesChips();
-  renderObjSemanaChips();
-  objFiltroCadenas.clear();
-  objCadenaMultiActivo = false;
-  document.getElementById('objCadenaMultiToggle').checked = false;
-  document.getElementById('objCadenaSingleWrap').classList.remove('hidden');
-  document.getElementById('objCadenaMultiWrap').classList.add('hidden');
+  renderObjTiendaDropdown();
   objMetaTipo = 'cuota';
   renderObjMetaTipoChips();
   toast('Filtros de Objetivos restablecidos');
@@ -1680,41 +1699,21 @@ function renderPlaneacion(){
       : 'Mostrando solo las tiendas asignadas a tu usuario.';
   } else if(note) note.textContent = '';
   let rows = storesScopeObjetivos();
-  window._storesBodyRows = rows;
-  window.render_storesBody = function(){
-    const rows2 = window._storesBodyRows || [];
-    const head = document.getElementById('storesBodyHead');
-    if(head) head.innerHTML = `${colHead('storesBody','cadena','Cadena',false)}${colHead('storesBody','num_tienda','# Tda',false)}${colHead('storesBody','tienda','Tienda',false)}<th>Ruta (sept.)</th>${colHead('storesBody','skus','SKUs',true)}${colHead('storesBody','cuota_uds','Cuota (pzas)',true)}${colHead('storesBody','cuota_pesos','Cuota ($)',true)}`;
-    const filas = ordenarFilas('storesBody', rows2, 'cuota_pesos');
-    const tbody = document.getElementById('storesBody');
-    tbody.innerHTML = filas.map(s => {
-      const personas = personasDeTienda(s.cadena, s.num_tienda);
-      const rutaTxt = personas.length ? personas.map(p=>nombreCorto(p.nombre)).join(' + ') : '—';
-      const compartida = personas.length>1;
-      return `<tr><td>${s.cadena}</td><td>${s.num_tienda ?? ''}</td><td>${s.tienda}</td><td style="font-size:11.5px; ${compartida?'font-weight:700; color:var(--info);':'color:var(--ink-soft);'}">${compartida?'👥 ':''}${rutaTxt}</td><td class="num">${s.skus}</td><td class="num">${fmtNum(s.cuota_uds)}</td><td class="num">${fmtMoney(s.cuota_pesos)}</td></tr>`;
-    }).join('') || `<tr><td colspan="7" class="empty-state">Sin tiendas para este filtro.</td></tr>`;
-  };
-  window.render_storesBody();
 
-  const fSemanas = getObjSemanasSeleccionadas();
-  const semanasEfectivas = fSemanas.length ? fSemanas : [...semanasDeMesesSeleccionados()].map(String);
+  const semanasEfectivas = [...semanasDeMesesSeleccionados()].map(String);
   const metaLabel = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
-  let totalUds, totalPesos;
+  let totalUds;
   {
     const rowKeysSem = new Set(rows.map(s=>s.cadena+'|'+s.num_tienda));
     const semRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>rowKeysSem.has(c.cadena+'|'+c.num_tienda) && semanasEfectivas.includes(String(c.semana)));
     totalUds = sumMetaUni(semRows);
-    totalPesos = sumMetaPesos(semRows);
-    const etiquetaSem = semanasEfectivas.length ? ('Semana'+(semanasEfectivas.length>1?'s':'')+' '+semanasEfectivas.join(', ')) : 'sin semanas en el periodo elegido';
+    const etiquetaSem = semanasEfectivas.length ? (objFiltroMeses && objFiltroMeses.size ? [...objFiltroMeses].join(', ') : 'mes(es) elegido(s)') : 'sin semanas en el periodo elegido';
     document.getElementById('kpiUdsLabel').textContent = `${metaLabel} ${etiquetaSem} (piezas)`;
-    document.getElementById('kpiPesosLabel').textContent = `${metaLabel} ${etiquetaSem} ($)`;
   }
   document.getElementById('kpiUds').innerHTML = fmtNum(totalUds) + ' <small>pzas</small>';
-  document.getElementById('kpiPesos').textContent = fmtMoney(totalPesos);
   document.getElementById('kpiTiendas').textContent = rows.length;
 
   renderPrioridades();
-  renderVisitasPorCadena();
   renderExtraTiendaBox();
   renderAnalisisObjetivos();
 }
@@ -4820,11 +4819,9 @@ function poblarFiltrosObjetivos(){
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
     });
   }
-  renderObjSemanaChips();
-  renderObjCadenaChips();
-  poblarTiendaSearchList();
-  if(currentUser.perfil === 'Embajador') poblarObjTiendaMulti();
-  renderTiendaFiltroChips();
+  poblarObjTiendaMulti();
+  renderObjMesChips();
+  renderObjTiendaDropdown();
 }
 function visitasPorTienda(storesScope){
   const hoy = new Date();
@@ -4943,55 +4940,33 @@ function renderInsightsObjetivos(storesScope){
   const box = document.getElementById('anzInsights');
   if(!box) return;
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
-  const skus = skusEnScope(storesScope);
-  const combs = (APP_DATA.combinaciones||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda));
-  const combsObj = combs.filter(c=>c.objetivo===1);
+  const semanas = semanasDeMesesSeleccionados();
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const totalPzas = sumMetaUni(cumpRows);
+  const metaLabelTxt = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
 
-  const cuotaUni = skus.reduce((a,r)=>a+r.cuota_uni,0), realUni = skus.reduce((a,r)=>a+r.real_uni,0);
-  const cuotaPesos = skus.reduce((a,r)=>a+r.cuota_pesos,0), realPesos = skus.reduce((a,r)=>a+r.real_pesos,0);
-  const pctCuota = cuotaPesos ? Math.round(realPesos/cuotaPesos*1000)/10 : null;
-  const ytd25 = combs.reduce((a,r)=>a+(r.ytd_25||0),0), ytd26 = combs.reduce((a,r)=>a+(r.ytd_26||0),0);
-  const pctYoy = ytd25 ? Math.round((ytd26-ytd25)/ytd25*1000)/10 : null;
-  const objetivoComb = combsObj.length, conVenta = combsObj.filter(c=>c.con_venta).length;
-  const pctDist = objetivoComb ? Math.round(conVenta/objetivoComb*1000)/10 : null;
-  const ventaCero = combsObj.filter(c=>!c.con_venta);
+  const porCadena = {};
+  cumpRows.forEach(c=>{ porCadena[c.cadena] = (porCadena[c.cadena]||0) + (metaUni(c)||0); });
+  const cadenasOrdenadas = Object.entries(porCadena).sort((a,b)=>b[1]-a[1]);
+  const topCadena = cadenasOrdenadas[0];
 
+  const visitas = visitasPorTienda(storesScope);
+  let totalVisitasObj = 0;
+  storesScope.forEach(s=>{ const v = visitas.get(s.cadena+'|'+s.num_tienda) || {objetivo:0}; totalVisitasObj += v.objetivo; });
+  const idealPorVisita = totalVisitasObj ? Math.round(totalPzas/totalVisitasObj*10)/10 : null;
+
+  const porTienda = {};
+  cumpRows.forEach(c=>{ const k=c.cadena+'|'+c.num_tienda; (porTienda[k]=porTienda[k]||{nombre:'', total:0}); porTienda[k].total += (metaUni(c)||0); });
+  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTienda[k]) porTienda[k].nombre = s.num_tienda+' · '+s.tienda; });
+  const topTiendas = Object.values(porTienda).filter(t=>t.nombre).sort((a,b)=>b.total-a.total).slice(0,5);
+
+  const mesesTxt = objFiltroMeses && objFiltroMeses.size ? [...objFiltroMeses].join(' + ') : 'el periodo elegido';
   const lineas = [];
-  lineas.push(`📊 <b>Cuota vs. real (mes a la fecha):</b> vamos en ${pctCuota??'—'}% de la cuota (${fmtMoney(realPesos)} de ${fmtMoney(cuotaPesos)} · ${fmtNum(realUni)} de ${fmtNum(cuotaUni)} pzas). ${pctCuota!==null && pctCuota<50 ? 'Vamos atrás del avance esperado para lo que va del mes.' : ''}`);
-  if(pctYoy!==null){
-    lineas.push(`📈 <b>Vs. año anterior (YTD, unidades):</b> ${ytd26>=ytd25?'crecimos':'caímos'} ${Math.abs(pctYoy)}% (${fmtNum(ytd25)} → ${fmtNum(ytd26)} piezas acumuladas).`);
-  }
-  lineas.push(`📦 <b>Cubrimiento de distribución:</b> ${pctDist??'—'}% de las combinaciones (tienda+SKU) con inventario registraron venta — ${conVenta} de ${objetivoComb}. ${ventaCero.length} combinaciones en venta cero ahora mismo.`);
-
-  // Peores tiendas por cumplimiento de cuota (gaps)
-  const porTienda = agregarPorDimension(storesScope, (r,s)=> (s?s.num_tienda:r.num_tienda)+' · '+(s?s.tienda:r.tienda)).filter(f=>f.cuota_pesos>0);
-  const peoresTiendas = [...porTienda].sort((a,b)=>(a.pct_cuota??999)-(b.pct_cuota??999)).slice(0,5);
-  if(peoresTiendas.length){
-    lineas.push(`🔴 <b>Principales gaps de cuota (focos rojos):</b> ${peoresTiendas.map(f=>`${f.dim} (${f.pct_cuota??'—'}%)`).join(', ')}.`);
-  }
-  // Peor cluster
-  const porCluster = agregarPorDimension(storesScope, (r,s)=>(s&&s.cluster)||'Sin cluster').filter(f=>f.cuota_pesos>0 || f.objetivo_comb>0);
-  const peorClusterCuota = [...porCluster].sort((a,b)=>(a.pct_cuota??999)-(b.pct_cuota??999))[0];
-  const peorClusterDist = [...porCluster].sort((a,b)=>(a.pct_dist??999)-(b.pct_dist??999))[0];
-  if(peorClusterCuota) lineas.push(`🎯 <b>Cluster con más rezago en cuota:</b> ${peorClusterCuota.dim} (${peorClusterCuota.pct_cuota??'—'}%).`);
-  if(peorClusterDist) lineas.push(`🎯 <b>Cluster con más rezago en distribución:</b> ${peorClusterDist.dim} (${peorClusterDist.pct_dist??'—'}%).`);
-
-  // Códigos que más se atoran (mayor días de inventario, dentro de los que sí tienen objetivo)
-  const atorados = [...combsObj].filter(c=>c.dias_inventario!=null).sort((a,b)=>b.dias_inventario-a.dias_inventario).slice(0,5);
-  if(atorados.length){
-    lineas.push(`🐌 <b>Códigos que más se están atorando (más días de inventario sin rotar):</b> ${atorados.map(a=>`${a.clave} en ${a.tienda} (${Math.round(a.dias_inventario)} días)`).join(', ')}.`);
-  }
-  // Venta cero por familia/cluster (foto actual)
-  if(ventaCero.length){
-    const porFamilia = {};
-    ventaCero.forEach(v=>{ porFamilia[v.familia] = (porFamilia[v.familia]||0)+1; });
-    const topFam = Object.entries(porFamilia).sort((a,b)=>b[1]-a[1])[0];
-    const porClusterVC = {};
-    ventaCero.forEach(v=>{ porClusterVC[v.cluster||'Sin cluster'] = (porClusterVC[v.cluster||'Sin cluster']||0)+1; });
-    const topClusterVC = Object.entries(porClusterVC).sort((a,b)=>b[1]-a[1])[0];
-    lineas.push(`⚠️ <b>Venta cero — foto de hoy:</b> ${ventaCero.length} combinaciones, concentradas sobre todo en ${topFam[0]} (${topFam[1]}) y en cluster ${topClusterVC[0]} (${topClusterVC[1]}).`);
-  }
-  lineas.push(`ℹ️ <b>Nota sobre tendencia de venta cero:</b> el Pipeline que me compartes es una foto de la semana actual (S33) — no tengo una semana anterior guardada para decirte si la venta cero creció, bajó, o si son las mismas combinaciones repetidas o nuevas. Si me confirmas que quieres que guarde una copia del Pipeline cada semana, desde la próxima ya puedo darte esa comparación semana contra semana.`);
+  lineas.push(`📦 <b>Qué se pide (${metaLabelTxt.toLowerCase()}):</b> ${fmtNum(totalPzas)} piezas en total, en ${storesScope.length} tienda(s), para ${mesesTxt}.`);
+  if(topCadena) lineas.push(`🏬 <b>Cadena con más piezas pedidas:</b> ${topCadena[0]} (${fmtNum(topCadena[1])} pzas · ${totalPzas?Math.round(topCadena[1]/totalPzas*100):0}% del total).`);
+  if(idealPorVisita!==null) lineas.push(`🎯 <b>Ideal por visita:</b> con ${fmtNum(totalVisitasObj)} visita(s) objetivo en el periodo, el ideal es cubrir ~${idealPorVisita} piezas por visita para llegar a la ${metaLabelTxt.toLowerCase()}.`);
+  if(topTiendas.length) lineas.push(`🔝 <b>Tiendas con más piezas pedidas:</b> ${topTiendas.map(t=>`${t.nombre} (${fmtNum(t.total)})`).join(', ')}.`);
+  if(!totalPzas) lineas.push(`ℹ️ Sin ${metaLabelTxt.toLowerCase()} cargada todavía para el/los mes(es)/tienda(s) elegidos.`);
 
   box.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
 }
@@ -5006,263 +4981,116 @@ function toggleAnzSemanaVista(){
 }
 function exportarAnzSemana(){
   const d = window._anzSemanaData || [];
-  exportarCSV(`cubrimiento_semanal_${todayISO()}.csv`, ['Semana','Cuota pz','Real pz','% cubrimiento pz','Cuota $','Real $','% cubrimiento $'],
-    d.map(s=>[s.semana, s.cuota, s.real, s.pct, s.cuota_pesos, s.real_pesos, s.cuota_pesos?Math.round(s.real_pesos/s.cuota_pesos*1000)/10:'']));
+  exportarCSV(`piezas_pedidas_por_semana_${todayISO()}.csv`, ['Semana','Piezas pedidas'], d.map(s=>[s.semana, s.cuota]));
 }
+const OBJ_PIE_PALETA = ['#767a1a','#a7ab27','#cba3dd','#c1502c','#8a9a5b','#d9c26b','#5c7a99','#b56576'];
 function renderAnalisisObjetivos(){
   poblarFiltrosObjetivos();
   const storesScope = storesScopeObjetivos();
-  const fSemanas = getObjSemanasSeleccionadas();
-  const fSemanaLabel = fSemanas.join(', ');
   renderInsightsObjetivos(storesScope);
 
-  // KPIs de resumen — renglones separados: vs Cuota y vs Año anterior (AA), estilo tarjeta con flechas y deltas
-  // Si hay semana seleccionada, cuota/real de "vs Cuota" salen de cumplimiento_semanal (sí tiene corte semanal);
-  // "vs Año anterior" es un dato mensual (Pipeline no trae YTD por semana), así que se oculta cuando hay semana elegida.
-  const keysTot = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
-  const usaSemanal = fSemanas.length>0 || objMetaTipo==='escalon';
-  const semanasEfectivasTot = fSemanas.length ? fSemanas : [...semanasDeMesesSeleccionados()].map(String);
-  let totales;
-  if(usaSemanal){
-    const semRowsTot = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keysTot.has(c.cadena+'|'+c.num_tienda) && semanasEfectivasTot.includes(String(c.semana)));
-    totales = {
-      cuota_uni: sumMetaUni(semRowsTot), real_uni: semRowsTot.reduce((a,r)=>a+r.real_uni,0),
-      cuota_pesos: sumMetaPesos(semRowsTot), real_pesos: semRowsTot.reduce((a,r)=>a+r.real_pesos,0),
-    };
-  } else {
-    totales = agregarPorDimension(storesScope, ()=> 'TOTAL')[0] || {cuota_uni:0,real_uni:0,cuota_pesos:0,real_pesos:0};
-  }
-  const gapUni = (totales.real_uni||0) - (totales.cuota_uni||0);
-  const gapPesos = (totales.real_pesos||0) - (totales.cuota_pesos||0);
-  const pctUni = totales.cuota_uni ? Math.round((totales.real_uni||0)/totales.cuota_uni*1000)/10 : null; // % de cumplimiento (no es delta)
-  const pctPesos = totales.cuota_pesos ? Math.round((totales.real_pesos||0)/totales.cuota_pesos*1000)/10 : null;
-  const gapUniPct = totales.cuota_uni ? Math.round(gapUni/totales.cuota_uni*1000)/10 : null; // % de variación vs meta (delta)
-  const gapPesosPct = totales.cuota_pesos ? Math.round(gapPesos/totales.cuota_pesos*1000)/10 : null;
-  const keysAA = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
-  const combsAA = (APP_DATA.combinaciones||[]).filter(r=>keysAA.has(r.cadena+'|'+r.num_tienda));
-  const ytd25 = combsAA.reduce((a,r)=>a+(r.ytd_25||0),0), ytd26 = combsAA.reduce((a,r)=>a+(r.ytd_26||0),0);
-  const gapAA = ytd26 - ytd25;
-  const pctAA = ytd25 ? Math.round(gapAA/ytd25*1000)/10 : null;
-  const renglon = (label, meta, valor, delta, pct) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border-radius:8px; margin-top:6px; background:${delta<0?'var(--bad-soft)':'var(--good-soft)'};">
-    <div><div style="font-weight:700; font-size:12px;">${label}</div><div style="font-size:11px; color:var(--ink-soft);">${meta}</div></div>
-    <div style="text-align:right;"><span style="color:${delta<0?'var(--bad)':'var(--good)'}; font-weight:700; font-size:12.5px;">${delta<0?'▼':'▲'} ${pct!==null?(pct>=0?'+':'')+pct+'%':'—'}</span><br><span style="font-size:10.5px; color:var(--ink-soft);">${delta>=0?'+':''}${valor(delta)}</span></div>
-  </div>`;
   const metaLabelTxt = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
-  const etiquetaSemAnz = semanasEfectivasTot.length ? ('Semana'+(semanasEfectivasTot.length>1?'s':'')+' '+semanasEfectivasTot.join(', ')) : 'sin semanas en el periodo elegido';
-  const metaLabelUni = usaSemanal ? `Meta ${metaLabelTxt} ${etiquetaSemAnz} · ${fmtNum(totales.cuota_uni||0)} pz` : 'Meta agosto · '+fmtNum(totales.cuota_uni||0)+' pz';
-  const metaLabelPesos = usaSemanal ? `Meta ${metaLabelTxt} ${etiquetaSemAnz} · ${fmtMoney(totales.cuota_pesos||0)}` : 'Meta agosto · '+fmtMoney(totales.cuota_pesos||0);
-  const uniEl = document.getElementById('anzUniResumen');
-  if(uniEl) uniEl.innerHTML = `<div style="font-size:22px; font-weight:800;">${fmtNum(totales.real_uni||0)} <small style="font-size:12px; font-weight:600; color:var(--ink-soft);">pzas vendidas${pctUni!==null?' · '+pctUni+'% de la '+metaLabelTxt.toLowerCase():''}${usaSemanal?' ('+etiquetaSemAnz+')':''}</small></div>`
-    + renglon('vs '+metaLabelTxt, metaLabelUni, v=>fmtNum(v), gapUni, gapUniPct)
-    + (usaSemanal ? `<div style="font-size:11px; color:var(--ink-soft); margin-top:6px;">vs Año anterior no disponible por semana — es un dato mensual (Pipeline). Quita el filtro de semana y usa meta "Cuota" para verlo.</div>` : renglon('vs Año anterior (AA)', 'YTD 25 · '+fmtNum(ytd25), v=>fmtNum(v), gapAA, pctAA));
-  const pesosEl = document.getElementById('anzPesosResumen');
-  if(pesosEl) pesosEl.innerHTML = `<div style="font-size:22px; font-weight:800;">${fmtMoney(totales.real_pesos||0)} <small style="font-size:12px; font-weight:600; color:var(--ink-soft);">vendidos${pctPesos!==null?' · '+pctPesos+'% de la '+metaLabelTxt.toLowerCase():''}${usaSemanal?' ('+etiquetaSemAnz+')':''}</small></div>`
-    + renglon('vs '+metaLabelTxt, metaLabelPesos, v=>fmtMoney(v), gapPesos, gapPesosPct);
-
-  // Gráfico + tabla de cubrimiento por semana (cuota vs real), dentro del scope filtrado
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
   const semanasMesChart = semanasDeMesesSeleccionados();
   const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanasMesChart.has(c.semana));
+
+  // --- Piezas pedidas por semana ---
   const porSemana = {};
-  cumpRows.forEach(c=>{ (porSemana[c.semana] = porSemana[c.semana] || {cuota:0, real:0, cuota_pesos:0, real_pesos:0}); porSemana[c.semana].cuota += (metaUni(c)||0); porSemana[c.semana].real += c.real_uni; porSemana[c.semana].cuota_pesos += (metaPesos(c)||0); porSemana[c.semana].real_pesos += c.real_pesos; });
+  cumpRows.forEach(c=>{ (porSemana[c.semana] = porSemana[c.semana] || {cuota:0}); porSemana[c.semana].cuota += (metaUni(c)||0); });
   const semanas = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
-  const maxVal = Math.max(1, ...semanas.map(s=>Math.max(porSemana[s].cuota, porSemana[s].real)));
-  window._anzSemanaData = semanas.map(s=>({semana:s, ...porSemana[s], pct: porSemana[s].cuota ? Math.round(porSemana[s].real/porSemana[s].cuota*1000)/10 : null}));
+  const maxVal = Math.max(1, ...semanas.map(s=>porSemana[s].cuota));
+  window._anzSemanaData = semanas.map(s=>({semana:s, cuota:porSemana[s].cuota}));
   const chartBox = document.getElementById('anzChartSemana');
   if(chartBox){
     chartBox.innerHTML = semanas.length ? `<div style="display:flex; gap:18px; align-items:flex-end; height:150px; padding:10px 4px;">
       ${semanas.map(s=>{
-        const cu = porSemana[s].cuota, re = porSemana[s].real;
-        const pct = cu ? Math.round(re/cu*1000)/10 : null;
-        const esSel = fSemanas.includes(String(s));
-        return `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; ${esSel?'background:var(--brand-soft); border-radius:8px; padding-top:4px;':''}">
+        const cu = porSemana[s].cuota;
+        return `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1;">
           <div style="display:flex; gap:3px; align-items:flex-end; height:110px;">
-            <div title="Cuota: ${fmtNum(cu)}" style="width:16px; background:var(--brand-dark); height:${Math.round(cu/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
-            <div title="Real: ${fmtNum(re)}" style="width:16px; background:var(--warn); height:${Math.round(re/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
+            <div title="${metaLabelTxt}: ${fmtNum(cu)}" style="width:24px; background:var(--brand-dark); height:${Math.round(cu/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
           </div>
-          <div style="font-size:11px; color:var(--ink-soft); font-weight:${esSel?800:600};">Sem ${s}${esSel?' ★':''}</div>
-          <div style="font-size:10.5px; font-weight:700; color:${pct===null?'var(--ink-soft)':pct<80?'var(--bad)':pct<100?'var(--warn)':'var(--good)'};">${pct!==null?pct+'%':'—'}</div>
+          <div style="font-size:11px; color:var(--ink-soft); font-weight:600;">Sem ${s}</div>
+          <div style="font-size:10.5px; font-weight:700; color:var(--ink);">${fmtNum(cu)}</div>
         </div>`;
       }).join('')}
-    </div>
-    <div style="display:flex; gap:14px; font-size:11.5px; color:var(--ink-soft);"><span>🟦 ${metaLabelTxt}</span><span>🟧 Real</span></div>`
+    </div>`
     : `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin semanas con datos todavía para este filtro.</p>`;
   }
   const tablaSemanaWrap = document.getElementById('anzTablaSemanaWrap');
   if(tablaSemanaWrap){
-    tablaSemanaWrap.innerHTML = semanas.length ? `<table><thead><tr>${colHead('anzTablaSemana','semana','Semana',true)}${colHead('anzTablaSemana','cuota',metaLabelTxt+' pz',true)}${colHead('anzTablaSemana','real','Real pz',true)}${colHead('anzTablaSemana','pct','% cubrimiento pz',true)}${colHead('anzTablaSemana','cuota_pesos',metaLabelTxt+' $',true)}${colHead('anzTablaSemana','real_pesos','Real $',true)}<th class="num">% cubrimiento $</th></tr></thead>
-      <tbody>${ordenarFilas('anzTablaSemana', window._anzSemanaData, 'semana').map(s=>`<tr style="${fSemanas.includes(String(s.semana))?'background:var(--brand-soft); font-weight:800;':''}"><td>Semana ${s.semana}${fSemanas.includes(String(s.semana))?' ★':''}</td><td class="num">${fmtNum(s.cuota)}</td><td class="num">${fmtNum(s.real)}</td><td class="num" style="font-weight:700; color:${s.pct===null?'var(--ink-soft)':s.pct<80?'var(--bad)':s.pct<100?'var(--warn)':'var(--good)'};">${s.pct!==null?s.pct+'%':'—'}</td><td class="num">${fmtMoney(s.cuota_pesos)}</td><td class="num">${fmtMoney(s.real_pesos)}</td><td class="num">${s.cuota_pesos?Math.round(s.real_pesos/s.cuota_pesos*1000)/10+'%':'—'}</td></tr>`).join('')}</tbody></table>`
+    tablaSemanaWrap.innerHTML = semanas.length ? `<table><thead><tr>${colHead('anzTablaSemana','semana','Semana',true)}${colHead('anzTablaSemana','cuota',metaLabelTxt+' (piezas)',true)}</tr></thead>
+      <tbody>${ordenarFilas('anzTablaSemana', window._anzSemanaData, 'semana').map(s=>`<tr><td>Semana ${s.semana}</td><td class="num">${fmtNum(s.cuota)}</td></tr>`).join('')}</tbody></table>`
     : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">Sin semanas con datos.</p>`;
   }
-  window.render_anzTablaSemana = renderAnalisisObjetivos;
 
+  // --- Participación por cadena (pastel) ---
+  const porCadena = {};
+  cumpRows.forEach(c=>{ porCadena[c.cadena] = (porCadena[c.cadena]||0) + (metaUni(c)||0); });
+  const totalCadenas = Object.values(porCadena).reduce((a,v)=>a+v,0);
+  const cadenasArr = Object.entries(porCadena).sort((a,b)=>b[1]-a[1]);
+  const pieBox = document.getElementById('objPieParticipacion');
+  if(pieBox){
+    if(!totalCadenas){
+      pieBox.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin datos de ${metaLabelTxt.toLowerCase()} para este filtro todavía.</p>`;
+    } else {
+      let acumGrados = 0;
+      const segmentos = cadenasArr.map(([cad,val],i)=>{
+        const pct = val/totalCadenas*100;
+        const grados = pct/100*360;
+        const seg = `${OBJ_PIE_PALETA[i%OBJ_PIE_PALETA.length]} ${acumGrados}deg ${acumGrados+grados}deg`;
+        acumGrados += grados;
+        return seg;
+      });
+      pieBox.innerHTML = `<div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+        <div style="width:150px; height:150px; border-radius:50%; background:conic-gradient(${segmentos.join(', ')}); flex-shrink:0;"></div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${cadenasArr.map(([cad,val],i)=>`<div style="display:flex; align-items:center; gap:8px; font-size:12.5px;"><span style="width:12px; height:12px; border-radius:3px; background:${OBJ_PIE_PALETA[i%OBJ_PIE_PALETA.length]}; display:inline-block; flex-shrink:0;"></span><b>${cad}</b><span style="color:var(--ink-soft);">${fmtNum(val)} pzas · ${Math.round(val/totalCadenas*100)}%</span></div>`).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
+  // --- Por código de tienda (desplegable al detalle semanal) ---
   const tablasBox = document.getElementById('anzTablas');
   if(!tablasBox) return;
-  tablasBox.innerHTML = `
-    ${fSemanas.length ? `<p style="font-size:11px; color:var(--ink-soft); margin:14px 0 0;">Nota: las tablas de abajo (por cadena, familia, cluster y código de tienda) y los insights vienen de tus archivos de Pipeline/SKU, que no traen corte por semana — siguen mostrando el mes a la fecha aunque tengas semana(s) seleccionada(s) arriba. Solo los KPI de arriba y la gráfica/tabla semanal cambian con el filtro de semana.</p>` : ''}
-    <div style="margin-top:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por cadena</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV('cadena')">⬇ Exportar a Excel</button></div>
-      <div class="table-scroll" id="anzTablaCadena"></div>
-    </div>
-    <div style="margin-top:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por familia (clic para ver artículos)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV('familia')">⬇ Exportar a Excel</button></div>
-      <div class="table-scroll" id="anzTablaFamilia"></div>
-    </div>
-    <div style="margin-top:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por cluster</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV('cluster')">⬇ Exportar a Excel</button></div>
-      <div class="table-scroll" id="anzTablaCluster"></div>
-    </div>
-    <div style="margin-top:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por código de tienda</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV('tienda')">⬇ Exportar a Excel</button></div>
+  tablasBox.innerHTML = `<div style="margin-top:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por código de tienda (clic para ver el detalle semanal)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV()">⬇ Exportar a Excel</button></div>
       <div class="table-scroll" id="anzTablaTienda"></div>
-    </div>
-  `;
+    </div>`;
 
-  const pctColor = v => v===null ? 'var(--ink-soft)' : v<80 ? 'var(--bad)' : v<100 ? 'var(--warn)' : 'var(--good)';
-  const filaTotal = (filas) => {
-    const t = filas.reduce((a,f)=>({
-      real_uni:a.real_uni+f.real_uni, real_pesos:a.real_pesos+f.real_pesos, cuota_uni:a.cuota_uni+f.cuota_uni, cuota_pesos:a.cuota_pesos+f.cuota_pesos,
-      objetivo_comb:a.objetivo_comb+f.objetivo_comb, con_venta_comb:a.con_venta_comb+f.con_venta_comb,
-      visitas_obj:a.visitas_obj+f.visitas_obj, visitas_real:a.visitas_real+f.visitas_real,
-    }), {real_uni:0,real_pesos:0,cuota_uni:0,cuota_pesos:0,objetivo_comb:0,con_venta_comb:0,visitas_obj:0,visitas_real:0});
-    return {...t, part_pct:100,
-      pct_cuota: t.cuota_uni ? Math.round(t.real_uni/t.cuota_uni*1000)/10 : null,
-      pct_dist: t.objetivo_comb ? Math.round(t.con_venta_comb/t.objetivo_comb*1000)/10 : null,
-      pct_visitas: t.visitas_obj ? Math.round(t.visitas_real/t.visitas_obj*1000)/10 : null,
-    };
-  };
-  const trTotalConVisitas = (t) => `<tr style="font-weight:800; border-top:2px solid var(--brand-dark); background:#f7f8ee;"><td>TOTAL</td><td class="num">${fmtNum(t.real_uni)}</td><td class="num">${fmtMoney(t.real_pesos)}</td><td class="num">100%</td><td class="num">${fmtNum(t.cuota_uni)}</td><td class="num" style="color:${pctColor(t.pct_cuota)};">${t.pct_cuota??'—'}%</td><td class="num">${t.objetivo_comb}</td><td class="num">${t.con_venta_comb}</td><td class="num" style="color:${pctColor(t.pct_dist)};">${t.pct_dist??'—'}%</td><td class="num">${t.visitas_obj}</td><td class="num">${t.visitas_real}</td><td class="num" style="color:${pctColor(t.pct_visitas)};">${t.pct_visitas??'—'}%</td></tr>`;
-  const trTotalSinVisitas = (t) => `<tr style="font-weight:800; border-top:2px solid var(--brand-dark); background:#f7f8ee;"><td>TOTAL</td><td class="num">${fmtNum(t.real_uni)}</td><td class="num">${fmtMoney(t.real_pesos)}</td><td class="num">${fmtNum(t.cuota_uni)}</td><td class="num" style="color:${pctColor(t.pct_cuota)};">${t.pct_cuota??'—'}%</td><td class="num">${t.objetivo_comb}</td><td class="num">${t.con_venta_comb}</td><td class="num" style="color:${pctColor(t.pct_dist)};">${t.pct_dist??'—'}%</td></tr>`;
+  const porTiendaSem = {};
+  cumpRows.forEach(c=>{
+    const key = c.cadena+'|'+c.num_tienda;
+    (porTiendaSem[key] = porTiendaSem[key] || {cadena:c.cadena, num_tienda:c.num_tienda, tienda:'', total:0, semanas:{}});
+    const v = metaUni(c)||0;
+    porTiendaSem[key].total += v;
+    porTiendaSem[key].semanas[c.semana] = (porTiendaSem[key].semanas[c.semana]||0) + v;
+  });
+  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTiendaSem[k]) porTiendaSem[k].tienda = s.tienda; });
 
-  // --- Por cadena ---
-  window.render_anzTablaCadena = function(){
-    const filas = ordenarFilas('anzTablaCadena', agregarPorDimension(storesScope, s=>s.cadena), 'real_pesos');
-    document.getElementById('anzTablaCadena').innerHTML = `<table><thead><tr>
-      ${colHead('anzTablaCadena','dim','Cadena')}
-      ${colHead('anzTablaCadena','real_uni','Venta Uni',true)}
-      ${colHead('anzTablaCadena','real_pesos','Pesos',true)}
-      ${colHead('anzTablaCadena','part_pct','Part %',true)}
-      ${colHead('anzTablaCadena','cuota_uni','Cuota ventas',true)}
-      ${colHead('anzTablaCadena','pct_cuota','Cumplimiento cuota',true)}
-      ${colHead('anzTablaCadena','objetivo_comb','Objetivo combinaciones',true)}
-      ${colHead('anzTablaCadena','con_venta_comb','Combinaciones con venta',true)}
-      ${colHead('anzTablaCadena','pct_dist','Cumplimiento Distribución',true)}
-      ${colHead('anzTablaCadena','visitas_obj','Objetivo visitas',true)}
-      ${colHead('anzTablaCadena','visitas_real','Visitas reales',true)}
-      ${colHead('anzTablaCadena','pct_visitas','Cumplimiento visitas',true)}
-      </tr></thead><tbody>${filas.map(f=>`<tr><td>${f.dim}</td><td class="num">${fmtNum(f.real_uni)}</td><td class="num">${fmtMoney(f.real_pesos)}</td><td class="num">${f.part_pct}%</td><td class="num">${fmtNum(f.cuota_uni)}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_cuota)};">${f.pct_cuota??'—'}%</td><td class="num">${f.objetivo_comb}</td><td class="num">${f.con_venta_comb}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_dist)};">${f.pct_dist??'—'}%</td><td class="num">${f.visitas_obj}</td><td class="num">${f.visitas_real}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_visitas)};">${f.pct_visitas??'—'}%</td></tr>`).join('') || `<tr><td colspan="12" class="empty-state">Sin datos.</td></tr>`}${filas.length?trTotalConVisitas(filaTotal(filas)):''}</tbody></table>`;
-  };
-
-  // --- Por familia (con drill a artículo) ---
-  let familiaExpandida = null;
-  window.toggleFamiliaExpandida = function(fam){ familiaExpandida = familiaExpandida===fam ? null : fam; window.render_anzTablaFamilia(); };
-  window.render_anzTablaFamilia = function(){
-    const filas = ordenarFilas('anzTablaFamilia', agregarPorDimension(storesScope, r=>r.familia), 'real_pesos');
-    let rowsHtml = filas.map(f=>{
-      let html = `<tr style="cursor:pointer;" onclick="toggleFamiliaExpandida('${f.dim.replace(/'/g,"\\'")}')"><td>${familiaExpandida===f.dim?'▼':'▶'} ${f.dim}</td><td class="num">${fmtNum(f.real_uni)}</td><td class="num">${fmtMoney(f.real_pesos)}</td><td class="num">${fmtNum(f.cuota_uni)}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_cuota)};">${f.pct_cuota??'—'}%</td><td class="num">${f.objetivo_comb}</td><td class="num">${f.con_venta_comb}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_dist)};">${f.pct_dist??'—'}%</td></tr>`;
-      if(familiaExpandida===f.dim){
-        const arts = agregarPorDimension(storesScope.filter(s=>true), r=> (r.familia===f.dim ? (r.clave||'—') : null)).filter(a=>a.dim!==null);
-        html += arts.sort((a,b)=>b.real_pesos-a.real_pesos).map(a=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${a.dim}</td><td class="num">${fmtNum(a.real_uni)}</td><td class="num">${fmtMoney(a.real_pesos)}</td><td class="num">${fmtNum(a.cuota_uni)}</td><td class="num" style="color:${pctColor(a.pct_cuota)};">${a.pct_cuota??'—'}%</td><td class="num">${a.objetivo_comb}</td><td class="num">${a.con_venta_comb}</td><td class="num" style="color:${pctColor(a.pct_dist)};">${a.pct_dist??'—'}%</td></tr>`).join('');
-      }
-      return html;
-    }).join('');
-    document.getElementById('anzTablaFamilia').innerHTML = `<table><thead><tr>
-      ${colHead('anzTablaFamilia','dim','Familia / artículo')}
-      ${colHead('anzTablaFamilia','real_uni','Venta Uni',true)}
-      ${colHead('anzTablaFamilia','real_pesos','Pesos',true)}
-      ${colHead('anzTablaFamilia','cuota_uni','Cuota ventas',true)}
-      ${colHead('anzTablaFamilia','pct_cuota','Cumplimiento cuota',true)}
-      ${colHead('anzTablaFamilia','objetivo_comb','Objetivo combinaciones',true)}
-      ${colHead('anzTablaFamilia','con_venta_comb','Combinaciones con venta',true)}
-      ${colHead('anzTablaFamilia','pct_dist','Cumplimiento Distribución',true)}
-      </tr></thead><tbody>${rowsHtml || `<tr><td colspan="8" class="empty-state">Sin datos.</td></tr>`}${filas.length?trTotalSinVisitas(filaTotal(filas)):''}</tbody></table>`;
-  };
-
-  // --- Por cluster ---
-  window.render_anzTablaCluster = function(){
-    const filas = ordenarFilas('anzTablaCluster', agregarPorDimension(storesScope, (r,s)=> (s&&s.cluster) || 'Sin cluster'), 'real_pesos');
-    document.getElementById('anzTablaCluster').innerHTML = `<table><thead><tr>
-      ${colHead('anzTablaCluster','dim','Cluster')}
-      ${colHead('anzTablaCluster','real_uni','Venta Uni',true)}
-      ${colHead('anzTablaCluster','real_pesos','Pesos',true)}
-      ${colHead('anzTablaCluster','part_pct','Part %',true)}
-      ${colHead('anzTablaCluster','cuota_uni','Cuota ventas',true)}
-      ${colHead('anzTablaCluster','pct_cuota','Cumplimiento cuota',true)}
-      ${colHead('anzTablaCluster','objetivo_comb','Objetivo combinaciones',true)}
-      ${colHead('anzTablaCluster','con_venta_comb','Combinaciones con venta',true)}
-      ${colHead('anzTablaCluster','pct_dist','Cumplimiento Distribución',true)}
-      ${colHead('anzTablaCluster','visitas_obj','Objetivo visitas',true)}
-      ${colHead('anzTablaCluster','visitas_real','Visitas reales',true)}
-      ${colHead('anzTablaCluster','pct_visitas','Cumplimiento visitas',true)}
-      </tr></thead><tbody>${filas.map(f=>`<tr><td>${f.dim}</td><td class="num">${fmtNum(f.real_uni)}</td><td class="num">${fmtMoney(f.real_pesos)}</td><td class="num">${f.part_pct}%</td><td class="num">${fmtNum(f.cuota_uni)}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_cuota)};">${f.pct_cuota??'—'}%</td><td class="num">${f.objetivo_comb}</td><td class="num">${f.con_venta_comb}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_dist)};">${f.pct_dist??'—'}%</td><td class="num">${f.visitas_obj}</td><td class="num">${f.visitas_real}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_visitas)};">${f.pct_visitas??'—'}%</td></tr>`).join('') || `<tr><td colspan="12" class="empty-state">Sin datos.</td></tr>`}${filas.length?trTotalConVisitas(filaTotal(filas)):''}</tbody></table>`;
-  };
-
-  // --- Por código de tienda (con desglose a SKU) ---
-  let tiendaExpandida = null; // "cadena|num_tienda"
+  let tiendaExpandida = null;
   window.toggleTiendaExpandida = function(key){ tiendaExpandida = tiendaExpandida===key ? null : key; window.render_anzTablaTienda(); };
   window.render_anzTablaTienda = function(){
-    const filas = ordenarFilas('anzTablaTienda', agregarPorDimension(storesScope, (r,s)=> (s?s.num_tienda:r.num_tienda)+' · '+(s?s.tienda:r.tienda)), 'real_pesos');
-    const filaKeyMap = new Map(storesScope.map(s=>[(s.num_tienda)+' · '+(s.tienda), s.cadena+'|'+s.num_tienda]));
-    let rowsHtml = filas.map(f=>{
-      const key = filaKeyMap.get(f.dim);
-      let html = `<tr style="cursor:pointer;" onclick="toggleTiendaExpandida('${(key||'').replace(/'/g,"\\'")}')"><td>${tiendaExpandida===key?'▼':'▶'} ${f.dim}</td><td class="num">${fmtNum(f.real_uni)}</td><td class="num">${fmtMoney(f.real_pesos)}</td><td class="num">${f.part_pct}%</td><td class="num">${fmtNum(f.cuota_uni)}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_cuota)};">${f.pct_cuota??'—'}%</td><td class="num">${f.objetivo_comb}</td><td class="num">${f.con_venta_comb}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_dist)};">${f.pct_dist??'—'}%</td><td class="num">${f.visitas_obj}</td><td class="num">${f.visitas_real}</td><td class="num" style="font-weight:700; color:${pctColor(f.pct_visitas)};">${f.pct_visitas??'—'}%</td></tr>`;
-      if(key && tiendaExpandida===key){
-        const soloEstaTienda = storesScope.filter(s=> s.cadena+'|'+s.num_tienda === key);
-        const arts = agregarPorDimension(soloEstaTienda, r=> r.clave || null).filter(a=>a.dim!==null);
-        html += (arts.length ? arts.sort((a,b)=>b.real_pesos-a.real_pesos).map(a=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${a.dim}</td><td class="num">${fmtNum(a.real_uni)}</td><td class="num">${fmtMoney(a.real_pesos)}</td><td class="num">${a.part_pct}%</td><td class="num">${fmtNum(a.cuota_uni)}</td><td class="num" style="color:${pctColor(a.pct_cuota)};">${a.pct_cuota??'—'}%</td><td class="num">${a.objetivo_comb}</td><td class="num">${a.con_venta_comb}</td><td class="num" style="color:${pctColor(a.pct_dist)};">${a.pct_dist??'—'}%</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>`).join('')
-          : `<tr style="background:#f7f8ee;"><td colspan="12" style="padding-left:26px; font-size:12px; color:var(--ink-soft);">Sin SKUs con detalle para esta tienda.</td></tr>`);
+    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).sort((a,b)=>b.total-a.total);
+    const rowsHtml = filas.map(f=>{
+      const key = f.cadena+'|'+f.num_tienda;
+      let html = `<tr style="cursor:pointer;" onclick="toggleTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${tiendaExpandida===key?'▼':'▶'} ${f.num_tienda} · ${f.tienda}</td><td>${f.cadena}</td><td class="num">${fmtNum(f.total)}</td></tr>`;
+      if(tiendaExpandida===key){
+        const semsOrdenadas = Object.keys(f.semanas).map(Number).sort((a,b)=>a-b);
+        html += semsOrdenadas.map(s=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;" colspan="2">Semana ${s}</td><td class="num" style="font-size:12px;">${fmtNum(f.semanas[s])}</td></tr>`).join('');
       }
       return html;
     }).join('');
-    document.getElementById('anzTablaTienda').innerHTML = `<table><thead><tr>
-      ${colHead('anzTablaTienda','dim','# Tienda (clic para desglose por SKU)')}
-      ${colHead('anzTablaTienda','real_uni','Venta Uni',true)}
-      ${colHead('anzTablaTienda','real_pesos','Pesos',true)}
-      ${colHead('anzTablaTienda','part_pct','Part %',true)}
-      ${colHead('anzTablaTienda','cuota_uni','Cuota ventas',true)}
-      ${colHead('anzTablaTienda','pct_cuota','Cumplimiento cuota',true)}
-      ${colHead('anzTablaTienda','objetivo_comb','Objetivo combinaciones',true)}
-      ${colHead('anzTablaTienda','con_venta_comb','Combinaciones con venta',true)}
-      ${colHead('anzTablaTienda','pct_dist','Cumplimiento Distribución',true)}
-      ${colHead('anzTablaTienda','visitas_obj','Objetivo visitas',true)}
-      ${colHead('anzTablaTienda','visitas_real','Visitas reales',true)}
-      ${colHead('anzTablaTienda','pct_visitas','Cumplimiento visitas',true)}
-      </tr></thead><tbody>${rowsHtml || `<tr><td colspan="12" class="empty-state">Sin datos.</td></tr>`}${filas.length?trTotalConVisitas(filaTotal(filas)):''}</tbody></table>`;
+    document.getElementById('anzTablaTienda').innerHTML = `<table><thead><tr><th># Tienda (clic para desglose por semana)</th><th>Cadena</th><th class="num">${metaLabelTxt} (piezas)</th></tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="3" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
   };
-
-  window.render_anzTablaCadena();
-  window.render_anzTablaFamilia();
-  window.render_anzTablaCluster();
   window.render_anzTablaTienda();
 
-  window.exportarAnalisisCSV = function(tipo){
-    const scope = storesScopeObjetivos();
-    if(tipo==='tienda'){
-      // Desglose a nivel código de tienda + SKU (una fila por tienda+artículo)
-      const headers = ['Cadena','# Tienda','Tienda','Clave SKU','Venta Uni','Pesos','Part % (dentro de la tienda)','Cuota Uni','Cuota Pesos','% Cumplimiento cuota','Objetivo combinación','Con venta','% Cumplimiento distribución'];
-      const rows = [];
-      const porTienda = {};
-      scope.forEach(s=>{ (porTienda[s.cadena+'|'+s.num_tienda] = porTienda[s.cadena+'|'+s.num_tienda] || []).push(s); });
-      Object.keys(porTienda).forEach(key=>{
-        const soloEstaTienda = porTienda[key];
-        const s0 = soloEstaTienda[0];
-        const arts = agregarPorDimension(soloEstaTienda, r=> r.clave || null).filter(a=>a.dim!==null);
-        arts.forEach(a=>{
-          rows.push([s0.cadena, s0.num_tienda, s0.tienda, a.dim, a.real_uni, a.real_pesos, a.part_pct, a.cuota_uni, a.cuota_pesos, a.pct_cuota, a.objetivo_comb, a.con_venta_comb, a.pct_dist]);
-        });
-      });
-      exportarCSV(`objetivos_tienda_sku_${todayISO()}.csv`, headers, rows);
-      return;
-    }
-    const dimFns = {
-      cadena: s=>s.cadena,
-      familia: r=>r.familia,
-      cluster: (r,s)=>(s&&s.cluster)||'Sin cluster',
-    };
-    const filas = agregarPorDimension(scope, dimFns[tipo]);
-    const headers = ['Dimensión','Venta Uni','Pesos','Part %','Cuota Uni','Cuota Pesos','% Cumplimiento cuota','Objetivo combinaciones','Combinaciones con venta','% Cumplimiento distribución','Objetivo visitas','Visitas reales','% Cumplimiento visitas'];
-    const rows = filas.map(f=>[f.dim, f.real_uni, f.real_pesos, f.part_pct, f.cuota_uni, f.cuota_pesos, f.pct_cuota, f.objetivo_comb, f.con_venta_comb, f.pct_dist, f.visitas_obj, f.visitas_real, f.pct_visitas]);
-    exportarCSV(`objetivos_${tipo}_${todayISO()}.csv`, headers, rows);
+  window.exportarAnalisisCSV = function(){
+    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).sort((a,b)=>b.total-a.total);
+    const headers = ['Cadena','# Tienda','Tienda', metaLabelTxt+' total (piezas)'];
+    const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.total]);
+    exportarCSV(`objetivos_por_tienda_${todayISO()}.csv`, headers, rows);
   };
 }
 function restablecerFiltrosDistribucion(){
