@@ -737,6 +737,83 @@
     </section>
 
     <!-- ---------- CUMPLIMIENTO: PLAN VS. REAL ---------- -->
+    <section class="view" id="view-cumpventa">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">Cumplimiento de venta</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Compara lo que de verdad se vendió contra la cuota (o el escalón del Bono) del mismo periodo exacto que elijas abajo — nunca mezcla meses.</p>
+      <div class="controls-bar" style="align-items:center; background:var(--brand-soft); border-radius:10px; margin-bottom:8px;">
+        <label style="font-weight:700;">Meta a comparar:</label>
+        <div id="cvMetaTipoWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <span id="cvMetaTipoNota" style="font-size:11px; color:var(--ink-soft);"></span>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Mes(es):</label>
+        <div class="tienda-dd" id="cvMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cvMesDd')" id="cvMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="cvMesDdPanel"></div>
+        </div>
+        <span id="cvSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
+        <select id="cvSupervisor"><option value="">Todos</option></select></span>
+        <span id="cvEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;">
+        <label>Embajador(a):</label>
+        <select id="cvEmbajador"><option value="">Todos</option></select>
+        </span>
+        <label>Tienda(s):</label>
+        <div class="tienda-dd" id="cvTiendaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cvTiendaDd')" id="cvTiendaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="cvTiendaDdPanel"></div>
+        </div>
+        <select id="cvTiendaMulti" multiple style="display:none;"></select>
+        <button class="btn btn-brand" onclick="renderCumpVenta()">Filtrar</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosCumpVenta()">↺ Restablecer filtros</button>
+      </div>
+
+      <h3 style="font-size:13px; color:var(--brand-dark); margin:14px 0 8px;">Piezas</h3>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="label" id="cvKpiMetaLabel">Cuota del periodo (piezas)</div><div class="value" id="cvKpiMeta">—</div></div>
+        <div class="card kpi good"><div class="label">Real vendido (piezas)</div><div class="value" id="cvKpiReal">—</div></div>
+        <div class="card kpi warn"><div class="label">% Cumplimiento</div><div class="value" id="cvKpiPct">—</div></div>
+        <div class="card kpi bad"><div class="label">Falta por cubrir (piezas)</div><div class="value" id="cvKpiFalta">—</div></div>
+      </div>
+      <h3 style="font-size:13px; color:var(--brand-dark); margin:14px 0 8px;">Pesos</h3>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="label" id="cvKpiMetaPesosLabel">Cuota del periodo (pesos)</div><div class="value" id="cvKpiMetaPesos">—</div></div>
+        <div class="card kpi good"><div class="label">Real vendido (pesos)</div><div class="value" id="cvKpiRealPesos">—</div></div>
+        <div class="card kpi warn"><div class="label">% Cumplimiento</div><div class="value" id="cvKpiPctPesos">—</div></div>
+        <div class="card kpi bad"><div class="label">Falta por cubrir (pesos)</div><div class="value" id="cvKpiFaltaPesos">—</div></div>
+      </div>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="label"># Tiendas en vista</div><div class="value" id="cvKpiTiendas">—</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div class="lbl" style="font-weight:700;">Cubrimiento por semana (meta vs. real, piezas)</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" id="cvSemanaToggleBtn" onclick="toggleCvSemanaVista()">Ver tabla</button>
+            <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarCvSemana()">⬇ Excel</button>
+          </div>
+        </div>
+        <div id="cvChartSemana"></div>
+        <div id="cvTablaSemanaWrap" class="hidden" style="margin-top:10px;"></div>
+      </div>
+
+      <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
+      <div id="cvInsights"></div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 8px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Por código de tienda (clic para ver el detalle semanal)</h3>
+        <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCvTablaCSV()">⬇ Exportar a Excel</button>
+      </div>
+      <div class="table-scroll" id="cvTablaTienda" style="margin-bottom:22px;"></div>
+
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Cumplimiento de prioridades</h3>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 10px;">Seguimiento de las prioridades marcadas como "activa" o no durante las visitas, para el mismo filtro de mes(es)/tienda(s).</p>
+      <div id="cvPrioridadesBox" style="margin-bottom:10px;"></div>
+
+      <p id="cvScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:14px 0 0;"></p>
+    </section>
+
     <section class="view" id="view-cumplimiento">
       <div class="bloque-tag bloque-retro">Retroalimentación · resumen hoy/semana</div>
       <h2 class="section-title">Cumplimiento — Plan de ruta vs. visita real</h2>
@@ -1352,6 +1429,7 @@ const ALL_TABS = [
   {key:'catalogo',      label:'Catálogo de productos',            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'planeacion'},
   {key:'captura',       label:'Captura MEDI',                     perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'ejecucion'},
   {key:'monitoreo',     label:'Monitoreo tiempo real',             perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'ejecucion', disabled:true},
+  {key:'cumpventa',     label:'Cumplimiento de venta',             perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'distribucion',  label:'Cubrimiento de distribución',       perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'kpis',          label:'KPIs por tienda',                   perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'retro'},
@@ -1481,6 +1559,7 @@ function showView(key, btnEl){
   if(key==='ruta') renderRuta();
   if(key==='noticias') renderNoticias();
   if(key==='cumplimiento') renderCumplimiento();
+  if(key==='cumpventa') renderCumpVenta();
   if(key==='preplan') renderPreplan();
   if(key==='vacaciones') renderVacaciones();
   if(key==='inicio') renderInicio();
@@ -1522,7 +1601,7 @@ function renderObjMesChips(){
 }
 /* ---------- Dropdown genérico (Mes(es) / Tienda(s) en Objetivos) — abrir/cerrar + clic afuera cierra ---------- */
 function toggleObjDropdown(cual){
-  const ids = ['objMesDd','objTiendaDd'];
+  const ids = ['objMesDd','objTiendaDd','cvMesDd','cvTiendaDd'];
   ids.forEach(id=>{
     const p = document.getElementById(id+'Panel');
     if(!p) return;
@@ -1531,7 +1610,7 @@ function toggleObjDropdown(cual){
   });
 }
 document.addEventListener('click', (e)=>{
-  ['objMesDdRoot','objTiendaDdRoot'].forEach(rootId=>{
+  ['objMesDdRoot','objTiendaDdRoot','cvMesDdRoot','cvTiendaDdRoot'].forEach(rootId=>{
     const root = document.getElementById(rootId);
     if(root && !root.contains(e.target)){
       const panel = root.querySelector('.tienda-dd-panel');
@@ -5092,6 +5171,325 @@ function renderAnalisisObjetivos(){
     const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.total]);
     exportarCSV(`objetivos_por_tienda_${todayISO()}.csv`, headers, rows);
   };
+}
+/* ---------- CUMPLIMIENTO DE VENTA (Comunicar/Retroalimentación): cuota/escalón vs. venta real, siempre del mismo periodo exacto elegido ---------- */
+let cvFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
+function asegurarCvFiltroMesesInicial(){
+  if(cvFiltroMeses === null) cvFiltroMeses = new Set(mesesDisponiblesObj());
+}
+function cvMesTodo(){ cvFiltroMeses = new Set(mesesDisponiblesObj()); renderCvMesChips(); renderCumpVenta(); }
+function cvMesNinguno(){ cvFiltroMeses = new Set(); renderCvMesChips(); renderCumpVenta(); }
+function toggleCvFiltroMes(m){
+  asegurarCvFiltroMesesInicial();
+  if(cvFiltroMeses.has(m)) cvFiltroMeses.delete(m); else cvFiltroMeses.add(m);
+  renderCvMesChips(); renderCumpVenta();
+}
+function renderCvMesChips(){
+  const panel = document.getElementById('cvMesDdPanel');
+  const btn = document.getElementById('cvMesDdBtn');
+  if(!panel || !btn) return;
+  asegurarCvFiltroMesesInicial();
+  const meses = mesesDisponiblesObj();
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cvMesTodo()">Todo</button><button type="button" onclick="cvMesNinguno()">Ninguno</button></div>`
+    + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${cvFiltroMeses.has(m)?'checked':''} onchange="toggleCvFiltroMes('${m}')"> ${m}</label>`).join('');
+  const sel = meses.filter(m=>cvFiltroMeses.has(m));
+  btn.textContent = sel.length===0 ? 'Ninguno seleccionado' : sel.length===meses.length ? 'Todos los meses' : sel.join(', ');
+}
+function semanasDeMesesSeleccionadosCv(){
+  asegurarCvFiltroMesesInicial();
+  const set = new Set();
+  [...cvFiltroMeses].forEach(m => semanasCuotaMes(m).forEach(s=>set.add(s)));
+  return set;
+}
+function renderCvTiendaDropdown(){
+  const panel = document.getElementById('cvTiendaDdPanel');
+  const btn = document.getElementById('cvTiendaDdBtn');
+  const sel = document.getElementById('cvTiendaMulti');
+  if(!panel || !btn || !sel) return;
+  const opciones = [...sel.options];
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cvTiendaTodasDD(true)">Todo</button><button type="button" onclick="cvTiendaTodasDD(false)">Ninguno</button></div>`
+    + (opciones.map(o=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${o.value.replace(/"/g,'&quot;')}" ${o.selected?'checked':''} onchange="onCvTiendaDdCheck(this)"> ${o.textContent}</label>`).join('') || `<div style="padding:8px; font-size:12px; color:var(--ink-soft);">Sin tiendas.</div>`);
+  const marcadas = opciones.filter(o=>o.selected);
+  btn.textContent = (marcadas.length===0 || marcadas.length===opciones.length) ? 'Todas' : (marcadas.length + ' seleccionada' + (marcadas.length>1?'s':''));
+}
+let cvFiltroTiendas = new Set();
+function onCvTiendaMultiChange(){
+  const sel = document.getElementById('cvTiendaMulti');
+  if(!sel) return;
+  cvFiltroTiendas = new Set([...sel.selectedOptions].map(o=>o.value));
+  renderCumpVenta();
+}
+function onCvTiendaDdCheck(chk){
+  const sel = document.getElementById('cvTiendaMulti');
+  const val = chk.getAttribute('data-val');
+  const opt = [...sel.options].find(o=>o.value===val);
+  if(opt) opt.selected = chk.checked;
+  onCvTiendaMultiChange();
+  renderCvTiendaDropdown();
+}
+function cvTiendaTodasDD(marcar){
+  const sel = document.getElementById('cvTiendaMulti');
+  [...sel.options].forEach(o=>o.selected=marcar);
+  onCvTiendaMultiChange();
+  renderCvTiendaDropdown();
+}
+let cvMetaTipo = 'cuota'; // 'cuota' | 'escalon'
+function cvMetaUni(row){ return cvMetaTipo==='escalon' ? (row.escalon_uni ?? null) : (row.cuota_uni ?? 0); }
+function cvMetaPesos(row){ return cvMetaTipo==='escalon' ? (row.escalon_pesos ?? null) : (row.cuota_pesos ?? 0); }
+function setCvMetaTipo(t){ cvMetaTipo = t; renderCvMetaTipoChips(); renderCumpVenta(); }
+function renderCvMetaTipoChips(){
+  const el = document.getElementById('cvMetaTipoWrap');
+  if(!el) return;
+  const chip = (label, val, activo) => `<button type="button" onclick="setCvMetaTipo('${val}')" style="padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  el.innerHTML = chip('Cuota (para sueldo)', 'cuota', cvMetaTipo==='cuota') + chip('Escalón Bono', 'escalon', cvMetaTipo==='escalon');
+  const nota = document.getElementById('cvMetaTipoNota');
+  if(nota) nota.textContent = cvMetaTipo==='escalon'
+    ? 'Comparando contra la meta más alta que activa el Bono "Valor al Esfuerzo". Solo existe para los meses/semanas donde ya se cargó el escalón (por ahora, septiembre).'
+    : 'Comparando contra la cuota base (la que el equipo necesita cubrir para que sea rentable/sueldo).';
+}
+function storesScopeCumpVenta(){
+  let scope = storesScopeParaMi();
+  const sup = (document.getElementById('cvSupervisor')||{}).value;
+  const emb = (document.getElementById('cvEmbajador')||{}).value;
+  if(sup) scope = scope.filter(s=> mismaPersona(supervisorDeTienda(s), sup));
+  if(emb){
+    const rutaKeys = new Set(tiendasDeRutaSeptiembre(emb).map(a=>a.cadena+'|'+a.num_tienda));
+    scope = scope.filter(s=> s.sector===emb || rutaKeys.has(s.cadena+'|'+s.num_tienda));
+  }
+  if(cvFiltroTiendas.size) scope = scope.filter(s=> cvFiltroTiendas.has(s.tienda));
+  return scope;
+}
+function poblarFiltrosCumpVenta(){
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const supWrap = document.getElementById('cvSupervisorWrap');
+  if(supWrap) supWrap.style.display = esEmbajador ? 'none' : '';
+  const embWrap = document.getElementById('cvEmbajadorWrap');
+  if(embWrap) embWrap.style.display = esEmbajador ? 'none' : '';
+  poblarSelectFiltro('cvSupervisor', nombresSupervisorUnicos());
+  const embSel = document.getElementById('cvEmbajador');
+  if(embSel && embSel.options.length<=1){
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
+    });
+  }
+  poblarSelectMultipleTiendas('cvTiendaMulti', storesScopeParaMi());
+  renderCvMesChips();
+  renderCvTiendaDropdown();
+  renderCvMetaTipoChips();
+}
+function restablecerFiltrosCumpVenta(){
+  const sup = document.getElementById('cvSupervisor'); if(sup) sup.value = '';
+  const emb = document.getElementById('cvEmbajador'); if(emb) emb.value = '';
+  const cvTiendaMultiSel = document.getElementById('cvTiendaMulti');
+  if(cvTiendaMultiSel) [...cvTiendaMultiSel.options].forEach(o=>o.selected=false);
+  cvFiltroTiendas.clear();
+  cvFiltroMeses = new Set(mesesDisponiblesObj());
+  renderCvMesChips();
+  renderCvTiendaDropdown();
+  cvMetaTipo = 'cuota';
+  renderCvMetaTipoChips();
+  toast('Filtros de Cumplimiento de venta restablecidos');
+  renderCumpVenta();
+}
+function toggleCvSemanaVista(){
+  const wrap = document.getElementById('cvTablaSemanaWrap');
+  const chart = document.getElementById('cvChartSemana');
+  const btn = document.getElementById('cvSemanaToggleBtn');
+  const showingTabla = !wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden', showingTabla);
+  chart.classList.toggle('hidden', !showingTabla);
+  btn.textContent = showingTabla ? 'Ver tabla' : 'Ver gráfica';
+}
+function exportarCvSemana(){
+  const d = window._cvSemanaData || [];
+  exportarCSV(`cumplimiento_venta_por_semana_${todayISO()}.csv`, ['Semana','Meta (piezas)','Real (piezas)','% Cumplimiento'], d.map(s=>[s.semana, s.meta, s.real, s.pct]));
+}
+function renderCvSemanal(storesScope, semanas){
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const porSemana = {};
+  cumpRows.forEach(c=>{ (porSemana[c.semana] = porSemana[c.semana] || {meta:0, real:0}); porSemana[c.semana].meta += (cvMetaUni(c)||0); porSemana[c.semana].real += (c.real_uni||0); });
+  const semArr = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
+  const maxVal = Math.max(1, ...semArr.map(s=>Math.max(porSemana[s].meta, porSemana[s].real)));
+  window._cvSemanaData = semArr.map(s=>({semana:s, meta:porSemana[s].meta, real:porSemana[s].real, pct: porSemana[s].meta ? Math.round(porSemana[s].real/porSemana[s].meta*1000)/10 : null}));
+  const chartBox = document.getElementById('cvChartSemana');
+  if(chartBox){
+    chartBox.innerHTML = semArr.length ? `<div style="display:flex; gap:18px; align-items:flex-end; height:150px; padding:10px 4px;">
+      ${semArr.map(s=>{
+        const m = porSemana[s].meta, r = porSemana[s].real;
+        return `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1;">
+          <div style="display:flex; gap:3px; align-items:flex-end; height:110px;">
+            <div title="${metaLabelTxt}: ${fmtNum(m)}" style="width:18px; background:#d8dba0; height:${Math.round(m/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
+            <div title="Real: ${fmtNum(r)}" style="width:18px; background:var(--brand-dark); height:${Math.round(r/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
+          </div>
+          <div style="font-size:11px; color:var(--ink-soft); font-weight:600;">Sem ${s}</div>
+          <div style="font-size:10.5px; font-weight:700; color:var(--ink);">${fmtNum(r)}/${fmtNum(m)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex; gap:16px; font-size:11px; color:var(--ink-soft); margin-top:4px;"><span><span style="display:inline-block; width:10px; height:10px; background:#d8dba0; border-radius:2px; margin-right:4px;"></span>${metaLabelTxt}</span><span><span style="display:inline-block; width:10px; height:10px; background:var(--brand-dark); border-radius:2px; margin-right:4px;"></span>Real</span></div>`
+    : `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin semanas con datos todavía para este filtro.</p>`;
+  }
+  const tablaWrap = document.getElementById('cvTablaSemanaWrap');
+  if(tablaWrap){
+    tablaWrap.innerHTML = semArr.length ? `<table><thead><tr>${colHead('cvTablaSemana','semana','Semana',true)}${colHead('cvTablaSemana','meta',metaLabelTxt+' (piezas)',true)}${colHead('cvTablaSemana','real','Real (piezas)',true)}${colHead('cvTablaSemana','pct','% Cumplimiento',true)}</tr></thead>
+      <tbody>${ordenarFilas('cvTablaSemana', window._cvSemanaData, 'semana').map(s=>`<tr><td>Semana ${s.semana}</td><td class="num">${fmtNum(s.meta)}</td><td class="num">${fmtNum(s.real)}</td><td class="num">${s.pct!=null?s.pct+'%':'—'}</td></tr>`).join('')}</tbody></table>`
+    : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">Sin semanas con datos.</p>`;
+  }
+}
+function renderCvInsights(storesScope, semanas){
+  const box = document.getElementById('cvInsights');
+  if(!box) return;
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const metaTot = cumpRows.reduce((a,r)=>a+(cvMetaUni(r)||0),0);
+  const realTot = cumpRows.reduce((a,r)=>a+(r.real_uni||0),0);
+  const faltaTot = Math.max(0, metaTot-realTot);
+  const pct = metaTot ? Math.round(realTot/metaTot*1000)/10 : null;
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+
+  const storeByKey = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const porCluster = {};
+  cumpRows.forEach(r=>{
+    const st = storeByKey.get(r.cadena+'|'+r.num_tienda);
+    const cl = st && st.cluster ? st.cluster : 'Sin cluster';
+    if(!porCluster[cl]) porCluster[cl] = {meta:0, real:0};
+    porCluster[cl].meta += (cvMetaUni(r)||0);
+    porCluster[cl].real += (r.real_uni||0);
+  });
+  const clustersConMeta = Object.entries(porCluster).filter(([,v])=>v.meta>0).map(([cl,v])=>({cl, pct: Math.round(v.real/v.meta*1000)/10}));
+  clustersConMeta.sort((a,b)=>a.pct-b.pct);
+  const peorCluster = clustersConMeta[0];
+
+  const porTienda = {};
+  cumpRows.forEach(r=>{
+    const k = r.cadena+'|'+r.num_tienda;
+    if(!porTienda[k]) porTienda[k] = {nombre:'', meta:0, real:0};
+    porTienda[k].meta += (cvMetaUni(r)||0);
+    porTienda[k].real += (r.real_uni||0);
+  });
+  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTienda[k]) porTienda[k].nombre = s.num_tienda+' · '+s.tienda; });
+  const rezagadas = Object.values(porTienda).filter(t=>t.nombre && t.meta>0).map(t=>({...t, falta: Math.max(0,t.meta-t.real)})).sort((a,b)=>b.falta-a.falta).slice(0,5);
+
+  const lineas = [];
+  lineas.push(`📊 <b>Cubrimiento (${metaLabelTxt.toLowerCase()}):</b> ${fmtNum(realTot)} de ${fmtNum(metaTot)} piezas ${pct!=null?`(${pct}%)`:''}, en ${storesScope.length} tienda(s).`);
+  if(faltaTot>0) lineas.push(`⚠️ <b>Falta por cubrir:</b> ${fmtNum(faltaTot)} piezas para llegar a la ${metaLabelTxt.toLowerCase()} del periodo elegido.`);
+  else if(metaTot>0) lineas.push(`✅ <b>Cuota cubierta:</b> ya se alcanzó o superó la ${metaLabelTxt.toLowerCase()} del periodo elegido.`);
+  if(peorCluster) lineas.push(`🚩 <b>Cluster con más rezago:</b> ${peorCluster.cl} (${peorCluster.pct}% de cubrimiento).`);
+  if(rezagadas.length) lineas.push(`🔻 <b>Códigos con más rezago:</b> ${rezagadas.map(t=>`${t.nombre} (faltan ${fmtNum(t.falta)})`).join(', ')}.`);
+  if(!metaTot) lineas.push(`ℹ️ Sin ${metaLabelTxt.toLowerCase()} cargada todavía para el/los mes(es)/tienda(s) elegidos.`);
+
+  box.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
+}
+let cvTiendaExpandida = null;
+function renderCvTablaTienda(storesScope, semanas){
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const porTiendaSem = {};
+  cumpRows.forEach(c=>{
+    const key = c.cadena+'|'+c.num_tienda;
+    (porTiendaSem[key] = porTiendaSem[key] || {cadena:c.cadena, num_tienda:c.num_tienda, tienda:'', meta:0, real:0, semanas:{}});
+    const m = cvMetaUni(c)||0, r = c.real_uni||0;
+    porTiendaSem[key].meta += m;
+    porTiendaSem[key].real += r;
+    porTiendaSem[key].semanas[c.semana] = {meta:m, real:r};
+  });
+  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTiendaSem[k]) porTiendaSem[k].tienda = s.tienda; });
+
+  window.toggleCvTiendaExpandida = function(key){ cvTiendaExpandida = cvTiendaExpandida===key ? null : key; window.render_cvTablaTienda(); };
+  window.render_cvTablaTienda = function(){
+    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).map(v=>({...v, falta: Math.max(0, v.meta-v.real), pct: v.meta ? Math.round(v.real/v.meta*1000)/10 : null})).sort((a,b)=>b.falta-a.falta);
+    const rowsHtml = filas.map(f=>{
+      const key = f.cadena+'|'+f.num_tienda;
+      let html = `<tr style="cursor:pointer;" onclick="toggleCvTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${cvTiendaExpandida===key?'▼':'▶'} ${f.num_tienda} · ${f.tienda}</td><td>${f.cadena}</td><td class="num">${fmtNum(f.meta)}</td><td class="num">${fmtNum(f.real)}</td><td class="num">${f.pct!=null?f.pct+'%':'—'}</td><td class="num">${fmtNum(f.falta)}</td></tr>`;
+      if(cvTiendaExpandida===key){
+        const semsOrdenadas = Object.keys(f.semanas).map(Number).sort((a,b)=>a-b);
+        html += semsOrdenadas.map(s=>{
+          const d = f.semanas[s];
+          const p = d.meta ? Math.round(d.real/d.meta*1000)/10 : null;
+          return `<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;" colspan="2">Semana ${s}</td><td class="num" style="font-size:12px;">${fmtNum(d.meta)}</td><td class="num" style="font-size:12px;">${fmtNum(d.real)}</td><td class="num" style="font-size:12px;">${p!=null?p+'%':'—'}</td><td class="num" style="font-size:12px;">${fmtNum(Math.max(0,d.meta-d.real))}</td></tr>`;
+        }).join('');
+      }
+      return html;
+    }).join('');
+    document.getElementById('cvTablaTienda').innerHTML = `<table><thead><tr><th># Tienda (clic para desglose por semana)</th><th>Cadena</th><th class="num">${metaLabelTxt} (piezas)</th><th class="num">Real (piezas)</th><th class="num">%</th><th class="num">Falta</th></tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="6" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
+  };
+  window.render_cvTablaTienda();
+
+  window.exportarCvTablaCSV = function(){
+    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).map(v=>({...v, falta: Math.max(0, v.meta-v.real), pct: v.meta ? Math.round(v.real/v.meta*1000)/10 : null})).sort((a,b)=>b.falta-a.falta);
+    const headers = ['Cadena','# Tienda','Tienda', metaLabelTxt+' (piezas)','Real (piezas)','% Cumplimiento','Falta (piezas)'];
+    const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.meta, f.real, f.pct, f.falta]);
+    exportarCSV(`cumplimiento_venta_por_tienda_${todayISO()}.csv`, headers, rows);
+  };
+}
+const MES_A_NUM_CV = {'Enero':1,'Febrero':2,'Marzo':3,'Abril':4,'Mayo':5,'Junio':6,'Julio':7,'Agosto':8,'Septiembre':9,'Octubre':10,'Noviembre':11,'Diciembre':12};
+function renderCvPrioridadesCumplimiento(storesScope){
+  const box = document.getElementById('cvPrioridadesBox');
+  if(!box) return;
+  asegurarCvFiltroMesesInicial();
+  const mesesNums = new Set([...cvFiltroMeses].map(m=>MES_A_NUM_CV[m]).filter(Boolean));
+  const tiendaNames = new Set(storesScope.map(s=>s.tienda));
+  const regs = getCumplimientosPrioridad().filter(r=>{
+    if(!r.fecha_registro) return false;
+    const mes = new Date(r.fecha_registro).getMonth()+1;
+    if(mesesNums.size && !mesesNums.has(mes)) return false;
+    if(r.tienda && !tiendaNames.has(r.tienda)) return false;
+    return true;
+  });
+  const porPrioridad = {};
+  regs.forEach(r=>{
+    const key = r.prioridad_id || r.prioridad_texto;
+    if(!porPrioridad[key]) porPrioridad[key] = {texto:r.prioridad_texto, total:0, activas:0};
+    porPrioridad[key].total++;
+    if(r.activa==='si') porPrioridad[key].activas++;
+  });
+  const filas = Object.values(porPrioridad).map(p=>({...p, pct: p.total ? Math.round(p.activas/p.total*1000)/10 : null})).sort((a,b)=>(a.pct??999)-(b.pct??999));
+  box.innerHTML = filas.length ? `<div class="table-scroll"><table><thead><tr><th>Prioridad</th><th class="num">Registros</th><th class="num">Activa = Sí</th><th class="num">% Cumplimiento</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${f.texto}</td><td class="num">${f.total}</td><td class="num">${f.activas}</td><td class="num">${f.pct!=null?f.pct+'%':'—'}</td></tr>`).join('')}</tbody></table></div>` : `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin seguimiento de prioridades registrado todavía para este filtro.</p>`;
+}
+function renderCumpVenta(){
+  poblarFiltrosCumpVenta();
+  const storesScope = storesScopeCumpVenta();
+  const semanas = semanasDeMesesSeleccionadosCv();
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const metaUniT = cumpRows.reduce((a,r)=>a+(cvMetaUni(r)||0),0);
+  const metaPesosT = cumpRows.reduce((a,r)=>a+(cvMetaPesos(r)||0),0);
+  const realUniT = cumpRows.reduce((a,r)=>a+(r.real_uni||0),0);
+  const realPesosT = cumpRows.reduce((a,r)=>a+(r.real_pesos||0),0);
+  const pctUni = metaUniT ? Math.round(realUniT/metaUniT*1000)/10 : null;
+  const pctPesos = metaPesosT ? Math.round(realPesosT/metaPesosT*1000)/10 : null;
+
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  setTxt('cvKpiMetaLabel', metaLabelTxt+' del periodo (piezas)');
+  setTxt('cvKpiMeta', fmtNum(metaUniT));
+  setTxt('cvKpiReal', fmtNum(realUniT));
+  setTxt('cvKpiPct', pctUni!=null ? pctUni+'%' : '—');
+  setTxt('cvKpiFalta', fmtNum(Math.max(0, metaUniT-realUniT)));
+  setTxt('cvKpiMetaPesosLabel', metaLabelTxt+' del periodo (pesos)');
+  setTxt('cvKpiMetaPesos', '$'+fmtNum(metaPesosT));
+  setTxt('cvKpiRealPesos', '$'+fmtNum(realPesosT));
+  setTxt('cvKpiPctPesos', pctPesos!=null ? pctPesos+'%' : '—');
+  setTxt('cvKpiFaltaPesos', '$'+fmtNum(Math.max(0, metaPesosT-realPesosT)));
+  setTxt('cvKpiTiendas', storesScope.length);
+
+  renderCvSemanal(storesScope, semanas);
+  renderCvInsights(storesScope, semanas);
+  renderCvTablaTienda(storesScope, semanas);
+  renderCvPrioridadesCumplimiento(storesScope);
+
+  const note = document.getElementById('cvScopeNote');
+  if(currentUser.perfil === 'Embajador'){
+    const extra = tiendasExtraAprobadasParaMi();
+    if(note) note.textContent = extra.length
+      ? `Mostrando solo tus tiendas asignadas + ${extra.length} tienda(s) adicional(es) aprobada(s) temporalmente.`
+      : 'Mostrando solo tus tiendas asignadas.';
+  } else if(note) note.textContent = '';
 }
 function restablecerFiltrosDistribucion(){
   ['distCadena','distRegion','distCluster','distSupervisor','distEmbajador','distTienda','distDesde','distHasta'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
