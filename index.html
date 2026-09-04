@@ -702,6 +702,24 @@
       <h2 class="section-title">📋 Evaluaciones</h2>
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;" id="evaluacionesIntro">Aquí puedes ver las evaluaciones que te han hecho — qué se evaluó y los comentarios — para tenerlo presente. Esta vista es solo de consulta.</p>
 
+      <div class="controls-bar" id="evaFiltrosBar">
+        <label>Persona:</label>
+        <select id="evaPersona" onchange="renderEvaluaciones()"><option value="">Todas</option></select>
+        <label>Cadena:</label>
+        <select id="evaCadena" onchange="renderEvaluaciones()"><option value="">Todas</option></select>
+        <label>Región:</label>
+        <select id="evaRegion" onchange="renderEvaluaciones()"><option value="">Todas</option></select>
+        <label>Supervisor:</label>
+        <select id="evaSupervisor" onchange="renderEvaluaciones()"><option value="">Todos</option></select>
+        <label>Desde:</label>
+        <input type="date" id="evaDesde" onchange="renderEvaluaciones()">
+        <label>Hasta:</label>
+        <input type="date" id="evaHasta" onchange="renderEvaluaciones()">
+        <button class="btn btn-ghost" onclick="document.getElementById('evaPersona').value='';document.getElementById('evaCadena').value='';document.getElementById('evaRegion').value='';document.getElementById('evaSupervisor').value='';document.getElementById('evaDesde').value='';document.getElementById('evaHasta').value='';renderEvaluaciones();">↺ Restablecer filtros</button>
+        <button class="btn btn-ghost" onclick="exportarEvaluacionesExcel()">⬇ Exportar Excel</button>
+        <button class="btn btn-ghost" onclick="exportarEvaluacionesPDF()">📄 Exportar PDF</button>
+      </div>
+
       <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">⭐ Evaluación 360°</h3>
       <div class="table-scroll" style="margin-bottom:20px;">
         <table><thead><tr><th>Demostradora</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Total</th><th>Clasificación</th><th>Detalle</th></tr></thead><tbody id="evalu360Body"></tbody></table>
@@ -2593,7 +2611,7 @@ const FORM_DEFS = {
       ['clave3','producto','Producto degustado #3 (opcional)',false],
       ['con_que','icon_multi','¿Con qué se degustó?',false,['Baguette/Bolillo','Galletas','Pan artesanal Delico','En vaso','Bastones de verdura','Fruta dulce','Palitos de pan','Espagueti','Cebollín','Aceite de oliva','Totopos','Papas','Otro']],
       ['reacciones','textarea','Reacciones / comentarios del shopper (puedes agregarlas después)',false],
-      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
+      ['foto','file_multi','Foto de la charola — obligatoria, puedes subir varias',true],
     ]
   },
   precio_delico:{
@@ -3034,6 +3052,10 @@ function openForm(type){
   let html = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>${def.icon} ${def.title}</h3>
     <p class="d">Los campos con * son obligatorios.${checkin?' Tienda precargada por tu check-in.':''}</p>
+    ${type==='degustacion' ? `<div style="background:#fff3cd; border:2px solid #e0a800; border-radius:10px; padding:10px 12px; margin:-4px 0 14px; display:flex; align-items:center; gap:10px;">
+      <span style="font-size:22px;">📸⚠️</span>
+      <span style="font-size:13px; font-weight:800; color:#7a5b00; line-height:1.35;">CAPTURA TODAS LAS CHAROLAS QUE PREPARES EN EL DÍA</span>
+    </div>` : ''}
     <div class="form-grid">`;
   def.fields.forEach(([key,type_,label,req,options])=>{
     const full = (type_==='textarea' || type_==='file' || type_==='file_multi' || type_==='file_video' || type_==='producto' || type_==='checkbox' || type_==='icon_multi' || type_==='icon_single') ? 'full' : '';
@@ -3219,18 +3241,33 @@ function notaArchivoVideo(key){
 function mostrarProyeccionCaducidad(rec){
   const store = APP_DATA.stores.find(s=>s.cadena===rec.cadena && s.tienda===rec.tienda);
   const piezas = parseInt(rec.piezas)||0;
-  if(!store || !store.cuota_uds || !rec.fecha_caducidad || !piezas){ return; }
-  const diaria = store.cuota_uds/30;
+  if(!rec.fecha_caducidad || !piezas){ return; }
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const cad = new Date(rec.fecha_caducidad+'T00:00:00');
   const dias = Math.max(0, Math.round((cad-hoy)/86400000));
-  const esperadoVenderse = Math.min(piezas, Math.round(diaria*dias));
-  const caducarian = Math.max(0, piezas-esperadoVenderse);
-  const msg = `📊 Se capturaron ${piezas} pieza(s) con caducidad ${rec.fecha_caducidad} (en ${dias} día(s)).\n\n` +
-    `Con la venta promedio estimada de esta tienda (~${diaria.toFixed(1)} pzas/día, con base en su cuota mensual — no es venta real todavía), se esperarían vender ~${esperadoVenderse} de esas piezas antes de caducar.\n\n` +
-    (caducarian>0
-      ? `⚠️ En el escenario esperado, quedarían ~${caducarian} pieza(s) caducadas. Para asegurar 0 caducados hay que vender las ${piezas} piezas antes del ${rec.fecha_caducidad}.`
-      : `✅ Con ese ritmo de venta, no se esperan piezas caducadas — de todas formas, vender las ${piezas} antes del ${rec.fecha_caducidad} lo garantiza.`);
+  // AVG real = "prom_venta_diario" de la combinación tienda+SKU en el último corte del Pipeline (no es una estimación por cuota).
+  const comb = (store && rec.clave) ? (APP_DATA.combinaciones||[]).find(c=>c.clave===rec.clave && c.cadena===store.cadena && c.tienda===store.tienda && (store.num_tienda==null || c.num_tienda===store.num_tienda)) : null;
+  const avg = comb ? (comb.prom_venta_diario||0) : null;
+  const corte = fechaCorteLegible((APP_DATA.bi_meta||{}).pipeline_actualizado_utc);
+  const velocidadDiaria = dias>0 ? (piezas/dias) : piezas;
+  const velocidadSemanal = velocidadDiaria*7;
+  let msg = `📊 Se capturaron ${piezas} pieza(s) con caducidad ${rec.fecha_caducidad} (en ${dias} día(s)).\n\n`;
+  if(avg!=null){
+    msg += `📦 AVG del Pipeline (promedio de venta diario real, corte ${corte}): ~${avg.toFixed(2)} pzas/día.\n\n`;
+    const esperadoVenderse = Math.min(piezas, Math.round(avg*dias));
+    const caducarian = Math.max(0, piezas-esperadoVenderse);
+    msg += (caducarian>0
+      ? `⚠️ Al ritmo de venta actual (AVG), quedarían ~${caducarian} pieza(s) sin vender antes de caducar.\n\n`
+      : `✅ Al ritmo de venta actual (AVG), no se esperan piezas caducadas.\n\n`);
+  } else {
+    msg += `No encontré esta combinación (tienda + SKU) en el último corte del Pipeline, así que no tengo un AVG real con qué compararlo.\n\n`;
+  }
+  msg += `🎯 Velocity necesaria para vender las ${piezas} pieza(s) antes de caducar: ~${velocidadDiaria.toFixed(2)} pzas/día (~${Math.ceil(velocidadSemanal)} pzas/semana).`;
+  if(avg!=null){
+    msg += velocidadDiaria > avg
+      ? ` Eso es ${(velocidadDiaria-avg).toFixed(2)} pzas/día MÁS RÁPIDO que el AVG actual — hay que acelerar la venta (impulso, precio, exhibición) o mover el producto.`
+      : ` El AVG actual ya alcanza ese ritmo.`;
+  }
   avisoPersonalizado(msg);
 }
 function precioSospechoso(clave, precioIngresado){
@@ -5251,22 +5288,77 @@ function renderEval360(){
     </tr>`).join('') || `<tr><td colspan="6" class="empty-state">Aún no hay evaluaciones suficientes para calcular elegibilidad trimestral.</td></tr>`;
 }
 
+function poblarFiltrosEvaluaciones(){
+  const perSel = document.getElementById('evaPersona');
+  if(perSel && perSel.options.length<=1){
+    equipoVisibleParaMi().slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre; perSel.appendChild(o);
+    });
+  }
+  const cadenaSel = document.getElementById('evaCadena');
+  if(cadenaSel && cadenaSel.options.length<=1){
+    [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
+  }
+  const regionSel = document.getElementById('evaRegion');
+  if(regionSel && regionSel.options.length<=1){
+    [...new Set(APP_DATA.equipo.map(u=>u.region).filter(Boolean))].sort().forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; regionSel.appendChild(o); });
+  }
+  const supSel = document.getElementById('evaSupervisor');
+  if(supSel && supSel.options.length<=1){
+    nombresSupervisorUnicos().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; supSel.appendChild(o); });
+  }
+}
+function evaluacionesFiltrosActivos(){
+  return {
+    persona: (document.getElementById('evaPersona')||{}).value || '',
+    cadena: (document.getElementById('evaCadena')||{}).value || '',
+    region: (document.getElementById('evaRegion')||{}).value || '',
+    supervisor: (document.getElementById('evaSupervisor')||{}).value || '',
+    desde: (document.getElementById('evaDesde')||{}).value || '',
+    hasta: (document.getElementById('evaHasta')||{}).value || '',
+  };
+}
+function aplicarFiltrosEvaluaciones(arr, campoUsuario, campoFecha){
+  const f = evaluacionesFiltrosActivos();
+  return arr.filter(a=>{
+    if(f.persona && a[campoUsuario]!==f.persona) return false;
+    if(f.cadena && a.tienda){ const st = APP_DATA.stores.find(s=>s.tienda===a.tienda); if(!st || st.cadena!==f.cadena) return false; }
+    if(f.region){ const u = APP_DATA.equipo.find(x=>x.usuario===a[campoUsuario]); if(!u || u.region!==f.region) return false; }
+    if(f.supervisor && supervisorDePersona(a.persona_nombre||a.persona)!==f.supervisor) return false;
+    const fecha = (a[campoFecha]||'').slice(0,10);
+    if(f.desde && fecha && fecha<f.desde) return false;
+    if(f.hasta && fecha && fecha>f.hasta) return false;
+    return true;
+  });
+}
 function renderEvaluaciones(){
   const esEmbajador = currentUser.perfil === 'Embajador';
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
   const intro = document.getElementById('evaluacionesIntro');
   if(intro) intro.textContent = esEmbajador
     ? 'Aquí puedes ver las evaluaciones que te han hecho — qué se evaluó y los comentarios — para tenerlo presente. Esta vista es solo de consulta.'
-    : 'Evaluación 360°, Auditoría/supervisión y Onboarding, todo en un solo lugar.';
+    : 'Evaluación 360°, Auditoría/supervisión y Onboarding, todo en un solo lugar. Filtra y exporta a Excel o PDF con los mismos filtros de siempre.';
 
-  const arr360 = getEval360().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
+  const filtrosBar = document.getElementById('evaFiltrosBar');
+  if(filtrosBar) filtrosBar.classList.toggle('hidden', esEmbajador);
+  if(!esEmbajador) poblarFiltrosEvaluaciones();
+
+  let arr360 = getEval360().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
+  let arrAud = getAuditorias().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
+  let arrOnb = getCapturas().filter(c=>c.tipo==='onboarding' && visibleUsuarios.has(c.usuario));
+  if(!esEmbajador){
+    arr360 = aplicarFiltrosEvaluaciones(arr360, 'persona_usuario', 'fecha');
+    arrAud = aplicarFiltrosEvaluaciones(arrAud, 'persona_usuario', 'fecha');
+    arrOnb = aplicarFiltrosEvaluaciones(arrOnb, 'usuario', 'fecha_registro');
+  }
+  window._evaExport = { arr360, arrAud, arrOnb };
+
   const box360 = document.getElementById('evalu360Body');
   if(box360) box360.innerHTML = arr360.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>{
     const det = EVAL360_CATEGORIAS.map(cat=>`${cat.label.split(' ')[0]}: ${a.subtotales[cat.key]!==null?a.subtotales[cat.key].toFixed(1):'—'}`).join(' · ');
     return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${a.fecha}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.total.toFixed(1)}</td><td>${a.clasificacion}</td><td style="font-size:11px; color:var(--ink-soft);">${det}${a.observaciones?' — Obs: '+a.observaciones:''}${a.compromiso?' — Compromiso: '+a.compromiso:''}</td></tr>`;
   }).join('') || `<tr><td colspan="7" class="empty-state">Sin evaluaciones 360° todavía.</td></tr>`;
 
-  const arrAud = getAuditorias().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
   const boxAud = document.getElementById('evaluAudBody');
   if(boxAud) boxAud.innerHTML = arrAud.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>
     `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${(a.fecha||'').slice(0,10)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td></tr>`
@@ -5275,7 +5367,6 @@ function renderEvaluaciones(){
   const onbWrap = document.getElementById('evaluOnboardingWrap');
   if(onbWrap) onbWrap.classList.toggle('hidden', esEmbajador);
   if(!esEmbajador){
-    const arrOnb = getCapturas().filter(c=>c.tipo==='onboarding' && visibleUsuarios.has(c.usuario));
     const boxOnb = document.getElementById('evaluOnboardingBody');
     if(boxOnb) boxOnb.innerHTML = arrOnb.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).map(c=>{
       const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
@@ -5283,6 +5374,100 @@ function renderEvaluaciones(){
       return `<tr><td>${c.persona_nueva||'—'}</td><td>${c.tienda||''}</td><td>${(c.fecha_registro||'').slice(0,10)}</td><td>${nombreCorto(c.persona||'')}</td><td class="num">${ok}/${all.length}</td></tr>`;
     }).join('') || `<tr><td colspan="5" class="empty-state">Sin onboarding registrado todavía.</td></tr>`;
   }
+}
+function exportarEvaluacionesExcel(){
+  if(typeof XLSX === 'undefined'){ toast('No se pudo cargar el exportador de Excel (sin conexión).'); return; }
+  const d = window._evaExport || {arr360:[],arrAud:[],arrOnb:[]};
+  if(!d.arr360.length && !d.arrAud.length && !d.arrOnb.length){ toast('No hay evaluaciones para exportar con estos filtros.'); return; }
+  const wb = XLSX.utils.book_new();
+  if(d.arr360.length){
+    const rows = d.arr360.map(a=>({
+      'Persona': a.persona_nombre, 'Tienda': a.tienda, 'Fecha': a.fecha, 'Evaluó': a.evaluador,
+      'Total': a.total, 'Clasificación': a.clasificacion,
+      ...Object.fromEntries(EVAL360_CATEGORIAS.map(cat=>[cat.label, a.subtotales[cat.key]!=null?a.subtotales[cat.key].toFixed(1):''])),
+      'Observaciones': a.observaciones||'', 'Compromiso': a.compromiso||'',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Eval 360');
+  }
+  if(d.arrAud.length){
+    const rows = d.arrAud.map(a=>({
+      'Persona': a.persona_nombre, 'Tienda': a.tienda, 'Fecha': (a.fecha||'').slice(0,10), 'Evaluó': a.evaluador,
+      'Promedio': a.promedio, 'Detalle dimensiones': a.scores.map(s=>s.dimension+': '+s.score).join(' | '), 'Comentarios': a.comentarios||'',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Auditoria-Supervision');
+  }
+  if(d.arrOnb.length){
+    const rows = d.arrOnb.map(c=>{
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      return { 'Persona nueva': c.persona_nueva||'', 'Tienda': c.tienda||'', 'Fecha': (c.fecha_registro||'').slice(0,10), 'Registró': c.persona||'', 'Cumplimiento': `${ok}/${all.length}` };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Onboarding');
+  }
+  XLSX.writeFile(wb, `evaluaciones_${todayISO()}.xlsx`);
+  toast('Excel exportado ✓');
+}
+async function exportarEvaluacionesPDF(){
+  if(typeof window.jspdf === 'undefined'){ toast('No se pudo cargar el exportador de PDF (sin conexión).'); return; }
+  const d = window._evaExport || {arr360:[],arrAud:[],arrOnb:[]};
+  if(!d.arr360.length && !d.arrAud.length && !d.arrOnb.length){ toast('No hay evaluaciones para exportar con estos filtros.'); return; }
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','pt','letter');
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  let y = 50;
+  const nuevaPagina = () => { pdf.addPage(); y = 50; };
+  const linea = (texto, opts) => {
+    opts = opts || {};
+    pdf.setFont('helvetica', opts.bold?'bold':'normal');
+    pdf.setFontSize(opts.size||10);
+    const wrapped = pdf.splitTextToSize(texto, pageW-80);
+    wrapped.forEach(l=>{
+      if(y > pageH-40) nuevaPagina();
+      pdf.text(l, 40, y);
+      y += (opts.size||10) * 1.35;
+    });
+  };
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(16);
+  pdf.text('DELICO . ODV — Evaluaciones', 40, y); y += 24;
+  const f = evaluacionesFiltrosActivos();
+  const filtrosTxt = ['persona','cadena','region','supervisor','desde','hasta'].map(k=>f[k]?`${k}: ${f[k]}`:null).filter(Boolean).join(' · ');
+  if(filtrosTxt) linea(`Filtros: ${filtrosTxt}`, {size:9});
+  linea(`Generado: ${new Date().toLocaleString('es-MX')}`, {size:9}); y += 10;
+
+  if(d.arr360.length){
+    linea('⭐ Evaluación 360°', {bold:true, size:13}); y += 4;
+    d.arr360.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).forEach(a=>{
+      const det = EVAL360_CATEGORIAS.map(cat=>`${cat.label.split(' ')[0]}: ${a.subtotales[cat.key]!=null?a.subtotales[cat.key].toFixed(1):'—'}`).join(' · ');
+      linea(`${a.persona_nombre} — ${a.tienda} — ${a.fecha} — evaluó: ${a.evaluador} — Total: ${a.total.toFixed(1)} (${a.clasificacion})`, {bold:true});
+      linea(det, {size:9});
+      if(a.observaciones) linea(`Obs: ${a.observaciones}`, {size:9});
+      if(a.compromiso) linea(`Compromiso: ${a.compromiso}`, {size:9});
+      y += 6;
+    });
+    y += 10;
+  }
+  if(d.arrAud.length){
+    linea('🕵️ Auditoría / Registrar supervisión', {bold:true, size:13}); y += 4;
+    d.arrAud.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).forEach(a=>{
+      linea(`${a.persona_nombre} — ${a.tienda} — ${(a.fecha||'').slice(0,10)} — evaluó: ${a.evaluador} — Promedio: ${a.promedio}`, {bold:true});
+      linea(a.scores.map(s=>s.dimension+': '+s.score).join(' · '), {size:9});
+      if(a.comentarios) linea(`Comentarios: ${a.comentarios}`, {size:9});
+      y += 6;
+    });
+    y += 10;
+  }
+  if(d.arrOnb.length){
+    linea('🧭 Onboarding', {bold:true, size:13}); y += 4;
+    d.arrOnb.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).forEach(c=>{
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      linea(`${c.persona_nueva||'—'} — ${c.tienda||''} — ${(c.fecha_registro||'').slice(0,10)} — registró: ${c.persona||''} — Cumplimiento: ${ok}/${all.length}`, {bold:true});
+      y += 4;
+    });
+  }
+  pdf.save(`evaluaciones_${todayISO()}.pdf`);
+  toast('PDF generado ✓');
 }
 /* ---------- INFORMACIÓN PARA TIENDA (solo lectura, no confidencial) ---------- */
 /* ---------- BI REAL: cruce de cuotas, distribución y venta cero (fuente: 2.CUOTAS / 3.PIPELINE ODV / 2.SELL OUT) ---------- */
