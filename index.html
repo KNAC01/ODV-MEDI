@@ -620,7 +620,6 @@
         <button class="mdi-tile mdi-oblig" onclick="openForm('precio_delico')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">💲</div><div class="t">Precio Delico</div><div class="d">Precio en piso de nuestro producto.</div></button>
         <button class="mdi-tile" onclick="openForm('precio_competencia')"><div class="icon">🏷️</div><div class="t">Precio competencia</div><div class="d">Marca, producto, precio, promos, fotos/videos de activaciones de otras marcas y comentarios.</div></button>
         <button class="mdi-tile" onclick="openForm('incidencia')"><div class="icon">⚠️</div><div class="t">Incidencias</div><div class="d">Inventario, calidad, tienda/instalaciones, refrigeración, otro.</div></button>
-        <button class="mdi-tile" onclick="abrirIncidenciaPersonal()"><div class="icon">🧍</div><div class="t">Incidencia</div><div class="d">Incapacidad o inasistencia — comentario obligatorio, fotos opcionales.</div></button>
         <button class="mdi-tile" onclick="abrirCargaAnaquel()"><div class="icon">📐</div><div class="t">Carga de anaquel</div><div class="d">Frentes y profundidad por producto — como tabla, con foto de cada SKU.</div></button>
         <button class="mdi-tile" onclick="openForm('foto')"><div class="icon">📷</div><div class="t">Categoría</div><div class="d">Tipo de exhibición (refri, barco, búnker, otro) y foto.</div></button>
         <button class="mdi-tile hidden" id="tileOnboarding" onclick="abrirOnboarding()"><div class="icon">🧭</div><div class="t">Onboarding</div><div class="d">Checklist completo de onboarding — lo llenan juntas Supervisor y la persona nueva.</div></button>
@@ -638,6 +637,14 @@
           <thead><tr id="misCapturasBodyHead"><th>Tipo</th><th>Fecha</th><th>Tienda</th><th>Detalle</th></tr></thead>
           <tbody id="misCapturasBody"></tbody>
         </table>
+      </div>
+
+      <div id="reinicioZonaMedi" class="hidden" style="margin-top:30px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra solo los registros de Ejecución MEDI (Mercadeo, Caducidades, Degustación, Precios, Categoría, Gasto, Carga de anaquel, Check-in/out, Incidencias, Onboarding) de todo el equipo, con sus fotos. No toca rutas, vacaciones, tareas ni el resto de las pestañas.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioMedi()">🗑️ Borrar todo MEDI</button>
+        </div>
       </div>
     </section>
 
@@ -737,6 +744,17 @@
           <table><thead><tr><th>Persona nueva</th><th>Tienda</th><th>Fecha</th><th>Registró</th><th>Cumplimiento</th></tr></thead><tbody id="evaluOnboardingBody"></tbody></table>
         </div>
       </div>
+
+      <h2 class="section-title" style="margin-top:18px;">💡 Insights</h2>
+      <div id="evaInsights" style="margin-bottom:10px;"></div>
+
+      <div id="reinicioZonaEvaluaciones" class="hidden" style="margin-top:30px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todas las Evaluaciones 360° y Auditorías/supervisión de todo el equipo. No borra Onboarding.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorrarEvaluaciones()">🗑️ Borrar todo Evaluaciones</button>
+        </div>
+      </div>
     </section>
 
     <!-- ---------- REPORTES (Supervisor+) ---------- -->
@@ -786,6 +804,8 @@
         <div class="card kpi bad"><div class="label">Incidencias abiertas</div><div class="value" id="repIncidencias">0</div></div>
         <div class="card kpi warn"><div class="label">Caducidades reportadas</div><div class="value" id="repCaducidades">0</div></div>
       </div>
+      <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
+      <div id="repInsights" style="margin-bottom:18px;"></div>
       <div class="table-scroll">
         <table>
           <thead><tr id="repBodyHead"><th>Tipo</th><th>Persona</th><th>Fecha</th><th>Tienda</th><th>Detalle</th></tr></thead>
@@ -929,11 +949,15 @@
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Bono adicional mensual posible: hasta <b>$1,500</b> por embajadora (60% Sell Out + 40% Distribución), + reconocimientos trimestrales para Top Performers.</p>
       <div class="controls-bar" style="align-items:center;">
         <span id="bonoTabEmbWrap" style="display:inline-flex; gap:8px; align-items:center;">
-          <label>Embajadora</label>
-          <select id="bonoTabEmbSel" onchange="renderBonoTab()"></select>
+          <label>Embajadora(s) <small style="font-weight:400; color:var(--ink-soft);">(vacío = todo tu equipo · Ctrl/Cmd-clic para elegir varias)</small></label>
+          <select id="bonoTabEmbSel" multiple size="4" style="min-width:200px;" onchange="renderBonoTab()"></select>
         </span>
         <label>Mes (meta de escalón cargada)</label>
         <select id="bonoTabMesSel" onchange="renderBonoTab()"></select>
+      </div>
+      <div id="bonoInsightsWrap">
+        <h2 class="section-title" style="margin-top:14px;">💡 Insights</h2>
+        <div id="bonoInsights"></div>
       </div>
       <div id="bonoTabBody"></div>
     </section>
@@ -1267,6 +1291,9 @@
       <div class="table-scroll">
         <table><thead><tr id="vacReporteBodyHead"><th>Persona</th><th>Rol</th><th>Periodo</th></tr></thead><tbody id="vacReporteBody"></tbody></table>
       </div>
+
+      <h2 class="section-title" style="margin-top:18px;">💡 Insights</h2>
+      <div id="vacInsights"></div>
     </section>
 
     <!-- ---------- DAILY NEWS ---------- -->
@@ -1280,6 +1307,7 @@
         </div>
         <button class="btn btn-brand" style="margin-top:10px;" onclick="publicarNoticia()">Publicar</button>
       </div>
+      <div id="noticiasInsights" style="margin-bottom:14px;"></div>
       <div id="noticiasGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px;"></div>
 
       <div id="reinicioZonaNoticias" class="hidden" style="margin-top:24px;">
@@ -1305,7 +1333,16 @@
         </div>
         <button class="btn btn-brand" style="margin-top:10px;" onclick="publicarEscucha()">Enviar</button>
       </div>
+      <div id="escuchaInsights" style="margin-bottom:14px;"></div>
       <div id="escuchaLista" style="display:flex; flex-direction:column; gap:12px;"></div>
+
+      <div id="reinicioZonaEscucha" class="hidden" style="margin-top:24px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todos los comentarios de Délico te escucha (con sus fotos), de todo el equipo.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorrarEscucha()">🗑️ Borrar todo Délico te escucha</button>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -1491,14 +1528,14 @@ function iniciarSincronizacion(coleccion, onCambio, onBorrado){
   }, err=>{ console.warn('Firestore: no se pudo escuchar la colección "'+coleccion+'".', err); });
 }
 function subirAColeccion(coleccion, documento){
-  if(!db || !documento || !documento.id) return;
+  if(!db || !documento || !documento.id) return Promise.resolve();
   const data = {...documento};
-  db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
+  return db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
     .catch(err=> console.warn('No se pudo subir a la nube ('+coleccion+'):', err));
 }
 function borrarDeColeccion(coleccion, id){
-  if(!db || !id) return;
-  db.collection(coleccion).doc(String(id)).delete()
+  if(!db || !id) return Promise.resolve();
+  return db.collection(coleccion).doc(String(id)).delete()
     .catch(err=> console.warn('No se pudo borrar en la nube ('+coleccion+'):', err));
 }
 
@@ -1506,15 +1543,21 @@ function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
   const estado = { cache: JSON.parse(localStorage.getItem(storageKey) || '[]'), iniciado:false };
   function get(){ return JSON.parse(JSON.stringify(estado.cache)); }
   function save(arrNuevo){
+    // Devuelve una promesa que se resuelve cuando TODAS las subidas/borrados a la nube terminaron —
+    // importante para flujos como "Borrar todo", que necesitan esperar a que Firestore realmente
+    // termine de borrar antes de recargar la página (si no, un reload cancela las peticiones en
+    // curso y algunos documentos "sobreviven" sin querer).
     const previoPorId = new Map(estado.cache.map(d=>[d.id, JSON.stringify(d)]));
     const idsNuevos = new Set(arrNuevo.filter(d=>d && d.id).map(d=>d.id));
+    const promesas = [];
     arrNuevo.forEach(d=>{
       if(!d || !d.id) return;
-      if(previoPorId.get(d.id) !== JSON.stringify(d)) subirAColeccion(nombreColeccion, d);
+      if(previoPorId.get(d.id) !== JSON.stringify(d)) promesas.push(subirAColeccion(nombreColeccion, d));
     });
-    estado.cache.forEach(d=>{ if(d && d.id && !idsNuevos.has(d.id)) borrarDeColeccion(nombreColeccion, d.id); });
+    estado.cache.forEach(d=>{ if(d && d.id && !idsNuevos.has(d.id)) promesas.push(borrarDeColeccion(nombreColeccion, d.id)); });
     estado.cache = arrNuevo;
     guardarLocalStorageSeguro(storageKey, arrNuevo);
+    return Promise.all(promesas);
   }
   function iniciarSync(){
     if(estado.iniciado) return;
@@ -1546,7 +1589,7 @@ function crearDocumentoSincronizado(nombreColeccion, idDocumento, storageKey, va
     const cambio = JSON.stringify(estado.valor) !== JSON.stringify(obj);
     estado.valor = obj;
     guardarLocalStorageSeguro(storageKey, obj);
-    if(cambio) subirAColeccion(nombreColeccion, {...obj, id: idDocumento});
+    return cambio ? subirAColeccion(nombreColeccion, {...obj, id: idDocumento}) : Promise.resolve();
   }
   function iniciarSync(){
     if(estado.iniciado) return;
@@ -1681,105 +1724,155 @@ async function migrarCuentasFirebase(){
    que Ale sube: equipo, tiendas, catálogo, cuotas, Pipeline/combinaciones, distribución, etc.) —
    eso se recarga siempre desde ese archivo, no vive en estas colecciones. Tampoco toca "Noticias"
    (avisos publicados por el equipo, no una captura de campo). */
-function abrirReinicioCapturas(){
+/* ---------- Helper genérico de "Borrar todo" (solo RESET_TOTAL_USUARIO) ----------
+   opts: {titulo, descripcionHtml, textoBoton, alConfirmar: async()=>{...}, alTerminar?: ()=>{...}}
+   alConfirmar debe devolver/ser una promesa que se resuelve cuando YA terminó de borrar en Firestore
+   (no solo de mandar la petición) — si no, un reload podría cancelar borrados todavía en curso. */
+function abrirConfirmarBorrado(opts){
   if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
+  window._confirmarBorradoActual = opts;
   const body = document.getElementById('modalBody');
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
-    <h3>🗑️ Reiniciar capturas del equipo</h3>
+    <h3>🗑️ ${opts.titulo}</h3>
     <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:12px 14px; margin:8px 0 14px;">
       <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 4px;">⚠️ Esta acción no se puede deshacer.</p>
-      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borra de la nube (Firestore) y de todos los celulares — de las ~30 personas del equipo, en todos los módulos — incluyendo las fotos.</p>
+      ${opts.descripcionHtml}
     </div>
     <div class="form-grid">
       <div class="field full">
-        <label style="font-weight:700;">Se va a borrar:</label>
-        <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Capturas de Ejecución MEDI — Mercadeo, Caducidades, Incidencias, Incidencia (Incapacidad/Inasistencia), Degustación, Precio Delico, Precio competencia, Foto de categoría, Factores ambiente, Gasto (ticket), Carga de anaquel, Check-in/Check-out, Onboarding — todas con sus fotos. Además: Asignación de rutas, Vacaciones, Prioridades y Tareas (con sus respuestas), Ley Silla (descansos), Cartas a tienda / Materiales / Uniformes / Inventario, Auditorías, Evaluación 360°, y Délico te escucha.</p>
-        <label style="font-weight:700; margin-top:10px; display:block;">NO se toca:</label>
-        <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Equipo, tiendas, catálogo de productos, cuotas, Pipeline/combinaciones, distribución, alertas de venta cero, cumplimiento semanal, asignación de rutas de septiembre — todo lo que viene del archivo que subes (la "PP"). Tampoco se toca Noticias (los avisos que has publicado) — dime si también quieres borrar eso.</p>
-      </div>
-      <div class="field full">
         <label>Para confirmar, escribe <b>BORRAR TODO</b>:</label>
-        <input type="text" id="confirmaReinicioTexto" placeholder="BORRAR TODO" autocomplete="off">
+        <input type="text" id="confirmaBorradoTexto" placeholder="BORRAR TODO" autocomplete="off">
       </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-brand" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarReinicioCapturas()">Borrar todo y reiniciar</button>
+      <button class="btn btn-brand" id="btnConfirmarBorrado" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarConfirmarBorrado()">${opts.textoBoton || 'Borrar todo'}</button>
     </div>`;
   document.getElementById('modalBg').classList.add('open');
 }
-function ejecutarReinicioCapturas(){
+async function ejecutarConfirmarBorrado(){
   if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
-  const texto = ((document.getElementById('confirmaReinicioTexto')||{}).value || '').trim().toUpperCase();
+  const opts = window._confirmarBorradoActual;
+  if(!opts) return;
+  const texto = ((document.getElementById('confirmaBorradoTexto')||{}).value || '').trim().toUpperCase();
   if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
+  const btn = document.getElementById('btnConfirmarBorrado');
+  const textoOriginal = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
   try{
-    // Capturas de Ejecución MEDI (colección 'capturas_medi' — no usa crearColeccionSincronizada, se borra a mano)
-    getCapturas().forEach(c=>{ if(c && c.id) borrarDeColeccion('capturas_medi', c.id); });
-    _capturasCache = [];
-    localStorage.removeItem(STORAGE_KEY);
-    // El resto de las colecciones sí usan el helper .save([]) — borra en la nube y limpia local por su cuenta.
-    _prioridadesSync.save([]);
-    _tareasSync.save([]);
-    _vacacionesSync.save([]);
-    _extraTiendasSync.save([]);
-    _cumpPrioridadSync.save([]);
-    _leySillaSync.save([]);
-    _cartasSync.save([]);
-    _materialesSync.save([]);
-    _uniformesSync.save([]);
-    _inventarioSync.save({materiales:{}, uniformes:{}});
-    _auditoriasSync.save([]);
-    _notificacionesSync.save([]);
-    _eval360Sync.save([]);
-    _rutasSync.save([]);
-    _escuchaSync.save([]);
-    // Limpieza de restos locales de este dispositivo relacionados a rutas (no viven en Firestore).
-    setCheckin(null);
-    localStorage.removeItem('delico_odv_semanas_publicadas');
-    Object.keys(localStorage).filter(k=>k.startsWith('delico_odv_ruta_snap_')).forEach(k=>localStorage.removeItem(k));
+    await opts.alConfirmar();
     closeModal();
-    toast('Listo — se borró todo lo capturado por el equipo (con fotos). Catálogo, cuotas, tiendas y Pipeline siguen igual.', 7000);
-    setTimeout(()=>location.reload(), 1200);
+    if(opts.alTerminar) opts.alTerminar();
   }catch(e){
-    toast('⚠️ Hubo un problema al reiniciar: ' + e.message, 6500);
+    toast('⚠️ Hubo un problema al borrar: ' + e.message, 6500);
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
   }
+}
+/* Borra todas las capturas de la colección 'capturas_medi' (no usa crearColeccionSincronizada,
+   se maneja aparte) y espera a que Firestore confirme cada borrado antes de continuar. */
+async function borrarTodasLasCapturasMedi(){
+  const promesas = getCapturas().filter(c=>c && c.id).map(c=>borrarDeColeccion('capturas_medi', c.id));
+  await Promise.all(promesas);
+  _capturasCache = [];
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+/* ---------- Reinicio TOTAL de capturas del equipo (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirReinicioCapturas(){
+  abrirConfirmarBorrado({
+    titulo: 'Reiniciar capturas del equipo',
+    textoBoton: 'Borrar todo y reiniciar',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borra de la nube (Firestore) y de todos los celulares — de las ~30 personas del equipo, en todos los módulos — incluyendo las fotos.</p>
+      </div>
+      <div class="form-grid">
+        <div class="field full">
+          <label style="font-weight:700;">Se va a borrar:</label>
+          <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Capturas de Ejecución MEDI — Mercadeo, Caducidades, Incidencias, Incidencia (Incapacidad/Inasistencia), Degustación, Precio Delico, Precio competencia, Foto de categoría, Factores ambiente, Gasto (ticket), Carga de anaquel, Check-in/Check-out, Onboarding — todas con sus fotos. Además: Asignación de rutas, Vacaciones, Prioridades y Tareas (con sus respuestas), Ley Silla (descansos), Cartas a tienda / Materiales / Uniformes / Inventario, Auditorías, Evaluación 360°, y Délico te escucha.</p>
+          <label style="font-weight:700; margin-top:10px; display:block;">NO se toca:</label>
+          <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Equipo, tiendas, catálogo de productos, cuotas, Pipeline/combinaciones, distribución, alertas de venta cero, cumplimiento semanal, asignación de rutas de septiembre — todo lo que viene del archivo que subes (la "PP"). Tampoco se toca Daily News (tiene su propio botón de borrado en su pestaña).</p>`,
+    alConfirmar: async () => {
+      await Promise.all([
+        borrarTodasLasCapturasMedi(),
+        _prioridadesSync.save([]),
+        _tareasSync.save([]),
+        _vacacionesSync.save([]),
+        _extraTiendasSync.save([]),
+        _cumpPrioridadSync.save([]),
+        _leySillaSync.save([]),
+        _cartasSync.save([]),
+        _materialesSync.save([]),
+        _uniformesSync.save([]),
+        _inventarioSync.save({materiales:{}, uniformes:{}}),
+        _auditoriasSync.save([]),
+        _notificacionesSync.save([]),
+        _eval360Sync.save([]),
+        _rutasSync.save([]),
+        _escuchaSync.save([]),
+      ]);
+      setCheckin(null);
+      localStorage.removeItem('delico_odv_semanas_publicadas');
+      Object.keys(localStorage).filter(k=>k.startsWith('delico_odv_ruta_snap_')).forEach(k=>localStorage.removeItem(k));
+    },
+    alTerminar: () => {
+      toast('Listo — se borró todo lo capturado por el equipo (con fotos). Catálogo, cuotas, tiendas y Pipeline siguen igual.', 7000);
+      setTimeout(()=>location.reload(), 1200);
+    },
+  });
+}
+
+/* ---------- Reinicio de solo las capturas de Ejecución MEDI (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirReinicioMedi(){
+  abrirConfirmarBorrado({
+    titulo: 'Borrar registros de MEDI',
+    textoBoton: 'Borrar todo MEDI',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran TODAS las capturas de Ejecución MEDI de todo el equipo (con sus fotos): Mercadeo, Caducidades, Incidencias, Incapacidad/Inasistencia, Degustación, Precios, Foto de categoría, Factores ambiente, Gasto (ticket), Carga de anaquel, Check-in/Check-out, Onboarding. No toca rutas, vacaciones, tareas, ni el resto de las pestañas de Retroalimentación.</p>`,
+    alConfirmar: async () => { await borrarTodasLasCapturasMedi(); },
+    alTerminar: () => {
+      toast('Listo — se borraron los registros de MEDI. El resto de la app sigue igual.', 6000);
+      renderMisCapturas();
+      if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+    },
+  });
 }
 
 /* ---------- Reinicio de Daily News (solo RESET_TOTAL_USUARIO) ---------- */
 function abrirBorrarNoticias(){
-  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
-  const body = document.getElementById('modalBody');
-  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
-    <h3>🗑️ Borrar todo Daily News</h3>
-    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:12px 14px; margin:8px 0 14px;">
-      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 4px;">⚠️ Esta acción no se puede deshacer.</p>
-      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las publicaciones de Daily News (con sus fotos), de todo el equipo.</p>
-    </div>
-    <div class="form-grid">
-      <div class="field full">
-        <label>Para confirmar, escribe <b>BORRAR TODO</b>:</label>
-        <input type="text" id="confirmaBorraNoticiasTexto" placeholder="BORRAR TODO" autocomplete="off">
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-brand" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarBorrarNoticias()">Borrar todo Daily News</button>
-    </div>`;
-  document.getElementById('modalBg').classList.add('open');
+  abrirConfirmarBorrado({
+    titulo: 'Borrar todo Daily News',
+    textoBoton: 'Borrar todo Daily News',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las publicaciones de Daily News (con sus fotos), de todo el equipo.</p>`,
+    alConfirmar: async () => { await _noticiasSync.save([]); },
+    alTerminar: () => { toast('Listo — se borraron todas las publicaciones de Daily News.', 5000); renderNoticias(); },
+  });
 }
-function ejecutarBorrarNoticias(){
-  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
-  const texto = ((document.getElementById('confirmaBorraNoticiasTexto')||{}).value || '').trim().toUpperCase();
-  if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
-  try{
-    _noticiasSync.save([]);
-    closeModal();
-    toast('Listo — se borraron todas las publicaciones de Daily News.', 5000);
-    renderNoticias();
-  }catch(e){
-    toast('⚠️ Hubo un problema al borrar Daily News: ' + e.message, 6500);
-  }
+
+/* ---------- Reinicio de Délico te escucha (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirBorrarEscucha(){
+  abrirConfirmarBorrado({
+    titulo: 'Borrar todo Délico te escucha',
+    textoBoton: 'Borrar todo',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todos los comentarios de Délico te escucha (con sus fotos), de todo el equipo.</p>`,
+    alConfirmar: async () => { await _escuchaSync.save([]); },
+    alTerminar: () => { toast('Listo — se borró Délico te escucha.', 5000); renderEscucha(); },
+  });
 }
+
+/* ---------- Reinicio de Evaluaciones: Eval 360° + Auditorías (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirBorrarEvaluaciones(){
+  abrirConfirmarBorrado({
+    titulo: 'Borrar todo Evaluaciones',
+    textoBoton: 'Borrar todo',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las Evaluaciones 360° y Auditorías/supervisión de todo el equipo. No borra Onboarding (vive junto con las demás capturas de MEDI).</p>`,
+    alConfirmar: async () => { await Promise.all([_eval360Sync.save([]), _auditoriasSync.save([])]); },
+    alTerminar: () => { toast('Listo — se borraron Evaluación 360° y Auditorías.', 5000); renderEvaluaciones(); },
+  });
+}
+
+/* ---------- Bono: NO tiene botón de "Borrar todo" ----------
+   La pestaña de Bono no guarda capturas de los usuarios: es 100% un cálculo en vivo
+   a partir de cuotas, ventas y el "Escalón Bono" del Pipeline (o sea, es parte de "la PP").
+   No hay ningún registro capturado por el equipo que borrar aquí; por eso no existe
+   abrirBorrarBono() ni un botón asociado — se le explica esto a Ale en la entrega. */
 
 /* ---------- BOOT / NAV ---------- */
 /* ---------- ESTRUCTURA DE TABS: bloques funcionales x perfil x vista (escritorio/celular) ---------- */
@@ -2511,6 +2604,7 @@ function renderCheckinBar(){
       ${[...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}">${s.tienda} (${s.cadena})</option>`).join('')}
     </select>
     <button class="btn btn-outline" onclick="hacerCheckinOtraTienda()">Check-in aquí</button>
+    <button class="btn btn-ghost" onclick="abrirIncidenciaPersonal()">Otro (inasistencia / incapacidad)</button>
   </div>`;
   box.innerHTML = html;
 }
@@ -3908,6 +4002,8 @@ function renderMisCapturas(){
   };
   window.render_misCapturasBody();
   renderDegustacionesRecientes();
+  const zonaMedi = document.getElementById('reinicioZonaMedi');
+  if(zonaMedi) zonaMedi.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
 }
 /* ---------- Comentarios del shopper agregados DESPUÉS, sin tocar el registro original de Degustación ---------- */
 function renderDegustacionesRecientes(){
@@ -4027,6 +4123,34 @@ function renderReportes(){
   window.render_repBody();
 
   renderDegustacionPorHora();
+  renderReportesInsights(arr);
+}
+function renderReportesInsights(arr){
+  const box = document.getElementById('repInsights');
+  if(!box) return;
+  if(!arr.length){ box.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">Sin capturas en este filtro para generar insights.</p>`; return; }
+  const porPersona = {};
+  arr.forEach(c=>{ porPersona[c.persona] = (porPersona[c.persona]||0) + 1; });
+  const personas = Object.entries(porPersona).sort((a,b)=>b[1]-a[1]);
+  const porTipo = {};
+  arr.forEach(c=>{ porTipo[c.tipo] = (porTipo[c.tipo]||0) + 1; });
+  const tipoTop = Object.entries(porTipo).sort((a,b)=>b[1]-a[1])[0];
+  const incidencias = arr.filter(c=>c.tipo==='incidencia');
+  const caducidades = arr.filter(c=>c.tipo==='caducidad');
+  const inasistencias = arr.filter(c=>c.tipo==='inasistencia' || c.tipo==='incapacidad');
+  const porTienda = {};
+  incidencias.forEach(c=>{ if(c.tienda) porTienda[c.tienda] = (porTienda[c.tienda]||0)+1; });
+  const tiendaTop = Object.entries(porTienda).sort((a,b)=>b[1]-a[1])[0];
+  const fechas = arr.map(c=>c.fecha_registro).filter(Boolean).sort();
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  html += `<p style="font-size:12.5px; margin:0 0 6px;">📊 <b>${arr.length}</b> captura(s) de <b>${personas.length}</b> persona(s)${fechas.length?` entre ${fechas[0].slice(0,10)} y ${fechas[fechas.length-1].slice(0,10)}`:''}.</p>`;
+  if(tipoTop) html += `<p style="font-size:12.5px; margin:0 0 6px;">📌 El tipo de captura más frecuente es <b>${TIPO_LABEL[tipoTop[0]]||tipoTop[0]}</b> (${tipoTop[1]} registro(s)).</p>`;
+  if(personas[0]) html += `<p style="font-size:12.5px; margin:0 0 6px;">🏅 Quien más está capturando: <b>${nombreCorto(personas[0][0])}</b> (${personas[0][1]}); quien menos: <b>${nombreCorto(personas[personas.length-1][0])}</b> (${personas[personas.length-1][1]}) — revisar si es por cobertura de tiendas o por falta de captura.</p>`;
+  if(incidencias.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${incidencias.length} incidencia(s) reportada(s)${tiendaTop?`, la tienda con más es <b>${tiendaTop[0]}</b> (${tiendaTop[1]})`:''} — atender de inmediato lo que siga abierto.</p>`;
+  if(caducidades.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--warn,#c98a1b);">⏰ ${caducidades.length} caducidad(es) capturada(s) — revisa Kardex por tienda para ver el detalle y accionar antes de que se pierda el producto.</p>`;
+  if(inasistencias.length) html += `<p style="font-size:12.5px; margin:0;">🧍 ${inasistencias.length} inasistencia(s)/incapacidad(es) registradas en este filtro.</p>`;
+  html += `</div>`;
+  box.innerHTML = html;
 }
 const BLOQUES_HORA = [['Mañana (8-12)',8,12],['Mediodía (12-15)',12,15],['Tarde (15-18)',15,18],['Noche (18-21)',18,21]];
 function renderDegustacionPorHora(){
@@ -4880,6 +5004,36 @@ function renderVacaciones(){
     ).join('') || `<tr><td colspan="3" class="empty-state">Nadie tiene vacaciones aprobadas próximas o en curso.</td></tr>`;
   };
   window.render_vacReporteBody();
+  renderVacacionesInsights(todas, mias, porAprobar, aprobadas);
+}
+function renderVacacionesInsights(todas, mias, porAprobar, aprobadas){
+  const box = document.getElementById('vacInsights');
+  if(!box) return;
+  const esEmb = currentUser.perfil === 'Embajador';
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  if(esEmb){
+    const pendientesMias = mias.filter(v=>v.estado==='pendiente');
+    html += `<p style="font-size:12.5px; margin:0 0 6px;">🌴 Tienes <b>${Math.max(0, VACA_DIAS_TOTALES - mias.filter(v=>v.estado==='aprobada' && (v.tipo||'vacaciones')==='vacaciones').reduce((s,v)=>s+v.dias,0))}</b> día(s) disponibles.</p>`;
+    if(pendientesMias.length) html += `<p style="font-size:12.5px; margin:0;">⏳ Tienes ${pendientesMias.length} solicitud(es) pendiente(s) de aprobación.</p>`;
+    else html += `<p style="font-size:12.5px; margin:0; color:var(--ink-soft);">Sin solicitudes pendientes.</p>`;
+  } else {
+    if(porAprobar.length){
+      const antiguaDias = Math.max(...porAprobar.map(v=>Math.round((new Date()-new Date(v.fecha_solicitud||v.desde))/86400000)));
+      html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--warn,#c98a1b);">⏳ Hay ${porAprobar.length} solicitud(es) esperando tu aprobación — la más antigua lleva ~${antiguaDias} día(s) sin resolver.</p>`;
+    } else {
+      html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--good);">✅ No hay solicitudes pendientes por aprobar.</p>`;
+    }
+    // Traslape: 2+ personas de la misma tienda/sector fuera al mismo tiempo, próximas 30 días
+    const hoy = todayISO();
+    const en30 = isoDate(new Date(Date.now()+30*86400000));
+    const proximas = aprobadas.filter(v=>v.desde<=en30 && v.hasta>=hoy);
+    html += `<p style="font-size:12.5px; margin:0 0 6px;">📅 ${proximas.length} persona(s) con vacaciones aprobadas en los próximos 30 días.</p>`;
+    if(proximas.length>=2){
+      html += `<p style="font-size:12.5px; margin:0;">⚠️ Revisa que no se traslapen varias personas de la misma zona al mismo tiempo, para no dejar tiendas sin cobertura.</p>`;
+    }
+  }
+  html += `</div>`;
+  box.innerHTML = html;
 }
 
 /* ---------- INICIO (dashboard de entrada) ---------- */
@@ -5468,6 +5622,8 @@ function renderEvaluaciones(){
   const filtrosBar = document.getElementById('evaFiltrosBar');
   if(filtrosBar) filtrosBar.classList.toggle('hidden', esEmbajador);
   if(!esEmbajador) poblarFiltrosEvaluaciones();
+  const zonaEva = document.getElementById('reinicioZonaEvaluaciones');
+  if(zonaEva) zonaEva.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
 
   let arr360 = getEval360().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
   let arrAud = getAuditorias().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
@@ -5500,6 +5656,30 @@ function renderEvaluaciones(){
       return `<tr><td>${c.persona_nueva||'—'}</td><td>${c.tienda||''}</td><td>${(c.fecha_registro||'').slice(0,10)}</td><td>${nombreCorto(c.persona||'')}</td><td class="num">${ok}/${all.length}</td></tr>`;
     }).join('') || `<tr><td colspan="5" class="empty-state">Sin onboarding registrado todavía.</td></tr>`;
   }
+  renderEvaluacionesInsights(arr360, arrAud, esEmbajador);
+}
+function renderEvaluacionesInsights(arr360, arrAud, esEmbajador){
+  const box = document.getElementById('evaInsights');
+  if(!box) return;
+  if(!arr360.length && !arrAud.length){ box.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">Sin evaluaciones en este filtro.</p>`; return; }
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  if(arr360.length){
+    const prom360 = arr360.reduce((a,x)=>a+x.total,0)/arr360.length;
+    const bajos = arr360.filter(x=>x.total<80);
+    html += `<p style="font-size:12.5px; margin:0 0 6px;">⭐ Promedio de Evaluación 360°: <b>${prom360.toFixed(1)}/100</b> sobre ${arr360.length} evaluación(es).</p>`;
+    if(bajos.length && !esEmbajador){
+      const porPersona = {};
+      bajos.forEach(x=>{ porPersona[x.persona_nombre] = (porPersona[x.persona_nombre]||0)+1; });
+      const peor = Object.entries(porPersona).sort((a,b)=>b[1]-a[1])[0];
+      html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${bajos.length} evaluación(es) por debajo de 80/100${peor?`, con más casos en <b>${nombreCorto(peor[0])}</b> (${peor[1]})`:''} — revisar plan de acción/compromiso en cada una.</p>`;
+    }
+  }
+  if(arrAud.length){
+    const promAud = arrAud.reduce((a,x)=>a+(x.promedio||0),0)/arrAud.length;
+    html += `<p style="font-size:12.5px; margin:0;">🕵️ Promedio de Auditoría/supervisión: <b>${promAud.toFixed(1)}</b> sobre ${arrAud.length} evaluación(es).</p>`;
+  }
+  html += `</div>`;
+  box.innerHTML = html;
 }
 function exportarEvaluacionesExcel(){
   if(typeof XLSX === 'undefined'){ toast('No se pudo cargar el exportador de Excel (sin conexión).'); return; }
@@ -5749,8 +5929,7 @@ function renderBonoTab(){
   if(embWrap) embWrap.style.display = esPropio ? 'none' : '';
   const embSel = document.getElementById('bonoTabEmbSel');
   if(embSel && !embSel.options.length){
-    embSel.innerHTML = `<option value="">${currentUser.perfil==='Supervisor'?'Todo mi equipo':'Todas'}</option>`
-      + equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>`<option value="${u.usuario}">${nombreCorto(u.nombre)}</option>`).join('');
+    embSel.innerHTML = equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>`<option value="${u.usuario}">${nombreCorto(u.nombre)}</option>`).join('');
   }
   const meses = mesesConEscalonDisponibles();
   const mesSel = document.getElementById('bonoTabMesSel');
@@ -5759,26 +5938,42 @@ function renderBonoTab(){
     mesSel.innerHTML = meses.map(m=>`<option value="${m}" ${m===mesDefault?'selected':''}>${m} 2026</option>`).join('');
   }
   const mes = mesSel ? mesSel.value : (meses.slice(-1)[0]);
-  const embUsuario = esPropio ? currentUser.usuario : (embSel ? embSel.value : '');
-  if(!mes){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">Todavía no hay una meta de "Escalón Bono" cargada para calcular el bono.</p>`; return; }
+  const seleccionados = esPropio ? [currentUser.usuario] : (embSel ? [...embSel.selectedOptions].map(o=>o.value) : []);
+  if(!mes){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">Todavía no hay una meta de "Escalón Bono" cargada para calcular el bono.</p>`; const insWrap=document.getElementById('bonoInsights'); if(insWrap) insWrap.innerHTML=''; return; }
 
-  if(embUsuario){
-    const scope = APP_DATA.stores.filter(s=>s.sector===embUsuario);
-    const r = calcularBono(scope, mes);
-    const u = APP_DATA.equipo.find(x=>x.usuario===embUsuario);
-    box.innerHTML = tarjetaBono(u?nombreCorto(u.nombre):null, r) +
-      `<p style="font-size:11px; color:var(--ink-soft);">Rango Sell Out: &gt;120%→1.20 · 101-120%→1.10 · 95-100%→1.00 · 90-94.9%→0.50 · &lt;90%→0.00. Rango Distribución: 100%→1.00 · 95-99.9%→0.80 · 90-94.9%→0.50 · &lt;90%→0.00.</p>`;
-    return;
-  }
-  // vista de equipo: una tarjeta por embajadora en mi scope
-  const equipoScope = equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  // vista de equipo (o de las personas elegidas en el multi-select): una tarjeta por embajadora
+  const equipoScope = (seleccionados.length ? equipoVisibleParaMi().filter(u=>seleccionados.includes(u.usuario)) : equipoVisibleParaMi().filter(u=>u.perfil==='Embajador'))
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre));
   if(!equipoScope.length){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">No hay embajadoras en tu equipo.</p>`; return; }
-  box.innerHTML = equipoScope.map(u=>{
+  const resultados = equipoScope.map(u=>{
     const scope = APP_DATA.stores.filter(s=>s.sector===u.usuario);
-    if(!scope.length) return '';
+    if(!scope.length) return null;
     const r = calcularBono(scope, mes);
-    return tarjetaBono(nombreCorto(u.nombre), r);
-  }).join('');
+    return {u, r};
+  }).filter(Boolean);
+  box.innerHTML = resultados.map(({u,r})=>tarjetaBono(nombreCorto(u.nombre), r)).join('')
+    + (esPropio || seleccionados.length===1 ? `<p style="font-size:11px; color:var(--ink-soft);">Rango Sell Out: &gt;120%→1.20 · 101-120%→1.10 · 95-100%→1.00 · 90-94.9%→0.50 · &lt;90%→0.00. Rango Distribución: 100%→1.00 · 95-99.9%→0.80 · 90-94.9%→0.50 · &lt;90%→0.00.</p>` : '');
+  renderBonoInsights(resultados, mes);
+}
+function renderBonoInsights(resultados, mes){
+  const box = document.getElementById('bonoInsights');
+  if(!box) return;
+  if(!resultados.length){ box.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">Sin datos para generar insights.</p>`; return; }
+  const totalBono = resultados.reduce((a,x)=>a+x.r.bonoTotal,0);
+  const conBonoCompleto = resultados.filter(x=>x.r.bonoTotal>=1450).length;
+  const sinBono = resultados.filter(x=>x.r.bonoTotal===0);
+  const ordenadosPeor = [...resultados].sort((a,b)=>a.r.bonoTotal-b.r.bonoTotal);
+  const ordenadosMejor = [...resultados].sort((a,b)=>b.r.bonoTotal-a.r.bonoTotal);
+  const peorSO = ordenadosPeor.filter(x=>x.r.pctSellOut!=null && x.r.pctSellOut<90);
+  const peorDist = ordenadosPeor.filter(x=>x.r.pctDistrib!=null && x.r.pctDistrib<90);
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  html += `<p style="font-size:12.5px; margin:0 0 6px;">📊 En <b>${mes} 2026</b>, el equipo mostrado (${resultados.length} persona(s)) acumula <b>$${totalBono.toLocaleString('es-MX')}</b> de bono estimado; <b>${conBonoCompleto}</b> alcanzan el bono máximo y <b>${sinBono.length}</b> se quedan en $0.</p>`;
+  if(ordenadosMejor[0]) html += `<p style="font-size:12.5px; margin:0 0 6px;">🏆 Mejor resultado: <b>${nombreCorto(ordenadosMejor[0].u.nombre)}</b> con $${ordenadosMejor[0].r.bonoTotal.toLocaleString('es-MX')}.</p>`;
+  if(peorSO.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${peorSO.length} persona(s) están por debajo del 90% en Sell Out (mínimo para bono) — la más urgente: <b>${nombreCorto(peorSO[0].u.nombre)}</b> (${peorSO[0].r.pctSellOut}%). Hay que revisar por qué desde ahora, no hasta que cierre el mes.</p>`;
+  if(peorDist.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${peorDist.length} persona(s) están por debajo del 90% en Distribución — la más urgente: <b>${nombreCorto(peorDist[0].u.nombre)}</b> (${peorDist[0].r.pctDistrib}%). Esto suele ser lo más fácil y rápido de corregir en campo (exhibición/anaquel) antes de que cierre el mes.</p>`;
+  if(!peorSO.length && !peorDist.length) html += `<p style="font-size:12.5px; margin:0; color:var(--good);">✅ Nadie está por debajo del mínimo de 90% en Sell Out ni Distribución en este corte.</p>`;
+  html += `</div>`;
+  box.innerHTML = html;
 }
 function supervisorDeTienda(store){
   if(!store || !store.sector) return '';
@@ -7186,6 +7381,21 @@ function renderNoticias(){
         <div style="font-size:13px;">${n.texto||''}</div>
       </div>
     </div>`).join('') || `<div class="empty-state" style="grid-column:1/-1;">Aún no hay publicaciones. ¡Sé el primero en compartir algo!</div>`;
+  const insBox = document.getElementById('noticiasInsights');
+  if(insBox){
+    if(currentUser.perfil==='Embajador' || !arr.length){ insBox.innerHTML = ''; }
+    else{
+      const porPersona = {};
+      arr.forEach(n=>{ porPersona[n.persona] = (porPersona[n.persona]||0)+1; });
+      const top = Object.entries(porPersona).sort((a,b)=>b[1]-a[1])[0];
+      const hace7 = new Date(Date.now()-7*86400000).toISOString();
+      const ultSemana = arr.filter(n=>n.fecha>=hace7).length;
+      insBox.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">
+        <p style="font-size:12.5px; margin:0 0 6px;">💡 <b>${arr.length}</b> publicación(es) en total, <b>${ultSemana}</b> en los últimos 7 días.</p>
+        ${top?`<p style="font-size:12.5px; margin:0;">🏅 Quien más comparte: <b>${nombreCorto(top[0])}</b> (${top[1]}).</p>`:''}
+      </div>`;
+    }
+  }
 }
 function getEscucha(){ return _escuchaSync.get(); }
 function saveEscucha(arr){ _escuchaSync.save(arr); }
@@ -7208,6 +7418,8 @@ function renderEscucha(){
   if(!box) return;
   window._fotosMulti = window._fotosMulti || {};
   if(!window._fotosMulti.escucha) window._fotosMulti.escucha = [];
+  const zonaEsc = document.getElementById('reinicioZonaEscucha');
+  if(zonaEsc) zonaEsc.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
   const arr = getEscucha().filter(m=>visibleUsuarios.has(m.usuario));
   box.innerHTML = arr.map(m=>`<div class="card">
@@ -7218,6 +7430,21 @@ function renderEscucha(){
       ${m.texto ? `<div style="font-size:13px; margin-top:6px; white-space:pre-wrap;">${m.texto}</div>` : ''}
       ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${m.fotos.map(f=>`<img src="${f}" style="width:76px; height:76px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}</div>` : ''}
     </div>`).join('') || `<div class="empty-state">Aún no hay comentarios. ¡Sé el primero en escribir algo!</div>`;
+  const insBox = document.getElementById('escuchaInsights');
+  if(insBox){
+    if(currentUser.perfil==='Embajador' || !arr.length){ insBox.innerHTML = ''; }
+    else{
+      const porPersona = {};
+      arr.forEach(m=>{ porPersona[m.persona] = (porPersona[m.persona]||0)+1; });
+      const top = Object.entries(porPersona).sort((a,b)=>b[1]-a[1])[0];
+      const hace7 = new Date(Date.now()-7*86400000).toISOString();
+      const ultSemana = arr.filter(m=>m.fecha>=hace7).length;
+      insBox.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">
+        <p style="font-size:12.5px; margin:0 0 6px;">💡 <b>${arr.length}</b> comentario(s) en total, <b>${ultSemana}</b> en los últimos 7 días.</p>
+        ${top?`<p style="font-size:12.5px; margin:0;">🏅 Quien más participa: <b>${nombreCorto(top[0])}</b> (${top[1]}) — buena oportunidad para leer y responder lo que se ha compartido.</p>`:''}
+      </div>`;
+    }
+  }
 }
 function exportarDetalleFormularios(){
   // Exporta, para CUALQUIER tipo de captura (respeta el filtro de Tipo/Persona/Fechas de Reportes del equipo),
