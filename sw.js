@@ -2,7 +2,7 @@
 // IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
 // también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
 // celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v62';
+const CACHE_NAME = 'delico-odv-v63';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -19,6 +19,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Red primero (para traer la versión más nueva cuando hay internet), y si falla, usa el caché (modo sin conexión).
+// Importante: el "de vuelta a index.html" solo debe pasar para la página misma (navegación),
+// nunca para otros archivos (como las librerías externas de exportar Excel/PDF) — si no, un archivo
+// externo que falla podría terminar mostrando el HTML de la app y romperse con un error de sintaxis.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const esNavegacion = event.request.mode === 'navigate';
