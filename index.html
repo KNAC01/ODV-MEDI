@@ -795,6 +795,14 @@
 
       <h2 class="section-title" style="margin-top:26px;">Degustación por horario (ritmo de charolas)</h2>
       <div class="card" id="degustacionPorHoraCard"></div>
+
+      <div id="reinicioZonaAdmin" class="hidden" style="margin-top:30px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio (solo Admin)</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todo lo que el equipo ha capturado en la app (fase de construcción) para que empiecen a capturar información real desde cero. No toca el catálogo, cuotas, tiendas ni Pipeline.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioCapturas()">🗑️ Reiniciar capturas del equipo</button>
+        </div>
+      </div>
     </section>
 
     <!-- ---------- CUMPLIMIENTO: PLAN VS. REAL ---------- -->
@@ -1657,6 +1665,76 @@ async function migrarCuentasFirebase(){
   alert(msg);
 }
 
+/* ---------- Reinicio de capturas del equipo (Admin, fin de la fase de construcción) ----------
+   Borra TODO lo que el equipo capturó en la app (con fotos) en cada módulo, para que arranquen
+   a capturar información real desde cero. Nunca toca lo que viene de app_data.json (el archivo
+   que Ale sube: equipo, tiendas, catálogo, cuotas, Pipeline/combinaciones, distribución, etc.) —
+   eso se recarga siempre desde ese archivo, no vive en estas colecciones. Tampoco toca "Noticias"
+   (avisos publicados por el equipo, no una captura de campo). */
+function abrirReinicioCapturas(){
+  if(currentUser.perfil !== 'Admin'){ toast('Solo un Admin puede hacer este reinicio.'); return; }
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🗑️ Reiniciar capturas del equipo</h3>
+    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:12px 14px; margin:8px 0 14px;">
+      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 4px;">⚠️ Esta acción no se puede deshacer.</p>
+      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borra de la nube (Firestore) y de todos los celulares — de las ~30 personas del equipo, en todos los módulos — incluyendo las fotos.</p>
+    </div>
+    <div class="form-grid">
+      <div class="field full">
+        <label style="font-weight:700;">Se va a borrar:</label>
+        <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Capturas de Ejecución MEDI — Mercadeo, Caducidades, Incidencias, Incidencia (Incapacidad/Inasistencia), Degustación, Precio Delico, Precio competencia, Foto de categoría, Factores ambiente, Gasto (ticket), Carga de anaquel, Check-in/Check-out, Onboarding — todas con sus fotos. Además: Asignación de rutas, Vacaciones, Prioridades y Tareas (con sus respuestas), Ley Silla (descansos), Cartas a tienda / Materiales / Uniformes / Inventario, Auditorías, Evaluación 360°, y Délico te escucha.</p>
+        <label style="font-weight:700; margin-top:10px; display:block;">NO se toca:</label>
+        <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Equipo, tiendas, catálogo de productos, cuotas, Pipeline/combinaciones, distribución, alertas de venta cero, cumplimiento semanal, asignación de rutas de septiembre — todo lo que viene del archivo que subes (la "PP"). Tampoco se toca Noticias (los avisos que has publicado) — dime si también quieres borrar eso.</p>
+      </div>
+      <div class="field full">
+        <label>Para confirmar, escribe <b>BORRAR TODO</b>:</label>
+        <input type="text" id="confirmaReinicioTexto" placeholder="BORRAR TODO" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarReinicioCapturas()">Borrar todo y reiniciar</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function ejecutarReinicioCapturas(){
+  if(currentUser.perfil !== 'Admin'){ toast('Solo un Admin puede hacer este reinicio.'); return; }
+  const texto = ((document.getElementById('confirmaReinicioTexto')||{}).value || '').trim().toUpperCase();
+  if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
+  try{
+    // Capturas de Ejecución MEDI (colección 'capturas_medi' — no usa crearColeccionSincronizada, se borra a mano)
+    getCapturas().forEach(c=>{ if(c && c.id) borrarDeColeccion('capturas_medi', c.id); });
+    _capturasCache = [];
+    localStorage.removeItem(STORAGE_KEY);
+    // El resto de las colecciones sí usan el helper .save([]) — borra en la nube y limpia local por su cuenta.
+    _prioridadesSync.save([]);
+    _tareasSync.save([]);
+    _vacacionesSync.save([]);
+    _extraTiendasSync.save([]);
+    _cumpPrioridadSync.save([]);
+    _leySillaSync.save([]);
+    _cartasSync.save([]);
+    _materialesSync.save([]);
+    _uniformesSync.save([]);
+    _inventarioSync.save({materiales:{}, uniformes:{}});
+    _auditoriasSync.save([]);
+    _notificacionesSync.save([]);
+    _eval360Sync.save([]);
+    _rutasSync.save([]);
+    _escuchaSync.save([]);
+    // Limpieza de restos locales de este dispositivo relacionados a rutas (no viven en Firestore).
+    setCheckin(null);
+    localStorage.removeItem('delico_odv_semanas_publicadas');
+    Object.keys(localStorage).filter(k=>k.startsWith('delico_odv_ruta_snap_')).forEach(k=>localStorage.removeItem(k));
+    closeModal();
+    toast('Listo — se borró todo lo capturado por el equipo (con fotos). Catálogo, cuotas, tiendas y Pipeline siguen igual.', 7000);
+    setTimeout(()=>location.reload(), 1200);
+  }catch(e){
+    toast('⚠️ Hubo un problema al reiniciar: ' + e.message, 6500);
+  }
+}
+
 /* ---------- BOOT / NAV ---------- */
 /* ---------- ESTRUCTURA DE TABS: bloques funcionales x perfil x vista (escritorio/celular) ---------- */
 const TODOS_PERFILES = ['Embajador','Supervisor','Coordinador','Admin'];
@@ -1677,7 +1755,7 @@ const ALL_TABS = [
   {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'cumpprioridades', label:'Prioridades y tareas',            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'bono',          label:'Bono',                              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
-  {key:'kpis',          label:'KPIs por tienda',                   perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'kpis',          label:'KPIs por tienda',                   perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'reportes',      label:'Reportes del equipo',               perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
   {key:'vacaciones',    label:'Vacaciones',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'evaluaciones',  label:'Evaluaciones',                      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
@@ -3882,6 +3960,8 @@ function renderReportes(){
   populateRepFiltrosExtra();
   document.getElementById('repTipo').onchange = renderReportes;
   document.getElementById('repPersona').onchange = renderReportes;
+  const zonaAdmin = document.getElementById('reinicioZonaAdmin');
+  if(zonaAdmin) zonaAdmin.classList.toggle('hidden', currentUser.perfil !== 'Admin');
   let arr = capturasFiltradasReporte();
 
   document.getElementById('repTotal').textContent = arr.length;
