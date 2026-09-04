@@ -797,7 +797,7 @@
       <div class="card" id="degustacionPorHoraCard"></div>
 
       <div id="reinicioZonaAdmin" class="hidden" style="margin-top:30px;">
-        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio (solo Admin)</h2>
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
         <div class="card" style="border:1px solid var(--bad);">
           <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todo lo que el equipo ha capturado en la app (fase de construcción) para que empiecen a capturar información real desde cero. No toca el catálogo, cuotas, tiendas ni Pipeline.</p>
           <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioCapturas()">🗑️ Reiniciar capturas del equipo</button>
@@ -1020,7 +1020,7 @@
     <!-- ---------- INFORMACIÓN PARA TIENDA (solo lectura, no confidencial) ---------- -->
     <section class="view" id="view-kpis">
       <div class="bloque-tag bloque-retro">Retroalimentación · resumen hoy/semana</div>
-      <h2 class="section-title">KPIs por tienda</h2>
+      <h2 class="section-title">Kardex</h2>
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Concentrador de una sola tienda: cuota, cubrimiento de visitas, objetivo de distribución y alertas. Selecciona cadena y tienda para verlo.</p>
       <div class="controls-bar">
         <label>Cadena:</label>
@@ -1281,6 +1281,14 @@
         <button class="btn btn-brand" style="margin-top:10px;" onclick="publicarNoticia()">Publicar</button>
       </div>
       <div id="noticiasGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px;"></div>
+
+      <div id="reinicioZonaNoticias" class="hidden" style="margin-top:24px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todas las publicaciones de Daily News (con sus fotos), de todo el equipo.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorrarNoticias()">🗑️ Borrar todo Daily News</button>
+        </div>
+      </div>
     </section>
 
     <section class="view" id="view-escucha">
@@ -1317,6 +1325,8 @@ let APP_DATA = null;
 
 const STORAGE_KEY = 'delico_odv_capturas_v1';
 const PRIORIDAD_KEY = 'delico_odv_prioridades_v2';
+/* Única persona que puede ver y usar los botones de "Borrar todo" (reinicio de capturas / Daily News). */
+const RESET_TOTAL_USUARIO = 'KNAC01';
 let currentUser = null;
 
 /* ---------- Utilidades ---------- */
@@ -1672,7 +1682,7 @@ async function migrarCuentasFirebase(){
    eso se recarga siempre desde ese archivo, no vive en estas colecciones. Tampoco toca "Noticias"
    (avisos publicados por el equipo, no una captura de campo). */
 function abrirReinicioCapturas(){
-  if(currentUser.perfil !== 'Admin'){ toast('Solo un Admin puede hacer este reinicio.'); return; }
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
   const body = document.getElementById('modalBody');
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>🗑️ Reiniciar capturas del equipo</h3>
@@ -1699,7 +1709,7 @@ function abrirReinicioCapturas(){
   document.getElementById('modalBg').classList.add('open');
 }
 function ejecutarReinicioCapturas(){
-  if(currentUser.perfil !== 'Admin'){ toast('Solo un Admin puede hacer este reinicio.'); return; }
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
   const texto = ((document.getElementById('confirmaReinicioTexto')||{}).value || '').trim().toUpperCase();
   if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
   try{
@@ -1735,6 +1745,42 @@ function ejecutarReinicioCapturas(){
   }
 }
 
+/* ---------- Reinicio de Daily News (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirBorrarNoticias(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🗑️ Borrar todo Daily News</h3>
+    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:12px 14px; margin:8px 0 14px;">
+      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 4px;">⚠️ Esta acción no se puede deshacer.</p>
+      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las publicaciones de Daily News (con sus fotos), de todo el equipo.</p>
+    </div>
+    <div class="form-grid">
+      <div class="field full">
+        <label>Para confirmar, escribe <b>BORRAR TODO</b>:</label>
+        <input type="text" id="confirmaBorraNoticiasTexto" placeholder="BORRAR TODO" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarBorrarNoticias()">Borrar todo Daily News</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function ejecutarBorrarNoticias(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
+  const texto = ((document.getElementById('confirmaBorraNoticiasTexto')||{}).value || '').trim().toUpperCase();
+  if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
+  try{
+    _noticiasSync.save([]);
+    closeModal();
+    toast('Listo — se borraron todas las publicaciones de Daily News.', 5000);
+    renderNoticias();
+  }catch(e){
+    toast('⚠️ Hubo un problema al borrar Daily News: ' + e.message, 6500);
+  }
+}
+
 /* ---------- BOOT / NAV ---------- */
 /* ---------- ESTRUCTURA DE TABS: bloques funcionales x perfil x vista (escritorio/celular) ---------- */
 const TODOS_PERFILES = ['Embajador','Supervisor','Coordinador','Admin'];
@@ -1755,7 +1801,7 @@ const ALL_TABS = [
   {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'cumpprioridades', label:'Prioridades y tareas',            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'bono',          label:'Bono',                              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
-  {key:'kpis',          label:'KPIs por tienda',                   perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'kpis',          label:'Kardex',                            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'reportes',      label:'Reportes del equipo',               perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
   {key:'vacaciones',    label:'Vacaciones',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'evaluaciones',  label:'Evaluaciones',                      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
@@ -3961,7 +4007,7 @@ function renderReportes(){
   document.getElementById('repTipo').onchange = renderReportes;
   document.getElementById('repPersona').onchange = renderReportes;
   const zonaAdmin = document.getElementById('reinicioZonaAdmin');
-  if(zonaAdmin) zonaAdmin.classList.toggle('hidden', currentUser.perfil !== 'Admin');
+  if(zonaAdmin) zonaAdmin.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
   let arr = capturasFiltradasReporte();
 
   document.getElementById('repTotal').textContent = arr.length;
@@ -6930,11 +6976,15 @@ function exportarKpisTienda(){
 }
 function renderKpis(){
   const cadenaSel = document.getElementById('kpiCadena');
+  // A nivel Embajador, Kardex solo debe dejar ver sus propias tiendas asignadas (storesScopeParaMi ya
+  // resuelve esto: sector + ruta de septiembre + extra-tiendas aprobadas para Embajador, todas las
+  // tiendas para el resto de los perfiles) — no debe poder consultar cualquier tienda de la compañía.
+  const storesScope = storesScopeParaMi();
   if(cadenaSel.options.length<=1){
-    [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
+    [...new Set(storesScope.map(s=>s.cadena))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
     cadenaSel.onchange = ()=>{
       const tSel = document.getElementById('kpiTienda');
-      tSel.innerHTML = '<option value="">Selecciona...</option>' + APP_DATA.stores.filter(s=>s.cadena===cadenaSel.value).sort((a,b)=>a.tienda.localeCompare(b.tienda)).map(s=>`<option>${s.tienda}</option>`).join('');
+      tSel.innerHTML = '<option value="">Selecciona...</option>' + storesScopeParaMi().filter(s=>s.cadena===cadenaSel.value).sort((a,b)=>a.tienda.localeCompare(b.tienda)).map(s=>`<option>${s.tienda}</option>`).join('');
     };
   }
   const tienda = document.getElementById('kpiTienda').value;
@@ -7125,6 +7175,8 @@ function publicarNoticia(){
 function renderNoticias(){
   const grid = document.getElementById('noticiasGrid');
   if(!grid) return;
+  const zona = document.getElementById('reinicioZonaNoticias');
+  if(zona) zona.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
   const arr = getNoticias();
   grid.innerHTML = arr.map(n=>`<div class="card" style="padding:0; overflow:hidden;">
       ${n.foto? `<img src="${n.foto}" style="width:100%; height:150px; object-fit:cover;">` : ''}
