@@ -620,9 +620,7 @@
         <button class="mdi-tile mdi-oblig" onclick="openForm('precio_delico')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">💲</div><div class="t">Precio Delico</div><div class="d">Precio en piso de nuestro producto.</div></button>
         <button class="mdi-tile" onclick="openForm('precio_competencia')"><div class="icon">🏷️</div><div class="t">Precio competencia</div><div class="d">Marca, producto, precio, promos, fotos/videos de activaciones de otras marcas y comentarios.</div></button>
         <button class="mdi-tile" onclick="openForm('incidencia')"><div class="icon">⚠️</div><div class="t">Incidencias</div><div class="d">Inventario, calidad, tienda/instalaciones, refrigeración, otro.</div></button>
-        <button class="mdi-tile" onclick="openForm('incapacidad')"><div class="icon">🩺</div><div class="t">Incapacidad</div><div class="d">Registra tu incapacidad — puedes adjuntar receta médica (opcional).</div></button>
-        <button class="mdi-tile" onclick="openForm('inasistencia')"><div class="icon">🚫</div><div class="t">Inasistencia</div><div class="d">Registra una inasistencia — indica el motivo en comentarios.</div></button>
-        <button class="mdi-tile" onclick="showView('vacaciones')"><div class="icon">🌴</div><div class="t">Vacaciones</div><div class="d">Solicita tus vacaciones directo en el registro — ahí se aprueban y se ven tus días.</div></button>
+        <button class="mdi-tile" onclick="abrirIncidenciaPersonal()"><div class="icon">🧍</div><div class="t">Incidencia</div><div class="d">Incapacidad o inasistencia — comentario obligatorio, fotos opcionales.</div></button>
         <button class="mdi-tile" onclick="abrirCargaAnaquel()"><div class="icon">📐</div><div class="t">Carga de anaquel</div><div class="d">Frentes y profundidad por producto — como tabla, con foto de cada SKU.</div></button>
         <button class="mdi-tile" onclick="openForm('foto')"><div class="icon">📷</div><div class="t">Categoría</div><div class="d">Tipo de exhibición (refri, barco, búnker, otro) y foto.</div></button>
         <button class="mdi-tile hidden" id="tileOnboarding" onclick="abrirOnboarding()"><div class="icon">🧭</div><div class="t">Onboarding</div><div class="d">Checklist completo de onboarding — lo llenan juntas Supervisor y la persona nueva.</div></button>
@@ -698,6 +696,31 @@
       </div>
     </section>
 
+    <!-- ---------- EVALUACIONES (consolidado, solo consulta — Eval 360°, Auditoría/Supervisión, Onboarding) ---------- -->
+    <section class="view" id="view-evaluaciones">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">📋 Evaluaciones</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;" id="evaluacionesIntro">Aquí puedes ver las evaluaciones que te han hecho — qué se evaluó y los comentarios — para tenerlo presente. Esta vista es solo de consulta.</p>
+
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">⭐ Evaluación 360°</h3>
+      <div class="table-scroll" style="margin-bottom:20px;">
+        <table><thead><tr><th>Demostradora</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Total</th><th>Clasificación</th><th>Detalle</th></tr></thead><tbody id="evalu360Body"></tbody></table>
+      </div>
+
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">🕵️ Auditoría / Registrar supervisión</h3>
+      <div class="table-scroll" style="margin-bottom:20px;">
+        <table><thead><tr><th>Persona</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Promedio</th><th>Detalle</th></tr></thead><tbody id="evaluAudBody"></tbody></table>
+      </div>
+
+      <div id="evaluOnboardingWrap">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">🧭 Onboarding</h3>
+        <p style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 8px;">El onboarding se registra por nombre de la persona nueva, así que aquí se muestra a Supervisor y arriba.</p>
+        <div class="table-scroll" style="margin-bottom:10px;">
+          <table><thead><tr><th>Persona nueva</th><th>Tienda</th><th>Fecha</th><th>Registró</th><th>Cumplimiento</th></tr></thead><tbody id="evaluOnboardingBody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
     <!-- ---------- REPORTES (Supervisor+) ---------- -->
     <section class="view" id="view-reportes">
       <div class="bloque-tag bloque-retro">Retroalimentación</div>
@@ -736,7 +759,9 @@
         <button class="btn btn-ghost" onclick="exportCSV()">Exportar CSV</button>
         <button class="btn btn-ghost" onclick="exportImagenesReporte()">🖼️ Exportar imágenes</button>
         <button class="btn btn-ghost" onclick="exportPDFReporte()">📄 Exportar PDF reporte</button>
+        <button class="btn btn-ghost" onclick="exportarDetalleFormularios()">📝 Exportar detalle de formularios</button>
       </div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">"Exportar detalle de formularios" saca, para lo que esté filtrado, la respuesta real de cada pregunta (Mercadeo, Onboarding, Gasto/ticket) — no solo si se cumplió o no. Filtra por Tipo arriba para exportar solo uno de estos.</p>
       <div class="row" style="margin-bottom:14px;">
         <div class="card kpi"><div class="label">Total capturas</div><div class="value" id="repTotal">0</div></div>
         <div class="card kpi"><div class="label">Personas activas</div><div class="value" id="repPersonas">0</div></div>
@@ -828,9 +853,9 @@
 
     <section class="view" id="view-cumpprioridades">
       <div class="bloque-tag bloque-retro">Retroalimentación</div>
-      <h2 class="section-title">Cumplimiento de prioridades</h2>
-      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Qué tanto se está ejecutando en piso cada prioridad vigente (foto/confirmación), por mes y por tienda. Para dar de alta o quitar prioridades, ve a Cartas / materiales.</p>
-      <div class="controls-bar" style="align-items:center;">
+      <h2 class="section-title">Prioridades y tareas</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Qué tanto se está ejecutando en piso cada prioridad vigente (foto/confirmación) y cómo va el cumplimiento de tareas asignadas, por mes y por tienda. Para dar de alta o quitar prioridades, ve a Cartas / materiales. Para responder una tarea o confirmar una prioridad, ve a Ejecución › Prioridades y tareas.</p>
+      <div class="controls-bar" style="align-items:center;" id="cpFiltrosBar">
         <label>Mes(es):</label>
         <div class="tienda-dd" id="cpMesDdRoot">
           <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cpMesDd')" id="cpMesDdBtn">Selecciona...</button>
@@ -850,17 +875,24 @@
         <div class="card kpi"><div class="label">Prioridades vigentes en filtro</div><div class="value" id="cpKpiTotal">—</div></div>
         <div class="card kpi"><div class="label">Con seguimiento (foto/confirmación)</div><div class="value" id="cpKpiSeguimiento">—</div></div>
         <div class="card kpi warn"><div class="label">% Cobertura promedio</div><div class="value" id="cpKpiPct">—</div></div>
-        <div class="card kpi"><div class="label"># Tiendas en vista</div><div class="value" id="cpKpiTiendas">—</div></div>
+        <div class="card kpi" id="cpKpiTiendasWrap"><div class="label"># Tiendas en vista</div><div class="value" id="cpKpiTiendas">—</div></div>
       </div>
 
-      <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
-      <div id="cpInsights"></div>
-
-      <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 8px;">
-        <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Por prioridad (clic para ver el detalle por tienda)</h3>
-        <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCpTablaCSV()">⬇ Exportar a Excel</button>
+      <div id="cpInsightsWrap">
+        <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
+        <div id="cpInsights"></div>
       </div>
-      <div class="table-scroll" id="cpTablaPrioridades" style="margin-bottom:22px;"></div>
+
+      <div id="cpTablaWrap">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 8px;">
+          <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Por prioridad (clic para ver el detalle por tienda y las respuestas)</h3>
+          <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCpTablaCSV()">⬇ Exportar a Excel</button>
+        </div>
+        <div class="table-scroll" id="cpTablaPrioridades" style="margin-bottom:22px;"></div>
+      </div>
+
+      <h2 class="section-title" style="margin-top:6px;">📋 Tareas</h2>
+      <div id="cpTareasBox" style="margin-bottom:18px;"></div>
 
       <p id="cpScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:14px 0 0;"></p>
     </section>
@@ -1104,11 +1136,10 @@
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Código de barras, fotografía y cadenas en las que está activo cada producto — fuente: "Catálogo activo por cadena" (Marketing).</p>
       <div class="controls-bar">
         <label>Cadena:</label>
-        <select id="catCadena"><option value="">Todas</option></select>
+        <select id="catCadena" onchange="renderCatalogo()"><option value="">Todas</option></select>
         <label>Familia:</label>
-        <select id="catFamilia"><option value="">Todas</option></select>
-        <input type="text" id="catBusca" placeholder="Buscar producto, clave o código de barras...">
-        <button class="btn btn-brand" onclick="renderCatalogo()">Filtrar</button>
+        <select id="catFamilia" onchange="renderCatalogo()"><option value="">Todas</option></select>
+        <input type="text" id="catBusca" placeholder="Buscar producto, clave o código de barras..." oninput="renderCatalogo()">
         <button class="btn btn-ghost" onclick="document.getElementById('catCadena').value='';document.getElementById('catFamilia').value='';document.getElementById('catBusca').value='';renderCatalogo();">↺ Restablecer filtros</button>
         <button class="btn btn-outline" onclick="exportarCatalogoCSV()">⬇ Excel</button>
       </div>
@@ -1614,11 +1645,12 @@ const ALL_TABS = [
   {key:'cumpventa',     label:'Cumplimiento de venta',             perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'distribucion',  label:'Cumplimiento de distribución',      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
-  {key:'cumpprioridades', label:'Cumplimiento de prioridades',     perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'cumpprioridades', label:'Prioridades y tareas',            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'bono',          label:'Bono',                              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'kpis',          label:'KPIs por tienda',                   perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'reportes',      label:'Reportes del equipo',               perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
   {key:'vacaciones',    label:'Vacaciones',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'evaluaciones',  label:'Evaluaciones',                      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'noticias',      label:'Daily News',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'escucha',       label:'Délico te escucha',                 perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
 ];
@@ -1721,7 +1753,10 @@ function boot(keepView){
   if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
 
   iniciarTodaLaSincronizacion();
-  iniciarChequeoLeySilla();
+  /* Alerta automática de "ya llevas 14 minutos de descanso" — desactivada: confundía a las personas
+     porque podía dispararse minutos después de iniciar sesión si había un registro de entrada
+     abierto de antes. El módulo de Ley Silla se sigue usando normal (registrar entrada/salida
+     manual), solo ya no manda ese aviso automático. */
 }
 
 function toggleMobileNav(force){
@@ -1760,6 +1795,7 @@ function showView(key, btnEl){
   if(key==='eval360') renderEval360();
   if(key==='catalogo') renderCatalogo();
   if(key==='escucha') renderEscucha();
+  if(key==='evaluaciones') renderEvaluaciones();
 }
 
 /* ---------- PLANEACIÓN ---------- */
@@ -2532,22 +2568,8 @@ const FORM_DEFS = {
       ['tienda','tienda_select','Tienda',true],
       ['tipo_incidencia','select','Tipo de incidencia',true,['Inventario (ajuste/no coincide)','Maltrato de producto','Calidad (olor/consistencia/objeto ajeno)','Tienda / instalaciones (remodelación, accesos)','Refrigeración (gotea, no enfría)','Visita fuera de ruta asignada','Otro']],
       ['descripcion','textarea','Describe la incidencia',true],
-      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
-    ]
-  },
-  incapacidad:{
-    title:'Incapacidad', icon:'🩺',
-    fields:[
-      ['fecha','date','Fecha',true],
-      ['receta_medica','file_multi','Receta médica (opcional, puedes subir varias fotos)',false],
-      ['comentarios','textarea','Comentarios (opcional)',false],
-    ]
-  },
-  inasistencia:{
-    title:'Inasistencia', icon:'🚫',
-    fields:[
-      ['fecha','date','Fecha',true],
-      ['comentarios','textarea','Motivo / comentarios',true],
+      ['lote','text','Número de lote (obligatorio si es Calidad)',false],
+      ['foto','file_multi','Foto(s) — obligatoria si es Calidad, si no opcional, puedes subir varias',false],
     ]
   },
   degustacion:{
@@ -3250,6 +3272,10 @@ function submitForm(type){
         rec[key] = val;
       }
     });
+    if(type==='incidencia' && rec.tipo_incidencia==='Calidad (olor/consistencia/objeto ajeno)'){
+      if(!rec.lote){ missing = true; faltantes.push('Número de lote'); }
+      if(!(rec.foto && rec.foto.length)){ missing = true; faltantes.push('Foto del lote'); }
+    }
     if(missing){ toast('Falta: ' + faltantes.join(', ')); return; }
     const continuarGuardado = () => {
       try{
@@ -3275,6 +3301,55 @@ function submitForm(type){
 }
 
 /* ---------- Carga de anaquel (frentes y profundidad por SKU) ---------- */
+/* ---------- Incidencia personal (Incapacidad / Inasistencia) ---------- */
+function abrirIncidenciaPersonal(){
+  const body = document.getElementById('modalBody');
+  window._fotosMulti = window._fotosMulti || {};
+  window._fotosMulti.incidenciaPersonal = [];
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🧍 Incidencia</h3>
+    <p class="d">Los campos con * son obligatorios.</p>
+    <div class="form-grid">
+      <div class="field full"><label>Tipo *</label>
+        <select id="incpTipo">
+          <option value="">Selecciona...</option>
+          <option value="incapacidad">Incapacidad</option>
+          <option value="inasistencia">Inasistencia</option>
+        </select>
+      </div>
+      <div class="field full"><label>Comentarios *</label><textarea id="incpComentarios" rows="3" placeholder="Explica el motivo..."></textarea></div>
+      <div class="field full"><label>Foto(s) — opcional, puedes subir varias</label>
+        <input type="file" id="f_incidenciaPersonal" accept="image/*" capture="environment" multiple onchange="previewFileMulti('incidenciaPersonal')">
+        <div id="prev_incidenciaPersonal" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" onclick="submitIncidenciaPersonal()">Guardar captura</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function submitIncidenciaPersonal(){
+  try{
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+    const tipo = document.getElementById('incpTipo').value;
+    const comentarios = document.getElementById('incpComentarios').value.trim();
+    if(!tipo){ toast('Falta: Tipo'); return; }
+    if(!comentarios){ toast('Falta: Comentarios'); return; }
+    const fotos = ((window._fotosMulti||{}).incidenciaPersonal||[]).map(f=>f.b64);
+    const rec = { id: uid(), tipo, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), fecha: todayISO(), comentarios, fotos };
+    const continuarGuardado = () => {
+      const arr = getCapturas();
+      arr.push(rec);
+      saveCapturas(arr);
+      closeModal();
+      toast('Captura guardada ✓');
+      renderMisCapturas();
+      if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+    };
+    continuarGuardado();
+  }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
+}
 function abrirCargaAnaquel(){
   const body = document.getElementById('modalBody');
   const checkin = getCheckin();
@@ -3631,9 +3706,9 @@ function detalleCaptura(c){
       return `${c.persona_nueva?'Con '+c.persona_nueva+' · ':''}${ok}/${all.length} cumplidos`;
     }
     case 'caducidad': return `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
-    case 'incidencia': return `${c.tipo_incidencia}: ${c.descripcion}`;
-    case 'incapacidad': return `${c.fecha||''}${c.comentarios? ' — '+c.comentarios:''}${(c.receta_medica&&c.receta_medica.length)?' · con receta médica':''}`;
-    case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}`;
+    case 'incidencia': return `${c.tipo_incidencia}: ${c.descripcion}${c.lote?' · Lote: '+c.lote:''}`;
+    case 'incapacidad': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
+    case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
     case 'degustacion': return `${nombreProductosDegustacion(c)} — ${c.reacciones}`;
     case 'precio_delico': return `${nombreProducto(c.clave)} — $${c.precio_delico}`;
     case 'precio_competencia': return `${c.marca_competencia} — $${c.precio_competencia}${c.promo_competencia? ' · '+c.promo_competencia:''}`;
@@ -4847,7 +4922,10 @@ function renderTareas(){
       ${t.retroalimentaciones.length ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:6px;">
         ${t.retroalimentaciones.map(r=>`<div style="font-size:12px;"><b>${nombreCorto(r.autor)}:</b> ${r.texto} <span style="color:var(--ink-soft);">(${r.fecha.slice(0,10)})</span></div>`).join('')}
       </div>` : ''}
-      ${t.estado==='finalizada' ? `<div style="margin-top:10px; background:var(--good-soft); border-radius:8px; padding:8px 10px; font-size:12.5px;"><b>Conclusión:</b> ${t.conclusion} ${t.calificacion?' · '+'⭐'.repeat(t.calificacion):''}</div>` : `
+      ${t.estado==='finalizada' ? `<div style="margin-top:10px; background:var(--good-soft); border-radius:8px; padding:8px 10px; font-size:12.5px;"><b>Conclusión:</b> ${t.conclusion} ${t.calificacion?' · '+'⭐'.repeat(t.calificacion):''}</div>` : (
+      currentUser.perfil==='Embajador'
+      ? `<div style="margin-top:10px; font-size:11.5px; color:var(--ink-soft);">Ábrela en Ejecución › Prioridades y tareas para responder o finalizarla.</div>`
+      : `
       <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
         <input type="text" id="retro_${t.id}" placeholder="Agregar retroalimentación..." style="flex:1; min-width:180px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;">
         <button class="btn btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="agregarRetro('${t.id}')">Agregar</button>
@@ -4859,7 +4937,7 @@ function renderTareas(){
           ${[1,2,3,4,5].map(n=>`<label style="cursor:pointer;"><input type="radio" name="stars_${t.id}" value="${n}" style="display:none;" onchange="this.closest('div').querySelectorAll('span').forEach((s,i)=>s.textContent = i<${n}?'⭐':'☆')"><span>☆</span></label>`).join('')}
         </div>
         <button class="btn btn-brand" style="padding:5px 10px; font-size:11.5px;" onclick="finalizarTarea('${t.id}')">Confirmar conclusión</button>
-      </div>`}
+      </div>`)}
     </div>
   `).join('') || `<p style="font-size:13px; color:var(--ink-soft);">Sin tareas asignadas todavía.</p>`;
 }
@@ -5161,6 +5239,39 @@ function renderEval360(){
     </tr>`).join('') || `<tr><td colspan="6" class="empty-state">Aún no hay evaluaciones suficientes para calcular elegibilidad trimestral.</td></tr>`;
 }
 
+function renderEvaluaciones(){
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const intro = document.getElementById('evaluacionesIntro');
+  if(intro) intro.textContent = esEmbajador
+    ? 'Aquí puedes ver las evaluaciones que te han hecho — qué se evaluó y los comentarios — para tenerlo presente. Esta vista es solo de consulta.'
+    : 'Evaluación 360°, Auditoría/supervisión y Onboarding, todo en un solo lugar.';
+
+  const arr360 = getEval360().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
+  const box360 = document.getElementById('evalu360Body');
+  if(box360) box360.innerHTML = arr360.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>{
+    const det = EVAL360_CATEGORIAS.map(cat=>`${cat.label.split(' ')[0]}: ${a.subtotales[cat.key]!==null?a.subtotales[cat.key].toFixed(1):'—'}`).join(' · ');
+    return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${a.fecha}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.total.toFixed(1)}</td><td>${a.clasificacion}</td><td style="font-size:11px; color:var(--ink-soft);">${det}${a.observaciones?' — Obs: '+a.observaciones:''}${a.compromiso?' — Compromiso: '+a.compromiso:''}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty-state">Sin evaluaciones 360° todavía.</td></tr>`;
+
+  const arrAud = getAuditorias().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
+  const boxAud = document.getElementById('evaluAudBody');
+  if(boxAud) boxAud.innerHTML = arrAud.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>
+    `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${(a.fecha||'').slice(0,10)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td></tr>`
+  ).join('') || `<tr><td colspan="6" class="empty-state">Sin evaluaciones de supervisión todavía.</td></tr>`;
+
+  const onbWrap = document.getElementById('evaluOnboardingWrap');
+  if(onbWrap) onbWrap.classList.toggle('hidden', esEmbajador);
+  if(!esEmbajador){
+    const arrOnb = getCapturas().filter(c=>c.tipo==='onboarding' && visibleUsuarios.has(c.usuario));
+    const boxOnb = document.getElementById('evaluOnboardingBody');
+    if(boxOnb) boxOnb.innerHTML = arrOnb.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).map(c=>{
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      return `<tr><td>${c.persona_nueva||'—'}</td><td>${c.tienda||''}</td><td>${(c.fecha_registro||'').slice(0,10)}</td><td>${nombreCorto(c.persona||'')}</td><td class="num">${ok}/${all.length}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" class="empty-state">Sin onboarding registrado todavía.</td></tr>`;
+  }
+}
 /* ---------- INFORMACIÓN PARA TIENDA (solo lectura, no confidencial) ---------- */
 /* ---------- BI REAL: cruce de cuotas, distribución y venta cero (fuente: 2.CUOTAS / 3.PIPELINE ODV / 2.SELL OUT) ---------- */
 /* ---------- Ruta de septiembre (Asignación tiendas septiembre.xlsx): permite que una tienda tenga 2+ personas asignadas ---------- */
@@ -6122,6 +6233,31 @@ function cpEjecucionesEnScope(p, storesScope, mesesSet){
 }
 let cpPrioridadExpandida = null;
 function renderCumpPrioridades(){
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const filtrosBar = document.getElementById('cpFiltrosBar');
+  const tiendasWrap = document.getElementById('cpKpiTiendasWrap');
+  const insightsWrap = document.getElementById('cpInsightsWrap');
+  const tablaWrap = document.getElementById('cpTablaWrap');
+  if(filtrosBar) filtrosBar.classList.toggle('hidden', esEmbajador);
+  if(tiendasWrap) tiendasWrap.classList.toggle('hidden', esEmbajador);
+  if(insightsWrap) insightsWrap.classList.toggle('hidden', esEmbajador);
+  if(tablaWrap) tablaWrap.classList.toggle('hidden', esEmbajador);
+  renderCpTareas();
+  if(esEmbajador){
+    /* Vista simplificada de solo consulta: cuántas prioridades vigentes se pusieron y cuántas cumplió. */
+    const storesScope = storesScopeCumpPrioridades();
+    const prioridades = prioridadesEnScopeCp(storesScope);
+    const conSeguimiento = prioridades.filter(p=>p.requiere_foto||p.requiere_confirmacion);
+    const misRegistros = getCumplimientosPrioridad().filter(r=>r.usuario===currentUser.usuario);
+    const cumplidas = conSeguimiento.filter(p=>misRegistros.some(r=>r.prioridad_id===p.id)).length;
+    const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+    setTxt('cpKpiTotal', prioridades.length);
+    setTxt('cpKpiSeguimiento', conSeguimiento.length);
+    setTxt('cpKpiPct', conSeguimiento.length ? Math.round(cumplidas/conSeguimiento.length*100)+'%' : '—');
+    const note = document.getElementById('cpScopeNote');
+    if(note) note.textContent = `De ${conSeguimiento.length} prioridad(es) que piden foto o confirmación, ya cumpliste ${cumplidas}. Esta vista es solo de consulta — para responder o subir foto, ve a Ejecución › Prioridades y tareas.`;
+    return;
+  }
   poblarFiltrosCumpPrioridades();
   const storesScope = storesScopeCumpPrioridades();
   const mesesSet = mesesSeleccionadosCpComoAnioMes();
@@ -6174,11 +6310,26 @@ function renderCumpPrioridades(){
     const box = document.getElementById('cpTablaPrioridades');
     if(!box) return;
     const filas = window._cpDatos.slice().sort((a,b)=>(a.pct??999)-(b.pct??999));
+    const respuestasTodas = getCumplimientosPrioridad();
     const rowsHtml = filas.map(p=>{
       let html = `<tr style="cursor:pointer;" onclick="toggleCpPrioridadExpandida('${p.id}')"><td>${cpPrioridadExpandida===p.id?'▼':'▶'} ${p.texto}</td><td class="num">${p.visitasVentana}</td><td class="num">${p.ejecuciones}</td><td class="num">${p.pct!=null?p.pct+'%':'—'}</td></tr>`;
       if(cpPrioridadExpandida===p.id){
         html += p.tiendasDetalle.length ? p.tiendasDetalle.map(t=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${t.tienda}${t.cadena?' · '+t.cadena:''}</td><td class="num" style="font-size:12px;">${t.visitas}</td><td class="num" style="font-size:12px;">${t.ejecs}</td><td class="num" style="font-size:12px;">${t.pct!=null?t.pct+'%':'—'}</td></tr>`).join('')
           : `<tr style="background:#f7f8ee;"><td colspan="4" style="font-size:12px; padding-left:26px; color:var(--ink-soft);">Sin visitas registradas en la ventana de vigencia para este filtro.</td></tr>`;
+        const respuestas = respuestasTodas.filter(r=>r.prioridad_id===p.id);
+        if(respuestas.length){
+          html += `<tr style="background:#f7f8ee;"><td colspan="4" style="padding:6px 6px 6px 26px;">
+            <div style="font-size:11px; font-weight:700; color:var(--brand-dark); text-transform:uppercase; margin-bottom:4px;">Respuestas capturadas (qué contestó cada quien)</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${respuestas.map(r=>`<div style="font-size:12px; border-bottom:1px dashed var(--line); padding-bottom:4px;">
+                <b>${nombreCorto(r.persona)}</b> · ${r.tienda||''} · ${(r.fecha_registro||'').slice(0,16).replace('T',' ')}
+                ${r.activa ? ` — <span style="color:${r.activa==='si'?'var(--good)':'var(--bad)'}; font-weight:700;">${r.activa==='si'?'Sí, está activa':'No, no está activa'}</span>` : ''}
+                ${r.comentario ? `<br><span style="color:var(--ink-soft);">"${r.comentario}"</span>` : ''}
+                ${r.foto ? `<br><img src="${r.foto}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; margin-top:3px; border:1px solid var(--line);">` : ''}
+              </div>`).join('')}
+            </div>
+          </td></tr>`;
+        }
       }
       return html;
     }).join('');
@@ -6201,6 +6352,47 @@ function renderCumpPrioridades(){
       ? `Mostrando solo tus tiendas asignadas + ${extra.length} tienda(s) adicional(es) aprobada(s) temporalmente.`
       : 'Mostrando solo tus tiendas asignadas.';
   } else if(note) note.textContent = '';
+}
+function renderCpTareas(){
+  const box = document.getElementById('cpTareasBox');
+  if(!box) return;
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  if(esEmbajador){
+    const mias = getTareas().filter(t=>t.asignado_a===currentUser.usuario);
+    const cumplidas = mias.filter(t=>t.estado==='finalizada').length;
+    box.innerHTML = `<div class="row" style="margin-bottom:4px;">
+        <div class="card kpi"><div class="label">Tareas asignadas a ti</div><div class="value">${mias.length}</div></div>
+        <div class="card kpi good"><div class="label">Finalizadas</div><div class="value">${cumplidas}</div></div>
+        <div class="card kpi warn"><div class="label">Abiertas</div><div class="value">${mias.length-cumplidas}</div></div>
+      </div>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">Esta vista es solo de consulta. Para responder o finalizar una tarea, ve a Ejecución › Prioridades y tareas.</p>`;
+    return;
+  }
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getTareas().filter(t=>visibleUsuarios.has(t.asignado_a)).sort((a,b)=>(a.estado===b.estado?0:a.estado==='abierta'?-1:1) || b.fecha_creacion.localeCompare(a.fecha_creacion));
+  const abiertas = arr.filter(t=>t.estado==='abierta').length;
+  window._cpTareasExport = arr;
+  box.innerHTML = `<div class="row" style="margin-bottom:10px;">
+      <div class="card kpi"><div class="label">Total</div><div class="value">${arr.length}</div></div>
+      <div class="card kpi warn"><div class="label">Abiertas</div><div class="value">${abiertas}</div></div>
+      <div class="card kpi good"><div class="label">Finalizadas</div><div class="value">${arr.length-abiertas}</div></div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-bottom:6px;"><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCpTareasCSV()">⬇ Exportar a Excel</button></div>
+    <div class="table-scroll"><table><thead><tr><th>Persona</th><th>Tarea</th><th>Prioridad</th><th>Estado</th><th>Respuesta / conclusión</th></tr></thead><tbody>
+      ${arr.length ? arr.map(t=>`<tr>
+          <td>${nombreCorto(t.asignado_a_nombre)}</td>
+          <td style="font-size:12px;">${t.texto}</td>
+          <td>${PRIORIDAD_TAREA_LABEL[t.prioridad]||t.prioridad}</td>
+          <td>${t.estado}</td>
+          <td style="font-size:12px;">${t.estado==='finalizada' ? (t.conclusion||'') : (t.retroalimentaciones&&t.retroalimentaciones.length ? t.retroalimentaciones.map(r=>`${nombreCorto(r.autor)}: ${r.texto}`).join(' · ') : '—')}</td>
+        </tr>`).join('') : `<tr><td colspan="5" class="empty-state">Sin tareas asignadas en este alcance.</td></tr>`}
+    </tbody></table></div>`;
+}
+function exportarCpTareasCSV(){
+  const arr = window._cpTareasExport || [];
+  const headers = ['Persona','Tarea','Prioridad','Estado','Asignó','Fecha creación','Respuesta/conclusión'];
+  const rows = arr.map(t=>[nombreCorto(t.asignado_a_nombre), t.texto, t.prioridad, t.estado, t.asignado_por, (t.fecha_creacion||'').slice(0,10), t.estado==='finalizada' ? (t.conclusion||'') : (t.retroalimentaciones&&t.retroalimentaciones.length ? t.retroalimentaciones.map(r=>`${r.autor}: ${r.texto}`).join(' | ') : '')]);
+  exportarCSV(`tareas_${todayISO()}.csv`, headers, rows);
 }
 /* Mes(es) para Distribución reportada en campo — mismo patrón de checklist desplegable que Objetivos/Cumplimiento de venta */
 let distFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
@@ -6698,10 +6890,38 @@ function renderEscucha(){
       ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${m.fotos.map(f=>`<img src="${f}" style="width:76px; height:76px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}</div>` : ''}
     </div>`).join('') || `<div class="empty-state">Aún no hay comentarios. ¡Sé el primero en escribir algo!</div>`;
 }
+function exportarDetalleFormularios(){
+  const arr = capturasFiltradasReporte().filter(c=>['mercadeo','onboarding','gasto_ticket'].includes(c.tipo));
+  if(!arr.length){ toast('No hay capturas de Mercadeo, Onboarding o Gasto (ticket) en este filtro.'); return; }
+  const headers = ['Tipo','Persona','Tienda','Fecha','Sección','Pregunta / línea','Respuesta','Comentario'];
+  const rows = [];
+  arr.forEach(c=>{
+    const fecha = (c.fecha_registro||'').slice(0,16).replace('T',' ');
+    if(c.tipo==='mercadeo' || c.tipo==='onboarding'){
+      const secciones = [
+        ['Preparación de la visita', c.preparacion],
+        ['Cámara', c.camara],
+        ['Degustación', c.degustacion_checklist],
+        ['Mercadeo', c.mercadeo],
+      ];
+      secciones.forEach(([secLabel, items])=>{
+        (items||[]).forEach(it=>{
+          rows.push([TIPO_LABEL[c.tipo]||c.tipo, c.persona, c.tienda||'', fecha, secLabel, it.item, it.cumple?'Sí':'No', it.comentario||'']);
+        });
+      });
+      if(c.comentarios_generales) rows.push([TIPO_LABEL[c.tipo]||c.tipo, c.persona, c.tienda||'', fecha, 'Comentarios generales', '', '', c.comentarios_generales]);
+    } else if(c.tipo==='gasto_ticket'){
+      (c.lineas||[]).forEach((l,i)=>{
+        rows.push([TIPO_LABEL[c.tipo]||c.tipo, c.persona, c.tienda||'', fecha, 'Línea '+(i+1), l.detalle||'', l.costo!=null&&l.costo!==''?('$'+l.costo):'', `${l.tipo||''}${l.piezas?(' · '+l.piezas+' pzas'):''}${l.origen?(' · '+l.origen):''}`]);
+      });
+    }
+  });
+  exportarCSV(`detalle_formularios_${todayISO()}.csv`, headers, rows);
+}
 function exportCSV(){
   const arr = capturasFiltradasReporte();
   if(!arr.length){ toast('No hay capturas para exportar'); return; }
-  const cols = ['tipo','persona','usuario','fecha_registro','tienda','clave','clave2','clave3','fecha_caducidad','piezas','tipo_incidencia','descripcion','fecha','comentarios','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
+  const cols = ['tipo','persona','usuario','fecha_registro','tienda','clave','clave2','clave3','fecha_caducidad','piezas','tipo_incidencia','descripcion','lote','fecha','comentarios','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
   let csv = cols.join(',') + '\n';
   arr.forEach(c=>{
     csv += cols.map(k=>{
