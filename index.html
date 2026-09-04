@@ -1527,16 +1527,24 @@ function iniciarSincronizacion(coleccion, onCambio, onBorrado){
     });
   }, err=>{ console.warn('Firestore: no se pudo escuchar la colección "'+coleccion+'".', err); });
 }
+/* IMPORTANTE: estas dos funciones NUNCA deben "tragarse" un error silenciosamente y fingir éxito —
+   eso fue justo la causa de que "Borrar todo" pareciera funcionar pero los registros regresaran solos:
+   si Firestore rechazaba un borrado (permisos, red, etc.), antes se atrapaba el error con .catch() y
+   la promesa se resolvía igual "bien", el cache local se limpiaba, y en cuanto volvía a sincronizar
+   la nube regresaba el documento que en realidad nunca se borró. Ahora devuelven siempre {ok, error}
+   para que quien llame sepa exactamente qué sí y qué no se logró, y pueda reflejarlo en pantalla. */
 function subirAColeccion(coleccion, documento){
-  if(!db || !documento || !documento.id) return Promise.resolve();
+  if(!db || !documento || !documento.id) return Promise.resolve({ok:true});
   const data = {...documento};
   return db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
-    .catch(err=> console.warn('No se pudo subir a la nube ('+coleccion+'):', err));
+    .then(()=>({ok:true}))
+    .catch(err=>{ console.warn('No se pudo subir a la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
 }
 function borrarDeColeccion(coleccion, id){
-  if(!db || !id) return Promise.resolve();
+  if(!db || !id) return Promise.resolve({ok:true});
   return db.collection(coleccion).doc(String(id)).delete()
-    .catch(err=> console.warn('No se pudo borrar en la nube ('+coleccion+'):', err));
+    .then(()=>({ok:true}))
+    .catch(err=>{ console.warn('No se pudo borrar en la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
 }
 
 function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
@@ -1547,17 +1555,32 @@ function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
     // importante para flujos como "Borrar todo", que necesitan esperar a que Firestore realmente
     // termine de borrar antes de recargar la página (si no, un reload cancela las peticiones en
     // curso y algunos documentos "sobreviven" sin querer).
+    // Además: si algún borrado de verdad falla en Firestore (permisos, red, etc.), ese documento
+    // NO se saca del cache local — se regresa a la pantalla apenas se sabe que falló, en vez de
+    // desaparecer un momento y reaparecer solo — y se reporta en el resumen que devuelve la promesa.
     const previoPorId = new Map(estado.cache.map(d=>[d.id, JSON.stringify(d)]));
     const idsNuevos = new Set(arrNuevo.filter(d=>d && d.id).map(d=>d.id));
-    const promesas = [];
+    const operaciones = [];
     arrNuevo.forEach(d=>{
       if(!d || !d.id) return;
-      if(previoPorId.get(d.id) !== JSON.stringify(d)) promesas.push(subirAColeccion(nombreColeccion, d));
+      if(previoPorId.get(d.id) !== JSON.stringify(d)) operaciones.push({tipo:'subir', doc:d, promesa: subirAColeccion(nombreColeccion, d)});
     });
-    estado.cache.forEach(d=>{ if(d && d.id && !idsNuevos.has(d.id)) promesas.push(borrarDeColeccion(nombreColeccion, d.id)); });
+    const aBorrar = estado.cache.filter(d=> d && d.id && !idsNuevos.has(d.id));
+    aBorrar.forEach(d=> operaciones.push({tipo:'borrar', doc:d, promesa: borrarDeColeccion(nombreColeccion, d.id)}));
     estado.cache = arrNuevo;
     guardarLocalStorageSeguro(storageKey, arrNuevo);
-    return Promise.all(promesas);
+    if(!operaciones.length) return Promise.resolve({ok:true, total:0, fallidos:0});
+    return Promise.all(operaciones.map(o=>o.promesa)).then(resultados=>{
+      const fallidosBorrar = [];
+      operaciones.forEach((o,i)=>{ if(o.tipo==='borrar' && !(resultados[i] && resultados[i].ok)) fallidosBorrar.push(o.doc); });
+      if(fallidosBorrar.length){
+        fallidosBorrar.forEach(d=>{ if(!estado.cache.some(x=>x.id===d.id)) estado.cache.push(d); });
+        guardarLocalStorageSeguro(storageKey, estado.cache);
+        if(alRefrescar) alRefrescar();
+      }
+      const totalFallidos = resultados.filter(r=>!(r && r.ok)).length;
+      return { ok: totalFallidos===0, total: operaciones.length, fallidos: totalFallidos };
+    });
   }
   function iniciarSync(){
     if(estado.iniciado) return;
@@ -1589,7 +1612,8 @@ function crearDocumentoSincronizado(nombreColeccion, idDocumento, storageKey, va
     const cambio = JSON.stringify(estado.valor) !== JSON.stringify(obj);
     estado.valor = obj;
     guardarLocalStorageSeguro(storageKey, obj);
-    return cambio ? subirAColeccion(nombreColeccion, {...obj, id: idDocumento}) : Promise.resolve();
+    if(!cambio) return Promise.resolve({ok:true, total:0, fallidos:0});
+    return subirAColeccion(nombreColeccion, {...obj, id: idDocumento}).then(r=>({ok: !!(r&&r.ok), total:1, fallidos: (r&&r.ok)?0:1}));
   }
   function iniciarSync(){
     if(estado.iniciado) return;
@@ -1760,21 +1784,41 @@ async function ejecutarConfirmarBorrado(){
   const textoOriginal = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
   try{
-    await opts.alConfirmar();
+    const resumen = await opts.alConfirmar();
     closeModal();
-    if(opts.alTerminar) opts.alTerminar();
+    if(resumen && resumen.fallidos > 0){
+      // No todo se pudo borrar de verdad en la nube (ej. permisos de Firestore, o se perdió la
+      // conexión a medio camino) — se lo decimos claro en vez de fingir que "ya quedó", que es
+      // justo lo que causaba que los registros parecieran regresar solos.
+      toast(`⚠️ Se borraron ${resumen.total - resumen.fallidos} de ${resumen.total} — ${resumen.fallidos} NO se pudieron borrar en la nube (probablemente permisos de Firestore o falta de conexión). Vuelve a intentar el borrado; si sigue fallando, puede ser una regla de seguridad de Firestore que hay que ajustar.`, 9000);
+      if(opts.alTerminar) opts.alTerminar(resumen);
+    } else {
+      if(opts.alTerminar) opts.alTerminar(resumen);
+    }
   }catch(e){
     toast('⚠️ Hubo un problema al borrar: ' + e.message, 6500);
     if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
   }
 }
 /* Borra todas las capturas de la colección 'capturas_medi' (no usa crearColeccionSincronizada,
-   se maneja aparte) y espera a que Firestore confirme cada borrado antes de continuar. */
+   se maneja aparte) y espera a que Firestore confirme cada borrado antes de continuar.
+   Si algún borrado falla de verdad en la nube (permisos, red...), ese registro se queda en el
+   cache local en vez de desaparecer — así la pantalla no miente, y se reporta cuántos fallaron. */
 async function borrarTodasLasCapturasMedi(){
-  const promesas = getCapturas().filter(c=>c && c.id).map(c=>borrarDeColeccion('capturas_medi', c.id));
-  await Promise.all(promesas);
-  _capturasCache = [];
-  localStorage.removeItem(STORAGE_KEY);
+  const objetivo = getCapturas().filter(c=>c && c.id);
+  if(!objetivo.length) return {ok:true, total:0, fallidos:0};
+  const resultados = await Promise.all(objetivo.map(c=>borrarDeColeccion('capturas_medi', c.id).then(r=>({r, c}))));
+  const sobrevivientes = resultados.filter(x=>!(x.r && x.r.ok)).map(x=>x.c);
+  _capturasCache = sobrevivientes;
+  guardarLocalStorageSeguro(STORAGE_KEY, sobrevivientes);
+  return { ok: sobrevivientes.length===0, total: objetivo.length, fallidos: sobrevivientes.length };
+}
+/* Combina varios resúmenes {ok,total,fallidos} (de distintas colecciones) en uno solo. */
+function combinarResumenesBorrado(resumenes){
+  const limpios = resumenes.filter(r=>r && typeof r==='object' && 'total' in r);
+  const total = limpios.reduce((a,r)=>a+(r.total||0), 0);
+  const fallidos = limpios.reduce((a,r)=>a+(r.fallidos||0), 0);
+  return { ok: fallidos===0, total, fallidos };
 }
 
 /* ---------- Reinicio TOTAL de capturas del equipo (solo RESET_TOTAL_USUARIO) ---------- */
@@ -1791,7 +1835,7 @@ function abrirReinicioCapturas(){
           <label style="font-weight:700; margin-top:10px; display:block;">NO se toca:</label>
           <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Equipo, tiendas, catálogo de productos, cuotas, Pipeline/combinaciones, distribución, alertas de venta cero, cumplimiento semanal, asignación de rutas de septiembre — todo lo que viene del archivo que subes (la "PP"). Tampoco se toca Daily News (tiene su propio botón de borrado en su pestaña).</p>`,
     alConfirmar: async () => {
-      await Promise.all([
+      const resultados = await Promise.all([
         borrarTodasLasCapturasMedi(),
         _prioridadesSync.save([]),
         _tareasSync.save([]),
@@ -1809,13 +1853,22 @@ function abrirReinicioCapturas(){
         _rutasSync.save([]),
         _escuchaSync.save([]),
       ]);
-      setCheckin(null);
-      localStorage.removeItem('delico_odv_semanas_publicadas');
-      Object.keys(localStorage).filter(k=>k.startsWith('delico_odv_ruta_snap_')).forEach(k=>localStorage.removeItem(k));
+      const resumen = combinarResumenesBorrado(resultados);
+      if(resumen.ok){
+        setCheckin(null);
+        localStorage.removeItem('delico_odv_semanas_publicadas');
+        Object.keys(localStorage).filter(k=>k.startsWith('delico_odv_ruta_snap_')).forEach(k=>localStorage.removeItem(k));
+      }
+      return resumen;
     },
-    alTerminar: () => {
-      toast('Listo — se borró todo lo capturado por el equipo (con fotos). Catálogo, cuotas, tiendas y Pipeline siguen igual.', 7000);
-      setTimeout(()=>location.reload(), 1200);
+    alTerminar: (resumen) => {
+      if(!resumen || resumen.fallidos===0){
+        toast('Listo — se borró todo lo capturado por el equipo (con fotos). Catálogo, cuotas, tiendas y Pipeline siguen igual.', 7000);
+        setTimeout(()=>location.reload(), 1200);
+      } else {
+        // No recargamos automático: así puedes ver en Reportes qué quedó y volver a intentar el borrado.
+        renderMisCapturas(); renderReportes();
+      }
     },
   });
 }
@@ -1826,9 +1879,9 @@ function abrirReinicioMedi(){
     titulo: 'Borrar registros de MEDI',
     textoBoton: 'Borrar todo MEDI',
     descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran TODAS las capturas de Ejecución MEDI de todo el equipo (con sus fotos): Mercadeo, Caducidades, Incidencias, Incapacidad/Inasistencia, Degustación, Precios, Foto de categoría, Factores ambiente, Gasto (ticket), Carga de anaquel, Check-in/Check-out, Onboarding. No toca rutas, vacaciones, tareas, ni el resto de las pestañas de Retroalimentación.</p>`,
-    alConfirmar: async () => { await borrarTodasLasCapturasMedi(); },
-    alTerminar: () => {
-      toast('Listo — se borraron los registros de MEDI. El resto de la app sigue igual.', 6000);
+    alConfirmar: async () => borrarTodasLasCapturasMedi(),
+    alTerminar: (resumen) => {
+      if(!resumen || resumen.fallidos===0) toast('Listo — se borraron los registros de MEDI. El resto de la app sigue igual.', 6000);
       renderMisCapturas();
       if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
     },
@@ -1841,8 +1894,8 @@ function abrirBorrarNoticias(){
     titulo: 'Borrar todo Daily News',
     textoBoton: 'Borrar todo Daily News',
     descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las publicaciones de Daily News (con sus fotos), de todo el equipo.</p>`,
-    alConfirmar: async () => { await _noticiasSync.save([]); },
-    alTerminar: () => { toast('Listo — se borraron todas las publicaciones de Daily News.', 5000); renderNoticias(); },
+    alConfirmar: async () => _noticiasSync.save([]),
+    alTerminar: (resumen) => { if(!resumen || resumen.fallidos===0) toast('Listo — se borraron todas las publicaciones de Daily News.', 5000); renderNoticias(); },
   });
 }
 
@@ -1852,8 +1905,8 @@ function abrirBorrarEscucha(){
     titulo: 'Borrar todo Délico te escucha',
     textoBoton: 'Borrar todo',
     descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todos los comentarios de Délico te escucha (con sus fotos), de todo el equipo.</p>`,
-    alConfirmar: async () => { await _escuchaSync.save([]); },
-    alTerminar: () => { toast('Listo — se borró Délico te escucha.', 5000); renderEscucha(); },
+    alConfirmar: async () => _escuchaSync.save([]),
+    alTerminar: (resumen) => { if(!resumen || resumen.fallidos===0) toast('Listo — se borró Délico te escucha.', 5000); renderEscucha(); },
   });
 }
 
@@ -1863,8 +1916,8 @@ function abrirBorrarEvaluaciones(){
     titulo: 'Borrar todo Evaluaciones',
     textoBoton: 'Borrar todo',
     descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las Evaluaciones 360° y Auditorías/supervisión de todo el equipo. No borra Onboarding (vive junto con las demás capturas de MEDI).</p>`,
-    alConfirmar: async () => { await Promise.all([_eval360Sync.save([]), _auditoriasSync.save([])]); },
-    alTerminar: () => { toast('Listo — se borraron Evaluación 360° y Auditorías.', 5000); renderEvaluaciones(); },
+    alConfirmar: async () => combinarResumenesBorrado(await Promise.all([_eval360Sync.save([]), _auditoriasSync.save([])])),
+    alTerminar: (resumen) => { if(!resumen || resumen.fallidos===0) toast('Listo — se borraron Evaluación 360° y Auditorías.', 5000); renderEvaluaciones(); },
   });
 }
 
