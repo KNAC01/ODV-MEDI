@@ -761,7 +761,7 @@
         <button class="btn btn-ghost" onclick="exportPDFReporte()">📄 Exportar PDF reporte</button>
         <button class="btn btn-ghost" onclick="exportarDetalleFormularios()">📝 Exportar detalle de formularios</button>
       </div>
-      <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">"Exportar detalle de formularios" saca, para lo que esté filtrado, la respuesta real de cada pregunta (Mercadeo, Onboarding, Gasto/ticket) — no solo si se cumplió o no. Filtra por Tipo arriba para exportar solo uno de estos.</p>
+      <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">"Exportar detalle de formularios" saca, para lo que esté filtrado, la respuesta real de cada pregunta/campo de cualquier tipo de captura (Mercadeo, Onboarding, Gasto/ticket, Degustación, Caducidades, Incidencias, Carga de anaquel, etc.) — no solo si se hizo o se cumplió. Filtra por Tipo arriba para exportar solo uno en específico.</p>
       <div class="row" style="margin-bottom:14px;">
         <div class="card kpi"><div class="label">Total capturas</div><div class="value" id="repTotal">0</div></div>
         <div class="card kpi"><div class="label">Personas activas</div><div class="value" id="repPersonas">0</div></div>
@@ -1547,7 +1547,19 @@ const _tareasSync = crearColeccionSincronizada('tareas', 'delico_odv_tareas_v1',
 const _vacacionesSync = crearColeccionSincronizada('vacaciones', 'delico_odv_vacaciones_v1', ()=>{ if(currentUser) renderVacaciones(); });
 const _extraTiendasSync = crearColeccionSincronizada('extra_tiendas', 'delico_odv_extra_tiendas_v1', ()=>{ if(currentUser){ renderExtraTiendaBox(); renderPlaneacion(); } });
 const _cumpPrioridadSync = crearColeccionSincronizada('cumplimiento_prioridades', 'delico_odv_cumplimiento_prioridades_v1', ()=>{ if(currentUser) renderPrioridades(); });
-const _leySillaSync = crearColeccionSincronizada('ley_silla', 'delico_odv_leysilla_v1', ()=>{ if(currentUser){ try{ renderLeySillaModal(); }catch(e){} } });
+const _leySillaSync = crearColeccionSincronizada('ley_silla', 'delico_odv_leysilla_v1', ()=>{
+  if(currentUser){
+    try{
+      // Solo refrescar el contenido si el modal de Ley Silla YA está abierto (por ejemplo, otra persona
+      // registró su descanso y hay que actualizar la tabla en vivo). Nunca abrir el modal solo.
+      const bg = document.getElementById('modalBg');
+      const body = document.getElementById('modalBody');
+      if(bg && bg.classList.contains('open') && body && body.innerHTML.includes('🪑 Ley Silla')){
+        renderLeySillaModal();
+      }
+    }catch(e){}
+  }
+});
 const _cartasSync = crearColeccionSincronizada('cartas', 'delico_odv_cartas_v1', ()=>{ if(currentUser) renderCartas(); });
 const _materialesSync = crearColeccionSincronizada('materiales', 'delico_odv_materiales_v1', ()=>{ if(currentUser) renderCartas(); });
 const _uniformesSync = crearColeccionSincronizada('uniformes', 'delico_odv_uniformes_v1', ()=>{ if(currentUser) renderCartas(); });
@@ -6891,12 +6903,25 @@ function renderEscucha(){
     </div>`).join('') || `<div class="empty-state">Aún no hay comentarios. ¡Sé el primero en escribir algo!</div>`;
 }
 function exportarDetalleFormularios(){
-  const arr = capturasFiltradasReporte().filter(c=>['mercadeo','onboarding','gasto_ticket'].includes(c.tipo));
-  if(!arr.length){ toast('No hay capturas de Mercadeo, Onboarding o Gasto (ticket) en este filtro.'); return; }
-  const headers = ['Tipo','Persona','Tienda','Fecha','Sección','Pregunta / línea','Respuesta','Comentario'];
+  // Exporta, para CUALQUIER tipo de captura (respeta el filtro de Tipo/Persona/Fechas de Reportes del equipo),
+  // la respuesta real de cada pregunta/campo — no solo si se hizo el reporte o si se cumplió.
+  const arr = capturasFiltradasReporte();
+  if(!arr.length){ toast('No hay capturas para exportar en este filtro.'); return; }
+  const headers = ['Tipo','Persona','Tienda','Fecha','Sección / producto','Pregunta / campo','Respuesta','Comentario'];
   const rows = [];
+  const fmtVal = (type_, val) => {
+    if(type_==='producto') return val ? nombreProducto(val) : '';
+    if(val===undefined || val===null) return '';
+    if(type_==='checkbox') return val ? 'Sí' : 'No';
+    if(type_==='file_multi') return (Array.isArray(val) && val.length) ? `${val.length} foto(s)` : '';
+    if(type_==='file') return val ? '1 foto' : '';
+    if(type_==='file_video') return val ? 'Sí (video)' : '';
+    if(Array.isArray(val)) return val.join(' | ');
+    return String(val);
+  };
   arr.forEach(c=>{
     const fecha = (c.fecha_registro||'').slice(0,16).replace('T',' ');
+    const tipoLabel = TIPO_LABEL[c.tipo] || c.tipo;
     if(c.tipo==='mercadeo' || c.tipo==='onboarding'){
       const secciones = [
         ['Preparación de la visita', c.preparacion],
@@ -6906,16 +6931,40 @@ function exportarDetalleFormularios(){
       ];
       secciones.forEach(([secLabel, items])=>{
         (items||[]).forEach(it=>{
-          rows.push([TIPO_LABEL[c.tipo]||c.tipo, c.persona, c.tienda||'', fecha, secLabel, it.item, it.cumple?'Sí':'No', it.comentario||'']);
+          rows.push([tipoLabel, c.persona, c.tienda||'', fecha, secLabel, it.item, it.cumple?'Sí':'No', it.comentario||'']);
         });
       });
-      if(c.comentarios_generales) rows.push([TIPO_LABEL[c.tipo]||c.tipo, c.persona, c.tienda||'', fecha, 'Comentarios generales', '', '', c.comentarios_generales]);
+      if(c.comentarios_generales) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, 'Comentarios generales', '', '', c.comentarios_generales]);
     } else if(c.tipo==='gasto_ticket'){
       (c.lineas||[]).forEach((l,i)=>{
-        rows.push([TIPO_LABEL[c.tipo]||c.tipo, c.persona, c.tienda||'', fecha, 'Línea '+(i+1), l.detalle||'', l.costo!=null&&l.costo!==''?('$'+l.costo):'', `${l.tipo||''}${l.piezas?(' · '+l.piezas+' pzas'):''}${l.origen?(' · '+l.origen):''}`]);
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, 'Línea '+(i+1), l.detalle||'', l.costo!=null&&l.costo!==''?('$'+l.costo):'', `${l.tipo||''}${l.piezas?(' · '+l.piezas+' pzas'):''}${l.origen?(' · '+l.origen):''}`]);
+      });
+    } else if(c.tipo==='carga_anaquel'){
+      (c.frentes||[]).forEach(f=>{
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, nombreProducto(f.clave), 'Frentes / profundidad', `${f.frentes||0} frentes`, `${f.profundidad||0} de profundidad`]);
+      });
+    } else if(c.tipo==='incapacidad' || c.tipo==='inasistencia'){
+      rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Comentario', '', c.comentarios||'']);
+      if(c.fotos && c.fotos.length) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Fotos', `${c.fotos.length} foto(s)`, '']);
+    } else if(FORM_DEFS[c.tipo]){
+      FORM_DEFS[c.tipo].fields.forEach(([key,type_,label])=>{
+        if(type_==='tienda_select') return; // ya va en la columna Tienda
+        const val = fmtVal(type_, c[key]);
+        if(type_!=='checkbox' && val==='') return;
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', label, val, '']);
+      });
+    } else {
+      // Respaldo genérico para cualquier tipo futuro que no tenga un caso especial arriba.
+      Object.keys(c).forEach(key=>{
+        if(['id','tipo','usuario','persona','fecha_registro','tienda','cadena'].includes(key)) return;
+        let val = c[key];
+        if(Array.isArray(val)) val = val.length ? `${val.length} elemento(s)` : '';
+        if(val===undefined || val===null || val==='') return;
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', key, String(val), '']);
       });
     }
   });
+  if(!rows.length){ toast('No hay detalle capturado para exportar en este filtro.'); return; }
   exportarCSV(`detalle_formularios_${todayISO()}.csv`, headers, rows);
 }
 function exportCSV(){
