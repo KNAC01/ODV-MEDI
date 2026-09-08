@@ -823,6 +823,31 @@
           <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioCapturas()">🗑️ Reiniciar capturas del equipo</button>
         </div>
       </div>
+
+      <div id="passwordsZonaAdmin" class="hidden" style="margin-top:26px;">
+        <h2 class="section-title">🔐 Contraseñas del equipo</h2>
+        <div class="card">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 12px;">Cambia la contraseña de acceso de cualquier persona del equipo (incluida la tuya). Necesitas saber su contraseña actual — esto no la resetea a ciegas, solo la reemplaza. Cada quien sigue entrando con su propio usuario; nadie más se entera del cambio hasta que tú se lo des.</p>
+          <div class="field">
+            <label for="pwZonaUsuario">Persona</label>
+            <select id="pwZonaUsuario"></select>
+          </div>
+          <div class="field">
+            <label for="pwZonaActual">Contraseña actual de esa persona</label>
+            <input id="pwZonaActual" type="password" placeholder="••••••" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="pwZonaNueva">Contraseña nueva</label>
+            <input id="pwZonaNueva" type="password" placeholder="••••••" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="pwZonaNueva2">Confirmar contraseña nueva</label>
+            <input id="pwZonaNueva2" type="password" placeholder="••••••" autocomplete="off">
+          </div>
+          <button class="btn btn-brand" id="btnCambiarPasswordZona" onclick="cambiarPasswordEquipo()">Cambiar contraseña</button>
+          <p id="pwZonaMsg" style="font-size:12.5px; margin:10px 0 0;"></p>
+        </div>
+      </div>
     </section>
 
     <!-- ---------- CUMPLIMIENTO: PLAN VS. REAL ---------- -->
@@ -1740,6 +1765,61 @@ async function migrarCuentasFirebase(){
   let msg = `Migración terminada.\nCuentas creadas ahora: ${creadas}\nYa existían (o sin password en este archivo): ${yaExistian + sinPassword}`;
   if(errores.length) msg += `\n\nCon error (revisar):\n` + errores.join('\n');
   alert(msg);
+}
+
+/* ---------- Cambiar contraseña de cualquier persona del equipo (solo RESET_TOTAL_USUARIO) ----------
+   Usa una instancia SECUNDARIA de Firebase (mismo truco que migrarCuentasFirebase) para no cerrar
+   la sesión de quien está haciendo el cambio: entra como la persona objetivo con SU contraseña
+   actual (hay que conocerla) y desde ahí llama updatePassword — nunca se toca la sesión de Admin. */
+function poblarPwZonaUsuarios(){
+  const sel = document.getElementById('pwZonaUsuario');
+  if(!sel || sel.options.length) return;
+  sel.innerHTML = '';
+  [...APP_DATA.equipo].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    const o = document.createElement('option');
+    o.value = u.usuario;
+    o.textContent = `${u.nombre} (${u.usuario})`;
+    sel.appendChild(o);
+  });
+}
+async function cambiarPasswordEquipo(){
+  const usuario = document.getElementById('pwZonaUsuario').value;
+  const actual = document.getElementById('pwZonaActual').value;
+  const nueva = document.getElementById('pwZonaNueva').value;
+  const nueva2 = document.getElementById('pwZonaNueva2').value;
+  const msgEl = document.getElementById('pwZonaMsg');
+  msgEl.style.color = 'var(--bad)';
+  if(!usuario){ msgEl.textContent = 'Elige a la persona.'; return; }
+  if(!actual || !nueva || !nueva2){ msgEl.textContent = 'Llena los tres campos de contraseña.'; return; }
+  if(nueva.length < 4){ msgEl.textContent = 'La contraseña nueva debe tener al menos 4 caracteres.'; return; }
+  if(nueva !== nueva2){ msgEl.textContent = 'La contraseña nueva no coincide en ambos campos.'; return; }
+  const btn = document.getElementById('btnCambiarPasswordZona');
+  btn.disabled = true; btn.textContent = 'Cambiando…';
+  msgEl.textContent = '';
+  const secApp = firebase.initializeApp(firebaseConfig, 'cambiopw_' + Date.now());
+  const secAuth = secApp.auth();
+  try {
+    const email = emailSinteticoDe(usuario);
+    await secAuth.signInWithEmailAndPassword(email, passwordFirebaseDe(actual));
+    await secAuth.currentUser.updatePassword(passwordFirebaseDe(nueva));
+    await secAuth.signOut();
+    msgEl.style.color = 'var(--good)';
+    msgEl.textContent = 'Listo — contraseña actualizada ✓. Avísale a esa persona su nueva contraseña por el medio que uses tú (no queda visible aquí).';
+    document.getElementById('pwZonaActual').value = '';
+    document.getElementById('pwZonaNueva').value = '';
+    document.getElementById('pwZonaNueva2').value = '';
+  } catch(err){
+    if(err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found'){
+      msgEl.textContent = 'La contraseña actual que escribiste no es correcta para esa persona (o su cuenta aún no existe en Firebase — usa "Migrar cuentas" primero).';
+    } else if(err.code === 'auth/requires-recent-login'){
+      msgEl.textContent = 'Por seguridad Firebase pide iniciar sesión de nuevo para este cambio. Intenta otra vez en un momento.';
+    } else {
+      msgEl.textContent = 'No se pudo cambiar: ' + (err.message || err.code || 'error desconocido');
+    }
+  } finally {
+    try{ await secApp.delete(); }catch(e){}
+    btn.disabled = false; btn.textContent = 'Cambiar contraseña';
+  }
 }
 
 /* ---------- Reinicio de capturas del equipo (Admin, fin de la fase de construcción) ----------
@@ -4157,6 +4237,12 @@ function renderReportes(){
   document.getElementById('repPersona').onchange = renderReportes;
   const zonaAdmin = document.getElementById('reinicioZonaAdmin');
   if(zonaAdmin) zonaAdmin.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
+  const zonaPw = document.getElementById('passwordsZonaAdmin');
+  if(zonaPw){
+    const esReset = currentUser.usuario === RESET_TOTAL_USUARIO;
+    zonaPw.classList.toggle('hidden', !esReset);
+    if(esReset) poblarPwZonaUsuarios();
+  }
   let arr = capturasFiltradasReporte();
 
   document.getElementById('repTotal').textContent = arr.length;
