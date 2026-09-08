@@ -588,6 +588,7 @@
           <div id="personaPool" class="chip-pool"></div>
         </aside>
         <div class="ruta-board" id="rutaBoard"></div>
+        <datalist id="dlTodasTiendas"></datalist>
       </div>
       <h2 class="section-title" style="margin-top:20px;">Resumen de la semana visible</h2>
       <div id="rutaResumenSemana"></div>
@@ -846,6 +847,22 @@
           </div>
           <button class="btn btn-brand" id="btnCambiarPasswordZona" onclick="cambiarPasswordEquipo()">Cambiar contraseña</button>
           <p id="pwZonaMsg" style="font-size:12.5px; margin:10px 0 0;"></p>
+        </div>
+      </div>
+
+      <div id="instalacionZonaAdmin" class="hidden" style="margin-top:26px;">
+        <h2 class="section-title">📲 Instalación del equipo</h2>
+        <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 12px;">Se llena solo, a partir de que cada persona entre con esta versión de la app — no hay manera de saber cómo entró alguien antes de hoy. Si alguien nunca aparece aquí, es porque no ha vuelto a entrar desde que subiste esta versión.</p>
+        <div class="row" style="margin-bottom:14px;">
+          <div class="card kpi good"><div class="label">Instalada correctamente</div><div class="value" id="instKpiOk">0</div></div>
+          <div class="card kpi warn"><div class="label">Solo abre en el navegador</div><div class="value" id="instKpiNav">0</div></div>
+          <div class="card kpi bad"><div class="label">Nunca ha entrado (con esta versión)</div><div class="value" id="instKpiNunca">0</div></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Persona</th><th>Usuario</th><th>Último acceso</th><th>Estado</th><th>Plataforma</th></tr></thead>
+            <tbody id="instalacionBody"></tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -1704,9 +1721,76 @@ function iniciarTodaLaSincronizacion(){
   if(_syncIniciado) return;
   _syncIniciado = true;
   iniciarSincronizacionCapturas();
+  iniciarSincronizacionAccesos();
   [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
    _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
    _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync].forEach(s=>s.iniciarSync());
+}
+
+/* ---------- Instalación del equipo: ¿de verdad "Agregaron a inicio" la app, o solo abren la liga en el navegador? ----------
+   No hay forma de saber esto en retrospectiva (nunca se guardó) — pero desde que alguien entra con esta
+   versión, cada login deja un registro en la nube: usuario, cuándo, si estaba instalada (modo standalone/PWA)
+   y en qué tipo de dispositivo. Así se puede ver, sin sentarse celular por celular, quién de verdad instaló
+   la app y a quién hay que ayudarle todavía. */
+function estaInstaladaComoApp(){
+  try{
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if(window.navigator.standalone === true) return true; // iPhone/iPad (Safari) cuando se hizo "Agregar a inicio"
+  }catch(e){}
+  return false;
+}
+function plataformaDispositivo(){
+  const ua = (navigator.userAgent || '');
+  if(/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+  if(/Android/i.test(ua)) return 'Android';
+  if(/Windows|Macintosh|Linux/i.test(ua)) return 'Computadora';
+  return 'Otro';
+}
+let _accesosCache = JSON.parse(localStorage.getItem('delico_odv_accesos_v1') || '[]');
+function _guardarAccesoLocal(doc){
+  const idx = _accesosCache.findIndex(d=>d.id===doc.id);
+  if(idx>=0) _accesosCache[idx] = doc; else _accesosCache = [..._accesosCache, doc];
+  guardarLocalStorageSeguro('delico_odv_accesos_v1', _accesosCache);
+}
+function iniciarSincronizacionAccesos(){
+  iniciarSincronizacion('accesos_equipo', (doc)=>{
+    _guardarAccesoLocal(doc);
+    try{ renderInstalacionEquipo(); }catch(e){}
+  });
+}
+function registrarAcceso(){
+  if(!currentUser) return;
+  const doc = {
+    id: currentUser.usuario,
+    usuario: currentUser.usuario,
+    nombre: currentUser.nombre,
+    ultimo_acceso: new Date().toISOString(),
+    instalada: estaInstaladaComoApp(),
+    plataforma: plataformaDispositivo(),
+  };
+  _guardarAccesoLocal(doc);
+  subirAColeccion('accesos_equipo', doc);
+}
+function renderInstalacionEquipo(){
+  const body = document.getElementById('instalacionBody');
+  if(!body) return;
+  const porUsuario = new Map(_accesosCache.map(a=>[a.usuario, a]));
+  let ok=0, nav=0, nunca=0;
+  const filas = [...APP_DATA.equipo].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>{
+    const a = porUsuario.get(u.usuario);
+    let estadoHtml, orden;
+    if(!a){ estadoHtml = '<span style="color:var(--bad); font-weight:600;">❌ Nunca ha entrado</span>'; nunca++; orden=0; }
+    else if(a.instalada){ estadoHtml = '<span style="color:var(--good); font-weight:600;">✅ Instalada</span>'; ok++; orden=2; }
+    else { estadoHtml = '<span style="color:var(--warn); font-weight:600;">⚠️ Solo navegador</span>'; nav++; orden=1; }
+    const ultimo = a ? a.ultimo_acceso.slice(0,16).replace('T',' ') : '—';
+    const plataforma = a ? a.plataforma : '—';
+    return {orden, html: `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${ultimo}</td><td>${estadoHtml}</td><td>${plataforma}</td></tr>`};
+  });
+  filas.sort((x,y)=>x.orden-y.orden);
+  body.innerHTML = filas.map(f=>f.html).join('');
+  document.getElementById('instKpiOk').textContent = ok;
+  document.getElementById('instKpiNav').textContent = nav;
+  document.getElementById('instKpiNunca').textContent = nunca;
 }
 
 function doLogin(){
@@ -1721,6 +1805,7 @@ function doLogin(){
       if(!found){ errBox.textContent = 'Tu cuenta existe pero ya no está en el equipo activo. Contacta a tu coordinador(a).'; auth.signOut(); return; }
       currentUser = found;
       errBox.textContent = '';
+      registrarAcceso();
       boot();
     })
     .catch(() => { errBox.textContent = 'Usuario o contraseña incorrectos.'; });
@@ -4242,6 +4327,12 @@ function renderReportes(){
     const esReset = currentUser.usuario === RESET_TOTAL_USUARIO;
     zonaPw.classList.toggle('hidden', !esReset);
     if(esReset) poblarPwZonaUsuarios();
+  }
+  const zonaInst = document.getElementById('instalacionZonaAdmin');
+  if(zonaInst){
+    const esReset = currentUser.usuario === RESET_TOTAL_USUARIO;
+    zonaInst.classList.toggle('hidden', !esReset);
+    if(esReset) renderInstalacionEquipo();
   }
   let arr = capturasFiltradasReporte();
 
@@ -7947,7 +8038,18 @@ function renderRutaCard(a, locked){
   const dis = locked ? 'disabled' : '';
   let extra = '';
   if(a.tipo === 'visita'){
+    const sugeridas = tiendasDeRutaSeptiembre(a.usuario);
     extra = `
+      ${sugeridas.length ? `
+      <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Sugeridas (asignación del mes)</div>
+      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:4px;">
+        ${sugeridas.map(s=>{
+          const activa = a.cadena===s.cadena && a.tienda===s.tienda;
+          return `<button type="button" ${dis} onclick="updRutaTiendaSugerida('${a.id}','${s.cadena}','${s.tienda}')" title="${s.cadena} — ${s.tipo_servicio||''}" style="border:2px solid ${activa?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 6px; background:${activa?'var(--brand-soft)':'#fff'}; cursor:${locked?'default':'pointer'}; font-size:10.5px; font-weight:${activa?'700':'400'}; ${locked?'opacity:.6;':''}">${s.tienda}</button>`;
+        }).join('')}
+      </div>` : ''}
+      <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Otro — buscar cualquier tienda</div>
+      <input type="text" ${dis} list="dlTodasTiendas" placeholder="Escribe para buscar..." onchange="updRutaTiendaBuscada('${a.id}', this.value); this.value='';" style="width:100%; margin-bottom:4px;">
       <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Cadena</div>
       <div style="display:flex; gap:4px; flex-wrap:wrap;">
         ${cadenas.map(c=>{
@@ -7992,6 +8094,43 @@ function updRuta(id, field, value){
   saveRutas(arr);
   renderRuta();
 }
+/* Un clic en una tienda "sugerida" (de la asignación de rutas del mes, ej. Adignación tiendas septiembre.xlsx)
+   llena cadena + tienda de un solo golpe — para no tener que ir cadena por cadena, tienda por tienda. */
+function updRutaTiendaSugerida(id, cadena, tienda){
+  const arr = getRutas();
+  const idx = arr.findIndex(a=>a.id===id);
+  if(idx<0) return;
+  if(fechaBloqueada(arr[idx].fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  arr[idx].cadena = cadena;
+  arr[idx].tienda = tienda;
+  saveRutas(arr);
+  renderRuta();
+}
+/* El buscador "Otro" usa un <datalist> con TODAS las tiendas como "Tienda — Cadena" (poblado una sola vez
+   por poblarDatalistTiendas). Al elegir/escribir una coincidencia exacta, se separan cadena y tienda y se
+   llenan ambas — sirve quien no está en la asignación sugerida de este mes o para tiendas nuevas. */
+function updRutaTiendaBuscada(id, valorEscrito){
+  if(!valorEscrito) return;
+  const partes = valorEscrito.split(' — ');
+  if(partes.length < 2){ toast('Elige una tienda de la lista que aparece al escribir.'); return; }
+  const cadena = partes[partes.length-1];
+  const tienda = partes.slice(0,-1).join(' — ');
+  const match = APP_DATA.stores.find(s=>s.tienda===tienda && s.cadena===cadena);
+  if(!match){ toast('No se encontró esa tienda exacta — elígela de la lista que aparece al escribir.'); return; }
+  const arr = getRutas();
+  const idx = arr.findIndex(a=>a.id===id);
+  if(idx<0) return;
+  if(fechaBloqueada(arr[idx].fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  arr[idx].cadena = cadena;
+  arr[idx].tienda = tienda;
+  saveRutas(arr);
+  renderRuta();
+}
+function poblarDatalistTiendas(){
+  const dl = document.getElementById('dlTodasTiendas');
+  if(!dl || dl.options.length) return;
+  dl.innerHTML = APP_DATA.stores.map(s=>`<option value="${s.tienda} — ${s.cadena}">`).join('');
+}
 function delRutaCard(id){
   const arr = getRutas();
   const found = arr.find(a=>a.id===id);
@@ -8023,6 +8162,7 @@ function onWeekPickerChange(val){
 }
 function renderRuta(){
   renderPersonaPool();
+  poblarDatalistTiendas();
   const start = rutaWeekStart;
   const end = new Date(start); end.setDate(end.getDate()+6);
   const startISO = isoDate(start), endISO = isoDate(end);
