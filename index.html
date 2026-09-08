@@ -7231,7 +7231,7 @@ function renderDistribucion(){
     <div class="card kpi good"><div class="label">Combinaciones que sí vendieron</div><div class="value">${fmtNum(g.conVenta)}</div></div>
     <div class="card kpi bad"><div class="label">Combinaciones en venta cero</div><div class="value">${fmtNum(g.objetivos-g.conVenta)}</div></div>
   </div>
-  <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 14px;">Fuente: Pipeline ODV S33 2026 — una "combinación" es tienda+SKU con inventario. Se considera cumplida si registró al menos una venta (no importa la cantidad).</p>`;
+  <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 14px;">Fuente: ${(APP_DATA.bi_meta&&APP_DATA.bi_meta.fuente_pipeline)||'Pipeline ODV'} — una "combinación" es tienda+SKU con inventario. Se considera cumplida si registró al menos una venta (no importa la cantidad).</p>`;
 
   // --- Insights de combinaciones sin cubrir ---
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
