@@ -171,6 +171,7 @@
      el fondo semitransparente detrás — esa es la causa real de la "transparencia" al escrolear. */
   body.modal-lock{position:fixed; left:0; right:0; overflow:hidden; width:100%;}
   .modal{background:var(--surface); border-radius:16px; max-width:560px; width:100%; padding:24px; box-shadow:var(--shadow); overscroll-behavior:contain;}
+  .modal.modal-wide{max-width:1440px;}
   .modal h3{margin:0 0 4px; color:var(--brand-dark);}
   .modal p.d{margin:0 0 18px; color:var(--ink-soft); font-size:13.5px;}
   .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
@@ -322,7 +323,7 @@
     /* modales casi de pantalla completa: fondo sólido (no translúcido) para que el rebote del
        scroll dentro del modal nunca deje ver un fondo "transparente" detrás. */
     .modal-bg{padding:0; align-items:stretch; background:var(--surface);}
-    .modal{max-width:100%; width:100%; min-height:100%; min-height:100dvh; border-radius:0; padding:18px 16px 24px; display:flex; flex-direction:column;}
+    .modal, .modal.modal-wide{max-width:100%; width:100%; min-height:100%; min-height:100dvh; border-radius:0; padding:18px 16px 24px; display:flex; flex-direction:column;}
     .modal-actions{background:var(--surface); margin:18px -16px -24px; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line);}
 
     /* tablas: siguen con scroll horizontal, pero con más aire para el dedo */
@@ -1727,6 +1728,7 @@ const _eval360Sync = crearColeccionSincronizada('eval360', 'delico_odv_eval360_v
 const _noticiasSync = crearColeccionSincronizada('noticias', 'delico_odv_noticias_v1', ()=>{ if(currentUser) renderNoticias(); });
 const _rutasSync = crearColeccionSincronizada('rutas', 'delico_odv_rutas_v1', ()=>{ if(currentUser){ renderRuta(); renderPreplan(); renderCalendario(); } });
 const _escuchaSync = crearColeccionSincronizada('delico_escucha', 'delico_odv_escucha_v1', ()=>{ if(currentUser) renderEscucha(); });
+const _pipelineAjustesSync = crearColeccionSincronizada('pipeline_ajustes', 'delico_odv_pipeline_ajustes_v1', ()=>{ if(currentUser){ try{ renderPipelineTabla(); }catch(e){} } });
 
 let _syncIniciado = false;
 function iniciarTodaLaSincronizacion(){
@@ -1736,7 +1738,7 @@ function iniciarTodaLaSincronizacion(){
   iniciarSincronizacionAccesos();
   [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
    _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
-   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync].forEach(s=>s.iniciarSync());
+   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync, _pipelineAjustesSync].forEach(s=>s.iniciarSync());
 }
 
 /* ---------- Instalación del equipo: ¿de verdad "Agregaron a inicio" la app, o solo abren la liga en el navegador? ----------
@@ -3210,9 +3212,10 @@ function fechaCorteLegible(iso){
 function abrirPipeline(){
   const checkin = getCheckin();
   const body = document.getElementById('modalBody');
+  body.classList.add('modal-wide');
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>📦 Pipeline — Inventario de tu tienda</h3>
-    <p class="d">Datos del Pipeline ODV (inventario, distribución y venta) para la tienda a la que diste entrada.</p>
+    <p class="d">Datos del Pipeline ODV (inventario, distribución y venta) para la tienda a la que diste entrada. Aquí también puedes capturar tu conteo real y dar seguimiento a las alertas.</p>
     ${checkin ? `<p style="font-size:13px; font-weight:700; color:var(--brand-dark); margin:-4px 0 10px;">📍 ${checkin.tienda}${checkin.cadena?' · '+checkin.cadena:''}</p>` : `<div class="form-grid"><div class="field full"><label>Tienda</label>
       <select id="pipeTiendaSel" onchange="renderPipelineTabla()">
         <option value="">Selecciona tienda...</option>
@@ -3223,6 +3226,43 @@ function abrirPipeline(){
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
   document.getElementById('modalBg').classList.add('open');
   renderPipelineTabla();
+}
+function pipelineAjusteId(cadena, numTienda, clave){
+  return [cadena||'', numTienda||'', clave||''].join('__').replace(/[^a-z0-9_]/gi,'_');
+}
+function getPipelineAjuste(cadena, numTienda, clave){
+  const id = pipelineAjusteId(cadena, numTienda, clave);
+  return (_pipelineAjustesSync.get()||[]).find(a=>a.id===id) || null;
+}
+function guardarPipelineAjuste(cadena, numTienda, clave, tienda, cambios){
+  const id = pipelineAjusteId(cadena, numTienda, clave);
+  const arr = _pipelineAjustesSync.get() || [];
+  const idx = arr.findIndex(a=>a.id===id);
+  const base = idx>=0 ? arr[idx] : { id, cadena, num_tienda:numTienda, clave, tienda, estado_alerta:'pendiente', comentario_alerta:'', inv_real:null, comentario:'' };
+  const actualizado = { ...base, ...cambios, id, cadena, num_tienda:numTienda, clave, tienda,
+    actualizado: new Date().toISOString(), actualizado_por: currentUser ? currentUser.usuario : '' };
+  const nuevoArr = idx>=0 ? arr.map((a,i)=> i===idx?actualizado:a) : [...arr, actualizado];
+  _pipelineAjustesSync.save(nuevoArr);
+  return actualizado;
+}
+function guardarInventarioRealPipeline(inputEl, cadena, numTienda, clave, tienda){
+  const val = inputEl.value === '' ? null : Number(inputEl.value);
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {inv_real: val});
+  toast('Inventario real guardado.');
+}
+function guardarComentarioPipeline(inputEl, cadena, numTienda, clave, tienda){
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {comentario: inputEl.value});
+}
+function guardarEstadoAlertaPipeline(selectEl, cadena, numTienda, clave, tienda){
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {estado_alerta: selectEl.value});
+}
+function guardarComentarioAlertaPipeline(textareaEl, cadena, numTienda, clave, tienda){
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {comentario_alerta: textareaEl.value});
+}
+function pintarBarcodesPipelineVisibles(){
+  document.querySelectorAll('#pipelineGrid svg[data-barcode]').forEach(svg=>{
+    pintarBarcodeEn(svg, svg.getAttribute('data-barcode'));
+  });
 }
 function renderPipelineTabla(){
   const box = document.getElementById('pipelineModalBody');
@@ -3243,6 +3283,7 @@ function renderPipelineTabla(){
   const ventaCeroCount = filas.filter(f=>!f.con_venta).length;
   const negCount = filas.filter(f=>f.inv_negativo).length;
   const excCount = filas.filter(f=>f.excedente).length;
+  const ESTADOS_ALERTA = [['pendiente','Pendiente'],['en_revision','En revisión'],['solucionado','Solucionado']];
   box.innerHTML = `
     <div style="font-size:11px; color:var(--ink-soft); margin:8px 0 4px;">📅 Corte del Pipeline: <b>${corte}</b>. Es una sola foto — puede no coincidir exactamente con la fecha de otros datos (cuotas/sell out). Esto va en el radar para alinear todos los cortes.</div>
     ${!filas.length ? `<div class="card" style="margin-top:8px;"><p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin datos de Pipeline para esta tienda.</p></div>` : `
@@ -3252,43 +3293,76 @@ function renderPipelineTabla(){
       <div class="card kpi ${excCount?'warn':'good'}"><div class="label">Excedente</div><div class="value">${excCount}</div></div>
       <div class="card kpi"><div class="label">Códigos activos</div><div class="value">${filas.filter(f=>f.comb_activa).length}</div></div>
     </div>
-    <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:10.5px; color:var(--ink-soft); margin-bottom:6px;">
+    <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:10.5px; color:var(--ink-soft); margin-bottom:10px;">
       <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#f7e2df; border:1px solid var(--bad); vertical-align:-1px;"></span> Inventario fantasma (negativo)</span>
       <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#faf0dd; border:1px solid var(--warn); vertical-align:-1px;"></span> Venta cero</span>
       <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#efe6f7; border:1px solid #8a5cb5; vertical-align:-1px;"></span> Excedente</span>
     </div>
-    <div class="table-scroll" style="max-height:360px;"><table style="font-size:11.5px;"><thead><tr>
-      <th></th><th style="text-align:left;">SKU</th><th class="num">Inv actual</th><th class="num">Inv tránsito</th><th class="num">Inv ordenado</th><th class="num">Días inv.</th><th class="num">Obj. distrib.</th><th class="num">Comb. activa</th><th class="num">Prom. vta diario</th><th class="num">Venta cero</th><th class="num">Inv negativo</th><th class="num">Excedente</th>
-    </tr></thead><tbody>
+    <div id="pipelineGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:14px;">
       ${filas.slice().sort((a,b)=>a.clave.localeCompare(b.clave)).map(f=>{
         const prod = claveAProducto(f.clave);
+        const tieneAlerta = f.inv_negativo || !f.con_venta || f.excedente;
         // prioridad cuando un renglón cae en más de una alerta: fantasma > venta cero > excedente
-        const rowStyle = f.inv_negativo ? 'background:#f7e2df;'
-          : !f.con_venta ? 'background:#faf0dd;'
-          : f.excedente ? 'background:#efe6f7;' : '';
-        return `<tr style="${rowStyle}">
-        <td>${prod && prod.imagen ? `<img src="${prod.imagen}" style="width:32px; height:32px; object-fit:cover; border-radius:5px; border:1px solid var(--line);">` : ''}</td>
-        <td>${f.clave}<div style="font-size:10px; color:var(--ink-soft);">${f.item_desc||''}</div></td>
-        <td class="num">${fmtNum(f.inv_actual)}</td>
-        <td class="num">${fmtNum(f.inv_transito)}</td>
-        <td class="num">${fmtNum(f.inv_ordenados)}</td>
-        <td class="num">${f.dias_inventario!=null?Math.round(f.dias_inventario):'—'}</td>
-        <td class="num">${f.objetivo?'Sí':'No'}</td>
-        <td class="num">${f.comb_activa?'Sí':'No'}</td>
-        <td class="num">${(f.prom_venta_diario||0).toFixed(2)}</td>
-        <td class="num" style="${!f.con_venta?'color:var(--warn); font-weight:700;':''}">${!f.con_venta?'Sí ⚠️':'No'}</td>
-        <td class="num" style="${f.inv_negativo?'color:var(--bad); font-weight:700;':''}">${f.inv_negativo?'Sí ⚠️':'No'}</td>
-        <td class="num" style="${f.excedente?'color:#8a5cb5; font-weight:700;':''}">${f.excedente?'Sí':'No'}</td>
-      </tr>`;}).join('')}
-    </tbody></table></div>
-    <div style="text-align:right; margin-top:8px;"><button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPipelineCSV()">⬇ Excel</button></div>`}`;
+        const alertLabel = f.inv_negativo ? 'Inventario fantasma (negativo)' : !f.con_venta ? 'Venta cero' : f.excedente ? 'Excedente' : '';
+        const alertColor = f.inv_negativo ? 'var(--bad)' : !f.con_venta ? 'var(--warn)' : '#8a5cb5';
+        const alertBg = f.inv_negativo ? '#f7e2df' : !f.con_venta ? '#faf0dd' : '#efe6f7';
+        const ajuste = getPipelineAjuste(f.cadena, f.num_tienda, f.clave) || {};
+        const numTienda = f.num_tienda, cad = f.cadena, clv = f.clave, tda = f.tienda;
+        return `<div class="card" style="padding:12px; ${tieneAlerta?`border:1.5px solid ${alertColor};`:''}">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            ${prod && prod.imagen ? `<img src="${prod.imagen}" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line); flex-shrink:0;">` : `<div style="width:56px; height:56px; border-radius:8px; background:#f1f2e6; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:9.5px; text-align:center; flex-shrink:0;">Sin foto</div>`}
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:700; font-size:12.5px; line-height:1.3;">${f.item_desc || (prod&&prod.nombre) || f.clave}</div>
+              <div style="font-size:10.5px; color:var(--ink-soft); margin-top:1px;">Clave: ${f.clave}</div>
+            </div>
+            ${f.clave ? `<div style="width:96px; flex-shrink:0; background:#fff; border-radius:5px; padding:2px 0;"><svg data-barcode="${f.clave}" style="width:100%;"></svg></div>` : ''}
+          </div>
+          ${tieneAlerta ? `<div style="margin-top:8px; background:${alertBg}; border-radius:8px; padding:6px 8px; font-size:11px; font-weight:700; color:${alertColor};">⚠️ ${alertLabel}</div>` : ''}
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px 10px; margin-top:10px; font-size:11px;">
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv actual</div><div style="font-weight:700;">${fmtNum(f.inv_actual)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv tránsito</div><div style="font-weight:700;">${fmtNum(f.inv_transito)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv ordenado</div><div style="font-weight:700;">${fmtNum(f.inv_ordenados)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Días inv.</div><div style="font-weight:700;">${f.dias_inventario!=null?Math.round(f.dias_inventario):'—'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Obj. distrib.</div><div style="font-weight:700;">${f.objetivo?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Comb. activa</div><div style="font-weight:700;">${f.comb_activa?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Prom. vta diario</div><div style="font-weight:700;">${(f.prom_venta_diario||0).toFixed(2)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Venta cero</div><div style="font-weight:700; ${!f.con_venta?'color:var(--warn);':''}">${!f.con_venta?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv negativo</div><div style="font-weight:700; ${f.inv_negativo?'color:var(--bad);':''}">${f.inv_negativo?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Excedente</div><div style="font-weight:700; ${f.excedente?'color:#8a5cb5;':''}">${f.excedente?'Sí':'No'}</div></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
+            <div class="field"><label style="font-size:10px;">Captura inventario real</label>
+              <input type="number" value="${ajuste.inv_real!=null?ajuste.inv_real:''}" placeholder="Piezas contadas" style="font-size:12px; padding:6px 8px;"
+                onchange="guardarInventarioRealPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">
+            </div>
+            <div class="field"><label style="font-size:10px;">Comentarios</label>
+              <input type="text" value="${(ajuste.comentario||'').replace(/"/g,'&quot;')}" placeholder="Ej. ajuste, merma..." style="font-size:12px; padding:6px 8px;"
+                onchange="guardarComentarioPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">
+            </div>
+          </div>
+          ${tieneAlerta ? `<div style="margin-top:10px; border-top:1px dashed var(--line); padding-top:8px;">
+            <label style="font-size:10px; font-weight:700; color:${alertColor};">¿Qué está pasando? — obligatorio</label>
+            <select style="font-size:12px; padding:6px 8px; margin-top:3px;" onchange="guardarEstadoAlertaPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">
+              ${ESTADOS_ALERTA.map(([v,l])=>`<option value="${v}" ${((ajuste.estado_alerta||'pendiente')===v)?'selected':''}>${l}</option>`).join('')}
+            </select>
+            <textarea rows="2" placeholder="Explica por qué se marcó esta alerta (obligatorio)" style="font-size:12px; padding:6px 8px; margin-top:6px; width:100%; resize:vertical;"
+              onchange="guardarComentarioAlertaPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">${ajuste.comentario_alerta||''}</textarea>
+            ${!ajuste.comentario_alerta ? `<div style="font-size:10px; color:var(--bad); margin-top:3px;">⚠️ Falta explicar el motivo de esta alerta.</div>` : ''}
+          </div>` : ''}
+        </div>`;}).join('')}
+    </div>
+    <div style="text-align:right; margin-top:10px;"><button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPipelineCSV()">⬇ Excel</button></div>`}`;
+  pintarBarcodesPipelineVisibles();
 }
 function exportarPipelineCSV(){
   const d = window._pipelineExport;
   if(!d || !d.filas.length){ toast('Sin datos de Pipeline para exportar.'); return; }
   exportarCSV(`pipeline_${(d.tienda||'').replace(/[^a-z0-9]/gi,'_')}_${todayISO()}.csv`,
-    ['SKU','Descripción','Inv actual','Inv tránsito','Inv ordenados','Días de inventario','Objetivo distribución','Comb. activa','Promedio venta diario','Venta cero','Inv negativo','Excedente'],
-    d.filas.map(f=>[f.clave, f.item_desc||'', f.inv_actual, f.inv_transito, f.inv_ordenados, f.dias_inventario, f.objetivo?1:0, f.comb_activa?1:0, f.prom_venta_diario, f.con_venta?0:1, f.inv_negativo?1:0, f.excedente?1:0]));
+    ['SKU','Descripción','Inv actual','Inv tránsito','Inv ordenados','Días de inventario','Objetivo distribución','Comb. activa','Promedio venta diario','Venta cero','Inv negativo','Excedente','Inv real capturado','Comentario','Estado alerta','Comentario alerta'],
+    d.filas.map(f=>{
+      const a = getPipelineAjuste(f.cadena, f.num_tienda, f.clave) || {};
+      return [f.clave, f.item_desc||'', f.inv_actual, f.inv_transito, f.inv_ordenados, f.dias_inventario, f.objetivo?1:0, f.comb_activa?1:0, f.prom_venta_diario, f.con_venta?0:1, f.inv_negativo?1:0, f.excedente?1:0, a.inv_real!=null?a.inv_real:'', a.comentario||'', a.estado_alerta||'', a.comentario_alerta||''];
+    }));
 }
 /* ---------- MERCADEO / ONBOARDING — basados en los PDFs de Reporte de Promotoría, Hoja de Supervisión y Check List Onboarding ---------- */
 const PREP_ITEMS_BASE = ['Herramientas / Uniforme','Revisar cuotas','Revisar tareas / prioridades','Relación en tienda'];
@@ -3683,6 +3757,7 @@ function closeModal(){
   document.querySelectorAll('[id^="scan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('scan_',''); closeScanner(key); } });
   document.querySelectorAll('[id^="tscan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('tscan_',''); closeScannerLinea(key); } });
   document.getElementById('modalBg').classList.remove('open');
+  document.getElementById('modalBody').classList.remove('modal-wide');
 }
 window._fotosPendientes = new Set(); // fotos que aún se están leyendo/comprimiendo — bloquea "Guardar" hasta que terminen
 function comprimirImagen(dataUrl, maxDim, calidad){
