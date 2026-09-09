@@ -1411,9 +1411,10 @@ let currentUser = null;
 /* ---------- Utilidades ---------- */
 function fmtNum(n){ return Math.round(n).toLocaleString('es-MX'); }
 function fmtMoney(n){ return '$' + Math.round(n).toLocaleString('es-MX'); }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+function todayISO(){ return new Date().toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // fecha de HOY en hora de México, no UTC
 function horaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Mexico_City'}); }
 function fechaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // 'sv-SE' da formato AAAA-MM-DD
+function fechaHoraLocal(iso){ if(!iso) return '—'; return fechaLocal(iso) + ' ' + horaLocal(iso); } // fecha+hora ya convertidas a hora de México (antes se mostraba el UTC crudo del ISO guardado)
 function uid(){ return 'c' + Date.now() + Math.random().toString(16).slice(2,8); }
 /* Nuestros nombres vienen "APELLIDO1 APELLIDO2 NOMBRE(S)" — para mostrar queremos "Nombre Apellido1" */
 function nombreCorto(nombreCompleto){
@@ -2616,9 +2617,9 @@ function visitasEnVentanaParaPrioridad(p){
   const desde = p.desde || '0000-01-01';
   const hasta = p.hasta || '9999-12-31';
   const entradas = getCapturas().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
-    && c.fecha_registro.slice(0,10)>=desde && c.fecha_registro.slice(0,10)<=hasta
+    && fechaLocal(c.fecha_registro)>=desde && fechaLocal(c.fecha_registro)<=hasta
     && (!p.cadenas || !p.cadenas.length || p.cadenas.includes(c.cadena)));
-  return new Set(entradas.map(c=>c.usuario+'|'+c.fecha_registro.slice(0,10)+'|'+c.tienda)).size;
+  return new Set(entradas.map(c=>c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda)).size;
 }
 function renderPrioridades(){
   const box = document.getElementById('prioridadView');
@@ -3901,7 +3902,7 @@ function abrirLeySilla(){
 function renderLeySillaModal(){
   const body = document.getElementById('modalBody');
   const hoy = todayISO();
-  const mios = getLeySilla().filter(r=>r.usuario===currentUser.usuario && r.fecha_registro.slice(0,10)===hoy).sort((a,b)=>a.fecha_registro.localeCompare(b.fecha_registro));
+  const mios = getLeySilla().filter(r=>r.usuario===currentUser.usuario && fechaLocal(r.fecha_registro)===hoy).sort((a,b)=>a.fecha_registro.localeCompare(b.fecha_registro));
   const abierto = mios.length && mios[mios.length-1].tipo==='entrada';
   const descansosCompletos = Math.floor(mios.filter(r=>r.tipo==='salida').length);
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
@@ -3942,7 +3943,7 @@ function iniciarChequeoLeySilla(){
 function chequearLeySillaAlerta(){
   if(!currentUser) return;
   const hoy = todayISO();
-  const mios = getLeySilla().filter(r=>r.usuario===currentUser.usuario && r.fecha_registro.slice(0,10)===hoy).sort((a,b)=>a.fecha_registro.localeCompare(b.fecha_registro));
+  const mios = getLeySilla().filter(r=>r.usuario===currentUser.usuario && fechaLocal(r.fecha_registro)===hoy).sort((a,b)=>a.fecha_registro.localeCompare(b.fecha_registro));
   if(!mios.length) return;
   const ultimo = mios[mios.length-1];
   if(ultimo.tipo!=='entrada') return;
@@ -4216,7 +4217,7 @@ function renderMisCapturas(){
     if(head) head.innerHTML = `${colHead('misCapturasBody','tipo_label','Tipo',false)}${colHead('misCapturasBody','fecha_registro','Fecha',false)}${colHead('misCapturasBody','tienda','Tienda',false)}${colHead('misCapturasBody','detalle','Detalle',false)}`;
     const filas = ordenarFilas('misCapturasBody', rows2, 'fecha_registro');
     const tbody = document.getElementById('misCapturasBody');
-    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.fecha_registro.slice(0,16).replace('T',' ')}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
   };
   window.render_misCapturasBody();
   renderDegustacionesRecientes();
@@ -4237,7 +4238,7 @@ function renderDegustacionesRecientes(){
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
         <div>
           <div style="font-weight:700; font-size:13px;">${nombreProds}</div>
-          <div style="font-size:11.5px; color:var(--ink-soft);">${c.tienda||''} · ${c.fecha_registro.slice(0,16).replace('T',' ')}</div>
+          <div style="font-size:11.5px; color:var(--ink-soft);">${c.tienda||''} · ${fechaHoraLocal(c.fecha_registro)}</div>
           ${c.reacciones ? `<div style="font-size:12.5px; margin-top:6px;"><b>Al momento:</b> ${c.reacciones}</div>` : ''}
         </div>
         <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; white-space:nowrap;" onclick="abrirRetroShopper('${c.id}')">+ Agregar comentario</button>
@@ -4348,7 +4349,7 @@ function renderReportes(){
     if(head) head.innerHTML = `${colHead('repBody','tipo_label','Tipo',false)}${colHead('repBody','persona','Persona',false)}${colHead('repBody','fecha_registro','Fecha',false)}${colHead('repBody','tienda','Tienda',false)}${colHead('repBody','detalle','Detalle',false)}`;
     const filas = ordenarFilas('repBody', rows2, 'fecha_registro');
     const tbody = document.getElementById('repBody');
-    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.persona}</td><td>${c.fecha_registro.slice(0,16).replace('T',' ')}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty-state">Sin capturas todavía en este dispositivo. Nota: hoy cada celular guarda su propia información — para ver aquí lo de todo el equipo hace falta conectar el backend compartido (siguiente fase).</td></tr>`;
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.persona}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty-state">Sin capturas todavía en este dispositivo. Nota: hoy cada celular guarda su propia información — para ver aquí lo de todo el equipo hace falta conectar el backend compartido (siguiente fase).</td></tr>`;
   };
   window.render_repBody();
 
@@ -4522,7 +4523,7 @@ function renderCumplimiento(){
   if(q) plan = plan.filter(a=> a.nombre.toLowerCase().includes(q) || (a.tienda||'').toLowerCase().includes(q));
 
   const capturas = getCapturas();
-  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+c.fecha_registro.slice(0,10)+'|'+c.tienda));
+  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
 
   let cumplidas = 0;
   const porPersona = {}, porCadena = {}, porCluster = {};
@@ -4606,7 +4607,7 @@ function renderCumplimiento(){
   getRutas().forEach(a=>{ if(a.tipo!=='visita') otrosTiposPorPersonaFecha[a.usuario+'|'+a.fecha] = a.tipo; });
   const incidenciasCampoPorPersonaFechaTienda = {};
   capturas.filter(c=>c.tipo==='incidencia' && c.fecha_registro).forEach(c=>{
-    incidenciasCampoPorPersonaFechaTienda[c.usuario+'|'+c.fecha_registro.slice(0,10)+'|'+(c.tienda||'')] = (c.tipo_incidencia||'Incidencia de campo')+(c.descripcion?' — '+c.descripcion:'');
+    incidenciasCampoPorPersonaFechaTienda[c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+(c.tienda||'')] = (c.tipo_incidencia||'Incidencia de campo')+(c.descripcion?' — '+c.descripcion:'');
   });
   const hoy0 = todayISO();
   const incump = noCumplidas.filter(a=> a.fecha <= hoy0).map(a=>{
@@ -4742,7 +4743,7 @@ function renderCalendario(){
   if(fSupervisor) plan = plan.filter(a=> mismaPersona(supervisorDePersona(a.nombre), fSupervisor));
   if(fCluster) plan = plan.filter(a=>{ const s = storeInfo(a.cadena, a.tienda); return s && s.cluster===fCluster; });
   const capturas = getCapturas();
-  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+c.fecha_registro.slice(0,10)+'|'+c.tienda));
+  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
 
   const board = document.getElementById('calBoard');
   board.innerHTML = '';
@@ -4761,8 +4762,8 @@ function renderCalendario(){
         icono = cumplida ? '✅' : '❌';
         texto = cumplida ? 'Realizada' : 'No realizada';
       } else if(dateISO === hoy){
-        const entrada = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && c.fecha_registro.slice(0,10)===hoy && c.tipo==='entrada_tienda');
-        const salida = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && c.fecha_registro.slice(0,10)===hoy && c.tipo==='salida_tienda');
+        const entrada = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='entrada_tienda');
+        const salida = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='salida_tienda');
         if(cumplida && salida){ cls='cal-ok'; icono='✅'; texto='Realizada hoy'; }
         else if(entrada){ cls='cal-hoy'; icono='🟡'; texto='En curso'; }
         else { cls='cal-hoy'; icono='⏳'; texto='Se debe ejecutar hoy'; }
@@ -5069,7 +5070,7 @@ function calcularPreplan(refStartISO, refEndISO){
   const visitasPorTienda = {};
   planRef.forEach(a=>{ const k=a.cadena+'|'+a.tienda; visitasPorTienda[k]=(visitasPorTienda[k]||0)+1; });
 
-  const caducidadesRecientes = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_registro && c.fecha_registro.slice(0,10)>=refStartISO);
+  const caducidadesRecientes = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_registro && fechaLocal(c.fecha_registro)>=refStartISO);
   const riesgoPorTienda = {};
   caducidadesRecientes.forEach(c=>{ const k=c.cadena+'|'+c.tienda; riesgoPorTienda[k]=(riesgoPorTienda[k]||0)+(parseInt(c.piezas)||0); });
 
@@ -5452,7 +5453,7 @@ function finalizarTareaModal(id){
 function exportarTareas(){
   const arr = getTareas();
   exportarCSV(`tareas_${todayISO()}.csv`, ['Texto','Prioridad','Asignada a','Asignada por','Fecha creación','Estado','Conclusión','Calificación'],
-    arr.map(t=>[t.texto, t.prioridad, t.asignado_a_nombre, t.asignado_por, t.fecha_creacion.slice(0,10), t.estado, t.conclusion||'', t.calificacion??'']));
+    arr.map(t=>[t.texto, t.prioridad, t.asignado_a_nombre, t.asignado_por, fechaLocal(t.fecha_creacion), t.estado, t.conclusion||'', t.calificacion??'']));
 }
 function renderTareas(){
   poblarAsignarA();
@@ -5475,7 +5476,7 @@ function renderTareas(){
           <span class="pill" style="background:${t.prioridad==='A'?'var(--bad-soft)':t.prioridad==='B'?'var(--warn-soft)':'var(--good-soft)'}; color:${t.prioridad==='A'?'var(--bad)':t.prioridad==='B'?'var(--warn)':'var(--good)'};">${PRIORIDAD_TAREA_LABEL[t.prioridad]}</span>
           <span class="pill" style="background:${t.estado==='abierta'?'var(--info-soft)':'var(--brand-soft)'}; color:${t.estado==='abierta'?'var(--info)':'var(--brand-dark)'}; margin-left:4px;">${t.estado}</span>
           <div style="font-weight:700; font-size:14px; margin-top:6px;">${t.texto}</div>
-          <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">Asignada a <b>${nombreCorto(t.asignado_a_nombre)}</b> por ${nombreCorto(t.asignado_por)} · ${t.fecha_creacion.slice(0,10)}</div>
+          <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">Asignada a <b>${nombreCorto(t.asignado_a_nombre)}</b> por ${nombreCorto(t.asignado_por)} · ${fechaLocal(t.fecha_creacion)}</div>
         </div>
       </div>
       ${t.retroalimentaciones.length ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:6px;">
@@ -6263,13 +6264,13 @@ function visitasPorTienda(storesScope){
   const inicioMes = isoDate(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
   const semanasTranscurridas = Math.max(1, Math.ceil(hoy.getDate()/7));
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
-  const capturas = getCapturas().filter(c=>c.fecha_registro && c.fecha_registro.slice(0,10)>=inicioMes && c.fecha_registro.slice(0,10)<=hoyISO && visibleUsuarios.has(c.usuario));
+  const capturas = getCapturas().filter(c=>c.fecha_registro && fechaLocal(c.fecha_registro)>=inicioMes && fechaLocal(c.fecha_registro)<=hoyISO && visibleUsuarios.has(c.usuario));
   const diasConCaptura = new Map(); // cadena|tienda -> Set(dias)
   capturas.forEach(c=>{
     if(!c.tienda) return;
     const key = (c.cadena||'')+'|'+c.tienda;
     if(!diasConCaptura.has(key)) diasConCaptura.set(key, new Set());
-    diasConCaptura.get(key).add(c.fecha_registro.slice(0,10));
+    diasConCaptura.get(key).add(fechaLocal(c.fecha_registro));
   });
   const map = new Map();
   storesScope.forEach(s=>{
@@ -6970,14 +6971,14 @@ function cpVisitasEnVentana(p, storesScope, mesesSet){
   const desde = p.desde || '0000-01-01';
   const hasta = p.hasta || '9999-12-31';
   return getCapturas().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
-    && c.fecha_registro.slice(0,10)>=desde && c.fecha_registro.slice(0,10)<=hasta
-    && mesesSet.has(c.fecha_registro.slice(0,7))
+    && fechaLocal(c.fecha_registro)>=desde && fechaLocal(c.fecha_registro)<=hasta
+    && mesesSet.has(fechaLocal(c.fecha_registro).slice(0,7))
     && tiendaNames.has(c.tienda)
     && (!p.cadenas || !p.cadenas.length || p.cadenas.includes(c.cadena)));
 }
 function cpEjecucionesEnScope(p, storesScope, mesesSet){
   const tiendaNames = new Set(storesScope.map(s=>s.tienda));
-  return getCumplimientosPrioridad().filter(r=> r.prioridad_id===p.id && r.fecha_registro && mesesSet.has(r.fecha_registro.slice(0,7)) && tiendaNames.has(r.tienda));
+  return getCumplimientosPrioridad().filter(r=> r.prioridad_id===p.id && r.fecha_registro && mesesSet.has(fechaLocal(r.fecha_registro).slice(0,7)) && tiendaNames.has(r.tienda));
 }
 let cpPrioridadExpandida = null;
 function renderCumpPrioridades(){
@@ -7014,12 +7015,12 @@ function renderCumpPrioridades(){
 
   window._cpDatos = conSeguimiento.map(p=>{
     const visitasArr = cpVisitasEnVentana(p, storesScope, mesesSet);
-    const visitasUnicas = new Set(visitasArr.map(c=>c.usuario+'|'+c.fecha_registro.slice(0,10)+'|'+c.tienda));
+    const visitasUnicas = new Set(visitasArr.map(c=>c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
     const ejecs = cpEjecucionesEnScope(p, storesScope, mesesSet);
     const pct = visitasUnicas.size ? Math.round(ejecs.length/visitasUnicas.size*100) : null;
     // desglose por tienda
     const porTienda = {};
-    visitasArr.forEach(c=>{ (porTienda[c.tienda] = porTienda[c.tienda] || {tienda:c.tienda, cadena:c.cadena, visitas:new Set(), ejecs:0}).visitas.add(c.usuario+'|'+c.fecha_registro.slice(0,10)); });
+    visitasArr.forEach(c=>{ (porTienda[c.tienda] = porTienda[c.tienda] || {tienda:c.tienda, cadena:c.cadena, visitas:new Set(), ejecs:0}).visitas.add(c.usuario+'|'+fechaLocal(c.fecha_registro)); });
     ejecs.forEach(e=>{ if(porTienda[e.tienda]) porTienda[e.tienda].ejecs += 1; else porTienda[e.tienda] = {tienda:e.tienda, cadena:e.cadena, visitas:new Set(), ejecs:1}; });
     const tiendasDetalle = Object.values(porTienda).map(t=>({tienda:t.tienda, cadena:t.cadena, visitas:t.visitas.size, ejecs:t.ejecs, pct: t.visitas.size ? Math.round(t.ejecs/t.visitas.size*100) : null})).sort((a,b)=>(a.pct??999)-(b.pct??999));
     return {...p, visitasVentana: visitasUnicas.size, ejecuciones: ejecs.length, pct, tiendasDetalle};
@@ -7424,9 +7425,9 @@ function renderKpis(){
   const rangoPersonalizado = !!((document.getElementById('kpiDesde')||{}).value || (document.getElementById('kpiHasta')||{}).value);
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
   const capturasTodas = getCapturas().filter(c=>c.tienda===tienda);
-  const capturas = capturasTodas.filter(c=> !c.fecha_registro || (c.fecha_registro.slice(0,10)>=fDesde && c.fecha_registro.slice(0,10)<=fHasta));
+  const capturas = capturasTodas.filter(c=> !c.fecha_registro || (fechaLocal(c.fecha_registro)>=fDesde && fechaLocal(c.fecha_registro)<=fHasta));
   const planMes = getRutas().filter(a=>a.tipo==='visita' && a.tienda===tienda && a.fecha>=fDesde && a.fecha<=fHasta && visibleUsuarios.has(a.usuario));
-  const realDiasSet = new Set(capturasTodas.filter(c=>c.fecha_registro).map(c=> c.usuario+'|'+c.fecha_registro.slice(0,10)));
+  const realDiasSet = new Set(capturasTodas.filter(c=>c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)));
   const cumplidasMes = planMes.filter(a=> realDiasSet.has(a.usuario+'|'+a.fecha)).length;
   const pctCumplimientoMes = planMes.length ? Math.round(cumplidasMes/planMes.length*100) : null;
   const caducidades = capturasTodas.filter(c=>c.tipo==='caducidad' && c.fecha_caducidad && c.fecha_caducidad>=hoy).sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad));
@@ -7794,7 +7795,7 @@ async function exportImagenesReporte(){
       const chica = await reducirImagen(fotos[j], 700);
       const a = document.createElement('a');
       a.href = chica;
-      a.download = `${c.tipo}_${(c.tienda||'sin_tienda').replace(/[^a-z0-9]+/gi,'_')}_${c.fecha_registro.slice(0,10)}_${i+1}_${j+1}.jpg`;
+      a.download = `${c.tipo}_${(c.tienda||'sin_tienda').replace(/[^a-z0-9]+/gi,'_')}_${fechaLocal(c.fecha_registro)}_${i+1}_${j+1}.jpg`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       await new Promise(r=>setTimeout(r, 250));
     }
@@ -7821,7 +7822,7 @@ async function exportPDFReporte(){
       pdf.text(`DELICO . ODV — ${TIPO_LABEL[c.tipo]||c.tipo}${fotos.length>1?` (foto ${j+1}/${fotos.length})`:''}`, 40, 44);
       pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
       pdf.text(`Persona: ${c.persona}`, 40, 64);
-      pdf.text(`Fecha: ${c.fecha_registro.slice(0,16).replace('T',' ')}`, 40, 80);
+      pdf.text(`Fecha: ${fechaHoraLocal(c.fecha_registro)}`, 40, 80);
       pdf.text(`Cadena: ${c.cadena||'—'}    Tienda: ${c.tienda||'—'}`, 40, 96);
       pdf.text(`Detalle: ${detalleCaptura(c).replace(/<[^>]+>/g,' ')}`.slice(0,110), 40, 112);
       try{
