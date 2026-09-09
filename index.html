@@ -1415,6 +1415,10 @@ function todayISO(){ return new Date().toLocaleDateString('sv-SE', {timeZone:'Am
 function horaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Mexico_City'}); }
 function fechaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // 'sv-SE' da formato AAAA-MM-DD
 function fechaHoraLocal(iso){ if(!iso) return '—'; return fechaLocal(iso) + ' ' + horaLocal(iso); } // fecha+hora ya convertidas a hora de México (antes se mostraba el UTC crudo del ISO guardado)
+// Igual que fechaLocal, pero segura para usarse en campos que a veces guardan solo 'AAAA-MM-DD' (de un <input type=date>,
+// donde NO hay que restar horas) y a veces un timestamp completo con hora ('...T...Z', UTC, donde SÍ hay que convertir
+// a hora de México). Un valor sin 'T' se deja tal cual; uno con 'T' se convierte con fechaLocal().
+function fechaSoloDia(valor){ if(!valor) return ''; return String(valor).includes('T') ? fechaLocal(valor) : String(valor).slice(0,10); }
 function uid(){ return 'c' + Date.now() + Math.random().toString(16).slice(2,8); }
 /* Nuestros nombres vienen "APELLIDO1 APELLIDO2 NOMBRE(S)" — para mostrar queremos "Nombre Apellido1" */
 function nombreCorto(nombreCompleto){
@@ -1783,7 +1787,7 @@ function renderInstalacionEquipo(){
     if(!a){ estadoHtml = '<span style="color:var(--bad); font-weight:600;">❌ Nunca ha entrado</span>'; nunca++; orden=0; }
     else if(a.instalada){ estadoHtml = '<span style="color:var(--good); font-weight:600;">✅ Instalada</span>'; ok++; orden=2; }
     else { estadoHtml = '<span style="color:var(--warn); font-weight:600;">⚠️ Solo navegador</span>'; nav++; orden=1; }
-    const ultimo = a ? a.ultimo_acceso.slice(0,16).replace('T',' ') : '—';
+    const ultimo = a ? fechaHoraLocal(a.ultimo_acceso) : '—';
     const plataforma = a ? a.plataforma : '—';
     return {orden, html: `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${ultimo}</td><td>${estadoHtml}</td><td>${plataforma}</td></tr>`};
   });
@@ -2818,14 +2822,12 @@ function renderCheckinBar(){
   }
   html += `<div class="checkin-empty" style="margin-top:8px; border-top:1px dashed var(--line); padding-top:10px;">
     <span style="font-size:12.5px; color:var(--ink-soft);">¿Vas a una tienda fuera de tu ruta de hoy (cambio, cobertura, vacaciones de alguien más, etc.)?</span>
-    <select id="checkinOtraSelect" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
-      <option value="">Selecciona la tienda...</option>
-      ${[...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}">${s.tienda} (${s.cadena})</option>`).join('')}
-    </select>
+    <input type="text" id="checkinOtraSelect" list="dlTodasTiendas" placeholder="Escribe para buscar tu tienda..." style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
     <button class="btn btn-outline" onclick="hacerCheckinOtraTienda()">Check-in aquí</button>
     <button class="btn btn-ghost" onclick="abrirIncidenciaPersonal()">Otro (inasistencia / incapacidad)</button>
   </div>`;
   box.innerHTML = html;
+  poblarDatalistTiendas();
 }
 function hacerCheckin(){
   const idx = document.getElementById('checkinSelect').value;
@@ -2839,11 +2841,9 @@ function salirCheckin(){ setCheckin(null); renderCheckinBar(); }
 /* Check-in en una tienda que no está en la ruta de hoy: si de verdad no está en la ruta, pide un motivo
    breve y genera la incidencia automáticamente (ya no hay que pedir permiso antes ni esperar aprobación). */
 function hacerCheckinOtraTienda(){
-  const sel = document.getElementById('checkinOtraSelect');
-  if(!sel || !sel.value){ toast('Elige una tienda'); return; }
-  const tienda = sel.value;
-  const opt = sel.selectedOptions[0];
-  const cadena = opt ? opt.getAttribute('data-cadena') : '';
+  const match = resolverTiendaEscrita('checkinOtraSelect');
+  if(!match){ toast('Escribe el nombre de tu tienda y elígela de la lista que aparece.'); return; }
+  const tienda = match.tienda, cadena = match.cadena;
   const enRuta = misTiendasHoy().some(o=>o.tienda===tienda);
   if(enRuta){
     setCheckin({tienda, cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
@@ -3024,8 +3024,7 @@ const FORM_DEFS = {
     fields: [
       ['tienda','tienda_select','Tienda',true],
       ['clave','producto','Producto',true],
-      ['fecha_caducidad','date','Fecha de caducidad',true],
-      ['piezas','entero','Piezas en riesgo',true],
+      ['fechas_caducidad','caducidad_multi','Fecha(s) de caducidad y piezas en riesgo',true],
       ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
     ]
   },
@@ -3107,6 +3106,24 @@ function tiendasParaSelect(){
   const checkin = getCheckin();
   if(checkin) return [{cadena:checkin.cadena, tienda:checkin.tienda}];
   return [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda));
+}
+/* Resuelve el texto escrito en un <input list="dlTodasTiendas"> (formato "TIENDA — CADENA",
+   tal como lo llena poblarDatalistTiendas) contra el catálogo real de tiendas — así el buscador
+   por palabra clave sigue guardando exactamente {tienda,cadena}, igual que antes con el <select>. */
+function resolverTiendaEscrita(inputId){
+  poblarDatalistTiendas();
+  const el = document.getElementById(inputId);
+  const val = el ? el.value.trim() : '';
+  if(!val) return null;
+  const partes = val.split(' — ');
+  if(partes.length >= 2){
+    const cadena = partes[partes.length-1];
+    const tienda = partes.slice(0,-1).join(' — ');
+    const m = APP_DATA.stores.find(s=>s.tienda===tienda && s.cadena===cadena);
+    if(m) return m;
+  }
+  // por si pegaron/escribieron solo el nombre de la tienda, sin "— CADENA"
+  return APP_DATA.stores.find(s=>s.tienda.toLowerCase()===val.toLowerCase()) || null;
 }
 const ICONOS_CON_QUE = {'Baguette/Bolillo':'🥖','Galletas':'🍪','Pan artesanal Delico':'🍞','En vaso':'🥤','Bastones de verdura':'🥕','Fruta dulce':'🍓','Palitos de pan':'🥨','Espagueti':'🍝','Cebollín':'🌿','Aceite de oliva':'🫒','Totopos':'🌽','Papas':'🥔','Otro':'➕'};
 const ICONOS_CLIMA = {'Soleado':'☀️','Nublado':'☁️','Lluvia':'🌧️','Frío':'🥶','Calor extremo':'🔥'};
@@ -3523,14 +3540,16 @@ function openForm(type){
     } else if(type_==='select'){
       html += `<select id="f_${key}"><option value="">Selecciona...</option>${options.map(o=>`<option>${o}</option>`).join('')}</select>`;
     } else if(type_==='tienda_select'){
-      const opts = tiendasParaSelect();
       const locked = !!checkin;
-      html += `<select id="f_${key}" ${locked?'disabled':''}>
-          <option value="">Selecciona tienda...</option>
-          ${opts.map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}" ${checkin && checkin.tienda===s.tienda?'selected':''}>${s.tienda} (${s.cadena})</option>`).join('')}
-        </select>
-        ${locked ? `<input type="hidden" id="f_${key}_locked" value="${checkin.tienda}">` : ''}
-        ${locked ? `<div class="file-note">Bloqueada por tu check-in. Sal de la tienda en Captura para cambiarla.</div>` : ''}`;
+      html += locked
+        ? `<input type="text" value="${checkin.tienda} (${checkin.cadena})" disabled>
+           <input type="hidden" id="f_${key}_locked" value="${checkin.tienda}">
+           <div class="file-note">Bloqueada por tu check-in. Sal de la tienda en Captura para cambiarla.</div>`
+        : `<input type="text" id="f_${key}" list="dlTodasTiendas" placeholder="Escribe para buscar tu tienda...">`;
+    } else if(type_==='caducidad_multi'){
+      html += `<div id="fcadrows_${key}"></div>
+        <button type="button" class="btn btn-ghost" style="margin-top:2px;" onclick="agregarFilaCaducidad('${key}')">+ Agregar otra fecha de caducidad</button>
+        <div class="file-note">Si este código tiene piezas caducando en fechas distintas, agrega una fila por cada fecha — no hace falta repetir tienda, producto ni foto.</div>`;
     } else if(type_==='entero'){
       html += `<input type="number" id="f_${key}" step="1" min="0" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">`;
     } else if(type_==='decimal'){
@@ -3569,6 +3588,43 @@ function openForm(type){
   body.innerHTML = html;
   document.getElementById('modalBg').classList.add('open');
   def.fields.forEach(([key,type_])=>{ if(type_==='producto') renderTarjetasProducto(key); });
+  def.fields.forEach(([key,type_])=>{ if(type_==='caducidad_multi'){ window._caducidadFilas = window._caducidadFilas || {}; window._caducidadFilas[key] = []; agregarFilaCaducidad(key); } });
+}
+/* ---------- Caducidades: varias fechas (y piezas) para el mismo código, en una sola captura ---------- */
+window._caducidadFilas = window._caducidadFilas || {};
+function agregarFilaCaducidad(key){
+  window._caducidadFilas[key] = window._caducidadFilas[key] || [];
+  window._caducidadFilas[key].push('cadrow' + Date.now() + Math.random().toString(16).slice(2,6));
+  renderFilasCaducidad(key);
+}
+function quitarFilaCaducidad(key, rowId){
+  window._caducidadFilas[key] = (window._caducidadFilas[key]||[]).filter(id=>id!==rowId);
+  if(!window._caducidadFilas[key].length){ agregarFilaCaducidad(key); return; }
+  renderFilasCaducidad(key);
+}
+function renderFilasCaducidad(key){
+  const box = document.getElementById('fcadrows_'+key);
+  if(!box) return;
+  const filas = window._caducidadFilas[key] || [];
+  // conserva lo ya escrito en las filas que sigan existiendo al volver a dibujar
+  const previos = {};
+  filas.forEach(rowId=>{
+    const f = document.getElementById('cf_'+rowId+'_fecha');
+    const p = document.getElementById('cf_'+rowId+'_piezas');
+    if(f) previos[rowId] = {fecha: f.value, piezas: p ? p.value : ''};
+  });
+  box.innerHTML = filas.map((rowId,i)=>`
+    <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:8px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:130px;">
+        <label style="font-size:11px; color:var(--ink-soft); display:block; margin-bottom:2px;">Fecha${filas.length>1?' #'+(i+1):''}</label>
+        <input type="date" id="cf_${rowId}_fecha" value="${(previos[rowId]&&previos[rowId].fecha)||''}">
+      </div>
+      <div style="flex:1; min-width:110px;">
+        <label style="font-size:11px; color:var(--ink-soft); display:block; margin-bottom:2px;">Piezas en riesgo</label>
+        <input type="number" id="cf_${rowId}_piezas" step="1" min="0" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" value="${(previos[rowId]&&previos[rowId].piezas)||''}">
+      </div>
+      ${filas.length>1 ? `<button type="button" class="btn btn-ghost" style="padding:6px 10px;" onclick="quitarFilaCaducidad('${key}','${rowId}')" title="Quitar esta fecha">✕</button>` : ''}
+    </div>`).join('');
 }
 function closeModal(){
   document.querySelectorAll('[id^="scan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('scan_',''); closeScanner(key); } });
@@ -3707,6 +3763,43 @@ function mostrarProyeccionCaducidad(rec){
   }
   avisoPersonalizado(msg);
 }
+/* Igual que mostrarProyeccionCaducidad, pero para cuando un solo código se capturó con varias
+   fechas de caducidad a la vez — junta todo en un solo aviso en vez de mostrar uno por fecha. */
+function mostrarProyeccionCaducidadMultiple(registros){
+  if(!registros || !registros.length) return;
+  if(registros.length===1){ mostrarProyeccionCaducidad(registros[0]); return; }
+  const r0 = registros[0];
+  const store = APP_DATA.stores.find(s=>s.cadena===r0.cadena && s.tienda===r0.tienda);
+  const comb = (store && r0.clave) ? (APP_DATA.combinaciones||[]).find(c=>c.clave===r0.clave && c.cadena===store.cadena && c.tienda===store.tienda && (store.num_tienda==null || c.num_tienda===store.num_tienda)) : null;
+  const avg = comb ? (comb.prom_venta_diario||0) : null;
+  const corte = fechaCorteLegible((APP_DATA.bi_meta||{}).pipeline_actualizado_utc);
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let totalPiezas = 0, totalCaducarian = 0;
+  const detalle = [...registros].sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad)).map(r=>{
+    const piezas = parseInt(r.piezas)||0;
+    totalPiezas += piezas;
+    const cad = new Date(r.fecha_caducidad+'T00:00:00');
+    const dias = Math.max(0, Math.round((cad-hoy)/86400000));
+    let linea = `• ${r.fecha_caducidad} (en ${dias} día(s)): ${piezas} pza(s)`;
+    if(avg!=null){
+      const esperadoVenderse = Math.min(piezas, Math.round(avg*dias));
+      const caducarian = Math.max(0, piezas-esperadoVenderse);
+      totalCaducarian += caducarian;
+      linea += caducarian>0 ? ` — ⚠️ ~${caducarian} sin vender` : ` — ✅ ok`;
+    }
+    return linea;
+  }).join('\n');
+  let msg = `📊 Se capturaron ${totalPiezas} pieza(s) en ${registros.length} fecha(s) de caducidad distintas para este código:\n\n${detalle}\n\n`;
+  if(avg!=null){
+    msg += `📦 AVG del Pipeline (promedio de venta diario real, corte ${corte}): ~${avg.toFixed(2)} pzas/día.\n\n`;
+    msg += totalCaducarian>0
+      ? `⚠️ En total, al ritmo actual, quedarían ~${totalCaducarian} pieza(s) sin vender antes de caducar entre todas las fechas.`
+      : `✅ Al ritmo de venta actual, no se esperan piezas caducadas en ninguna de estas fechas.`;
+  } else {
+    msg += `No encontré esta combinación (tienda + SKU) en el último corte del Pipeline, así que no tengo un AVG real con qué compararlo.`;
+  }
+  avisoPersonalizado(msg);
+}
 function precioSospechoso(clave, precioIngresado){
   const p = claveAProducto(clave);
   if(!p || !p.precio_promedio || !precioIngresado) return null;
@@ -3741,12 +3834,30 @@ function submitForm(type){
         rec[key] = el ? el.checked : false;
       } else if(type_==='tienda_select'){
         const lockedInput = document.getElementById('f_'+key+'_locked');
-        const sel = document.getElementById('f_'+key);
-        const val = lockedInput ? lockedInput.value : (sel ? sel.value : '');
-        if(req && !val){ missing = true; faltantes.push(label); }
-        rec[key] = val;
-        const opt = sel && sel.selectedOptions && sel.selectedOptions[0];
-        rec.cadena = opt ? opt.dataset.cadena : (getCheckin()?.cadena || '');
+        if(lockedInput && lockedInput.value){
+          rec[key] = lockedInput.value;
+          rec.cadena = getCheckin()?.cadena || '';
+        } else {
+          const match = resolverTiendaEscrita('f_'+key);
+          if(req && !match){ missing = true; faltantes.push(label); }
+          rec[key] = match ? match.tienda : '';
+          rec.cadena = match ? match.cadena : '';
+        }
+      } else if(type_==='caducidad_multi'){
+        const filas = window._caducidadFilas[key] || [];
+        const pares = [];
+        let filaAMedias = false;
+        filas.forEach(rowId=>{
+          const f = document.getElementById('cf_'+rowId+'_fecha');
+          const p = document.getElementById('cf_'+rowId+'_piezas');
+          const fecha = f ? f.value : '';
+          const piezas = p ? (parseInt(p.value)||0) : 0;
+          if(fecha && piezas>0) pares.push({fecha_caducidad: fecha, piezas});
+          else if(fecha || (p && p.value)) filaAMedias = true; // dejaron una fila con solo fecha o solo piezas
+        });
+        if(!pares.length){ missing = true; faltantes.push(label); }
+        if(filaAMedias){ missing = true; faltantes.push(label + ' (hay una fila incompleta — pon fecha Y piezas, o quítala con ✕)'); }
+        rec._caducidadPares = pares;
       } else {
         const el = document.getElementById('f_'+key);
         let val = el ? el.value.trim() : '';
@@ -3766,13 +3877,26 @@ function submitForm(type){
     const continuarGuardado = () => {
       try{
         const arr = getCapturas();
-        arr.push(rec);
-        saveCapturas(arr);
-        closeModal();
-        toast('Captura guardada ✓');
-        if(type==='caducidad') mostrarProyeccionCaducidad(rec);
-        if(type==='entrada_tienda' && rec.tienda){ setCheckin({tienda:rec.tienda, cadena:rec.cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}); }
-        if(type==='salida_tienda'){ setCheckin(null); }
+        if(type==='caducidad'){
+          // Un solo código, una o varias fechas de caducidad — se guarda UN registro por fecha
+          // (para no tocar reportes/alertas que ya asumen 1 registro = 1 fecha), pero el usuario
+          // solo llena tienda/producto/foto UNA vez.
+          const pares = rec._caducidadPares || [];
+          const base = {...rec}; delete base._caducidadPares; delete base.fechas_caducidad;
+          const registros = pares.map(par => ({...base, id: uid(), fecha_caducidad: par.fecha_caducidad, piezas: par.piezas}));
+          registros.forEach(r=>arr.push(r));
+          saveCapturas(arr);
+          closeModal();
+          toast(`Captura guardada ✓ (${registros.length} fecha${registros.length>1?'s':''} de caducidad)`);
+          mostrarProyeccionCaducidadMultiple(registros);
+        } else {
+          arr.push(rec);
+          saveCapturas(arr);
+          closeModal();
+          toast('Captura guardada ✓');
+          if(type==='entrada_tienda' && rec.tienda){ setCheckin({tienda:rec.tienda, cadena:rec.cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}); }
+          if(type==='salida_tienda'){ setCheckin(null); }
+        }
         renderMisCapturas();
         renderCheckinBar();
         if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
@@ -4244,7 +4368,7 @@ function renderDegustacionesRecientes(){
         <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; white-space:nowrap;" onclick="abrirRetroShopper('${c.id}')">+ Agregar comentario</button>
       </div>
       ${retros.length ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:5px;">
-        ${retros.map(r=>`<div style="font-size:12px;">${r.texto} <span style="color:var(--ink-soft);">(${(r.fecha||'').slice(0,16).replace('T',' ')})</span></div>`).join('')}
+        ${retros.map(r=>`<div style="font-size:12px;">${r.texto} <span style="color:var(--ink-soft);">(${fechaHoraLocal(r.fecha)})</span></div>`).join('')}
       </div>` : ''}
     </div>`;
   }).join('');
@@ -4312,8 +4436,8 @@ function capturasFiltradasReporte(){
   if(cadena) arr = arr.filter(c=>c.cadena===cadena);
   if(region) arr = arr.filter(c=>{ const u = APP_DATA.equipo.find(x=>x.usuario===c.usuario); return u && u.region===region; });
   if(supervisor) arr = arr.filter(c=> supervisorDePersona(c.persona)===supervisor);
-  if(desde) arr = arr.filter(c=> (c.fecha_registro||'').slice(0,10) >= desde);
-  if(hasta) arr = arr.filter(c=> (c.fecha_registro||'').slice(0,10) <= hasta);
+  if(desde) arr = arr.filter(c=> fechaSoloDia(c.fecha_registro) >= desde);
+  if(hasta) arr = arr.filter(c=> fechaSoloDia(c.fecha_registro) <= hasta);
   return arr;
 }
 function renderReportes(){
@@ -4374,7 +4498,7 @@ function renderReportesInsights(arr){
   const tiendaTop = Object.entries(porTienda).sort((a,b)=>b[1]-a[1])[0];
   const fechas = arr.map(c=>c.fecha_registro).filter(Boolean).sort();
   let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
-  html += `<p style="font-size:12.5px; margin:0 0 6px;">📊 <b>${arr.length}</b> captura(s) de <b>${personas.length}</b> persona(s)${fechas.length?` entre ${fechas[0].slice(0,10)} y ${fechas[fechas.length-1].slice(0,10)}`:''}.</p>`;
+  html += `<p style="font-size:12.5px; margin:0 0 6px;">📊 <b>${arr.length}</b> captura(s) de <b>${personas.length}</b> persona(s)${fechas.length?` entre ${fechaSoloDia(fechas[0])} y ${fechaSoloDia(fechas[fechas.length-1])}`:''}.</p>`;
   if(tipoTop) html += `<p style="font-size:12.5px; margin:0 0 6px;">📌 El tipo de captura más frecuente es <b>${TIPO_LABEL[tipoTop[0]]||tipoTop[0]}</b> (${tipoTop[1]} registro(s)).</p>`;
   if(personas[0]) html += `<p style="font-size:12.5px; margin:0 0 6px;">🏅 Quien más está capturando: <b>${nombreCorto(personas[0][0])}</b> (${personas[0][1]}); quien menos: <b>${nombreCorto(personas[personas.length-1][0])}</b> (${personas[personas.length-1][1]}) — revisar si es por cobertura de tiendas o por falta de captura.</p>`;
   if(incidencias.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${incidencias.length} incidencia(s) reportada(s)${tiendaTop?`, la tienda con más es <b>${tiendaTop[0]}</b> (${tiendaTop[1]})`:''} — atender de inmediato lo que siga abierto.</p>`;
@@ -5480,7 +5604,7 @@ function renderTareas(){
         </div>
       </div>
       ${t.retroalimentaciones.length ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:6px;">
-        ${t.retroalimentaciones.map(r=>`<div style="font-size:12px;"><b>${nombreCorto(r.autor)}:</b> ${r.texto} <span style="color:var(--ink-soft);">(${r.fecha.slice(0,10)})</span></div>`).join('')}
+        ${t.retroalimentaciones.map(r=>`<div style="font-size:12px;"><b>${nombreCorto(r.autor)}:</b> ${r.texto} <span style="color:var(--ink-soft);">(${fechaSoloDia(r.fecha)})</span></div>`).join('')}
       </div>` : ''}
       ${t.estado==='finalizada' ? `<div style="margin-top:10px; background:var(--good-soft); border-radius:8px; padding:8px 10px; font-size:12.5px;"><b>Conclusión:</b> ${t.conclusion} ${t.calificacion?' · '+'⭐'.repeat(t.calificacion):''}</div>` : (
       currentUser.perfil==='Embajador'
@@ -5599,7 +5723,7 @@ function renderAuditoria(){
       const pendienteCell = !a.pendiente_texto ? '—' : (a.pendiente_estado==='cerrada'
         ? `<span style="color:var(--good); font-weight:700;">✅ Resuelto</span>`
         : `<span style="color:var(--bad); font-weight:700;">⏳ ${a.pendiente_texto}</span><br><button class="btn btn-ghost" style="padding:2px 8px; font-size:10.5px; margin-top:4px;" onclick="resolverPendienteAuditoria('${a.id}')">Marcar como resuelto</button>`);
-      return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${a.fecha.slice(0,10)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td><td style="font-size:11px;">${pendienteCell}</td></tr>`;
+      return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${fechaSoloDia(a.fecha)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td><td style="font-size:11px;">${pendienteCell}</td></tr>`;
     }).join('') || `<tr><td colspan="7" class="empty-state">Sin evaluaciones registradas todavía.</td></tr>`;
   };
   window.render_audBody();
@@ -5836,7 +5960,7 @@ function aplicarFiltrosEvaluaciones(arr, campoUsuario, campoFecha){
     if(f.cadena && a.tienda){ const st = APP_DATA.stores.find(s=>s.tienda===a.tienda); if(!st || st.cadena!==f.cadena) return false; }
     if(f.region){ const u = APP_DATA.equipo.find(x=>x.usuario===a[campoUsuario]); if(!u || u.region!==f.region) return false; }
     if(f.supervisor && supervisorDePersona(a.persona_nombre||a.persona)!==f.supervisor) return false;
-    const fecha = (a[campoFecha]||'').slice(0,10);
+    const fecha = fechaSoloDia(a[campoFecha]);
     if(f.desde && fecha && fecha<f.desde) return false;
     if(f.hasta && fecha && fecha>f.hasta) return false;
     return true;
@@ -5874,7 +5998,7 @@ function renderEvaluaciones(){
 
   const boxAud = document.getElementById('evaluAudBody');
   if(boxAud) boxAud.innerHTML = arrAud.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>
-    `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${(a.fecha||'').slice(0,10)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td></tr>`
+    `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${fechaSoloDia(a.fecha)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td></tr>`
   ).join('') || `<tr><td colspan="6" class="empty-state">Sin evaluaciones de supervisión todavía.</td></tr>`;
 
   const onbWrap = document.getElementById('evaluOnboardingWrap');
@@ -5884,7 +6008,7 @@ function renderEvaluaciones(){
     if(boxOnb) boxOnb.innerHTML = arrOnb.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).map(c=>{
       const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
       const ok = all.filter(x=>x.cumple).length;
-      return `<tr><td>${c.persona_nueva||'—'}</td><td>${c.tienda||''}</td><td>${(c.fecha_registro||'').slice(0,10)}</td><td>${nombreCorto(c.persona||'')}</td><td class="num">${ok}/${all.length}</td></tr>`;
+      return `<tr><td>${c.persona_nueva||'—'}</td><td>${c.tienda||''}</td><td>${fechaSoloDia(c.fecha_registro)}</td><td>${nombreCorto(c.persona||'')}</td><td class="num">${ok}/${all.length}</td></tr>`;
     }).join('') || `<tr><td colspan="5" class="empty-state">Sin onboarding registrado todavía.</td></tr>`;
   }
   renderEvaluacionesInsights(arr360, arrAud, esEmbajador);
@@ -5928,7 +6052,7 @@ function exportarEvaluacionesExcel(){
   }
   if(d.arrAud.length){
     const rows = d.arrAud.map(a=>({
-      'Persona': a.persona_nombre, 'Tienda': a.tienda, 'Fecha': (a.fecha||'').slice(0,10), 'Evaluó': a.evaluador,
+      'Persona': a.persona_nombre, 'Tienda': a.tienda, 'Fecha': fechaSoloDia(a.fecha), 'Evaluó': a.evaluador,
       'Promedio': a.promedio, 'Detalle dimensiones': a.scores.map(s=>s.dimension+': '+s.score).join(' | '), 'Comentarios': a.comentarios||'',
     }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Auditoria-Supervision');
@@ -5937,7 +6061,7 @@ function exportarEvaluacionesExcel(){
     const rows = d.arrOnb.map(c=>{
       const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
       const ok = all.filter(x=>x.cumple).length;
-      return { 'Persona nueva': c.persona_nueva||'', 'Tienda': c.tienda||'', 'Fecha': (c.fecha_registro||'').slice(0,10), 'Registró': c.persona||'', 'Cumplimiento': `${ok}/${all.length}` };
+      return { 'Persona nueva': c.persona_nueva||'', 'Tienda': c.tienda||'', 'Fecha': fechaSoloDia(c.fecha_registro), 'Registró': c.persona||'', 'Cumplimiento': `${ok}/${all.length}` };
     });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Onboarding');
   }
@@ -5987,7 +6111,7 @@ async function exportarEvaluacionesPDF(){
   if(d.arrAud.length){
     linea('🕵️ Auditoría / Registrar supervisión', {bold:true, size:13}); y += 4;
     d.arrAud.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).forEach(a=>{
-      linea(`${a.persona_nombre} — ${a.tienda} — ${(a.fecha||'').slice(0,10)} — evaluó: ${a.evaluador} — Promedio: ${a.promedio}`, {bold:true});
+      linea(`${a.persona_nombre} — ${a.tienda} — ${fechaSoloDia(a.fecha)} — evaluó: ${a.evaluador} — Promedio: ${a.promedio}`, {bold:true});
       linea(a.scores.map(s=>s.dimension+': '+s.score).join(' · '), {size:9});
       if(a.comentarios) linea(`Comentarios: ${a.comentarios}`, {size:9});
       y += 6;
@@ -5999,7 +6123,7 @@ async function exportarEvaluacionesPDF(){
     d.arrOnb.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).forEach(c=>{
       const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
       const ok = all.filter(x=>x.cumple).length;
-      linea(`${c.persona_nueva||'—'} — ${c.tienda||''} — ${(c.fecha_registro||'').slice(0,10)} — registró: ${c.persona||''} — Cumplimiento: ${ok}/${all.length}`, {bold:true});
+      linea(`${c.persona_nueva||'—'} — ${c.tienda||''} — ${fechaSoloDia(c.fecha_registro)} — registró: ${c.persona||''} — Cumplimiento: ${ok}/${all.length}`, {bold:true});
       y += 4;
     });
   }
@@ -7071,7 +7195,7 @@ function renderCumpPrioridades(){
             <div style="font-size:11px; font-weight:700; color:var(--brand-dark); text-transform:uppercase; margin-bottom:4px;">Respuestas capturadas (qué contestó cada quien)</div>
             <div style="display:flex; flex-direction:column; gap:6px;">
               ${respuestas.map(r=>`<div style="font-size:12px; border-bottom:1px dashed var(--line); padding-bottom:4px;">
-                <b>${nombreCorto(r.persona)}</b> · ${r.tienda||''} · ${(r.fecha_registro||'').slice(0,16).replace('T',' ')}
+                <b>${nombreCorto(r.persona)}</b> · ${r.tienda||''} · ${fechaHoraLocal(r.fecha_registro)}
                 ${r.activa ? ` — <span style="color:${r.activa==='si'?'var(--good)':'var(--bad)'}; font-weight:700;">${r.activa==='si'?'Sí, está activa':'No, no está activa'}</span>` : ''}
                 ${r.comentario ? `<br><span style="color:var(--ink-soft);">"${r.comentario}"</span>` : ''}
                 ${r.foto ? `<br><img src="${r.foto}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; margin-top:3px; border:1px solid var(--line);">` : ''}
@@ -7140,7 +7264,7 @@ function renderCpTareas(){
 function exportarCpTareasCSV(){
   const arr = window._cpTareasExport || [];
   const headers = ['Persona','Tarea','Prioridad','Estado','Asignó','Fecha creación','Respuesta/conclusión'];
-  const rows = arr.map(t=>[nombreCorto(t.asignado_a_nombre), t.texto, t.prioridad, t.estado, t.asignado_por, (t.fecha_creacion||'').slice(0,10), t.estado==='finalizada' ? (t.conclusion||'') : (t.retroalimentaciones&&t.retroalimentaciones.length ? t.retroalimentaciones.map(r=>`${r.autor}: ${r.texto}`).join(' | ') : '')]);
+  const rows = arr.map(t=>[nombreCorto(t.asignado_a_nombre), t.texto, t.prioridad, t.estado, t.asignado_por, fechaSoloDia(t.fecha_creacion), t.estado==='finalizada' ? (t.conclusion||'') : (t.retroalimentaciones&&t.retroalimentaciones.length ? t.retroalimentaciones.map(r=>`${r.autor}: ${r.texto}`).join(' | ') : '')]);
   exportarCSV(`tareas_${todayISO()}.csv`, headers, rows);
 }
 /* Mes(es) para Distribución reportada en campo — mismo patrón de checklist desplegable que Objetivos/Cumplimiento de venta */
@@ -7174,7 +7298,7 @@ function mesesSeleccionadosDistComoAnioMes(){
 }
 /* Número de semana ISO (misma numeración que usa el resto de la app para cuotas/escalones: semana 31-35 = agosto, 36-40 = septiembre 2026) */
 function getISOWeek(fechaISO){
-  const d = new Date((fechaISO||'').slice(0,10)+'T00:00:00Z');
+  const d = new Date(fechaSoloDia(fechaISO)+'T00:00:00Z');
   if(isNaN(d)) return null;
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
@@ -7374,7 +7498,7 @@ function exportarDistribucionCampoCSV(){
   d.capturas.forEach(c=>{
     (c.distribucion||[]).forEach(r=>{
       if(!(r.req>0)) return;
-      rows.push([c.tienda, c.cadena, c.persona, (c.fecha_registro||'').slice(0,10), r.sku, r.familia, r.req, r.real, r.real>0?'Sí':'No']);
+      rows.push([c.tienda, c.cadena, c.persona, fechaSoloDia(c.fecha_registro), r.sku, r.familia, r.req, r.real, r.real>0?'Sí':'No']);
     });
   });
   exportarCSV(`distribucion_campo_${todayISO()}.csv`, ['Tienda','Cadena','Persona','Fecha','SKU','Familia','Requerido','Real','Cumplido'], rows);
@@ -7527,11 +7651,11 @@ function renderKpis(){
     <div class="card" style="margin-bottom:18px;">${ventaCeroStore.map(a=>`<div style="padding:5px 0; font-size:13px; border-bottom:1px solid var(--line);">${a.clave} — ${a.item_desc||''} (${a.familia}) — ${a.dias_inventario!=null?Math.round(a.dias_inventario)+' días de inventario sin vender':''}</div>`).join('')}</div>` : ''}
     <h2 class="section-title">⏰ Caducidad reportada</h2>
     ${caducidades.length ? `<div class="table-scroll" style="margin-bottom:18px;"><table><thead><tr><th>Producto</th><th class="num">Piezas</th><th>Fecha caducidad</th><th>Reportó</th><th>Fecha reporte</th></tr></thead><tbody>
-      ${caducidades.map(c=>`<tr><td>${nombreProducto(c.clave)}</td><td class="num">${c.piezas??''}</td><td>${c.fecha_caducidad}</td><td>${nombreCorto(c.persona||'')}</td><td>${(c.fecha_registro||'').slice(0,16).replace('T',' ')}</td></tr>`).join('')}
+      ${caducidades.map(c=>`<tr><td>${nombreProducto(c.clave)}</td><td class="num">${c.piezas??''}</td><td>${c.fecha_caducidad}</td><td>${nombreCorto(c.persona||'')}</td><td>${fechaHoraLocal(c.fecha_registro)}</td></tr>`).join('')}
     </tbody></table></div>` : `<div class="card" style="margin-bottom:18px;"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin caducidad reportada próxima en esta tienda. ✓</p></div>`}
     <h2 class="section-title">📋 Reportes hechos en esta tienda${rangoPersonalizado?' ('+fDesde+' a '+fHasta+')':''}</h2>
     ${capturas.length ? `<div class="table-scroll"><table><thead><tr><th>Tipo</th><th>Persona</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody>
-      ${capturas.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).slice(0,50).map(c=>`<tr><td>${TIPO_LABEL[c.tipo]||c.tipo}</td><td>${nombreCorto(c.persona||'')}</td><td>${(c.fecha_registro||'').slice(0,16).replace('T',' ')}</td><td style="font-size:12px;">${detalleCaptura(c)}</td></tr>`).join('')}
+      ${capturas.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).slice(0,50).map(c=>`<tr><td>${TIPO_LABEL[c.tipo]||c.tipo}</td><td>${nombreCorto(c.persona||'')}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td style="font-size:12px;">${detalleCaptura(c)}</td></tr>`).join('')}
     </tbody></table>${capturas.length>50?`<p style="font-size:11px; color:var(--ink-soft); margin-top:6px;">Mostrando los 50 más recientes de ${capturas.length}.</p>`:''}</div>` : `<div class="card"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin reportes capturados todavía en esta tienda.</p></div>`}
     <p style="font-size:11px; color:var(--ink-soft); margin-top:10px;">Cuota: ${(APP_DATA.bi_meta&&APP_DATA.bi_meta.fuente_cuotas)||''}. Distribución/venta cero: ${(APP_DATA.bi_meta&&APP_DATA.bi_meta.fuente_pipeline)||''}. Venta real: Sell Out por cadena (datos hasta la fecha más reciente cargada por cadena).</p>
   `;
@@ -7608,7 +7732,7 @@ function renderNoticias(){
       ${n.foto? `<img src="${n.foto}" style="width:100%; height:150px; object-fit:cover;">` : ''}
       <div style="padding:12px;">
         <div style="font-weight:700; font-size:12.5px;">${nombreCorto(n.persona)} <span style="font-weight:500; color:var(--ink-soft); font-size:11px;">· ${n.perfil}</span></div>
-        <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">${n.fecha.slice(0,16).replace('T',' ')}</div>
+        <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">${fechaHoraLocal(n.fecha)}</div>
         <div style="font-size:13px;">${n.texto||''}</div>
       </div>
     </div>`).join('') || `<div class="empty-state" style="grid-column:1/-1;">Aún no hay publicaciones. ¡Sé el primero en compartir algo!</div>`;
@@ -7656,7 +7780,7 @@ function renderEscucha(){
   box.innerHTML = arr.map(m=>`<div class="card">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
         <div style="font-weight:700; font-size:12.5px;">${nombreCorto(m.persona)} <span style="font-weight:500; color:var(--ink-soft); font-size:11px;">· ${m.perfil||''}</span></div>
-        <div style="font-size:11px; color:var(--ink-soft);">${(m.fecha||'').slice(0,16).replace('T',' ')}</div>
+        <div style="font-size:11px; color:var(--ink-soft);">${fechaHoraLocal(m.fecha)}</div>
       </div>
       ${m.texto ? `<div style="font-size:13px; margin-top:6px; white-space:pre-wrap;">${m.texto}</div>` : ''}
       ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${m.fotos.map(f=>`<img src="${f}" style="width:76px; height:76px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}</div>` : ''}
@@ -7695,7 +7819,7 @@ function exportarDetalleFormularios(){
     return String(val);
   };
   arr.forEach(c=>{
-    const fecha = (c.fecha_registro||'').slice(0,16).replace('T',' ');
+    const fecha = fechaHoraLocal(c.fecha_registro);
     const tipoLabel = TIPO_LABEL[c.tipo] || c.tipo;
     if(c.tipo==='mercadeo' || c.tipo==='onboarding'){
       const secciones = [
