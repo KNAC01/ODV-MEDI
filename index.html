@@ -339,6 +339,13 @@
 .tienda-dd-item:hover{ background:var(--brand-soft); }
 .tienda-dd-accion{ display:flex; gap:6px; padding:4px 4px 8px; border-bottom:1px solid #eee; margin-bottom:4px; }
 .tienda-dd-accion button{ flex:1; padding:5px 8px; font-size:11px; font-weight:700; border-radius:6px; border:1px solid #d8dba0; background:#fff; cursor:pointer; }
+/* Buscador de tiendas con lista desplegable propia (no depende del autocompletado nativo del
+   teclado/navegador, que en varios celulares no se ve o no sirve como filtro visible). */
+.buscador-tienda-lista{ position:fixed; background:#fff; border:1.5px solid #d8dba0; border-radius:10px; box-shadow:0 8px 24px rgba(38,38,15,.18); max-height:240px; overflow-y:auto; z-index:9999; }
+.buscador-tienda-lista .bt-opt{ padding:9px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid #f1f1e8; }
+.buscador-tienda-lista .bt-opt:last-child{ border-bottom:none; }
+.buscador-tienda-lista .bt-opt:hover{ background:var(--brand-soft); }
+.buscador-tienda-lista .bt-vacio{ padding:9px 12px; font-size:12px; color:var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -2822,7 +2829,7 @@ function renderCheckinBar(){
   }
   html += `<div class="checkin-empty" style="margin-top:8px; border-top:1px dashed var(--line); padding-top:10px;">
     <span style="font-size:12.5px; color:var(--ink-soft);">¿Vas a una tienda fuera de tu ruta de hoy (cambio, cobertura, vacaciones de alguien más, etc.)?</span>
-    <input type="text" id="checkinOtraSelect" list="dlTodasTiendas" placeholder="Escribe para buscar tu tienda..." style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
+    <input type="text" id="checkinOtraSelect" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
     <button class="btn btn-outline" onclick="hacerCheckinOtraTienda()">Check-in aquí</button>
     <button class="btn btn-ghost" onclick="abrirIncidenciaPersonal()">Otro (inasistencia / incapacidad)</button>
   </div>`;
@@ -3107,11 +3114,10 @@ function tiendasParaSelect(){
   if(checkin) return [{cadena:checkin.cadena, tienda:checkin.tienda}];
   return [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda));
 }
-/* Resuelve el texto escrito en un <input list="dlTodasTiendas"> (formato "TIENDA — CADENA",
-   tal como lo llena poblarDatalistTiendas) contra el catálogo real de tiendas — así el buscador
-   por palabra clave sigue guardando exactamente {tienda,cadena}, igual que antes con el <select>. */
+/* Resuelve el texto escrito en un buscador de tienda (formato "TIENDA — CADENA", tal como lo
+   deja mostrarSugerenciasTienda() al elegir de la lista) contra el catálogo real de tiendas —
+   así el buscador por palabra clave guarda exactamente {tienda,cadena}, igual que antes con el <select>. */
 function resolverTiendaEscrita(inputId){
-  poblarDatalistTiendas();
   const el = document.getElementById(inputId);
   const val = el ? el.value.trim() : '';
   if(!val) return null;
@@ -3124,6 +3130,53 @@ function resolverTiendaEscrita(inputId){
   }
   // por si pegaron/escribieron solo el nombre de la tienda, sin "— CADENA"
   return APP_DATA.stores.find(s=>s.tienda.toLowerCase()===val.toLowerCase()) || null;
+}
+/* ---------- Buscador de tiendas con lista desplegable PROPIA ----------
+   Antes usábamos <input list="..."> (datalist nativo): en varios celulares eso se ve como una
+   simple sugerencia de teclado, no como una lista clara para elegir con el dedo — de ahí la queja.
+   Esta versión dibuja su propia lista (un <div> flotante) debajo del campo, filtrada mientras
+   escribes, para que SIEMPRE se vea igual sin depender del navegador/teclado de cada celular. */
+let _buscadorTiendaEl = null;
+function _buscadorTiendaDiv(){
+  if(!_buscadorTiendaEl){
+    _buscadorTiendaEl = document.createElement('div');
+    _buscadorTiendaEl.className = 'buscador-tienda-lista hidden';
+    document.body.appendChild(_buscadorTiendaEl);
+  }
+  return _buscadorTiendaEl;
+}
+function mostrarSugerenciasTienda(input){
+  const dd = _buscadorTiendaDiv();
+  const q = (input.value||'').trim().toLowerCase();
+  const terminos = q.split(/\s+/).filter(Boolean);
+  const todas = [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda));
+  // cada palabra escrita debe aparecer en algún lado (tienda o cadena), sin importar el orden —
+  // así "walmart narvarte" encuentra "WE NARVARTE (WALMART)" aunque el nombre no las traiga en ese orden.
+  const filtradas = terminos.length ? todas.filter(s => { const hay = (s.tienda+' '+s.cadena).toLowerCase(); return terminos.every(t=>hay.includes(t)); }) : todas;
+  const LIMITE = 60;
+  const mostrar = filtradas.slice(0, LIMITE);
+  dd.innerHTML = mostrar.length
+    ? mostrar.map(s=>`<div class="bt-opt" data-tienda="${s.tienda.replace(/"/g,'&quot;')}" data-cadena="${s.cadena.replace(/"/g,'&quot;')}"><b>${s.tienda}</b> <span style="color:var(--ink-soft); font-size:11.5px;">(${s.cadena})</span></div>`).join('')
+      + (filtradas.length>LIMITE ? `<div class="bt-vacio">Sigue escribiendo para acotar — hay ${filtradas.length} tiendas que coinciden.</div>` : '')
+    : `<div class="bt-vacio">Sin resultados para "${input.value}".</div>`;
+  const r = input.getBoundingClientRect();
+  dd.style.left = Math.max(4, r.left) + 'px';
+  dd.style.top = (r.bottom + 3) + 'px';
+  dd.style.width = r.width + 'px';
+  dd.classList.remove('hidden');
+  // mousedown (no click) para que se seleccione ANTES de que el blur del input cierre la lista
+  dd.onmousedown = (e) => {
+    const opt = e.target.closest('.bt-opt');
+    if(!opt) return;
+    e.preventDefault();
+    input.value = `${opt.getAttribute('data-tienda')} — ${opt.getAttribute('data-cadena')}`;
+    dd.classList.add('hidden');
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    input.focus();
+  };
+}
+function ocultarSugerenciasTienda(){
+  if(_buscadorTiendaEl) _buscadorTiendaEl.classList.add('hidden');
 }
 const ICONOS_CON_QUE = {'Baguette/Bolillo':'🥖','Galletas':'🍪','Pan artesanal Delico':'🍞','En vaso':'🥤','Bastones de verdura':'🥕','Fruta dulce':'🍓','Palitos de pan':'🥨','Espagueti':'🍝','Cebollín':'🌿','Aceite de oliva':'🫒','Totopos':'🌽','Papas':'🥔','Otro':'➕'};
 const ICONOS_CLIMA = {'Soleado':'☀️','Nublado':'☁️','Lluvia':'🌧️','Frío':'🥶','Calor extremo':'🔥'};
@@ -3545,7 +3598,7 @@ function openForm(type){
         ? `<input type="text" value="${checkin.tienda} (${checkin.cadena})" disabled>
            <input type="hidden" id="f_${key}_locked" value="${checkin.tienda}">
            <div class="file-note">Bloqueada por tu check-in. Sal de la tienda en Captura para cambiarla.</div>`
-        : `<input type="text" id="f_${key}" list="dlTodasTiendas" placeholder="Escribe para buscar tu tienda...">`;
+        : `<input type="text" id="f_${key}" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off">`;
     } else if(type_==='caducidad_multi'){
       html += `<div id="fcadrows_${key}"></div>
         <button type="button" class="btn btn-ghost" style="margin-top:2px;" onclick="agregarFilaCaducidad('${key}')">+ Agregar otra fecha de caducidad</button>
@@ -8174,7 +8227,7 @@ function renderRutaCard(a, locked){
         }).join('')}
       </div>` : ''}
       <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Otro — buscar cualquier tienda</div>
-      <input type="text" ${dis} list="dlTodasTiendas" placeholder="Escribe para buscar..." onchange="updRutaTiendaBuscada('${a.id}', this.value); this.value='';" style="width:100%; margin-bottom:4px;">
+      <input type="text" ${dis} placeholder="Escribe para buscar..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off" onchange="updRutaTiendaBuscada('${a.id}', this.value); this.value='';" style="width:100%; margin-bottom:4px;">
       <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Cadena</div>
       <div style="display:flex; gap:4px; flex-wrap:wrap;">
         ${cadenas.map(c=>{
