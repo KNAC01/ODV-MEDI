@@ -654,6 +654,10 @@
           <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra solo los registros de Ejecución MEDI (Mercadeo, Caducidades, Degustación, Precios, Categoría, Gasto, Carga de anaquel, Check-in/out, Incidencias, Onboarding) de todo el equipo, con sus fotos. No toca rutas, vacaciones, tareas ni el resto de las pestañas.</p>
           <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioMedi()">🗑️ Borrar todo MEDI</button>
         </div>
+        <div class="card" style="border:1px solid var(--bad); margin-top:10px;">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Mientras seguimos probando la app: elige exactamente qué borrar (puedes marcar solo una cosa, o varias) sin tener que borrar todo MEDI de un jalón.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorradoSelectivoPruebas()">🗑️ Borrar información de pruebas (elegir qué)</button>
+        </div>
       </div>
     </section>
 
@@ -2065,6 +2069,85 @@ function abrirReinicioMedi(){
       if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
     },
   });
+}
+
+/* ---------- Borrado selectivo de datos de prueba (solo RESET_TOTAL_USUARIO) ----------
+   A diferencia de los botones de "Borrar todo" de arriba (que borran un módulo completo),
+   aquí Ale puede marcar exactamente qué quiere limpiar mientras seguimos probando la app,
+   sin tener que borrar todo MEDI de un jalón. */
+const BORRADO_SELECTIVO_OPCIONES = [
+  {
+    key: 'capturas_medi',
+    label: 'Capturas de Ejecución MEDI de prueba',
+    detalle: 'Todas las capturas de Mercadeo, Caducidades, Degustación, Precios, Categoría, Gasto, Carga de anaquel, Check-in/out, Incidencias y Onboarding — de todo el equipo, con sus fotos.',
+  },
+  {
+    key: 'checkin_rutas',
+    label: 'Check-in activo (este dispositivo) y rutas asignadas de prueba',
+    detalle: 'Cierra el check-in activo en este celular/computadora y borra las rutas asignadas (asignación de septiembre) de todo el equipo en la nube.',
+  },
+  {
+    key: 'pipeline_ajustes',
+    label: 'Ajustes de Pipeline de prueba',
+    detalle: 'Lo capturado en las tarjetas de Pipeline: inventario real, comentarios y estatus de las alertas (venta cero / inventario negativo / excedente) — de todo el equipo.',
+  },
+];
+function abrirBorradoSelectivoPruebas(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🗑️ Borrar información de pruebas</h3>
+    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:12px 14px; margin:8px 0 14px;">
+      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 4px;">⚠️ Esta acción no se puede deshacer.</p>
+      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Marca solo lo que quieres borrar. Lo que no marques se queda tal cual.</p>
+    </div>
+    <div class="form-grid">
+      ${BORRADO_SELECTIVO_OPCIONES.map(o=>`<div class="field full" style="border:1px solid var(--line); border-radius:8px; padding:8px 10px;">
+        <label style="font-weight:700; font-size:13px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="bs_${o.key}" style="width:auto; margin-right:6px;"> ${o.label}</label>
+        <p style="font-size:11.5px; color:var(--ink-soft); margin:3px 0 0 22px;">${o.detalle}</p>
+      </div>`).join('')}
+      <div class="field full">
+        <label>Para confirmar, escribe <b>BORRAR TODO</b>:</label>
+        <input type="text" id="bsConfirmaTexto" placeholder="BORRAR TODO" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" id="btnBorradoSelectivo" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarBorradoSelectivoPruebas()">Borrar lo seleccionado</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function ejecutarBorradoSelectivoPruebas(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const seleccion = BORRADO_SELECTIVO_OPCIONES.filter(o=>(document.getElementById('bs_'+o.key)||{}).checked).map(o=>o.key);
+  if(!seleccion.length){ toast('Marca al menos una opción para borrar.'); return; }
+  const texto = ((document.getElementById('bsConfirmaTexto')||{}).value || '').trim().toUpperCase();
+  if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
+  const btn = document.getElementById('btnBorradoSelectivo');
+  const textoOriginal = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  try{
+    const promesas = [];
+    if(seleccion.includes('capturas_medi')) promesas.push(borrarTodasLasCapturasMedi());
+    if(seleccion.includes('checkin_rutas')) promesas.push(_rutasSync.save([]));
+    if(seleccion.includes('pipeline_ajustes')) promesas.push(_pipelineAjustesSync.save([]));
+    const resultados = await Promise.all(promesas);
+    if(seleccion.includes('checkin_rutas')) setCheckin(null);
+    const resumen = combinarResumenesBorrado(resultados);
+    closeModal();
+    if(resumen.fallidos > 0){
+      toast(`⚠️ Se borraron ${resumen.total - resumen.fallidos} de ${resumen.total} — ${resumen.fallidos} NO se pudieron borrar en la nube (permisos o falta de conexión). Vuelve a intentar.`, 9000);
+    } else {
+      toast('Listo — se borró la información de prueba seleccionada.', 6000);
+    }
+    renderMisCapturas();
+    if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+    try{ renderRuta(); renderPreplan(); renderCalendario(); }catch(e){}
+    try{ renderPipelineTabla(); }catch(e){}
+  }catch(e){
+    toast('⚠️ Hubo un problema al borrar: ' + e.message, 6500);
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
+  }
 }
 
 /* ---------- Reinicio de Daily News (solo RESET_TOTAL_USUARIO) ---------- */
@@ -4088,11 +4171,14 @@ function submitIncidenciaPersonal(){
     continuarGuardado();
   }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
 }
+const CA_CATEGORIAS_ALEDANAS = ['Frutas y verduras','Vinos','Abarrotes','Perfumería','Farmacia','Salchichonería','Panadería','Gourmet','Congelados','Lácteos','Hogar','Ropa','Juguetería','Deportes','Ferretería','Autos','Bebés','Mascotas','Tecnología','Línea Blanca'];
 function abrirCargaAnaquel(){
   const body = document.getElementById('modalBody');
   const checkin = getCheckin();
   const opts = tiendasParaSelect();
   const productos = APP_DATA.catalogo_productos;
+  window._fotosMulti = window._fotosMulti || {};
+  window._fotosMulti.cargaAnaquelCtx = [];
   let html = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>📐 Carga de anaquel</h3>
     <p class="d">Frentes = cuántas caras del producto se ven de frente en el anaquel. Profundidad = cuántas piezas le caben hacia atrás en esa fila.</p>
@@ -4115,6 +4201,61 @@ function abrirCargaAnaquel(){
         </tbody>
       </table>
     </div>
+    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:16px 0 4px;">Contexto de la exhibición (opcional)</div>
+    <div class="form-grid">
+      <div class="field"><label>Foto(s) de la exhibición — puedes subir varias</label>
+        <input type="file" id="f_cargaAnaquelCtx" accept="image/*" capture="environment" multiple onchange="previewFileMulti('cargaAnaquelCtx')">
+        <div id="prev_cargaAnaquelCtx" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+      </div>
+      <div class="field"><label>Categoría de ubicación</label>
+        <select id="caCategoriaUbicacion">
+          <option value="">Selecciona...</option>
+          <option value="Bunker lateral">Bunker lateral</option>
+          <option value="Bunker cabecera">Bunker cabecera</option>
+          <option value="Barco">Barco</option>
+        </select>
+      </div>
+      <div class="field"><label>Tipo de exhibición</label>
+        <select id="caTipoExhibicion">
+          <option value="">Selecciona...</option>
+          <option value="Fija x planograma">Fija x planograma</option>
+          <option value="Móvil de acuerdo a inventario">Móvil de acuerdo a inventario</option>
+          <option value="Jefe Asigna">Jefe Asigna</option>
+        </select>
+      </div>
+      <div class="field"><label>Planograma</label>
+        <select id="caPlanograma">
+          <option value="">Selecciona...</option>
+          <option value="Implementado planograma">Implementado planograma</option>
+          <option value="Sin planograma oficial">Sin planograma oficial</option>
+        </select>
+      </div>
+      <div class="field"><label>Tipo de exhibición de marca</label>
+        <select id="caBloqueMarca">
+          <option value="">Selecciona...</option>
+          <option value="Exhibición bloque de Marca">Exhibición bloque de Marca</option>
+          <option value="Exhibición separada">Exhibición separada</option>
+        </select>
+      </div>
+      <div class="field"><label>Tienda de</label>
+        <select id="caPisos">
+          <option value="">Selecciona...</option>
+          <option value="1 piso">1 piso</option>
+          <option value="2 pisos">2 pisos</option>
+        </select>
+      </div>
+      <div class="field full"><label>Categorías aledañas</label>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:4px 10px; margin-top:4px;">
+          ${CA_CATEGORIAS_ALEDANAS.map(c=>`<label style="font-size:12px; font-weight:400; display:flex; align-items:center; gap:5px;"><input type="checkbox" class="caCatAledana" value="${c}" style="width:auto;"> ${c}</label>`).join('')}
+        </div>
+      </div>
+      <div class="field full" style="display:flex; gap:18px; flex-wrap:wrap; margin-top:4px;">
+        <label style="font-size:12.5px; font-weight:400; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="caMurosInterfieren" style="width:auto;"> Muros interfieren</label>
+        <label style="font-size:12.5px; font-weight:400; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="caMurosCercanos" style="width:auto;"> Muros cercanos</label>
+        <label style="font-size:12.5px; font-weight:400; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="caPlazaComercial" style="width:auto;"> Tienda en plaza comercial</label>
+      </div>
+      <div class="field full"><label>Comentarios</label><textarea id="caComentarios" rows="2" placeholder="Notas adicionales sobre la exhibición..."></textarea></div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-brand" onclick="submitCargaAnaquel()">Guardar carga de anaquel</button>
@@ -4123,6 +4264,7 @@ function abrirCargaAnaquel(){
   document.getElementById('modalBg').classList.add('open');
 }
 function submitCargaAnaquel(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
   const checkin = getCheckin();
   const tiendaSel = document.getElementById('caTienda');
   const tienda = checkin ? checkin.tienda : tiendaSel.value;
@@ -4134,7 +4276,21 @@ function submitCargaAnaquel(){
     return (f || prof) ? {clave:p.clave, frentes: f||'0', profundidad: prof||'0'} : null;
   }).filter(Boolean);
   if(!filas.length){ toast('Captura frentes/profundidad de al menos un producto.'); return; }
-  const rec = { id: uid(), tipo:'carga_anaquel', usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), tienda, cadena, frentes: filas };
+  const categoriasAledanas = [...document.querySelectorAll('.caCatAledana:checked')].map(el=>el.value);
+  const fotos = ((window._fotosMulti||{}).cargaAnaquelCtx||[]).map(f=>f.b64);
+  const contexto = {
+    categoria_ubicacion: document.getElementById('caCategoriaUbicacion').value,
+    tipo_exhibicion: document.getElementById('caTipoExhibicion').value,
+    planograma: document.getElementById('caPlanograma').value,
+    bloque_marca: document.getElementById('caBloqueMarca').value,
+    pisos: document.getElementById('caPisos').value,
+    categorias_aledanas: categoriasAledanas,
+    muros_interfieren: document.getElementById('caMurosInterfieren').checked,
+    muros_cercanos: document.getElementById('caMurosCercanos').checked,
+    plaza_comercial: document.getElementById('caPlazaComercial').checked,
+    comentarios: document.getElementById('caComentarios').value.trim(),
+  };
+  const rec = { id: uid(), tipo:'carga_anaquel', usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), tienda, cadena, frentes: filas, contexto, fotos };
   const arr = getCapturas();
   arr.push(rec);
   saveCapturas(arr);
@@ -4453,7 +4609,7 @@ function detalleCaptura(c){
     case 'foto': return `${c.seccion} — ${c.notas||''}`;
     case 'factores_ambiente': return `${c.clima||''} · afluencia ${c.afluencia||'—'} — ${c.tendencia||''}`;
     case 'gasto_ticket': return `${(c.lineas||[]).length} línea(s) — total $${c.total}`;
-    case 'carga_anaquel': return `${(c.frentes||[]).length} SKU(s) capturados`;
+    case 'carga_anaquel': return `${(c.frentes||[]).length} SKU(s) capturados${c.contexto && c.contexto.tipo_exhibicion ? ' · '+c.contexto.tipo_exhibicion : ''}${(c.fotos||[]).length ? ' · '+c.fotos.length+' foto(s)' : ''}`;
     default: return '';
   }
 }
@@ -7970,6 +8126,21 @@ function exportarDetalleFormularios(){
       (c.frentes||[]).forEach(f=>{
         rows.push([tipoLabel, c.persona, c.tienda||'', fecha, nombreProducto(f.clave), 'Frentes / profundidad', `${f.frentes||0} frentes`, `${f.profundidad||0} de profundidad`]);
       });
+      if(c.contexto){
+        const ctx = c.contexto;
+        if(ctx.categoria_ubicacion) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Categoría de ubicación', ctx.categoria_ubicacion, '']);
+        if(ctx.tipo_exhibicion) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Tipo de exhibición', ctx.tipo_exhibicion, '']);
+        if(ctx.planograma) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Planograma', ctx.planograma, '']);
+        if(ctx.bloque_marca) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Tipo de exhibición de marca', ctx.bloque_marca, '']);
+        if(ctx.pisos) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Tienda de', ctx.pisos, '']);
+        if((ctx.categorias_aledanas||[]).length) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Categorías aledañas', ctx.categorias_aledanas.join(' / '), '']);
+        if(ctx.muros_interfieren || ctx.muros_cercanos || ctx.plaza_comercial){
+          const flags = [ctx.muros_interfieren&&'Muros interfieren', ctx.muros_cercanos&&'Muros cercanos', ctx.plaza_comercial&&'Tienda en plaza comercial'].filter(Boolean).join(' / ');
+          rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Otros', flags, '']);
+        }
+        if(ctx.comentarios) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Comentarios', '', ctx.comentarios]);
+      }
+      if(c.fotos && c.fotos.length) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Fotos de la exhibición', `${c.fotos.length} foto(s)`, '']);
     } else if(c.tipo==='incapacidad' || c.tipo==='inasistencia'){
       rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Comentario', '', c.comentarios||'']);
       if(c.fotos && c.fotos.length) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Fotos', `${c.fotos.length} foto(s)`, '']);
