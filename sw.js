@@ -2,7 +2,7 @@
 // IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
 // también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
 // celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v84';
+const CACHE_NAME = 'delico-odv-v85';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png'];
 // El SDK de Firebase se carga desde gstatic.com cada vez que arranca la app. Si no se guarda también
 // aquí, un celular que abre la app SIN internet (o con el caché del navegador ya vencido) se puede
@@ -17,8 +17,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       cache.addAll(ASSETS).then(() =>
-        // Uno por uno y en modo no-cors: si alguno falla (ej. instalando el service worker sin
-        // internet), NO debe tumbar la instalación completa — lo esencial (ASSETS de arriba) ya quedó guardado.
         Promise.all(ASSETS_EXTERNOS.map((url) =>
           cache.add(new Request(url, {mode:'no-cors'})).catch(() => {})
         ))
@@ -35,10 +33,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Red primero (para traer la versión más nueva cuando hay internet), y si falla, usa el caché (modo sin conexión).
-// Importante: el "de vuelta a index.html" solo debe pasar para la página misma (navegación),
-// nunca para otros archivos (como las librerías externas de exportar Excel/PDF) — si no, un archivo
-// externo que falla podría terminar mostrando el HTML de la app y romperse con un error de sintaxis.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const esNavegacion = event.request.mode === 'navigate';
