@@ -475,11 +475,17 @@
       </div>
       <div class="controls-bar" id="objCadenaFiltroWrap" style="align-items:center;">
         <label>Cadena(s):</label>
-        <div id="objCadenaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <div class="tienda-dd" id="objCadenaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objCadenaDd')" id="objCadenaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="objCadenaDdPanel"></div>
+        </div>
       </div>
       <div class="controls-bar" style="align-items:center;">
         <label>Familia(s):</label>
-        <div id="objFamiliaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <div class="tienda-dd" id="objFamiliaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objFamiliaDd')" id="objFamiliaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="objFamiliaDdPanel"></div>
+        </div>
       </div>
       <div class="controls-bar" style="align-items:center;">
         <label>Código(s):</label>
@@ -507,7 +513,10 @@
       </div>
 
       <div class="card" style="margin-bottom:18px;">
-        <div class="lbl" style="font-weight:700; margin-bottom:10px;">Participación por cadena (piezas pedidas)</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div class="lbl" style="font-weight:700;">Participación por cadena (piezas pedidas)</div>
+          <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarParticipacionCadenaCSV()">⬇ Excel</button>
+        </div>
         <div id="objPieParticipacion"></div>
       </div>
 
@@ -1145,20 +1154,28 @@
         <label>Semana de referencia (la que ya cerró):</label>
         <input type="date" id="preplanRefWeek" onchange="renderPreplan()">
         <button class="btn btn-brand" onclick="renderPreplan()">Calcular pre-plan</button>
-        <button class="btn btn-outline" onclick="exportarPreplanExcel()">⬇ Excel</button>
         <button class="btn btn-ghost" onclick="restablecerFiltrosPreplan()">↺ Restablecer filtros</button>
       </div>
       <div class="controls-bar" style="align-items:center;">
         <label>Cadena(s):</label>
-        <div id="ppCadenaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <div class="tienda-dd" id="ppCadenaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppCadenaDd')" id="ppCadenaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="ppCadenaDdPanel"></div>
+        </div>
       </div>
       <div class="controls-bar" id="ppSupervisorFiltroWrap" style="align-items:center;">
         <label>Supervisor(a):</label>
-        <div id="ppSupervisorMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <div class="tienda-dd" id="ppSupervisorDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppSupervisorDd')" id="ppSupervisorDdBtn">Todos</button>
+          <div class="tienda-dd-panel hidden" id="ppSupervisorDdPanel"></div>
+        </div>
       </div>
       <div class="controls-bar" style="align-items:center;">
         <label>Familia(s):</label>
-        <div id="ppFamiliaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <div class="tienda-dd" id="ppFamiliaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppFamiliaDd')" id="ppFamiliaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="ppFamiliaDdPanel"></div>
+        </div>
       </div>
       <div class="controls-bar" style="align-items:center;">
         <label>Código(s):</label>
@@ -1175,7 +1192,10 @@
         <div class="card kpi warn"><div class="label">Tiendas sin cubrir su cuota del mes</div><div class="value" id="ppSinCubrirCuotaCount">0</div></div>
       </div>
       <div id="ppAlertaCapacidad" style="margin-bottom:14px;"></div>
-      <h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Sugerencia de visitas para la próxima semana, por tienda</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Sugerencia de visitas para la próxima semana, por tienda</h3>
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPreplanExcel()">⬇ Excel</button>
+      </div>
       <p style="font-size:11px; color:var(--ink-soft); margin:-4px 0 8px;">Cubrimiento = % de la cuota del mes (a la fecha) ya vendido. Días de inventario y excedentes son el máximo/los SKU con mayor riesgo por tienda. Inventario en tránsito: pendiente de conectar.</p>
       <div class="table-scroll">
         <table>
@@ -2433,7 +2453,7 @@ function renderObjMesChips(){
 }
 /* ---------- Dropdown genérico (Mes(es) / Tienda(s) en Objetivos) — abrir/cerrar + clic afuera cierra ---------- */
 function toggleObjDropdown(cual){
-  const ids = ['objMesDd','objTiendaDd','objCodigoDd','cvMesDd','cvTiendaDd','cpMesDd','cpTiendaDd','distMesDd','ppCodigoDd'];
+  const ids = ['objMesDd','objTiendaDd','objCadenaDd','objFamiliaDd','objCodigoDd','cvMesDd','cvTiendaDd','cpMesDd','cpTiendaDd','distMesDd','ppCadenaDd','ppSupervisorDd','ppFamiliaDd','ppCodigoDd'];
   ids.forEach(id=>{
     const p = document.getElementById(id+'Panel');
     if(!p) return;
@@ -2442,7 +2462,7 @@ function toggleObjDropdown(cual){
   });
 }
 document.addEventListener('click', (e)=>{
-  ['objMesDdRoot','objTiendaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCodigoDdRoot'].forEach(rootId=>{
+  ['objMesDdRoot','objTiendaDdRoot','objCadenaDdRoot','objFamiliaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCadenaDdRoot','ppSupervisorDdRoot','ppFamiliaDdRoot','ppCodigoDdRoot'].forEach(rootId=>{
     const root = document.getElementById(rootId);
     if(root && !root.contains(e.target)){
       const panel = root.querySelector('.tienda-dd-panel');
@@ -2509,39 +2529,55 @@ function populateCadenaSelect(){
   sel.onchange = renderPlaneacion;
   document.getElementById('tiendaSearch').oninput = renderPlaneacion;
 }
-/* ---------- Filtro de cadena en Objetivos: selección múltiple, se aplica solo al marcar (sin botón Filtrar) ---------- */
+/* ---------- Filtro de cadena en Objetivos: lista desplegable de selección múltiple, auto-aplica (sin botón Filtrar) ---------- */
 let objFiltroCadenas = new Set(); // vacío = todas
 function renderObjCadenaChips(){
-  const el = document.getElementById('objCadenaMultiWrap');
-  if(!el) return;
+  const btn = document.getElementById('objCadenaDdBtn'), panel = document.getElementById('objCadenaDdPanel');
+  if(!btn || !panel) return;
   const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
-  const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
-  let html = chip('Todas', objFiltroCadenas.size===0, 'toggleObjFiltroCadena(null)');
-  html += cadenas.map(c=> chip(c, objFiltroCadenas.has(c), `toggleObjFiltroCadena('${c}')`)).join('');
-  el.innerHTML = html;
+  btn.textContent = objFiltroCadenas.has('__ninguno__') ? 'Ninguna' : (objFiltroCadenas.size===0 ? 'Todas' : `${objFiltroCadenas.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objCadenaTodasDD(true)">Todo</button><button type="button" onclick="objCadenaTodasDD(false)">Ninguno</button></div>`
+    + cadenas.map(c=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${c.replace(/"/g,'&quot;')}" ${objFiltroCadenas.size===0 || objFiltroCadenas.has(c) ? 'checked':''} onchange="onObjCadenaDdCheck(this)"> ${c}</label>`).join('');
 }
-function toggleObjFiltroCadena(cadena){
-  if(cadena===null){ objFiltroCadenas.clear(); }
-  else if(objFiltroCadenas.has(cadena)){ objFiltroCadenas.delete(cadena); }
-  else{ objFiltroCadenas.add(cadena); }
+function objCadenaTodasDD(marcar){
+  objFiltroCadenas = marcar ? new Set() : new Set(['__ninguno__']);
   renderObjCadenaChips();
   renderPlaneacion();
 }
-/* ---------- Filtro de familia en Objetivos: selección múltiple, auto-aplica ---------- */
+function onObjCadenaDdCheck(chk){
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))];
+  if(objFiltroCadenas.size===0){ objFiltroCadenas = new Set(cadenas); }
+  objFiltroCadenas.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) objFiltroCadenas.add(val); else objFiltroCadenas.delete(val);
+  if(objFiltroCadenas.size===cadenas.length) objFiltroCadenas = new Set();
+  if(objFiltroCadenas.size===0 && !chk.checked) objFiltroCadenas = new Set(['__ninguno__']);
+  renderObjCadenaChips();
+  renderPlaneacion();
+}
+/* ---------- Filtro de familia en Objetivos: lista desplegable de selección múltiple, auto-aplica ---------- */
 let objFiltroFamilias = new Set(); // vacío = todas
 function renderObjFamiliaChips(){
-  const el = document.getElementById('objFamiliaMultiWrap');
-  if(!el) return;
+  const btn = document.getElementById('objFamiliaDdBtn'), panel = document.getElementById('objFamiliaDdPanel');
+  if(!btn || !panel) return;
   const familias = familiasProducto().sort();
-  const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
-  let html = chip('Todas', objFiltroFamilias.size===0, 'toggleObjFiltroFamilia(null)');
-  html += familias.map(f=> chip(f, objFiltroFamilias.has(f), `toggleObjFiltroFamilia('${f.replace(/'/g,"\\'")}')`)).join('');
-  el.innerHTML = html;
+  btn.textContent = objFiltroFamilias.has('__ninguno__') ? 'Ninguna' : (objFiltroFamilias.size===0 ? 'Todas' : `${objFiltroFamilias.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objFamiliaTodasDD(true)">Todo</button><button type="button" onclick="objFamiliaTodasDD(false)">Ninguno</button></div>`
+    + familias.map(f=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${f.replace(/"/g,'&quot;')}" ${objFiltroFamilias.size===0 || objFiltroFamilias.has(f) ? 'checked':''} onchange="onObjFamiliaDdCheck(this)"> ${f}</label>`).join('');
 }
-function toggleObjFiltroFamilia(familia){
-  if(familia===null){ objFiltroFamilias.clear(); }
-  else if(objFiltroFamilias.has(familia)){ objFiltroFamilias.delete(familia); }
-  else{ objFiltroFamilias.add(familia); }
+function objFamiliaTodasDD(marcar){
+  objFiltroFamilias = marcar ? new Set() : new Set(['__ninguno__']);
+  renderObjFamiliaChips();
+  renderPlaneacion();
+}
+function onObjFamiliaDdCheck(chk){
+  const familias = familiasProducto();
+  if(objFiltroFamilias.size===0){ objFiltroFamilias = new Set(familias); }
+  objFiltroFamilias.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) objFiltroFamilias.add(val); else objFiltroFamilias.delete(val);
+  if(objFiltroFamilias.size===familias.length) objFiltroFamilias = new Set();
+  if(objFiltroFamilias.size===0 && !chk.checked) objFiltroFamilias = new Set(['__ninguno__']);
   renderObjFamiliaChips();
   renderPlaneacion();
 }
@@ -4908,10 +4944,21 @@ function mismaPersona(a,b){
   const tok = s => normNombre(s).split(/\s+/).filter(Boolean).sort().join(' ');
   return !!a && !!b && tok(a)===tok(b);
 }
+/* Los archivos fuente traen el mismo nombre en distinto orden/acentos (ej. "HERNANDEZ ESTEVEZ MARIA DE JESUS" vs
+   "MARÍA DE JESÚS HERNÁNDEZ ESTEVEZ") — esto los vuelve a una sola forma "oficial" (la que esa persona tiene en
+   su propio registro de equipo/plantilla) para que no aparezca duplicada en filtros ni listas. */
+function nombreCanonicoPersona(nombre){
+  if(!nombre) return '';
+  const u = APP_DATA.equipo.find(x=>mismaPersona(x.nombre, nombre));
+  if(u) return u.nombre;
+  const p = APP_DATA.plantilla.find(x=>mismaPersona(x.nombre, nombre));
+  if(p) return p.nombre;
+  return nombre;
+}
 function supervisorDePersona(nombre){
   const n = normNombre(nombre);
   const p = APP_DATA.plantilla.find(x=>normNombre(x.nombre)===n);
-  return p ? p.supervisor : '';
+  return p ? nombreCanonicoPersona(p.supervisor) : '';
 }
 function usuarioDeNombre(nombre){
   const u = APP_DATA.equipo.find(x=>mismaPersona(x.nombre, nombre));
@@ -5583,43 +5630,76 @@ function storesScopePreplan(){
   return scope;
 }
 function renderPpCadenaChips(){
-  const wrap = document.getElementById('ppCadenaMultiWrap'); if(!wrap) return;
+  const btn = document.getElementById('ppCadenaDdBtn'), panel = document.getElementById('ppCadenaDdPanel');
+  if(!btn || !panel) return;
   const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
-  const chip = (activo,label,onclick)=>`<button type="button" onclick="${onclick}" style="border:2px solid ${activo?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 8px; background:${activo?'var(--brand-soft)':'#fff'}; font-size:11px; font-weight:${activo?'700':'400'}; cursor:pointer;">${label}</button>`;
-  wrap.innerHTML = chip(ppFiltroCadenas.size===0,'Todas',`togglePpFiltroCadena(null)`)
-    + cadenas.map(c=>chip(ppFiltroCadenas.has(c), c, `togglePpFiltroCadena('${c.replace(/'/g,"\\'")}')`)).join('');
+  btn.textContent = ppFiltroCadenas.has('__ninguno__') ? 'Ninguna' : (ppFiltroCadenas.size===0 ? 'Todas' : `${ppFiltroCadenas.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppCadenaTodasDD(true)">Todo</button><button type="button" onclick="ppCadenaTodasDD(false)">Ninguno</button></div>`
+    + cadenas.map(c=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${c.replace(/"/g,'&quot;')}" ${ppFiltroCadenas.size===0 || ppFiltroCadenas.has(c) ? 'checked':''} onchange="onPpCadenaDdCheck(this)"> ${c}</label>`).join('');
 }
-function togglePpFiltroCadena(c){
-  if(c===null) ppFiltroCadenas.clear();
-  else if(ppFiltroCadenas.has(c)) ppFiltroCadenas.delete(c); else ppFiltroCadenas.add(c);
+function ppCadenaTodasDD(marcar){
+  ppFiltroCadenas = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpCadenaChips();
+  renderPreplan();
+}
+function onPpCadenaDdCheck(chk){
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))];
+  if(ppFiltroCadenas.size===0){ ppFiltroCadenas = new Set(cadenas); }
+  ppFiltroCadenas.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroCadenas.add(val); else ppFiltroCadenas.delete(val);
+  if(ppFiltroCadenas.size===cadenas.length) ppFiltroCadenas = new Set();
+  if(ppFiltroCadenas.size===0 && !chk.checked) ppFiltroCadenas = new Set(['__ninguno__']);
   renderPpCadenaChips();
   renderPreplan();
 }
 function renderPpSupervisorChips(){
-  const wrap = document.getElementById('ppSupervisorMultiWrap'); if(!wrap) return;
+  const btn = document.getElementById('ppSupervisorDdBtn'), panel = document.getElementById('ppSupervisorDdPanel');
   const wrapRoot = document.getElementById('ppSupervisorFiltroWrap');
   if(wrapRoot) wrapRoot.style.display = currentUser.perfil==='Supervisor' ? 'none' : '';
-  const sups = [...new Set(APP_DATA.stores.map(s=>supervisorDeTienda(s)||'Sin supervisor(a)'))].sort();
-  const chip = (activo,label,onclick)=>`<button type="button" onclick="${onclick}" style="border:2px solid ${activo?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 8px; background:${activo?'var(--brand-soft)':'#fff'}; font-size:11px; font-weight:${activo?'700':'400'}; cursor:pointer;">${label}</button>`;
-  wrap.innerHTML = chip(ppFiltroSupervisores.size===0,'Todos',`togglePpFiltroSupervisor(null)`)
-    + sups.map(s=>chip(ppFiltroSupervisores.has(s), nombreCorto(s), `togglePpFiltroSupervisor('${s.replace(/'/g,"\\'")}')`)).join('');
+  if(!btn || !panel) return;
+  const sups = nombresSupervisorUnicos();
+  btn.textContent = ppFiltroSupervisores.has('__ninguno__') ? 'Ninguno' : (ppFiltroSupervisores.size===0 ? 'Todos' : `${ppFiltroSupervisores.size} seleccionado(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppSupervisorTodasDD(true)">Todo</button><button type="button" onclick="ppSupervisorTodasDD(false)">Ninguno</button></div>`
+    + sups.map(s=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${s.replace(/"/g,'&quot;')}" ${ppFiltroSupervisores.size===0 || ppFiltroSupervisores.has(s) ? 'checked':''} onchange="onPpSupervisorDdCheck(this)"> ${nombreCorto(s)}</label>`).join('');
 }
-function togglePpFiltroSupervisor(s){
-  if(s===null) ppFiltroSupervisores.clear();
-  else if(ppFiltroSupervisores.has(s)) ppFiltroSupervisores.delete(s); else ppFiltroSupervisores.add(s);
+function ppSupervisorTodasDD(marcar){
+  ppFiltroSupervisores = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpSupervisorChips();
+  renderPreplan();
+}
+function onPpSupervisorDdCheck(chk){
+  const sups = nombresSupervisorUnicos();
+  if(ppFiltroSupervisores.size===0){ ppFiltroSupervisores = new Set(sups); }
+  ppFiltroSupervisores.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroSupervisores.add(val); else ppFiltroSupervisores.delete(val);
+  if(ppFiltroSupervisores.size===sups.length) ppFiltroSupervisores = new Set();
+  if(ppFiltroSupervisores.size===0 && !chk.checked) ppFiltroSupervisores = new Set(['__ninguno__']);
   renderPpSupervisorChips();
   renderPreplan();
 }
 function renderPpFamiliaChips(){
-  const wrap = document.getElementById('ppFamiliaMultiWrap'); if(!wrap) return;
+  const btn = document.getElementById('ppFamiliaDdBtn'), panel = document.getElementById('ppFamiliaDdPanel');
+  if(!btn || !panel) return;
   const familias = familiasProducto().sort();
-  const chip = (activo,label,onclick)=>`<button type="button" onclick="${onclick}" style="border:2px solid ${activo?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 8px; background:${activo?'var(--brand-soft)':'#fff'}; font-size:11px; font-weight:${activo?'700':'400'}; cursor:pointer;">${label}</button>`;
-  wrap.innerHTML = chip(ppFiltroFamilias.size===0,'Todas',`togglePpFiltroFamilia(null)`)
-    + familias.map(f=>chip(ppFiltroFamilias.has(f), f, `togglePpFiltroFamilia('${f.replace(/'/g,"\\'")}')`)).join('');
+  btn.textContent = ppFiltroFamilias.has('__ninguno__') ? 'Ninguna' : (ppFiltroFamilias.size===0 ? 'Todas' : `${ppFiltroFamilias.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppFamiliaTodasDD(true)">Todo</button><button type="button" onclick="ppFamiliaTodasDD(false)">Ninguno</button></div>`
+    + familias.map(f=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${f.replace(/"/g,'&quot;')}" ${ppFiltroFamilias.size===0 || ppFiltroFamilias.has(f) ? 'checked':''} onchange="onPpFamiliaDdCheck(this)"> ${f}</label>`).join('');
 }
-function togglePpFiltroFamilia(f){
-  if(f===null) ppFiltroFamilias.clear();
-  else if(ppFiltroFamilias.has(f)) ppFiltroFamilias.delete(f); else ppFiltroFamilias.add(f);
+function ppFamiliaTodasDD(marcar){
+  ppFiltroFamilias = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpFamiliaChips();
+  renderPreplan();
+}
+function onPpFamiliaDdCheck(chk){
+  const familias = familiasProducto();
+  if(ppFiltroFamilias.size===0){ ppFiltroFamilias = new Set(familias); }
+  ppFiltroFamilias.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroFamilias.add(val); else ppFiltroFamilias.delete(val);
+  if(ppFiltroFamilias.size===familias.length) ppFiltroFamilias = new Set();
+  if(ppFiltroFamilias.size===0 && !chk.checked) ppFiltroFamilias = new Set(['__ninguno__']);
   renderPpFamiliaChips();
   renderPreplan();
 }
@@ -6930,10 +7010,10 @@ function storesScopeObjetivos(){
   return scope;
 }
 function nombresSupervisorUnicos(){
-  const vistos = new Map(); // nombre normalizado -> etiqueta elegida
+  const vistos = new Map(); // nombre normalizado -> etiqueta elegida (forma canónica, misma que usa supervisorDePersona)
   APP_DATA.plantilla.map(p=>p.supervisor).filter(Boolean).forEach(s=>{
     const n = normNombre(s).split(/\s+/).filter(Boolean).sort().join(' ');
-    if(!vistos.has(n)) vistos.set(n, s);
+    if(!vistos.has(n)) vistos.set(n, nombreCanonicoPersona(s));
   });
   return [...vistos.values()].sort();
 }
@@ -7129,9 +7209,31 @@ function renderAnalisisObjetivos(){
   const semanasMesChart = semanasDeMesesSeleccionados();
   const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanasMesChart.has(c.semana));
 
-  // --- Piezas pedidas por semana ---
+  // --- Peso semanal de cada tienda (tomado de cumplimiento_semanal, que sí trae desglose por semana) para poder
+  // prorratear la cuota mensual por SKU (ventas_cuota_sku) — así todo lo de abajo (gráfica, pastel, tablas)
+  // puede respetar los filtros de familia/código, que son a nivel SKU. ---
+  const semanasCodigoArr = [...semanasMesChart].sort((a,b)=>a-b);
+  const pesoSemanaTienda = {}; // 'cadena|num_tienda' -> {semana: proporcion 0-1}
+  const totalPorTienda = {};
+  cumpRows.forEach(c=>{ const k = c.cadena+'|'+c.num_tienda; totalPorTienda[k] = (totalPorTienda[k]||0) + (metaUni(c)||0); });
+  cumpRows.forEach(c=>{
+    const k = c.cadena+'|'+c.num_tienda;
+    const total = totalPorTienda[k];
+    if(!pesoSemanaTienda[k]) pesoSemanaTienda[k] = {};
+    pesoSemanaTienda[k][c.semana] = total>0 ? (metaUni(c)||0)/total : (1/Math.max(1,semanasCodigoArr.length));
+  });
+  const pesoSemanaParejo = {}; semanasCodigoArr.forEach(s=> pesoSemanaParejo[s] = 1/Math.max(1,semanasCodigoArr.length));
+  const skusScope = skusEnScope(storesScope); // ya respeta cadena/familia/código
+
+  // --- Piezas pedidas por semana (a nivel SKU en scope, así sí respeta familia/código) ---
   const porSemana = {};
-  cumpRows.forEach(c=>{ (porSemana[c.semana] = porSemana[c.semana] || {cuota:0}); porSemana[c.semana].cuota += (metaUni(c)||0); });
+  semanasCodigoArr.forEach(s=> porSemana[s] = {cuota:0});
+  skusScope.forEach(r=>{
+    const total = metaUniSku(r) || 0;
+    const k = r.cadena+'|'+r.num_tienda;
+    const pesos = pesoSemanaTienda[k] || pesoSemanaParejo;
+    semanasCodigoArr.forEach(s=>{ porSemana[s].cuota += total * (pesos[s]!=null ? pesos[s] : pesoSemanaParejo[s]); });
+  });
   const semanas = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
   const maxVal = Math.max(1, ...semanas.map(s=>porSemana[s].cuota));
   window._anzSemanaData = semanas.map(s=>({semana:s, cuota:porSemana[s].cuota}));
@@ -7158,9 +7260,9 @@ function renderAnalisisObjetivos(){
     : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">Sin semanas con datos.</p>`;
   }
 
-  // --- Participación por cadena (pastel) ---
+  // --- Participación por cadena (pastel) — a nivel SKU en scope, respeta familia/código ---
   const porCadena = {};
-  cumpRows.forEach(c=>{ porCadena[c.cadena] = (porCadena[c.cadena]||0) + (metaUni(c)||0); });
+  skusScope.forEach(r=>{ porCadena[r.cadena] = (porCadena[r.cadena]||0) + (metaUniSku(r)||0); });
   const totalCadenas = Object.values(porCadena).reduce((a,v)=>a+v,0);
   const cadenasArr = Object.entries(porCadena).sort((a,b)=>b[1]-a[1]);
   const pieBox = document.getElementById('objPieParticipacion');
@@ -7184,74 +7286,27 @@ function renderAnalisisObjetivos(){
       </div>`;
     }
   }
+  window.exportarParticipacionCadenaCSV = function(){
+    if(!cadenasArr.length){ toast('No hay datos para exportar.'); return; }
+    exportarCSV(`objetivos_participacion_por_cadena_${todayISO()}.csv`, ['Cadena','Piezas', '% del total'],
+      cadenasArr.map(([cad,val])=>[cad, val, totalCadenas? Math.round(val/totalCadenas*100):0]));
+  };
 
-  // --- Por código de tienda (desplegable al detalle semanal) ---
+  // --- Tablas: por tienda (con desglose por código) y por código Délico (con desglose por tienda) ---
   const tablasBox = document.getElementById('anzTablas');
   if(!tablasBox) return;
   tablasBox.innerHTML = `<div style="margin-top:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por código de tienda (clic para ver el detalle semanal)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV()">⬇ Exportar a Excel</button></div>
+      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por tienda — cuánto vender de cada código, por semana (clic para ver por código)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV()">⬇ Exportar a Excel</button></div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:0 0 8px;">El total mes es la cuota real capturada por SKU/tienda. El desglose por semana es un estimado — se reparte usando el mismo peso semanal que ya tiene cada tienda en "Piezas pedidas por semana" — así que puede no cuadrar centavo a centavo con el real cuando ya haya venta capturada, pero te da la referencia de a qué le tienes que apostar cada semana.</p>
       <div class="table-scroll" id="anzTablaTienda"></div>
     </div>
     <div style="margin-top:22px;">
-      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 4px;">Por código Délico — cuánto vender de cada producto, por semana</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCodigoCSV()">⬇ Exportar a Excel</button></div>
-      <p style="font-size:11px; color:var(--ink-soft); margin:0 0 8px;">El total mes es la cuota real capturada por SKU/tienda. El desglose por semana es un estimado — se reparte usando el mismo peso semanal que ya tiene cada tienda en "Piezas pedidas por semana" — así que puede no cuadrar centavo a centavo con el real cuando ya haya venta capturada, pero te da la referencia de a qué le tienes que apostar cada semana.</p>
+      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 4px;">Por código Délico — cuánto vender de cada producto, por semana (clic para ver por tienda)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCodigoCSV()">⬇ Exportar a Excel</button></div>
       <div class="table-scroll" id="anzTablaCodigo"></div>
     </div>`;
 
-  const porTiendaSem = {};
-  cumpRows.forEach(c=>{
-    const key = c.cadena+'|'+c.num_tienda;
-    (porTiendaSem[key] = porTiendaSem[key] || {cadena:c.cadena, num_tienda:c.num_tienda, tienda:'', total:0, semanas:{}});
-    const v = metaUni(c)||0;
-    porTiendaSem[key].total += v;
-    porTiendaSem[key].semanas[c.semana] = (porTiendaSem[key].semanas[c.semana]||0) + v;
-  });
-  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTiendaSem[k]) porTiendaSem[k].tienda = s.tienda; });
-
-  let tiendaExpandida = null;
-  window.toggleTiendaExpandida = function(key){ tiendaExpandida = tiendaExpandida===key ? null : key; window.render_anzTablaTienda(); };
-  window.render_anzTablaTienda = function(){
-    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).sort((a,b)=>b.total-a.total);
-    const rowsHtml = filas.map(f=>{
-      const key = f.cadena+'|'+f.num_tienda;
-      let html = `<tr style="cursor:pointer;" onclick="toggleTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${tiendaExpandida===key?'▼':'▶'} ${f.num_tienda} · ${f.tienda}</td><td>${f.cadena}</td><td class="num">${fmtNum(f.total)}</td></tr>`;
-      if(tiendaExpandida===key){
-        const semsOrdenadas = Object.keys(f.semanas).map(Number).sort((a,b)=>a-b);
-        html += semsOrdenadas.map(s=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;" colspan="2">Semana ${s}</td><td class="num" style="font-size:12px;">${fmtNum(f.semanas[s])}</td></tr>`).join('');
-      }
-      return html;
-    }).join('');
-    document.getElementById('anzTablaTienda').innerHTML = `<table><thead><tr><th># Tienda (clic para desglose por semana)</th><th>Cadena</th><th class="num">${metaLabelTxt} (piezas)</th></tr></thead>
-      <tbody>${rowsHtml || `<tr><td colspan="3" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
-  };
-  window.render_anzTablaTienda();
-
-  window.exportarAnalisisCSV = function(){
-    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).sort((a,b)=>b.total-a.total);
-    const headers = ['Cadena','# Tienda','Tienda', metaLabelTxt+' total (piezas)'];
-    const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.total]);
-    exportarCSV(`objetivos_por_tienda_${todayISO()}.csv`, headers, rows);
-  };
-
-  // --- Por código Délico: cuánto vender de cada producto (por tienda), total mes + estimado por semana ---
-  const semanasCodigoArr = [...semanasMesChart].sort((a,b)=>a-b);
-  // Peso semanal de cada tienda, tomado de cumplimiento_semanal (misma fuente que "Piezas pedidas por semana"),
-  // para prorratear la meta mensual de cada SKU — ventas_cuota_sku no trae desglose semanal propio.
-  const pesoSemanaTienda = {}; // 'cadena|num_tienda' -> {semana: proporcion 0-1}
-  const totalPorTienda = {};
-  cumpRows.forEach(c=>{
-    const k = c.cadena+'|'+c.num_tienda;
-    totalPorTienda[k] = (totalPorTienda[k]||0) + (metaUni(c)||0);
-  });
-  cumpRows.forEach(c=>{
-    const k = c.cadena+'|'+c.num_tienda;
-    const total = totalPorTienda[k];
-    if(!pesoSemanaTienda[k]) pesoSemanaTienda[k] = {};
-    pesoSemanaTienda[k][c.semana] = total>0 ? (metaUni(c)||0)/total : (1/Math.max(1,semanasCodigoArr.length));
-  });
-  const pesoSemanaParejo = {}; semanasCodigoArr.forEach(s=> pesoSemanaParejo[s] = 1/Math.max(1,semanasCodigoArr.length));
-  const skusScope = skusEnScope(storesScope);
   const porCodigo = {}; // clave -> {clave, nombre, total, porTienda:{key:{tienda,cadena,total,semanas:{}}}, semanas:{}}
+  const porTiendaCod = {}; // 'cadena|num_tienda' -> {cadena, tienda, num_tienda, total, semanas:{}, porCodigo:{clave:{nombre,total,semanas}}}
   skusScope.forEach(r=>{
     const total = metaUniSku(r) || 0;
     if(!porCodigo[r.clave]){
@@ -7264,12 +7319,47 @@ function renderAnalisisObjetivos(){
     const pesos = pesoSemanaTienda[k] || pesoSemanaParejo;
     if(!g.porTienda[k]) g.porTienda[k] = {tienda:r.tienda, cadena:r.cadena, total:0, semanas:{}};
     g.porTienda[k].total += total;
+    if(!porTiendaCod[k]) porTiendaCod[k] = {cadena:r.cadena, tienda:r.tienda, num_tienda:r.num_tienda, total:0, semanas:{}, porCodigo:{}};
+    const t = porTiendaCod[k];
+    t.total += total;
+    const prodTC = claveAProducto(r.clave);
+    if(!t.porCodigo[r.clave]) t.porCodigo[r.clave] = {clave:r.clave, nombre:(prodTC&&prodTC.nombre)||r.clave, total:0, semanas:{}};
+    const tc = t.porCodigo[r.clave];
+    tc.total += total;
     semanasCodigoArr.forEach(s=>{
       const estim = total * (pesos[s]!=null ? pesos[s] : pesoSemanaParejo[s]);
       g.semanas[s] = (g.semanas[s]||0) + estim;
       g.porTienda[k].semanas[s] = (g.porTienda[k].semanas[s]||0) + estim;
+      t.semanas[s] = (t.semanas[s]||0) + estim;
+      tc.semanas[s] = (tc.semanas[s]||0) + estim;
     });
   });
+  let tiendaExpandida = null;
+  window.toggleTiendaExpandida = function(key){ tiendaExpandida = tiendaExpandida===key ? null : key; window.render_anzTablaTienda(); };
+  window.render_anzTablaTienda = function(){
+    const box = document.getElementById('anzTablaTienda');
+    if(!box) return;
+    const filas = Object.values(porTiendaCod).sort((a,b)=>b.total-a.total);
+    const theadSemanas = semanasCodigoArr.map(s=>`<th class="num">Sem ${s} (est.)</th>`).join('');
+    const rowsHtml = filas.map(f=>{
+      const key = f.cadena+'|'+f.num_tienda;
+      let html = `<tr style="cursor:pointer;" onclick="toggleTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${tiendaExpandida===key?'▼':'▶'} ${f.num_tienda} · ${f.tienda} <span style="color:var(--ink-soft); font-size:10.5px;">(${f.cadena})</span></td><td class="num" style="font-weight:700;">${fmtNum(f.total)}</td>${semanasCodigoArr.map(s=>`<td class="num">${fmtNum(f.semanas[s]||0)}</td>`).join('')}</tr>`;
+      if(tiendaExpandida===key){
+        const codigos = Object.values(f.porCodigo).sort((a,b)=>b.total-a.total);
+        html += codigos.map(c=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${c.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${c.clave})</span></td><td class="num" style="font-size:12px;">${fmtNum(c.total)}</td>${semanasCodigoArr.map(s=>`<td class="num" style="font-size:12px;">${fmtNum(c.semanas[s]||0)}</td>`).join('')}</tr>`).join('');
+      }
+      return html;
+    }).join('');
+    box.innerHTML = `<table><thead><tr><th># Tienda (clic para ver por código)</th><th class="num">Total mes (piezas)</th>${theadSemanas}</tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="${2+semanasCodigoArr.length}" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
+  };
+  window.render_anzTablaTienda();
+  window.exportarAnalisisCSV = function(){
+    const filas = Object.values(porTiendaCod).sort((a,b)=>b.total-a.total);
+    const headers = ['Cadena','# Tienda','Tienda','Total mes (piezas)', ...semanasCodigoArr.map(s=>`Sem ${s} (estimado)`)];
+    const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.total, ...semanasCodigoArr.map(s=>f.semanas[s]||0)]);
+    exportarCSV(`objetivos_por_tienda_${todayISO()}.csv`, headers, rows);
+  };
   let codigoExpandido = null;
   window.toggleCodigoExpandido = function(clave){ codigoExpandido = codigoExpandido===clave ? null : clave; window.render_anzTablaCodigo(); };
   window.render_anzTablaCodigo = function(){
