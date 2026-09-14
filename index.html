@@ -426,10 +426,6 @@
     <section class="view" id="view-inicio">
       <h2 class="section-title" id="inicioSaludo">Hola</h2>
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 16px;" id="inicioFecha"></p>
-      <div id="inicioInstalarCard" class="card btnInstalarApp hidden" style="margin-bottom:14px; cursor:pointer; border:1.5px solid var(--brand); display:flex; align-items:center; justify-content:space-between; gap:10px;" onclick="intentarInstalarApp()">
-        <div><b>📲 Instala la app en tu celular</b><div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">Es más rápida y funciona mejor sin internet. Toca aquí para instalarla.</div></div>
-        <div style="font-size:20px;">›</div>
-      </div>
       <div class="row" style="margin-bottom:10px;">
         <div class="card kpi" id="inicioCardRutas"><div class="label" id="inicioCardRutasLabel">Rutas activas esta semana</div><div class="value">—</div></div>
         <div class="card kpi warn" id="inicioCardVacPendientes"><div class="label">Vacaciones por autorizar</div><div class="value">—</div></div>
@@ -2690,23 +2686,17 @@ function renderPlaneacion(){
       ? `Mostrando solo tus tiendas asignadas + ${extra.length} tienda(s) adicional(es) aprobada(s) temporalmente.`
       : 'Mostrando solo las tiendas asignadas a tu usuario.';
   } else if(note) note.textContent = '';
-  let rows = storesScopeObjetivos();
-
   const semanasEfectivas = [...semanasDeMesesSeleccionados()].map(String);
   const metaLabel = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
-  let totalUds;
-  {
-    const rowKeysSem = new Set(rows.map(s=>s.cadena+'|'+s.num_tienda));
-    const semRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>rowKeysSem.has(c.cadena+'|'+c.num_tienda) && semanasEfectivas.includes(String(c.semana)));
-    totalUds = sumMetaUni(semRows);
-    const etiquetaSem = semanasEfectivas.length ? (objFiltroMeses && objFiltroMeses.size ? [...objFiltroMeses].join(', ') : 'mes(es) elegido(s)') : 'sin semanas en el periodo elegido';
-    document.getElementById('kpiUdsLabel').textContent = `${metaLabel} ${etiquetaSem} (piezas)`;
-  }
-  document.getElementById('kpiUds').innerHTML = fmtNum(totalUds) + ' <small>pzas</small>';
-  document.getElementById('kpiTiendas').textContent = rows.length;
+  const etiquetaSem = semanasEfectivas.length ? (objFiltroMeses && objFiltroMeses.size ? [...objFiltroMeses].join(', ') : 'mes(es) elegido(s)') : 'sin semanas en el periodo elegido';
+  document.getElementById('kpiUdsLabel').textContent = `${metaLabel} ${etiquetaSem} (piezas)`;
 
   renderPrioridades();
   renderExtraTiendaBox();
+  // kpiUds y kpiTiendas se calculan dentro de renderAnalisisObjetivos (a nivel SKU en scope),
+  // así sí respetan los filtros de cadena, familia y código — antes se calculaban aquí desde
+  // cumplimiento_semanal, que no tiene columna de código/familia, por eso esos filtros no
+  // se reflejaban en los cuadros de resumen aunque sí afectaban las tablas de abajo.
   renderAnalisisObjetivos();
 }
 
@@ -7237,6 +7227,15 @@ function renderAnalisisObjetivos(){
   const semanas = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
   const maxVal = Math.max(1, ...semanas.map(s=>porSemana[s].cuota));
   window._anzSemanaData = semanas.map(s=>({semana:s, cuota:porSemana[s].cuota}));
+
+  // --- Cuadros de resumen (Cuota del periodo y # Tiendas en vista) — a nivel SKU en scope,
+  // así sí reflejan los filtros de cadena, familia y código seleccionados arriba. ---
+  const totalUdsEnVista = semanas.reduce((a,s)=>a+porSemana[s].cuota, 0);
+  const tiendasEnVista = new Set(skusScope.map(r=>r.cadena+'|'+r.num_tienda)).size;
+  const kpiUdsEl = document.getElementById('kpiUds');
+  if(kpiUdsEl) kpiUdsEl.innerHTML = fmtNum(totalUdsEnVista) + ' <small>pzas</small>';
+  const kpiTiendasEl = document.getElementById('kpiTiendas');
+  if(kpiTiendasEl) kpiTiendasEl.textContent = tiendasEnVista;
   const chartBox = document.getElementById('anzChartSemana');
   if(chartBox){
     chartBox.innerHTML = semanas.length ? `<div style="display:flex; gap:18px; align-items:flex-end; height:150px; padding:10px 4px;">
