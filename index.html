@@ -460,10 +460,10 @@
           <div class="tienda-dd-panel hidden" id="objMesDdPanel"></div>
         </div>
         <span id="filtroSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
-        <select id="objSupervisor"><option value="">Todos</option></select></span>
+        <select id="objSupervisor" onchange="renderPlaneacion()"><option value="">Todos</option></select></span>
         <span id="objEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;">
         <label>Embajador(a):</label>
-        <select id="objEmbajador"><option value="">Todos</option></select>
+        <select id="objEmbajador" onchange="renderPlaneacion()"><option value="">Todos</option></select>
         </span>
         <label>Tienda(s):</label>
         <div class="tienda-dd" id="objTiendaDdRoot">
@@ -471,8 +471,22 @@
           <div class="tienda-dd-panel hidden" id="objTiendaDdPanel"></div>
         </div>
         <select id="objTiendaMulti" multiple style="display:none;"></select>
-        <button class="btn btn-brand" onclick="renderPlaneacion()">Filtrar</button>
         <button class="btn btn-ghost" onclick="restablecerFiltrosObjetivos()">↺ Restablecer filtros</button>
+      </div>
+      <div class="controls-bar" id="objCadenaFiltroWrap" style="align-items:center;">
+        <label>Cadena(s):</label>
+        <div id="objCadenaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Familia(s):</label>
+        <div id="objFamiliaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Código(s):</label>
+        <div class="tienda-dd" id="objCodigoDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objCodigoDd')" id="objCodigoDdBtn">Todos</button>
+          <div class="tienda-dd-panel hidden" id="objCodigoDdPanel"></div>
+        </div>
       </div>
 
       <div class="row" style="margin-bottom:6px;">
@@ -556,7 +570,7 @@
       <div style="display:flex; justify-content:flex-end; margin:0 0 8px;">
         <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarTareas()">⬇ Excel</button>
       </div>
-      <div id="tareasGrid" style="display:flex; flex-direction:column; gap:12px; margin-bottom:22px;"></div>
+      <div id="tareasGrid" class="hidden" style="display:none; flex-direction:column; gap:12px; margin-bottom:22px;"></div>
       <p id="planeacionScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:0 0 10px;"></p>
     </section>
 
@@ -1126,21 +1140,46 @@
     <section class="view" id="view-preplan">
       <div class="bloque-tag bloque-planeacion">Planeación</div>
       <h2 class="section-title">Preasignación de rutas</h2>
-      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Antes de armar la ruta de la semana en "Asignación de rutas", revisa aquí lo que cerró la semana anterior — para ahorrarte el cruce manual. <b>Nota:</b> venta cero, inventario fantasma/excedentes y cobertura real de cuota necesitan conectar tus archivos de Sell Out/Inventarios (próxima fase) — por ahora esta vista usa lo que sí tenemos: frecuencia sugerida por tienda, caducidades reportadas y cumplimiento real de la semana anterior.</p>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Antes de armar la ruta de la semana en "Asignación de rutas", revisa aquí lo que cerró la semana anterior — para ahorrarte el cruce manual. <b>Nota:</b> inventario en tránsito no está disponible todavía (falta conectar el archivo correspondiente); días de inventario, excedentes y venta cero ya se calculan con lo que sí tenemos.</p>
       <div class="controls-bar">
         <label>Semana de referencia (la que ya cerró):</label>
-        <input type="date" id="preplanRefWeek">
+        <input type="date" id="preplanRefWeek" onchange="renderPreplan()">
         <button class="btn btn-brand" onclick="renderPreplan()">Calcular pre-plan</button>
+        <button class="btn btn-outline" onclick="exportarPreplanExcel()">⬇ Excel</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosPreplan()">↺ Restablecer filtros</button>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Cadena(s):</label>
+        <div id="ppCadenaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+      </div>
+      <div class="controls-bar" id="ppSupervisorFiltroWrap" style="align-items:center;">
+        <label>Supervisor(a):</label>
+        <div id="ppSupervisorMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Familia(s):</label>
+        <div id="ppFamiliaMultiWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Código(s):</label>
+        <div class="tienda-dd" id="ppCodigoDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppCodigoDd')" id="ppCodigoDdBtn">Todos</button>
+          <div class="tienda-dd-panel hidden" id="ppCodigoDdPanel"></div>
+        </div>
       </div>
       <div class="row" style="margin-bottom:8px;">
-        <div class="card kpi warn"><div class="label">Venta cero / inv. fantasma / excedentes</div><div class="value" style="font-size:14px; color:var(--ink-soft); font-weight:600;">Pendiente de conectar Sell Out</div></div>
+        <div class="card kpi bad"><div class="label">Tiendas con venta cero (algún SKU)</div><div class="value" id="ppVentaCeroCount">0</div></div>
+        <div class="card kpi warn"><div class="label">Tiendas con excedente de inventario</div><div class="value" id="ppExcedenteCount">0</div></div>
         <div class="card kpi bad"><div class="label">Tiendas con riesgo de caducidad</div><div class="value" id="ppCaducidadCount">0</div></div>
         <div class="card kpi warn"><div class="label">Tiendas por debajo de su frecuencia sugerida</div><div class="value" id="ppBajaCoberturaCount">0</div></div>
+        <div class="card kpi warn"><div class="label">Tiendas sin cubrir su cuota del mes</div><div class="value" id="ppSinCubrirCuotaCount">0</div></div>
       </div>
+      <div id="ppAlertaCapacidad" style="margin-bottom:14px;"></div>
       <h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Sugerencia de visitas para la próxima semana, por tienda</h3>
+      <p style="font-size:11px; color:var(--ink-soft); margin:-4px 0 8px;">Cubrimiento = % de la cuota del mes (a la fecha) ya vendido. Días de inventario y excedentes son el máximo/los SKU con mayor riesgo por tienda. Inventario en tránsito: pendiente de conectar.</p>
       <div class="table-scroll">
         <table>
-          <thead><tr id="ppBodyHead"><th>Cadena</th><th>Tienda</th><th>Frecuencia sugerida (estrategia)</th><th>Visitas reales semana pasada</th><th>Riesgo caducidad</th><th>Sugerencia esta semana</th><th>Por qué</th></tr></thead>
+          <thead><tr id="ppBodyHead"><th>Cadena</th><th>Tienda</th><th>Supervisor(a)</th><th>Frecuencia sugerida (estrategia)</th><th>Visitas reales semana pasada</th><th>Cubrimiento cuota (mes)</th><th>Días inventario (máx.)</th><th>Excedentes (SKU)</th><th>Inv. en tránsito</th><th>Venta cero (SKU)</th><th>Tareas/prioridades abiertas</th><th>Riesgo caducidad</th><th>Sugerencia esta semana</th><th>Por qué</th></tr></thead>
           <tbody id="ppBody"></tbody>
         </table>
       </div>
@@ -2252,8 +2291,9 @@ function boot(keepView){
 
   // secciones administrativas de Objetivos: ocultas para el perfil Embajador
   const esEmbajador = currentUser.perfil === 'Embajador';
+  const esSupervisorObj = currentUser.perfil === 'Supervisor';
   const supWrap = document.getElementById('filtroSupervisorWrap');
-  if(supWrap) supWrap.style.display = esEmbajador ? 'none' : '';
+  if(supWrap) supWrap.style.display = (esEmbajador || esSupervisorObj) ? 'none' : '';
   const tareaAsignar = document.getElementById('tareaAsignarSeccion');
   if(tareaAsignar) tareaAsignar.style.display = esEmbajador ? 'none' : '';
   const tareasMisTitulo = document.getElementById('tareasMisTitulo');
@@ -2284,7 +2324,7 @@ function boot(keepView){
   // Calendario: para Embajador, solo tiene un supervisor (quien le asigna rutas) — ese filtro no aplica,
   // únicamente le sirve filtrar por cadena.
   const calSupWrap = document.getElementById('calFiltroSupervisorWrap');
-  if(calSupWrap) calSupWrap.style.display = esEmbajador ? 'none' : '';
+  if(calSupWrap) calSupWrap.style.display = (esEmbajador || currentUser.perfil==='Supervisor') ? 'none' : '';
   const calClusterWrap = document.getElementById('calFiltroClusterWrap');
   if(calClusterWrap) calClusterWrap.style.display = esEmbajador ? 'none' : '';
 
@@ -2393,7 +2433,7 @@ function renderObjMesChips(){
 }
 /* ---------- Dropdown genérico (Mes(es) / Tienda(s) en Objetivos) — abrir/cerrar + clic afuera cierra ---------- */
 function toggleObjDropdown(cual){
-  const ids = ['objMesDd','objTiendaDd','cvMesDd','cvTiendaDd','cpMesDd','cpTiendaDd','distMesDd'];
+  const ids = ['objMesDd','objTiendaDd','objCodigoDd','cvMesDd','cvTiendaDd','cpMesDd','cpTiendaDd','distMesDd','ppCodigoDd'];
   ids.forEach(id=>{
     const p = document.getElementById(id+'Panel');
     if(!p) return;
@@ -2402,7 +2442,7 @@ function toggleObjDropdown(cual){
   });
 }
 document.addEventListener('click', (e)=>{
-  ['objMesDdRoot','objTiendaDdRoot','cvMesDdRoot','cvTiendaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot'].forEach(rootId=>{
+  ['objMesDdRoot','objTiendaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCodigoDdRoot'].forEach(rootId=>{
     const root = document.getElementById(rootId);
     if(root && !root.contains(e.target)){
       const panel = root.querySelector('.tienda-dd-panel');
@@ -2447,6 +2487,8 @@ function semanasDeMesesSeleccionados(){
 let objMetaTipo = 'cuota'; // 'cuota' | 'escalon'
 function metaUni(row){ return objMetaTipo==='escalon' ? (row.escalon_uni ?? null) : (row.cuota_uni ?? 0); }
 function metaPesos(row){ return objMetaTipo==='escalon' ? (row.escalon_pesos ?? null) : (row.cuota_pesos ?? 0); }
+/* SKU (ventas_cuota_sku) trae la meta mensual con otros nombres de campo que las filas de cumplimiento_semanal */
+function metaUniSku(row){ return objMetaTipo==='escalon' ? (row.escalon_sep_uni ?? row.cuota_uni ?? 0) : (row.cuota_uni ?? 0); }
 function sumMetaUni(rows){ return rows.reduce((a,r)=>a+(metaUni(r)||0),0); }
 function sumMetaPesos(rows){ return rows.reduce((a,r)=>a+(metaPesos(r)||0),0); }
 function setObjMetaTipo(t){ objMetaTipo = t; renderObjMetaTipoChips(); renderPlaneacion(); }
@@ -2467,17 +2509,8 @@ function populateCadenaSelect(){
   sel.onchange = renderPlaneacion;
   document.getElementById('tiendaSearch').oninput = renderPlaneacion;
 }
-/* ---------- Filtro de cadena en Objetivos: selección múltiple opcional ---------- */
-let objFiltroCadenas = new Set(); // vacío = todas (cuando el modo múltiple está activo)
-let objCadenaMultiActivo = false;
-function toggleObjCadenaMulti(){
-  objCadenaMultiActivo = document.getElementById('objCadenaMultiToggle').checked;
-  document.getElementById('objCadenaSingleWrap').classList.toggle('hidden', objCadenaMultiActivo);
-  document.getElementById('objCadenaMultiWrap').classList.toggle('hidden', !objCadenaMultiActivo);
-  if(objCadenaMultiActivo){ objFiltroCadenas.clear(); renderObjCadenaChips(); }
-  else { document.getElementById('cadenaSelect').value=''; }
-  renderPlaneacion();
-}
+/* ---------- Filtro de cadena en Objetivos: selección múltiple, se aplica solo al marcar (sin botón Filtrar) ---------- */
+let objFiltroCadenas = new Set(); // vacío = todas
 function renderObjCadenaChips(){
   const el = document.getElementById('objCadenaMultiWrap');
   if(!el) return;
@@ -2492,6 +2525,52 @@ function toggleObjFiltroCadena(cadena){
   else if(objFiltroCadenas.has(cadena)){ objFiltroCadenas.delete(cadena); }
   else{ objFiltroCadenas.add(cadena); }
   renderObjCadenaChips();
+  renderPlaneacion();
+}
+/* ---------- Filtro de familia en Objetivos: selección múltiple, auto-aplica ---------- */
+let objFiltroFamilias = new Set(); // vacío = todas
+function renderObjFamiliaChips(){
+  const el = document.getElementById('objFamiliaMultiWrap');
+  if(!el) return;
+  const familias = familiasProducto().sort();
+  const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  let html = chip('Todas', objFiltroFamilias.size===0, 'toggleObjFiltroFamilia(null)');
+  html += familias.map(f=> chip(f, objFiltroFamilias.has(f), `toggleObjFiltroFamilia('${f.replace(/'/g,"\\'")}')`)).join('');
+  el.innerHTML = html;
+}
+function toggleObjFiltroFamilia(familia){
+  if(familia===null){ objFiltroFamilias.clear(); }
+  else if(objFiltroFamilias.has(familia)){ objFiltroFamilias.delete(familia); }
+  else{ objFiltroFamilias.add(familia); }
+  renderObjFamiliaChips();
+  renderPlaneacion();
+}
+/* ---------- Filtro de código (SKU/producto Délico) en Objetivos: checklist desplegable, mismo patrón que Tienda(s) ---------- */
+let objFiltroCodigos = new Set(); // vacío = todos
+function renderObjCodigoDropdown(){
+  const panel = document.getElementById('objCodigoDdPanel');
+  const btn = document.getElementById('objCodigoDdBtn');
+  if(!panel || !btn) return;
+  const productos = [...APP_DATA.catalogo_productos].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objCodigoTodasDD(true)">Todo</button><button type="button" onclick="objCodigoTodasDD(false)">Ninguno</button></div>`
+    + productos.map(p=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${p.clave}" ${objFiltroCodigos.size===0 || objFiltroCodigos.has(p.clave) ? 'checked':''} onchange="onObjCodigoDdCheck(this)"> ${p.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${p.clave})</span></label>`).join('');
+  btn.textContent = (objFiltroCodigos.size===0 || objFiltroCodigos.size===productos.length) ? 'Todos' : (objFiltroCodigos.size + ' seleccionado' + (objFiltroCodigos.size>1?'s':''));
+}
+function onObjCodigoDdCheck(chk){
+  const val = chk.getAttribute('data-val');
+  const productos = APP_DATA.catalogo_productos;
+  if(objFiltroCodigos.size===0){
+    // venía en "todos marcados" implícito — al desmarcar uno, se vuelve selección explícita del resto
+    objFiltroCodigos = new Set(productos.map(p=>p.clave));
+  }
+  if(chk.checked) objFiltroCodigos.add(val); else objFiltroCodigos.delete(val);
+  if(objFiltroCodigos.size===productos.length) objFiltroCodigos.clear(); // todos marcados = sin filtro
+  renderObjCodigoDropdown();
+  renderPlaneacion();
+}
+function objCodigoTodasDD(marcar){
+  objFiltroCodigos = marcar ? new Set() : new Set(['__ninguno__']); // set imposible = no matchea nada = "Ninguno"
+  renderObjCodigoDropdown();
   renderPlaneacion();
 }
 /* ---------- Filtro de semana en Objetivos: selección múltiple (chips) ---------- */
@@ -2552,9 +2631,15 @@ function restablecerFiltrosObjetivos(){
   const objTiendaMultiSel = document.getElementById('objTiendaMulti');
   if(objTiendaMultiSel) [...objTiendaMultiSel.options].forEach(o=>o.selected=false);
   objFiltroTiendas.clear();
+  objFiltroCadenas.clear();
+  objFiltroFamilias.clear();
+  objFiltroCodigos.clear();
   objFiltroMeses = new Set(mesesDisponiblesObj());
   renderObjMesChips();
   renderObjTiendaDropdown();
+  renderObjCadenaChips();
+  renderObjFamiliaChips();
+  renderObjCodigoDropdown();
   objMetaTipo = 'cuota';
   renderObjMetaTipoChips();
   toast('Filtros de Objetivos restablecidos');
@@ -5124,11 +5209,11 @@ function exportarCumplimientoTabla(tipo){
 
 /* ---------- CALENDARIO (pasado real vs. planeado / hoy / futuro) ---------- */
 /* ---------- CALENDARIO: vista semanal tipo Asignación de rutas, pero con lo ya ejecutado ---------- */
-let calWeekStart = mondayOf(new Date());
+let calWeekStart = inicioSemanaCampo(new Date());
 function shiftCalWeek(delta){ calWeekStart.setDate(calWeekStart.getDate()+delta*7); renderCalendario(); }
 function shiftCalDay(delta){ calWeekStart.setDate(calWeekStart.getDate()+delta); renderCalendario(); }
 function onCalWeekPickerChange(val){ if(!val) return; calWeekStart = new Date(val+'T00:00:00'); renderCalendario(); }
-function calIrHoy(){ calWeekStart = mondayOf(new Date()); renderCalendario(); }
+function calIrHoy(){ calWeekStart = inicioSemanaCampo(new Date()); renderCalendario(); }
 function renderCalendario(){
   const hoy = todayISO();
   const start = calWeekStart;
@@ -5477,6 +5562,107 @@ function renderInventario(){
 
 /* ---------- CUBRIMIENTO DE CUOTA (resumen hoy/semana) ---------- */
 /* ---------- PRE-PLAN SUGERIDO (versión parcial — sin Sell Out/Inventarios todavía) ---------- */
+/* ---------- Filtros de Preasignación (cadena/supervisor/familia/código) — se auto-aplican, sin botón "Filtrar" ---------- */
+let ppFiltroCadenas = new Set();
+let ppFiltroSupervisores = new Set();
+let ppFiltroFamilias = new Set();
+let ppFiltroCodigos = new Set();
+const CAPACIDAD_VISITAS_SEMANA = { DEGUSTADORA:6, HIBRIDO:16, PROMOTORIA:24 }; // estimado: 1 tienda/día (demostradoras) vs 4-5/día (promotoría), ~6 días de campo/semana
+function capacidadSemanaUsuario(u){
+  const rol = (u && u.rol) || '';
+  if(/H[ÍI]BRIDO/.test(rol)) return CAPACIDAD_VISITAS_SEMANA.HIBRIDO;
+  if(/DEGUST/.test(rol)) return CAPACIDAD_VISITAS_SEMANA.DEGUSTADORA;
+  return CAPACIDAD_VISITAS_SEMANA.PROMOTORIA;
+}
+function productoPorNombre(nombre){ return APP_DATA.catalogo_productos.find(p=>p.nombre===nombre); }
+function storesScopePreplan(){
+  let scope = storesScopeParaMi();
+  if(currentUser.perfil === 'Supervisor') scope = scope.filter(s => mismaPersona(supervisorDeTienda(s), currentUser.nombre));
+  if(ppFiltroCadenas.size) scope = scope.filter(s=>ppFiltroCadenas.has(s.cadena));
+  if(ppFiltroSupervisores.size) scope = scope.filter(s=>ppFiltroSupervisores.has(supervisorDeTienda(s) || 'Sin supervisor(a)'));
+  return scope;
+}
+function renderPpCadenaChips(){
+  const wrap = document.getElementById('ppCadenaMultiWrap'); if(!wrap) return;
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
+  const chip = (activo,label,onclick)=>`<button type="button" onclick="${onclick}" style="border:2px solid ${activo?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 8px; background:${activo?'var(--brand-soft)':'#fff'}; font-size:11px; font-weight:${activo?'700':'400'}; cursor:pointer;">${label}</button>`;
+  wrap.innerHTML = chip(ppFiltroCadenas.size===0,'Todas',`togglePpFiltroCadena(null)`)
+    + cadenas.map(c=>chip(ppFiltroCadenas.has(c), c, `togglePpFiltroCadena('${c.replace(/'/g,"\\'")}')`)).join('');
+}
+function togglePpFiltroCadena(c){
+  if(c===null) ppFiltroCadenas.clear();
+  else if(ppFiltroCadenas.has(c)) ppFiltroCadenas.delete(c); else ppFiltroCadenas.add(c);
+  renderPpCadenaChips();
+  renderPreplan();
+}
+function renderPpSupervisorChips(){
+  const wrap = document.getElementById('ppSupervisorMultiWrap'); if(!wrap) return;
+  const wrapRoot = document.getElementById('ppSupervisorFiltroWrap');
+  if(wrapRoot) wrapRoot.style.display = currentUser.perfil==='Supervisor' ? 'none' : '';
+  const sups = [...new Set(APP_DATA.stores.map(s=>supervisorDeTienda(s)||'Sin supervisor(a)'))].sort();
+  const chip = (activo,label,onclick)=>`<button type="button" onclick="${onclick}" style="border:2px solid ${activo?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 8px; background:${activo?'var(--brand-soft)':'#fff'}; font-size:11px; font-weight:${activo?'700':'400'}; cursor:pointer;">${label}</button>`;
+  wrap.innerHTML = chip(ppFiltroSupervisores.size===0,'Todos',`togglePpFiltroSupervisor(null)`)
+    + sups.map(s=>chip(ppFiltroSupervisores.has(s), nombreCorto(s), `togglePpFiltroSupervisor('${s.replace(/'/g,"\\'")}')`)).join('');
+}
+function togglePpFiltroSupervisor(s){
+  if(s===null) ppFiltroSupervisores.clear();
+  else if(ppFiltroSupervisores.has(s)) ppFiltroSupervisores.delete(s); else ppFiltroSupervisores.add(s);
+  renderPpSupervisorChips();
+  renderPreplan();
+}
+function renderPpFamiliaChips(){
+  const wrap = document.getElementById('ppFamiliaMultiWrap'); if(!wrap) return;
+  const familias = familiasProducto().sort();
+  const chip = (activo,label,onclick)=>`<button type="button" onclick="${onclick}" style="border:2px solid ${activo?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 8px; background:${activo?'var(--brand-soft)':'#fff'}; font-size:11px; font-weight:${activo?'700':'400'}; cursor:pointer;">${label}</button>`;
+  wrap.innerHTML = chip(ppFiltroFamilias.size===0,'Todas',`togglePpFiltroFamilia(null)`)
+    + familias.map(f=>chip(ppFiltroFamilias.has(f), f, `togglePpFiltroFamilia('${f.replace(/'/g,"\\'")}')`)).join('');
+}
+function togglePpFiltroFamilia(f){
+  if(f===null) ppFiltroFamilias.clear();
+  else if(ppFiltroFamilias.has(f)) ppFiltroFamilias.delete(f); else ppFiltroFamilias.add(f);
+  renderPpFamiliaChips();
+  renderPreplan();
+}
+function renderPpCodigoDropdown(){
+  const btn = document.getElementById('ppCodigoDdBtn'), panel = document.getElementById('ppCodigoDdPanel');
+  if(!btn || !panel) return;
+  const productos = [...APP_DATA.catalogo_productos].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  btn.textContent = (ppFiltroCodigos.size===0 || ppFiltroCodigos.has('__ninguno__')) ? (ppFiltroCodigos.has('__ninguno__')?'Ninguno':'Todos') : `${ppFiltroCodigos.size} seleccionado(s)`;
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppCodigoTodasDD(true)">Todo</button><button type="button" onclick="ppCodigoTodasDD(false)">Ninguno</button></div>`
+    + productos.map(p=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${p.clave}" ${ppFiltroCodigos.size===0 || ppFiltroCodigos.has(p.clave) ? 'checked':''} onchange="onPpCodigoDdCheck(this)"> ${p.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${p.clave})</span></label>`).join('');
+}
+function ppCodigoTodasDD(marcar){
+  ppFiltroCodigos = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpCodigoDropdown();
+  renderPreplan();
+}
+function onPpCodigoDdCheck(chk){
+  const todos = APP_DATA.catalogo_productos.map(p=>p.clave);
+  if(ppFiltroCodigos.size===0){ ppFiltroCodigos = new Set(todos); }
+  ppFiltroCodigos.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroCodigos.add(val); else ppFiltroCodigos.delete(val);
+  if(ppFiltroCodigos.size === todos.length) ppFiltroCodigos = new Set();
+  if(ppFiltroCodigos.size === 0 && !chk.checked) ppFiltroCodigos = new Set(['__ninguno__']);
+  renderPpCodigoDropdown();
+  renderPreplan();
+}
+function ppClaveEnFiltro(clave){
+  if(ppFiltroFamilias.size){ const prod = claveAProducto(clave); if(!prod || !ppFiltroFamilias.has(prod.familia)) return false; }
+  if(ppFiltroCodigos.size){ if(ppFiltroCodigos.has('__ninguno__')) return false; if(!ppFiltroCodigos.has(clave)) return false; }
+  return true;
+}
+function poblarFiltrosPreplan(){
+  renderPpCadenaChips();
+  renderPpSupervisorChips();
+  renderPpFamiliaChips();
+  renderPpCodigoDropdown();
+}
+function restablecerFiltrosPreplan(){
+  ppFiltroCadenas.clear(); ppFiltroSupervisores.clear(); ppFiltroFamilias.clear(); ppFiltroCodigos.clear();
+  poblarFiltrosPreplan();
+  renderPreplan();
+}
 function calcularPreplan(refStartISO, refEndISO){
   const embajadorUsuarios = new Set(APP_DATA.equipo.filter(u=>u.perfil==='Embajador').map(u=>u.usuario));
   const planRef = getRutas().filter(a=>a.tipo==='visita' && a.tienda && a.fecha>=refStartISO && a.fecha<=refEndISO && embajadorUsuarios.has(a.usuario));
@@ -5487,55 +5673,151 @@ function calcularPreplan(refStartISO, refEndISO){
   const riesgoPorTienda = {};
   caducidadesRecientes.forEach(c=>{ const k=c.cadena+'|'+c.tienda; riesgoPorTienda[k]=(riesgoPorTienda[k]||0)+(parseInt(c.piezas)||0); });
 
-  let caducidadCount=0, bajaCoberturaCount=0;
-  const filas = [...APP_DATA.stores].sort((a,b)=> b.cuota_pesos - a.cuota_pesos).map(s=>{
+  // Inventario (días de inventario / excedente) — por SKU dentro de "alertas_venta_cero" (a pesar del nombre trae dias_inventario por tienda-SKU)
+  const invPorTienda = {}; // 'cadena|num_tienda' -> {maxDias, excedentes}
+  (APP_DATA.alertas_venta_cero||[]).forEach(r=>{
+    if(!ppClaveEnFiltro(r.clave)) return;
+    const k = r.cadena+'|'+r.num_tienda;
+    if(!invPorTienda[k]) invPorTienda[k] = {maxDias:0, excedentes:0};
+    const dias = r.dias_inventario||0;
+    if(dias > invPorTienda[k].maxDias) invPorTienda[k].maxDias = dias;
+    if(dias > 45) invPorTienda[k].excedentes++;
+  });
+
+  // Venta cero por tienda (distribucion_por_tienda.venta_cero_items son nombres de producto)
+  const ventaCeroPorTienda = {}; // 'cadena|num_tienda' -> count filtrado
+  (APP_DATA.distribucion_por_tienda||[]).forEach(r=>{
+    const items = (r.venta_cero_items||[]).filter(nombre=>{
+      const prod = productoPorNombre(nombre);
+      return prod ? ppClaveEnFiltro(prod.clave) : true;
+    });
+    if(items.length) ventaCeroPorTienda[r.cadena+'|'+r.num_tienda] = items.length;
+  });
+
+  // Cubrimiento de cuota del mes a la fecha (suma de semanas ya registradas en cumplimiento_semanal)
+  const cubrimientoPorTienda = {}; // 'cadena|num_tienda' -> {realUni, cuotaUni, pct}
+  (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{
+    const k = r.cadena+'|'+r.num_tienda;
+    if(!cubrimientoPorTienda[k]) cubrimientoPorTienda[k] = {realUni:0, cuotaUni:0};
+    cubrimientoPorTienda[k].realUni += r.real_uni||0;
+    cubrimientoPorTienda[k].cuotaUni += r.cuota_uni||0;
+  });
+
+  // Tareas/prioridades abiertas de las personas asignadas a cada tienda
+  const tareasAbiertas = (getTareas()||[]).filter(t=>t.estado!=='finalizada' && t.estado!=='cerrada');
+
+  let caducidadCount=0, bajaCoberturaCount=0, ventaCeroCount=0, excedenteCount=0, sinCubrirCuotaCount=0;
+  const filas = storesScopePreplan().sort((a,b)=> b.cuota_pesos - a.cuota_pesos).map(s=>{
     const k = s.cadena+'|'+s.tienda;
+    const kNum = s.cadena+'|'+s.num_tienda;
     const visitasReales = visitasPorTienda[k] || 0;
     const riesgoPiezas = riesgoPorTienda[k] || 0;
     const sugeridaBase = s.visitas_requeridas_semana || 0;
     const bajaCobertura = sugeridaBase>0 && visitasReales < sugeridaBase;
     const hayRiesgo = riesgoPiezas > 0;
+    const inv = invPorTienda[kNum] || {maxDias:0, excedentes:0};
+    const ventaCero = ventaCeroPorTienda[kNum] || 0;
+    const cub = cubrimientoPorTienda[kNum] || {realUni:0, cuotaUni:0};
+    const pctCubrimiento = cub.cuotaUni>0 ? (cub.realUni/cub.cuotaUni*100) : null;
+    const sinCubrirCuota = pctCubrimiento!==null && pctCubrimiento < 100;
+    const personas = personasDeTienda(s.cadena, s.num_tienda);
+    let tareasCount = 0;
+    personas.forEach(p=>{
+      tareasCount += tareasAbiertas.filter(t=>t.asignado_a===p.usuario).length;
+    });
     if(hayRiesgo) caducidadCount++;
     if(bajaCobertura) bajaCoberturaCount++;
+    if(ventaCero>0) ventaCeroCount++;
+    if(inv.excedentes>0) excedenteCount++;
+    if(sinCubrirCuota) sinCubrirCuotaCount++;
     let sugerenciaSemana = sugeridaBase;
     const motivos = [];
     if(bajaCobertura){ sugerenciaSemana = Math.max(sugerenciaSemana, visitasReales+1); motivos.push(`solo tuvo ${visitasReales}/${sugeridaBase} visitas la semana pasada`); }
     if(hayRiesgo){ sugerenciaSemana = Math.max(sugerenciaSemana, sugeridaBase+1); motivos.push(`${riesgoPiezas} pza(s) en riesgo de caducar reportadas`); }
+    if(sinCubrirCuota){ sugerenciaSemana = Math.max(sugerenciaSemana, sugeridaBase+1); motivos.push(`solo va en ${pctCubrimiento.toFixed(0)}% de su cuota del mes`); }
+    if(ventaCero>0){ sugerenciaSemana = Math.max(sugerenciaSemana, sugeridaBase+1); motivos.push(`${ventaCero} SKU con venta cero`); }
+    if(inv.excedentes>0){ motivos.push(`${inv.excedentes} SKU con exceso de inventario (posible sobre-stock)`); }
+    if(tareasCount>0){ motivos.push(`${tareasCount} tarea(s) abiertas pendientes en esta tienda`); }
     if(!motivos.length && sugeridaBase>0) motivos.push('mantener frecuencia de estrategia');
-    return {s, visitasReales, riesgoPiezas, sugeridaBase, sugerenciaSemana, motivos, prioridad: (bajaCobertura?2:0)+(hayRiesgo?1:0)};
-  }).filter(f=>f.sugeridaBase>0 || f.riesgoPiezas>0)
+    return {s, visitasReales, riesgoPiezas, sugeridaBase, sugerenciaSemana, motivos, invMaxDias: inv.maxDias, invExcedentes: inv.excedentes, ventaCero, tareasCount, pctCubrimiento,
+      prioridad: (bajaCobertura?2:0)+(hayRiesgo?1:0)+(sinCubrirCuota?2:0)+(ventaCero>0?1:0)};
+  }).filter(f=>f.sugeridaBase>0 || f.riesgoPiezas>0 || f.ventaCero>0 || f.invExcedentes>0 || (f.pctCubrimiento!==null && f.pctCubrimiento<100))
     .sort((a,b)=> b.prioridad - a.prioridad || b.s.cuota_pesos - a.s.cuota_pesos);
-  return {filas, caducidadCount, bajaCoberturaCount};
+  return {filas, caducidadCount, bajaCoberturaCount, ventaCeroCount, excedenteCount, sinCubrirCuotaCount};
+}
+function calcularAlertaCapacidad(filas){
+  // Compara la demanda de visitas sugeridas de esta semana contra la capacidad semanal de cada persona
+  // (estimado: demostradoras 1 tienda/día, promotoría 4-5 tiendas/día, ~6 días de campo/semana).
+  const demandaPorUsuario = {}; // usuario -> {nombre, demanda, capacidad, tiendas:[]}
+  filas.forEach(f=>{
+    personasDeTienda(f.s.cadena, f.s.num_tienda).forEach(p=>{
+      const u = APP_DATA.equipo.find(x=>x.usuario===p.usuario);
+      if(!u || u.perfil!=='Embajador') return;
+      if(!demandaPorUsuario[p.usuario]) demandaPorUsuario[p.usuario] = {nombre:u.nombre, demanda:0, capacidad:capacidadSemanaUsuario(u), tiendas:[]};
+      demandaPorUsuario[p.usuario].demanda += f.sugerenciaSemana;
+      demandaPorUsuario[p.usuario].tiendas.push(`${f.s.tienda} (${f.sugerenciaSemana}x)`);
+    });
+  });
+  const sobrecargados = Object.values(demandaPorUsuario).filter(d=>d.demanda > d.capacidad);
+  const cont = document.getElementById('ppAlertaCapacidad');
+  if(!cont) return;
+  if(!sobrecargados.length){ cont.innerHTML = ''; return; }
+  cont.innerHTML = `<div class="card" style="border-left:4px solid var(--bad);">
+    <div style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--bad); margin-bottom:8px;">⚠️ Riesgo de tiendas sin visita — la demanda sugerida supera la capacidad semanal de la persona</div>
+    ${sobrecargados.map(d=>`<div style="padding:4px 0; font-size:12.5px;"><b>${nombreCorto(d.nombre)}</b>: se sugieren ${d.demanda} visitas esta semana, pero su capacidad estimada es de ${d.capacidad} (${d.tiendas.length} tienda(s): ${d.tiendas.join(', ')})</div>`).join('')}
+  </div>`;
 }
 function renderPreplan(){
   const input = document.getElementById('preplanRefWeek');
   if(!input.value){
-    const lunesActual = mondayOf(new Date());
+    const lunesActual = inicioSemanaCampo(new Date());
     const lunesPasado = new Date(lunesActual); lunesPasado.setDate(lunesPasado.getDate()-7);
     input.value = isoDate(lunesPasado);
   }
+  poblarFiltrosPreplan();
   const refStart = new Date(input.value+'T00:00:00');
   const refEnd = new Date(refStart); refEnd.setDate(refEnd.getDate()+6);
   const refStartISO = isoDate(refStart), refEndISO = isoDate(refEnd);
-  const {filas, caducidadCount, bajaCoberturaCount} = calcularPreplan(refStartISO, refEndISO);
+  const {filas, caducidadCount, bajaCoberturaCount, ventaCeroCount, excedenteCount, sinCubrirCuotaCount} = calcularPreplan(refStartISO, refEndISO);
   document.getElementById('ppCaducidadCount').textContent = caducidadCount;
   document.getElementById('ppBajaCoberturaCount').textContent = bajaCoberturaCount;
-  window._ppBodyRows = filas.map(f=>({...f, cadena: f.s.cadena, tienda: f.s.tienda}));
+  document.getElementById('ppVentaCeroCount').textContent = ventaCeroCount;
+  document.getElementById('ppExcedenteCount').textContent = excedenteCount;
+  document.getElementById('ppSinCubrirCuotaCount').textContent = sinCubrirCuotaCount;
+  calcularAlertaCapacidad(filas);
+  window._ppBodyRows = filas.map(f=>({...f, cadena: f.s.cadena, tienda: f.s.tienda, supervisor: supervisorDeTienda(f.s)||'—'}));
   window.render_ppBody = function(){
     const rows2 = window._ppBodyRows || [];
     const head = document.getElementById('ppBodyHead');
-    if(head) head.innerHTML = `${colHead('ppBody','cadena','Cadena',false)}${colHead('ppBody','tienda','Tienda',false)}<th>Frecuencia sugerida (estrategia)</th>${colHead('ppBody','visitasReales','Visitas reales semana pasada',true)}${colHead('ppBody','riesgoPiezas','Riesgo caducidad',true)}${colHead('ppBody','sugerenciaSemana','Sugerencia esta semana',true)}<th>Por qué</th>`;
+    if(head) head.innerHTML = `${colHead('ppBody','cadena','Cadena',false)}${colHead('ppBody','tienda','Tienda',false)}${colHead('ppBody','supervisor','Supervisor(a)',false)}<th>Frecuencia sugerida (estrategia)</th>${colHead('ppBody','visitasReales','Visitas reales semana pasada',true)}${colHead('ppBody','pctCubrimiento','Cubrimiento cuota (mes)',true)}${colHead('ppBody','invMaxDias','Días inventario (máx.)',true)}${colHead('ppBody','invExcedentes','Excedentes (SKU)',true)}<th>Inv. en tránsito</th>${colHead('ppBody','ventaCero','Venta cero (SKU)',true)}${colHead('ppBody','tareasCount','Tareas/prioridades abiertas',true)}${colHead('ppBody','riesgoPiezas','Riesgo caducidad',true)}${colHead('ppBody','sugerenciaSemana','Sugerencia esta semana',true)}<th>Por qué</th>`;
     const filas2 = ordenarFilas('ppBody', rows2, 'sugerenciaSemana');
     document.getElementById('ppBody').innerHTML = filas2.map(f=>`<tr>
-        <td>${f.s.cadena}</td><td>${f.s.tienda}</td>
+        <td>${f.s.cadena}</td><td>${f.s.tienda}</td><td>${nombreCorto(f.supervisor)}</td>
         <td>${f.s.sugerencia_visita || (f.sugeridaBase? f.sugeridaBase+'x/semana':'—')}</td>
         <td class="num" style="color:${f.visitasReales<f.sugeridaBase?'var(--bad)':'var(--good)'};">${f.visitasReales}</td>
+        <td class="num" style="color:${f.pctCubrimiento!==null && f.pctCubrimiento<100?'var(--bad)':'var(--good)'};">${f.pctCubrimiento!==null? f.pctCubrimiento.toFixed(0)+'%':'—'}</td>
+        <td class="num" style="color:${f.invMaxDias>45?'var(--bad)':'var(--ink-soft)'};">${f.invMaxDias||'—'}</td>
+        <td class="num" style="color:${f.invExcedentes>0?'var(--bad)':'var(--ink-soft)'};">${f.invExcedentes||'—'}</td>
+        <td class="num" style="color:var(--ink-soft); font-size:10.5px;">N/D</td>
+        <td class="num" style="color:${f.ventaCero>0?'var(--bad)':'var(--ink-soft)'};">${f.ventaCero||'—'}</td>
+        <td class="num" style="color:${f.tareasCount>0?'var(--warn)':'var(--ink-soft)'};">${f.tareasCount||'—'}</td>
         <td class="num" style="color:${f.riesgoPiezas>0?'var(--bad)':'var(--ink-soft)'};">${f.riesgoPiezas>0? f.riesgoPiezas+' pzas':'—'}</td>
         <td class="num" style="font-weight:700;">${f.sugerenciaSemana}x</td>
         <td style="font-size:11.5px; color:var(--ink-soft);">${f.motivos.join(' · ')}</td>
-      </tr>`).join('') || `<tr><td colspan="7" class="empty-state">Sin datos de referencia para esa semana todavía.</td></tr>`;
+      </tr>`).join('') || `<tr><td colspan="13" class="empty-state">Sin datos de referencia para esa semana todavía.</td></tr>`;
   };
   window.render_ppBody();
+}
+function exportarPreplanExcel(){
+  const rows = window._ppBodyRows || [];
+  if(!rows.length){ toast('No hay datos para exportar.'); return; }
+  exportarCSV(`preasignacion_rutas_${todayISO()}.csv`,
+    ['Cadena','Tienda','Supervisor(a)','Frecuencia sugerida','Visitas reales sem. pasada','Cubrimiento cuota mes %','Días inventario máx','Excedentes SKU','Inv. en tránsito','Venta cero SKU','Tareas/prioridades abiertas','Riesgo caducidad (pzas)','Sugerencia esta semana','Por qué'],
+    rows.map(f=>[
+      f.s.cadena, f.s.tienda, nombreCorto(f.supervisor), f.s.sugerencia_visita||f.sugeridaBase, f.visitasReales,
+      f.pctCubrimiento!==null?f.pctCubrimiento.toFixed(0):'', f.invMaxDias||0, f.invExcedentes||0, 'N/D', f.ventaCero||0, f.tareasCount||0,
+      f.riesgoPiezas||0, f.sugerenciaSemana, f.motivos.join(' · ')
+    ]));
 }
 
 /* ---------- VACACIONES ---------- */
@@ -6633,22 +6915,18 @@ function embajadorDeTienda(store){
 /* ---------- ANÁLISIS DE CUMPLIMIENTO (Objetivos): por cadena / familia / cluster / tienda, ordenable y exportable ---------- */
 function storesScopeObjetivos(){
   let scope = storesScopeParaMi();
+  // Un(a) supervisor(a) solo debe ver la información de su propio equipo en Objetivos —
+  // igual que Embajador ya solo ve la suya. Coordinador/Admin/Gerente siguen viendo todo.
+  if(currentUser.perfil === 'Supervisor') scope = scope.filter(s => mismaPersona(supervisorDeTienda(s), currentUser.nombre));
   const sup = (document.getElementById('objSupervisor')||{}).value;
   const emb = (document.getElementById('objEmbajador')||{}).value;
-  const q = ((document.getElementById('tiendaSearch')||{}).value||'').trim().toLowerCase();
-  if(objCadenaMultiActivo){
-    if(objFiltroCadenas.size) scope = scope.filter(s=>objFiltroCadenas.has(s.cadena));
-  } else {
-    const cadena = (document.getElementById('cadenaSelect')||{}).value;
-    if(cadena) scope = scope.filter(s=>s.cadena===cadena);
-  }
+  if(objFiltroCadenas.size) scope = scope.filter(s=>objFiltroCadenas.has(s.cadena));
   if(sup) scope = scope.filter(s=> mismaPersona(supervisorDeTienda(s), sup));
   if(emb){
     const rutaKeys = new Set(tiendasDeRutaSeptiembre(emb).map(a=>a.cadena+'|'+a.num_tienda));
     scope = scope.filter(s=> s.sector===emb || rutaKeys.has(s.cadena+'|'+s.num_tienda));
   }
   if(objFiltroTiendas.size) scope = scope.filter(s=> objFiltroTiendas.has(s.tienda));
-  else if(q) scope = scope.filter(s=> s.tienda.toLowerCase().includes(q));
   return scope;
 }
 function nombresSupervisorUnicos(){
@@ -6670,6 +6948,9 @@ function poblarFiltrosObjetivos(){
   poblarObjTiendaMulti();
   renderObjMesChips();
   renderObjTiendaDropdown();
+  renderObjCadenaChips();
+  renderObjFamiliaChips();
+  renderObjCodigoDropdown();
 }
 function visitasPorTienda(storesScope){
   const hoy = new Date();
@@ -6697,11 +6978,17 @@ function visitasPorTienda(storesScope){
 }
 function skusEnScope(storesScope){
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
-  return (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda));
+  let rows = (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda));
+  if(objFiltroFamilias.size) rows = rows.filter(r=>objFiltroFamilias.has(r.familia));
+  if(objFiltroCodigos.size) rows = rows.filter(r=>objFiltroCodigos.has(r.clave));
+  return rows;
 }
 function combinacionesEnScope(storesScope){
   const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
-  return (APP_DATA.combinaciones||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda));
+  let rows = (APP_DATA.combinaciones||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda));
+  if(objFiltroFamilias.size) rows = rows.filter(r=>objFiltroFamilias.has(r.familia));
+  if(objFiltroCodigos.size) rows = rows.filter(r=>objFiltroCodigos.has(r.clave));
+  return rows;
 }
 function agregarPorDimension(storesScope, dimFn){
   const skus = skusEnScope(storesScope);
@@ -6904,6 +7191,11 @@ function renderAnalisisObjetivos(){
   tablasBox.innerHTML = `<div style="margin-top:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por código de tienda (clic para ver el detalle semanal)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV()">⬇ Exportar a Excel</button></div>
       <div class="table-scroll" id="anzTablaTienda"></div>
+    </div>
+    <div style="margin-top:22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 4px;">Por código Délico — cuánto vender de cada producto, por semana</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCodigoCSV()">⬇ Exportar a Excel</button></div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:0 0 8px;">El total mes es la cuota real capturada por SKU/tienda. El desglose por semana es un estimado — se reparte usando el mismo peso semanal que ya tiene cada tienda en "Piezas pedidas por semana" — así que puede no cuadrar centavo a centavo con el real cuando ya haya venta capturada, pero te da la referencia de a qué le tienes que apostar cada semana.</p>
+      <div class="table-scroll" id="anzTablaCodigo"></div>
     </div>`;
 
   const porTiendaSem = {};
@@ -6939,6 +7231,69 @@ function renderAnalisisObjetivos(){
     const headers = ['Cadena','# Tienda','Tienda', metaLabelTxt+' total (piezas)'];
     const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.total]);
     exportarCSV(`objetivos_por_tienda_${todayISO()}.csv`, headers, rows);
+  };
+
+  // --- Por código Délico: cuánto vender de cada producto (por tienda), total mes + estimado por semana ---
+  const semanasCodigoArr = [...semanasMesChart].sort((a,b)=>a-b);
+  // Peso semanal de cada tienda, tomado de cumplimiento_semanal (misma fuente que "Piezas pedidas por semana"),
+  // para prorratear la meta mensual de cada SKU — ventas_cuota_sku no trae desglose semanal propio.
+  const pesoSemanaTienda = {}; // 'cadena|num_tienda' -> {semana: proporcion 0-1}
+  const totalPorTienda = {};
+  cumpRows.forEach(c=>{
+    const k = c.cadena+'|'+c.num_tienda;
+    totalPorTienda[k] = (totalPorTienda[k]||0) + (metaUni(c)||0);
+  });
+  cumpRows.forEach(c=>{
+    const k = c.cadena+'|'+c.num_tienda;
+    const total = totalPorTienda[k];
+    if(!pesoSemanaTienda[k]) pesoSemanaTienda[k] = {};
+    pesoSemanaTienda[k][c.semana] = total>0 ? (metaUni(c)||0)/total : (1/Math.max(1,semanasCodigoArr.length));
+  });
+  const pesoSemanaParejo = {}; semanasCodigoArr.forEach(s=> pesoSemanaParejo[s] = 1/Math.max(1,semanasCodigoArr.length));
+  const skusScope = skusEnScope(storesScope);
+  const porCodigo = {}; // clave -> {clave, nombre, total, porTienda:{key:{tienda,cadena,total,semanas:{}}}, semanas:{}}
+  skusScope.forEach(r=>{
+    const total = metaUniSku(r) || 0;
+    if(!porCodigo[r.clave]){
+      const prod = claveAProducto(r.clave);
+      porCodigo[r.clave] = {clave:r.clave, nombre: (prod&&prod.nombre) || r.clave, total:0, semanas:{}, porTienda:{}};
+    }
+    const g = porCodigo[r.clave];
+    g.total += total;
+    const k = r.cadena+'|'+r.num_tienda;
+    const pesos = pesoSemanaTienda[k] || pesoSemanaParejo;
+    if(!g.porTienda[k]) g.porTienda[k] = {tienda:r.tienda, cadena:r.cadena, total:0, semanas:{}};
+    g.porTienda[k].total += total;
+    semanasCodigoArr.forEach(s=>{
+      const estim = total * (pesos[s]!=null ? pesos[s] : pesoSemanaParejo[s]);
+      g.semanas[s] = (g.semanas[s]||0) + estim;
+      g.porTienda[k].semanas[s] = (g.porTienda[k].semanas[s]||0) + estim;
+    });
+  });
+  let codigoExpandido = null;
+  window.toggleCodigoExpandido = function(clave){ codigoExpandido = codigoExpandido===clave ? null : clave; window.render_anzTablaCodigo(); };
+  window.render_anzTablaCodigo = function(){
+    const box = document.getElementById('anzTablaCodigo');
+    if(!box) return;
+    const filas = Object.values(porCodigo).sort((a,b)=>b.total-a.total);
+    const theadSemanas = semanasCodigoArr.map(s=>`<th class="num">Sem ${s} (est.)</th>`).join('');
+    const rowsHtml = filas.map(f=>{
+      let html = `<tr style="cursor:pointer;" onclick="toggleCodigoExpandido('${f.clave.replace(/'/g,"\\'")}')"><td>${codigoExpandido===f.clave?'▼':'▶'} ${f.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${f.clave})</span></td><td class="num" style="font-weight:700;">${fmtNum(f.total)}</td>${semanasCodigoArr.map(s=>`<td class="num">${fmtNum(f.semanas[s]||0)}</td>`).join('')}</tr>`;
+      if(codigoExpandido===f.clave){
+        const tiendas = Object.values(f.porTienda).sort((a,b)=>b.total-a.total);
+        html += tiendas.map(t=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${t.tienda} <span style="color:var(--ink-soft); font-size:10.5px;">(${t.cadena})</span></td><td class="num" style="font-size:12px;">${fmtNum(t.total)}</td>${semanasCodigoArr.map(s=>`<td class="num" style="font-size:12px;">${fmtNum(t.semanas[s]||0)}</td>`).join('')}</tr>`).join('');
+      }
+      return html;
+    }).join('');
+    box.innerHTML = `<table><thead><tr><th>Código Délico (clic para ver por tienda)</th><th class="num">Total mes (piezas)</th>${theadSemanas}</tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="${2+semanasCodigoArr.length}" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
+  };
+  window.render_anzTablaCodigo();
+  window.exportarAnalisisCodigoCSV = function(){
+    const filas = Object.values(porCodigo).sort((a,b)=>b.total-a.total);
+    const headers = ['Código','Producto','Total mes (piezas)', ...semanasCodigoArr.map(s=>`Sem ${s} (estimado)`)];
+    const rows = filas.map(f=>[f.clave, f.nombre, f.total, ...semanasCodigoArr.map(s=>f.semanas[s]||0)]);
+    exportarCSV(`objetivos_por_codigo_delico_${todayISO()}.csv`, headers, rows);
   };
 }
 /* ---------- CUMPLIMIENTO DE VENTA (Comunicar/Retroalimentación): cuota/escalón vs. venta real, siempre del mismo periodo exacto elegido ---------- */
@@ -8269,20 +8624,23 @@ async function exportPDFReporte(){
 
 /* ---------- ASIGNACIÓN DE RUTA ---------- */
 const RUTA_KEY = 'delico_odv_rutas_v1';
-const DAY_NAMES = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DAY_NAMES = ['Viernes','Sábado','Domingo','Lunes','Martes','Miércoles','Jueves']; // semana de campo: viernes a jueves (ciclo real de captura), no lunes-domingo
 const TIPO_DIA = [['visita','Visita a tienda'],['descanso','Día de descanso'],['vacacion','Vacación'],['home_office','Home office'],['incidencia','Incapacidad'],['otra','Otra']];
 const TIPO_DIA_LABEL = Object.fromEntries(TIPO_DIA);
 const ROLES_TIENDA = ['Promotoría','Degustación','Supervisión'];
 
-function mondayOf(d){
+/* Inicio de la "semana de campo" (viernes a jueves) que contiene la fecha d — se usa para Calendario,
+   Asignación de ruta, Pre-plan y el bloqueo de semanas ya publicadas. NO se usa para las semanas ISO
+   de cuota/cumplimiento (esas siguen su propio calendario, sin tocar). */
+function inicioSemanaCampo(d){
   const dt = new Date(d);
-  const day = dt.getDay();
-  const diff = (day===0 ? -6 : 1-day);
-  dt.setDate(dt.getDate()+diff);
+  const day = dt.getDay(); // 0=Dom,1=Lun,2=Mar,3=Mié,4=Jue,5=Vie,6=Sáb
+  const diff = (day - 5 + 7) % 7; // días desde el viernes anterior (0 si "d" ya es viernes)
+  dt.setDate(dt.getDate()-diff);
   dt.setHours(0,0,0,0);
   return dt;
 }
-let rutaWeekStart = mondayOf(new Date());
+let rutaWeekStart = inicioSemanaCampo(new Date());
 function isoDate(d){
   const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
@@ -8356,7 +8714,9 @@ function equipoVisibleParaMi(){
     return [currentUser];
   }
   if(currentUser.perfil === 'Supervisor'){
-    return APP_DATA.equipo.filter(u => u.perfil !== 'Admin' && u.perfil !== 'Coordinador');
+    // Un(a) supervisor(a) solo debe ver su propia información y la de su equipo — nunca la de
+    // otros supervisores, coordinación o administración. Coordinador/Admin siguen viendo a todos.
+    return APP_DATA.equipo.filter(u => u.usuario===currentUser.usuario || mismaPersona(supervisorDePersona(u.nombre), currentUser.nombre));
   }
   return APP_DATA.equipo;
 }
@@ -8448,7 +8808,7 @@ function onDropPersona(e, dateISO){
       diasVacacion.push(iso);
     } else {
       const sug = sugerencias.length ? sugerencias[i % sugerencias.length] : null;
-      arr.push({id:uid()+'_'+i, fecha:iso, usuario:u.usuario, nombre:u.nombre, tipo:'visita', cadena: sug?sug.s.cadena:'', tienda: sug?sug.s.tienda:'', rol: sug?rolSugerido:''});
+      arr.push({id:uid()+'_'+i, fecha:iso, usuario:u.usuario, nombre:u.nombre, tipo:'visita', cadena: sug?sug.s.cadena:'', tienda: sug?sug.s.tienda:'', rol: rolSugerido});
     }
     creados++;
   }
@@ -8461,8 +8821,6 @@ function onDropPersona(e, dateISO){
   }
 }
 function renderRutaCard(a, locked){
-  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
-  const tiendasFiltradas = a.cadena ? APP_DATA.stores.filter(s=>s.cadena===a.cadena) : [];
   const shortName = nombreCorto(a.nombre);
   const dis = locked ? 'disabled' : '';
   let extra = '';
@@ -8478,20 +8836,7 @@ function renderRutaCard(a, locked){
         }).join('')}
       </div>` : ''}
       <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Otro — buscar cualquier tienda</div>
-      <input type="text" ${dis} placeholder="Escribe para buscar..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off" onchange="updRutaTiendaBuscada('${a.id}', this.value); this.value='';" style="width:100%; margin-bottom:4px;">
-      <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Cadena</div>
-      <div style="display:flex; gap:4px; flex-wrap:wrap;">
-        ${cadenas.map(c=>{
-          const logo = (APP_DATA.cadena_logos||{})[c];
-          return `<button type="button" ${dis} onclick="updRuta('${a.id}','cadena','${c}')" title="${c}" style="border:2px solid ${a.cadena===c?'var(--brand)':'var(--line)'}; border-radius:8px; padding:3px 5px; background:#fff; cursor:${locked?'default':'pointer'}; display:flex; align-items:center; justify-content:center; ${locked?'opacity:.6;':''}">
-            ${logo ? `<img src="${logo}" style="height:16px; max-width:44px; object-fit:contain;">` : `<span style="font-size:9px; font-weight:700;">${c}</span>`}
-          </button>`;
-        }).join('')}
-      </div>
-      <select ${dis} onchange="updRuta('${a.id}','tienda',this.value)" style="margin-top:4px;">
-        <option value="">Tienda...</option>
-        ${tiendasFiltradas.map(s=>`<option value="${s.tienda}" ${a.tienda===s.tienda?'selected':''}>${s.tienda}</option>`).join('')}
-      </select>
+      <input type="text" ${dis} placeholder="Escribe para buscar..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off" onchange="updRutaTiendaBuscada('${a.id}', this.value); this.value='';" value="${a.tienda ? (a.tienda + (a.cadena?(' — '+a.cadena):'')) : ''}" style="width:100%; margin-bottom:4px;">
       <div style="display:flex; gap:3px; margin-top:4px; flex-wrap:wrap;">
         ${ROLES_TIENDA.map(r=>`<button type="button" ${dis} class="rc-rolbtn ${a.rol===r?'active':''}" onclick="updRuta('${a.id}','rol','${r}')">${r}</button>`).join('')}
       </div>
@@ -8508,7 +8853,7 @@ function renderRutaCard(a, locked){
   </div>`;
 }
 function fechaBloqueada(fechaISO){
-  const wk = mondayOf(new Date(fechaISO+'T00:00:00'));
+  const wk = inicioSemanaCampo(new Date(fechaISO+'T00:00:00'));
   const wkISO = isoDate(wk);
   return getSemanasPublicadas().includes(wkISO) && !rutaUnlockedWeeks.has(wkISO);
 }
@@ -8572,7 +8917,8 @@ function agregarOtraTiendaMismoDia(id){
   const base = arr.find(a=>a.id===id);
   if(!base) return;
   if(fechaBloqueada(base.fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
-  arr.push({id:uid(), fecha:base.fecha, usuario:base.usuario, nombre:base.nombre, tipo:'visita', cadena:'', tienda:'', rol:''});
+  const uBase = APP_DATA.equipo.find(x=>x.usuario===base.usuario);
+  arr.push({id:uid(), fecha:base.fecha, usuario:base.usuario, nombre:base.nombre, tipo:'visita', cadena:'', tienda:'', rol: uBase?rolSugeridoParaUsuario(uBase):(base.rol||'')});
   saveRutas(arr);
   renderRuta();
 }
