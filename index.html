@@ -392,6 +392,7 @@
     <button class="btn btn-brand btn-block" onclick="doLogin()">Entrar</button>
     <div class="error-msg" id="loginError"></div>
     <div class="login-hint">Tu información se guarda en este dispositivo. La sincronización en vivo entre todo el equipo llega en la siguiente fase.</div>
+    <button type="button" class="btn btn-ghost btn-block btnInstalarApp hidden" style="margin-top:10px;" onclick="intentarInstalarApp()">📲 Instalar la app en tu celular</button>
   </div>
 </div>
 
@@ -425,6 +426,10 @@
     <section class="view" id="view-inicio">
       <h2 class="section-title" id="inicioSaludo">Hola</h2>
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 16px;" id="inicioFecha"></p>
+      <div id="inicioInstalarCard" class="card btnInstalarApp hidden" style="margin-bottom:14px; cursor:pointer; border:1.5px solid var(--brand); display:flex; align-items:center; justify-content:space-between; gap:10px;" onclick="intentarInstalarApp()">
+        <div><b>📲 Instala la app en tu celular</b><div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">Es más rápida y funciona mejor sin internet. Toca aquí para instalarla.</div></div>
+        <div style="font-size:20px;">›</div>
+      </div>
       <div class="row" style="margin-bottom:10px;">
         <div class="card kpi" id="inicioCardRutas"><div class="label" id="inicioCardRutasLabel">Rutas activas esta semana</div><div class="value">—</div></div>
         <div class="card kpi warn" id="inicioCardVacPendientes"><div class="label">Vacaciones por autorizar</div><div class="value">—</div></div>
@@ -8950,6 +8955,72 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(()=>{ /* si falla (ej. abierta como archivo local), la app sigue funcionando igual */ });
   });
+}
+
+/* ---------- Instalar la app en el celular ----------
+   Android/Chrome/Edge disparan "beforeinstallprompt" — lo capturamos para poder mostrar el botón
+   cuando el usuario quiera (antes solo aparecía una vez, solo, y si lo cerraban ya no volvía a salir).
+   iPhone/iPad (Safari) NUNCA disparan ese evento — Apple no lo soporta — así que ahí siempre mostramos
+   una guía manual ("Compartir" → "Agregar a pantalla de inicio"). */
+let _deferredInstallPrompt = null;
+function esIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !window.MSStream; }
+function appYaInstalada(){
+  try{
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if(window.navigator.standalone === true) return true; // iPhone/iPad ya instalada
+  }catch(e){}
+  return false;
+}
+function mostrarBotonesInstalar(){
+  const ocultar = appYaInstalada();
+  document.querySelectorAll('.btnInstalarApp').forEach(b=> b.classList.toggle('hidden', ocultar));
+}
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  mostrarBotonesInstalar();
+});
+window.addEventListener('appinstalled', () => { _deferredInstallPrompt = null; mostrarBotonesInstalar(); });
+document.addEventListener('DOMContentLoaded', mostrarBotonesInstalar);
+mostrarBotonesInstalar(); // por si DOMContentLoaded ya pasó cuando se registró este listener
+async function intentarInstalarApp(){
+  if(_deferredInstallPrompt){
+    _deferredInstallPrompt.prompt();
+    try{ await _deferredInstallPrompt.userChoice; }catch(e){}
+    _deferredInstallPrompt = null;
+    mostrarBotonesInstalar();
+  } else {
+    abrirGuiaInstalacion();
+  }
+}
+function abrirGuiaInstalacion(){
+  const body = document.getElementById('modalBody');
+  const ios = esIOS();
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>📲 Instalar la app en tu celular</h3>
+    <p class="d">Así te queda como un ícono en tu pantalla de inicio, abre más rápido y funciona mejor sin internet.</p>
+    ${ios ? `
+    <div class="card" style="margin-top:6px;">
+      <p style="font-weight:700; font-size:13px; margin:0 0 8px;">📱 iPhone / iPad — tiene que ser con Safari</p>
+      <ol style="font-size:13px; line-height:1.8; margin:0; padding-left:18px;">
+        <li>Abre este link en <b>Safari</b> (no funciona desde Chrome ni desde WhatsApp/Instagram — ábrelo en Safari).</li>
+        <li>Toca el ícono de <b>Compartir</b> (el cuadrito con la flecha hacia arriba ⬆️), abajo al centro de la pantalla.</li>
+        <li>Baja en el menú que se abre y toca <b>"Agregar a pantalla de inicio"</b>.</li>
+        <li>Toca <b>"Agregar"</b> arriba a la derecha.</li>
+      </ol>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">Ya te va a quedar el ícono de Délico ODV en tu pantalla, como cualquier otra app.</p>
+    </div>` : `
+    <div class="card" style="margin-top:6px;">
+      <p style="font-weight:700; font-size:13px; margin:0 0 8px;">🤖 Android (Chrome) / computadora (Chrome o Edge)</p>
+      <button class="btn btn-brand" style="margin-bottom:10px;" onclick="intentarInstalarApp()">📲 Instalar ahora</button>
+      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">Si el botón no hace nada (por ejemplo, si ya cerraste el aviso automático antes), hazlo manual:</p>
+      <ol style="font-size:13px; line-height:1.8; margin:0; padding-left:18px;">
+        <li>Celular: toca los <b>3 puntitos</b> (⋮) arriba a la derecha de Chrome → <b>"Instalar app"</b> o <b>"Agregar a pantalla de inicio"</b> → <b>"Instalar"</b>.</li>
+        <li>Computadora: busca el ícono de <b>instalar</b> ⊕ al final de la barra de direcciones, o los 3 puntitos → <b>"Instalar Délico ODV..."</b>.</li>
+      </ol>
+    </div>`}
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
 }
 </script>
 </body>
