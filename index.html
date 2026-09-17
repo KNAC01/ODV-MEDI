@@ -759,7 +759,12 @@
         <input type="date" id="evaDesde" onchange="renderEvaluaciones()">
         <label>Hasta:</label>
         <input type="date" id="evaHasta" onchange="renderEvaluaciones()">
-        <button class="btn btn-ghost" onclick="document.getElementById('evaPersona').value='';document.getElementById('evaCadena').value='';document.getElementById('evaRegion').value='';document.getElementById('evaSupervisor').value='';document.getElementById('evaDesde').value='';document.getElementById('evaHasta').value='';renderEvaluaciones();">↺ Restablecer filtros</button>
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="evaMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('evaMesDd')" id="evaMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="evaMesDdPanel"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('evaPersona').value='';document.getElementById('evaCadena').value='';document.getElementById('evaRegion').value='';document.getElementById('evaSupervisor').value='';document.getElementById('evaDesde').value='';document.getElementById('evaHasta').value='';window.evaFiltroMesesCompletos=new Set();_renderMesesCompletosChips('eva','evaMesDdPanel','evaMesDdBtn');renderEvaluaciones();">↺ Restablecer filtros</button>
         <button class="btn btn-ghost" onclick="exportarEvaluacionesExcel()">⬇ Exportar Excel</button>
         <button class="btn btn-ghost" onclick="exportarEvaluacionesPDF()">📄 Exportar PDF</button>
       </div>
@@ -829,6 +834,11 @@
         <input type="date" id="repDesde" onchange="renderReportes()">
         <label>Hasta:</label>
         <input type="date" id="repHasta" onchange="renderReportes()">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="repMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('repMesDd')" id="repMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="repMesDdPanel"></div>
+        </div>
         <button class="btn btn-ghost" onclick="exportCSV()">Exportar CSV</button>
         <button class="btn btn-ghost" onclick="exportImagenesReporte()">🖼️ Exportar imágenes</button>
         <button class="btn btn-ghost" onclick="exportPDFReporte()">📄 Exportar PDF reporte</button>
@@ -918,6 +928,11 @@
         <div class="tienda-dd" id="cvMesDdRoot">
           <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cvMesDd')" id="cvMesDdBtn">Selecciona...</button>
           <div class="tienda-dd-panel hidden" id="cvMesDdPanel"></div>
+        </div>
+        <label>Cadena(s):</label>
+        <div class="tienda-dd" id="cvCadenaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cvCadenaDd')" id="cvCadenaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="cvCadenaDdPanel"></div>
         </div>
         <span id="cvSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
         <select id="cvSupervisor"><option value="">Todos</option></select></span>
@@ -1049,6 +1064,11 @@
         <input type="date" id="cumpDesde">
         <label>Hasta:</label>
         <input type="date" id="cumpHasta">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="cumpMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cumpMesDd')" id="cumpMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="cumpMesDdPanel"></div>
+        </div>
         <label>Cadena:</label>
         <select id="cumpCadena"><option value="">Todas</option></select>
         <span id="cumpRegionWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Región:</label>
@@ -1133,6 +1153,11 @@
         <input type="date" id="kpiDesde">
         <label>Hasta:</label>
         <input type="date" id="kpiHasta">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="kdxMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('kdxMesDd')" id="kdxMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="kdxMesDdPanel"></div>
+        </div>
         <button class="btn btn-brand" onclick="renderKpis()">Ver</button>
         <button class="btn btn-ghost" onclick="restablecerFiltrosKpis()">↺ Restablecer</button>
         <button class="btn btn-outline" onclick="exportarKpisTienda()">⬇ Excel</button>
@@ -1353,7 +1378,13 @@
       <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 10px;">Nota: el Pipeline ODV que da origen a los números de arriba (KPIs, insights y mix por familia) es una sola foto semanal — no trae fecha por fila, así que el mes elegido <b>no</b> afecta esa parte. El mes sí filtra la sección de abajo, "Distribución reportada en campo", que viene del checklist de Mercadeo capturado en tienda (con fecha real), incluyendo el desglose por semana.</p>
       <div id="distribucionBox"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:22px;"><h2 class="section-title" style="margin:0;">Distribución reportada en campo (checklist Mercadeo)</h2><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarDistribucionCampoCSV()">⬇ Excel</button></div>
-      <p style="font-size:11px; color:var(--ink-soft); margin:4px 0 10px;">Requerido vs. Real capturado en campo (Captura MEDI › Mercadeo › Distribución), con fecha real de captura.</p>
+      <p style="font-size:11px; color:var(--ink-soft); margin:4px 0 10px;">Requerido vs. Real capturado en campo (Captura MEDI › Mercadeo › Distribución), con fecha real de captura. Este Desde/Hasta aplica solo a esta sección (la de arriba es una sola foto del Pipeline, sin fecha por fila).</p>
+      <div class="controls-bar" style="margin-bottom:10px;">
+        <label>Desde:</label>
+        <input type="date" id="distCampoDesde" onchange="renderDistribucionCampo(window._distribucionExport ? window._distribucionExport.storesScope : storesScopeParaMi())">
+        <label>Hasta:</label>
+        <input type="date" id="distCampoHasta" onchange="renderDistribucionCampo(window._distribucionExport ? window._distribucionExport.storesScope : storesScopeParaMi())">
+      </div>
       <div id="distribucionCampoBox"></div>
 
       <div class="controls-bar" style="align-items:center; margin-top:14px;">
@@ -2449,7 +2480,7 @@ function renderObjMesChips(){
 }
 /* ---------- Dropdown genérico (Mes(es) / Tienda(s) en Objetivos) — abrir/cerrar + clic afuera cierra ---------- */
 function toggleObjDropdown(cual){
-  const ids = ['objMesDd','objTiendaDd','objCadenaDd','objFamiliaDd','objCodigoDd','cvMesDd','cvTiendaDd','cpMesDd','cpTiendaDd','distMesDd','ppCadenaDd','ppSupervisorDd','ppFamiliaDd','ppCodigoDd'];
+  const ids = ['objMesDd','objTiendaDd','objCadenaDd','objFamiliaDd','objCodigoDd','cvMesDd','cvTiendaDd','cvCadenaDd','cpMesDd','cpTiendaDd','distMesDd','ppCadenaDd','ppSupervisorDd','ppFamiliaDd','ppCodigoDd','cumpMesDd','kdxMesDd','repMesDd','evaMesDd'];
   ids.forEach(id=>{
     const p = document.getElementById(id+'Panel');
     if(!p) return;
@@ -2458,7 +2489,7 @@ function toggleObjDropdown(cual){
   });
 }
 document.addEventListener('click', (e)=>{
-  ['objMesDdRoot','objTiendaDdRoot','objCadenaDdRoot','objFamiliaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCadenaDdRoot','ppSupervisorDdRoot','ppFamiliaDdRoot','ppCodigoDdRoot'].forEach(rootId=>{
+  ['objMesDdRoot','objTiendaDdRoot','objCadenaDdRoot','objFamiliaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cvCadenaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCadenaDdRoot','ppSupervisorDdRoot','ppFamiliaDdRoot','ppCodigoDdRoot','cumpMesDdRoot','kdxMesDdRoot','repMesDdRoot','evaMesDdRoot'].forEach(rootId=>{
     const root = document.getElementById(rootId);
     if(root && !root.contains(e.target)){
       const panel = root.querySelector('.tienda-dd-panel');
@@ -4821,6 +4852,7 @@ function populateRepFiltrosExtra(){
     nombresSupervisorUnicos().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; supSel.appendChild(o); });
     supSel.onchange = renderReportes;
   }
+  registrarFiltroMesesCompletos('rep','repMesDdPanel','repMesDdBtn','repDesde','repHasta',renderReportes);
 }
 function capturasFiltradasReporte(){
   const tipo = document.getElementById('repTipo').value;
@@ -4904,6 +4936,17 @@ function renderReportesInsights(arr){
   if(incidencias.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${incidencias.length} incidencia(s) reportada(s)${tiendaTop?`, la tienda con más es <b>${tiendaTop[0]}</b> (${tiendaTop[1]})`:''} — atender de inmediato lo que siga abierto.</p>`;
   if(caducidades.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--warn,#c98a1b);">⏰ ${caducidades.length} caducidad(es) capturada(s) — revisa Kardex por tienda para ver el detalle y accionar antes de que se pierda el producto.</p>`;
   if(inasistencias.length) html += `<p style="font-size:12.5px; margin:0;">🧍 ${inasistencias.length} inasistencia(s)/incapacidad(es) registradas en este filtro.</p>`;
+  const porCadenaRep = {};
+  arr.forEach(c=>{ if(!c.cadena) return; (porCadenaRep[c.cadena] = porCadenaRep[c.cadena] || []).push(c); });
+  const cadenasRep = Object.keys(porCadenaRep).sort();
+  if(cadenasRep.length>1){
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">🔗 <b>Por cadena:</b> ${cadenasRep.map(c=>`${c} (${porCadenaRep[c].length})`).join(' · ')}.</p>`;
+  }
+  const arrTop = arr.filter(c=>{ const st = c.tienda ? storeInfo(c.cadena, c.tienda) : null; return st && esClusterTop(st.cluster); });
+  if(arrTop.length){
+    const incTop = arrTop.filter(c=>c.tipo==='incidencia').length;
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">⭐ <b>Tiendas TOP (cluster Diamante):</b> ${arrTop.length} captura(s)${incTop?`, ${incTop} incidencia(s)`:''} — son las que más representan, priorízalas primero.</p>`;
+  }
   html += `</div>`;
   box.innerHTML = html;
 }
@@ -4958,6 +5001,95 @@ function usuarioDeNombre(nombre){
 function storeInfo(cadena, tiendaNombre){
   return APP_DATA.stores.find(s => s.cadena===cadena && s.tienda===tiendaNombre);
 }
+/* ===== Filtros y insights genéricos reutilizables en las pestañas de Retroalimentación (Supervisor/Coordinador/Admin):
+   "Mes(es) completo(s)" (atajo que llena Desde/Hasta) y desglose por cadena + gaps en tiendas TOP (cluster Diamante). ===== */
+function cadenasDisponiblesFiltro(){ return [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort(); }
+function capFiltroGenerico(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function esClusterTop(cluster){ return /DIAMANTE/i.test(cluster||''); }
+function rangoFechasDeMesesCompletos(mesesSet){
+  if(!mesesSet || !mesesSet.size) return null;
+  const nums = [...mesesSet].map(m=>MES_NUM_BONO[m]).filter(Boolean).sort((a,b)=>a-b);
+  if(!nums.length) return null;
+  const anio = 2026;
+  const desde = `${anio}-${String(nums[0]).padStart(2,'0')}-01`;
+  const ultimoMes = nums[nums.length-1];
+  const ultimoDia = new Date(anio, ultimoMes, 0).getDate();
+  const hasta = `${anio}-${String(ultimoMes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+  return {desde, hasta};
+}
+/* Dropdown de "mes(es) completo(s)": es un atajo que, al marcarlo, llena los campos Desde/Hasta existentes con el
+   rango exacto de ese/esos mes(es) y dispara el render de la vista — no reemplaza el filtro de fecha, lo complementa. */
+function registrarFiltroMesesCompletos(prefix, panelId, btnId, desdeId, hastaId, renderFn){
+  const stateKey = prefix+'FiltroMesesCompletos';
+  if(window[stateKey] === undefined) window[stateKey] = new Set();
+  window[prefix+'MesesCompletosTodo'] = function(){
+    window[stateKey] = new Set(mesesDisponiblesObj());
+    _aplicarMesesCompletos(prefix, desdeId, hastaId);
+    _renderMesesCompletosChips(prefix, panelId, btnId);
+    renderFn();
+  };
+  window[prefix+'MesesCompletosNinguno'] = function(){
+    window[stateKey] = new Set();
+    _renderMesesCompletosChips(prefix, panelId, btnId);
+  };
+  window['toggle'+capFiltroGenerico(prefix)+'MesCompleto'] = function(m){
+    const set = window[stateKey];
+    if(set.has(m)) set.delete(m); else set.add(m);
+    _aplicarMesesCompletos(prefix, desdeId, hastaId);
+    _renderMesesCompletosChips(prefix, panelId, btnId);
+    renderFn();
+  };
+  _renderMesesCompletosChips(prefix, panelId, btnId);
+}
+function _aplicarMesesCompletos(prefix, desdeId, hastaId){
+  const rango = rangoFechasDeMesesCompletos(window[prefix+'FiltroMesesCompletos']);
+  if(!rango) return;
+  const dEl = document.getElementById(desdeId), hEl = document.getElementById(hastaId);
+  if(dEl) dEl.value = rango.desde;
+  if(hEl) hEl.value = rango.hasta;
+}
+function _renderMesesCompletosChips(prefix, panelId, btnId){
+  const panel = document.getElementById(panelId);
+  const btn = document.getElementById(btnId);
+  if(!panel && !btn) return;
+  const meses = mesesDisponiblesObj();
+  const set = window[prefix+'FiltroMesesCompletos'] || new Set();
+  if(panel){
+    panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="${prefix}MesesCompletosTodo()">Todo</button><button type="button" onclick="${prefix}MesesCompletosNinguno()">Ninguno</button></div>`
+      + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${set.has(m)?'checked':''} onchange="toggle${capFiltroGenerico(prefix)}MesCompleto('${m}')"> ${m}</label>`).join('');
+  }
+  if(btn){
+    const sel = meses.filter(m=>set.has(m));
+    btn.textContent = sel.length ? sel.join(', ') : 'Mes(es) completo(s)...';
+  }
+}
+/* Insight genérico de "por cadena" + "tiendas TOP (cluster Diamante)" a partir de filas ya en el scope/periodo filtrado.
+   filas: [{cadena, cluster, meta, real, num_tienda}]. Usa piezas (meta/real); si no aplica, usar insightsPorCadenaConteo. */
+function insightsPorCadenaYTop(filas, metaLabel){
+  metaLabel = metaLabel || 'meta';
+  const porCadena = {};
+  filas.forEach(f=>{
+    if(!porCadena[f.cadena]) porCadena[f.cadena] = {meta:0, real:0};
+    porCadena[f.cadena].meta += (f.meta||0);
+    porCadena[f.cadena].real += (f.real||0);
+  });
+  const cadenasArr = Object.entries(porCadena).map(([cad,v])=>({cadena:cad, meta:v.meta, real:v.real, pct: v.meta ? Math.round(v.real/v.meta*1000)/10 : null})).sort((a,b)=>(a.pct??999)-(b.pct??999));
+  const top = filas.filter(f=>esClusterTop(f.cluster));
+  const metaTopTot = top.reduce((a,f)=>a+(f.meta||0),0);
+  const realTopTot = top.reduce((a,f)=>a+(f.real||0),0);
+  const pctTop = metaTopTot ? Math.round(realTopTot/metaTopTot*1000)/10 : null;
+  const lineas = [];
+  if(cadenasArr.length>1){
+    lineas.push(`🔗 <b>Por cadena:</b> ` + cadenasArr.map(c=>`${c.cadena} ${c.pct!=null?c.pct+'%':'sin '+metaLabel}`).join(' · ') + '.');
+    const peor = cadenasArr[0];
+    if(peor && peor.pct!=null && peor.pct<100) lineas.push(`🚩 <b>Cadena con más gap:</b> ${peor.cadena} (${peor.pct}%${peor.meta?`, faltan ${fmtNum(Math.max(0,peor.meta-peor.real))}`:''}).`);
+  }
+  if(top.length){
+    const numTop = new Set(top.map(f=>f.cadena+'|'+f.num_tienda)).size;
+    lineas.push(`⭐ <b>Tiendas TOP (cluster Diamante, ${numTop} tienda${numTop!==1?'s':''}):</b> ${pctTop!=null?pctTop+'%':'sin datos'} de cubrimiento — son las que más representan, priorízalas primero.`);
+  }
+  return lineas;
+}
 function poblarSelectFiltro(id, valores){
   const sel = document.getElementById(id);
   if(!sel || sel.options.length>1) return;
@@ -5000,6 +5132,8 @@ function restablecerFiltrosCumplimiento(){
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
   document.getElementById('cumpDesde').value = isoDate(inicioMes);
   document.getElementById('cumpHasta').value = isoDate(hoy);
+  window.cumpFiltroMesesCompletos = new Set();
+  _renderMesesCompletosChips('cump','cumpMesDdPanel','cumpMesDdBtn');
   toast('Filtros de Cumplimiento restablecidos');
   renderCumplimiento();
 }
@@ -5031,6 +5165,7 @@ function poblarFiltrosCumplimiento(){
     document.getElementById('cumpDesde').value = isoDate(inicioMes);
     document.getElementById('cumpHasta').value = isoDate(hoy);
   }
+  registrarFiltroMesesCompletos('cump','cumpMesDdPanel','cumpMesDdBtn','cumpDesde','cumpHasta',renderCumplimiento);
 }
 function renderCumplimiento(){
   poblarFiltrosCumplimiento();
@@ -5201,6 +5336,8 @@ function renderInsightsCumplimiento(ctx){
   const mejoresPersonas = [...filasPersona].filter(p=>p.planeadas>=1).sort((a,b)=>b.pct-a.pct).slice(0,3);
   const peorCluster = [...filasCluster].filter(c=>c.planeadas>=1).sort((a,b)=>a.pct-b.pct)[0];
   const peorCadena = [...filasCadena].filter(c=>c.planeadas>=1).sort((a,b)=>a.pct-b.pct)[0];
+  const cadenasConDatos = [...filasCadena].filter(c=>c.planeadas>=1);
+  const clusterTop = [...filasCluster].find(c=>c.planeadas>=1 && esClusterTop(c.cluster));
   const motivosCount = {};
   incump.forEach(a=>{ motivosCount[a.motivo] = (motivosCount[a.motivo]||0)+1; });
   const motivosTop = Object.entries(motivosCount).sort((a,b)=>b[1]-a[1]).slice(0,3);
@@ -5217,6 +5354,12 @@ function renderInsightsCumplimiento(ctx){
   }
   if(peorCadena && peorCadena.pct<100){
     html += `<p><b>Cadena con más rezago:</b> ${peorCadena.cadena} con ${peorCadena.pct}% de cumplimiento (${peorCadena.cumplidas}/${peorCadena.planeadas}).</p>`;
+  }
+  if(cadenasConDatos.length>1){
+    html += `<p>🔗 <b>Por cadena:</b> ${cadenasConDatos.map(c=>`${c.cadena} ${c.pct}%`).join(' · ')}.</p>`;
+  }
+  if(clusterTop){
+    html += `<p>⭐ <b>Tiendas TOP (cluster Diamante):</b> ${clusterTop.pct}% de cumplimiento (${clusterTop.cumplidas}/${clusterTop.planeadas}) — son las que más representan, priorízalas primero.</p>`;
   }
   if(motivosTop.length){
     html += `<p><b>Principales motivos de incumplimiento:</b> ${motivosTop.map(([m,n])=>`${m} (${n})`).join(' · ')}.</p>`;
@@ -6583,6 +6726,7 @@ function poblarFiltrosEvaluaciones(){
   if(supSel && supSel.options.length<=1){
     nombresSupervisorUnicos().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; supSel.appendChild(o); });
   }
+  registrarFiltroMesesCompletos('eva','evaMesDdPanel','evaMesDdBtn','evaDesde','evaHasta',renderEvaluaciones);
 }
 function evaluacionesFiltrosActivos(){
   return {
@@ -6673,6 +6817,25 @@ function renderEvaluacionesInsights(arr360, arrAud, esEmbajador){
   if(arrAud.length){
     const promAud = arrAud.reduce((a,x)=>a+(x.promedio||0),0)/arrAud.length;
     html += `<p style="font-size:12.5px; margin:0;">🕵️ Promedio de Auditoría/supervisión: <b>${promAud.toFixed(1)}</b> sobre ${arrAud.length} evaluación(es).</p>`;
+  }
+  const puntos = [
+    ...arr360.map(x=>({tienda:x.tienda, score:x.total})),
+    ...arrAud.map(x=>({tienda:x.tienda, score:x.promedio})),
+  ].filter(p=>p.tienda && p.score!=null);
+  const porCadenaEva = {};
+  puntos.forEach(p=>{
+    const st = APP_DATA.stores.find(s=>s.tienda===p.tienda);
+    if(!st) return;
+    (porCadenaEva[st.cadena] = porCadenaEva[st.cadena] || []).push(p.score);
+  });
+  const cadenasEva = Object.keys(porCadenaEva).sort();
+  if(cadenasEva.length>1){
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">🔗 <b>Por cadena:</b> ${cadenasEva.map(c=>{ const arr=porCadenaEva[c]; const prom=arr.reduce((a,v)=>a+v,0)/arr.length; return `${c} ${prom.toFixed(1)}`; }).join(' · ')}.</p>`;
+  }
+  const puntosTop = puntos.filter(p=>{ const st = APP_DATA.stores.find(s=>s.tienda===p.tienda); return st && esClusterTop(st.cluster); });
+  if(puntosTop.length){
+    const promTop = puntosTop.reduce((a,p)=>a+p.score,0)/puntosTop.length;
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">⭐ <b>Tiendas TOP (cluster Diamante):</b> promedio ${promTop.toFixed(1)} sobre ${puntosTop.length} evaluación(es) — son las que más representan, priorízalas primero.</p>`;
   }
   html += `</div>`;
   box.innerHTML = html;
@@ -7425,6 +7588,31 @@ function renderCvTiendaDropdown(){
   const marcadas = opciones.filter(o=>o.selected);
   btn.textContent = (marcadas.length===0 || marcadas.length===opciones.length) ? 'Todas' : (marcadas.length + ' seleccionada' + (marcadas.length>1?'s':''));
 }
+let cvFiltroCadenas = new Set(); // vacío = todas
+function renderCvCadenaChips(){
+  const panel = document.getElementById('cvCadenaDdPanel');
+  const btn = document.getElementById('cvCadenaDdBtn');
+  if(!panel || !btn) return;
+  const cadenas = cadenasDisponiblesFiltro();
+  const marcado = c => !cvFiltroCadenas.size || cvFiltroCadenas.has(c);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cvCadenaTodasDD(true)">Todo</button><button type="button" onclick="cvCadenaTodasDD(false)">Ninguno</button></div>`
+    + cadenas.map(c=>`<label class="tienda-dd-item"><input type="checkbox" ${marcado(c)?'checked':''} onchange="onCvCadenaDdCheck(this,'${c.replace(/'/g,"\\'")}')"> ${c}</label>`).join('');
+  const marcadas = cadenas.filter(marcado);
+  btn.textContent = (marcadas.length===0 || marcadas.length===cadenas.length) ? 'Todas' : marcadas.join(', ');
+}
+function cvCadenaTodasDD(marcar){
+  cvFiltroCadenas = marcar ? new Set() : new Set(['__ninguna__']);
+  renderCvCadenaChips();
+  renderCumpVenta();
+}
+function onCvCadenaDdCheck(chk, cadena){
+  const cadenas = cadenasDisponiblesFiltro();
+  if(!cvFiltroCadenas.size) cvFiltroCadenas = new Set(cadenas); // pasa de "todas implícito" a set explícito al primer desmarcado
+  if(chk.checked) cvFiltroCadenas.add(cadena); else cvFiltroCadenas.delete(cadena);
+  if(cvFiltroCadenas.size===cadenas.length) cvFiltroCadenas = new Set(); // vuelve a "todas implícito"
+  renderCvCadenaChips();
+  renderCumpVenta();
+}
 let cvFiltroTiendas = new Set();
 function onCvTiendaMultiChange(){
   const sel = document.getElementById('cvTiendaMulti');
@@ -7462,6 +7650,7 @@ function renderCvMetaTipoChips(){
 }
 function storesScopeCumpVenta(){
   let scope = storesScopeParaMi();
+  if(cvFiltroCadenas.size) scope = scope.filter(s=> cvFiltroCadenas.has(s.cadena));
   const sup = (document.getElementById('cvSupervisor')||{}).value;
   const emb = (document.getElementById('cvEmbajador')||{}).value;
   if(sup) scope = scope.filter(s=> mismaPersona(supervisorDeTienda(s), sup));
@@ -7487,6 +7676,7 @@ function poblarFiltrosCumpVenta(){
   }
   poblarSelectMultipleTiendas('cvTiendaMulti', storesScopeParaMi());
   renderCvMesChips();
+  renderCvCadenaChips();
   renderCvTiendaDropdown();
   renderCvMetaTipoChips();
 }
@@ -7496,8 +7686,10 @@ function restablecerFiltrosCumpVenta(){
   const cvTiendaMultiSel = document.getElementById('cvTiendaMulti');
   if(cvTiendaMultiSel) [...cvTiendaMultiSel.options].forEach(o=>o.selected=false);
   cvFiltroTiendas.clear();
+  cvFiltroCadenas = new Set();
   cvFiltroMeses = new Set(mesesDisponiblesObj());
   renderCvMesChips();
+  renderCvCadenaChips();
   renderCvTiendaDropdown();
   cvMetaTipo = 'cuota';
   renderCvMetaTipoChips();
@@ -7592,6 +7784,12 @@ function renderCvInsights(storesScope, semanas){
   if(peorCluster) lineas.push(`🚩 <b>Cluster con más rezago:</b> ${peorCluster.cl} (${peorCluster.pct}% de cubrimiento).`);
   if(rezagadas.length) lineas.push(`🔻 <b>Códigos con más rezago:</b> ${rezagadas.map(t=>`${t.nombre} (faltan ${fmtNum(t.falta)})`).join(', ')}.`);
   if(!metaTot) lineas.push(`ℹ️ Sin ${metaLabelTxt.toLowerCase()} cargada todavía para el/los mes(es)/tienda(s) elegidos.`);
+
+  const filasPorCadena = cumpRows.map(r=>{
+    const st = storeByKey.get(r.cadena+'|'+r.num_tienda);
+    return {cadena: r.cadena, cluster: st && st.cluster, num_tienda: r.num_tienda, meta: (cvMetaUni(r)||0), real: (r.real_uni||0)};
+  });
+  lineas.push(...insightsPorCadenaYTop(filasPorCadena, metaLabelTxt.toLowerCase()));
 
   box.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
 }
@@ -8043,6 +8241,10 @@ function restablecerFiltrosDistribucion(){
   if(distTiendaMultiSel) [...distTiendaMultiSel.options].forEach(o=>o.selected=false);
   distFiltroMeses = new Set(mesesDisponiblesObj());
   renderDistMesChips();
+  const dCampoDesdeEl2 = document.getElementById('distCampoDesde');
+  const dCampoHastaEl2 = document.getElementById('distCampoHasta');
+  if(dCampoDesdeEl2) dCampoDesdeEl2.value = '';
+  if(dCampoHastaEl2) dCampoHastaEl2.value = '';
   toast('Filtros de Distribución restablecidos');
   renderDistribucion();
 }
@@ -8106,6 +8308,14 @@ function renderDistribucion(){
     html += `<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;">✅ Sin combinaciones sin cubrir en esta vista.</div>`;
   }
   html += `<div style="padding:8px 0; font-size:13px; color:var(--ink-soft);">ℹ️ El Pipeline es una sola foto semanal — no tengo con qué comparar si estas combinaciones son las mismas que se repiten semana a semana o si son nuevas. Si me confirmas que quieres que guarde una copia del Pipeline cada semana, desde la próxima semana ya puedo decirte "repetida" vs "nueva" para cada una.</div>`;
+  const storeByKeyDist = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const filasDistCadena = combsScope.map(c=>{
+    const st = storeByKeyDist.get(c.cadena+'|'+c.num_tienda);
+    return {cadena: c.cadena, cluster: st && st.cluster, num_tienda: c.num_tienda, meta: 1, real: c.con_venta ? 1 : 0};
+  });
+  insightsPorCadenaYTop(filasDistCadena, '% distribución').forEach(l=>{
+    html += `<div style="padding:8px 0; border-top:1px solid var(--line); font-size:13px;">${l}</div>`;
+  });
   html += `</div>`;
 
   // --- Gráfica de mix: combinaciones sin cubrir por familia ---
@@ -8148,6 +8358,12 @@ function renderDistribucionCampo(storesScope){
   const tiendasScope = new Set(storesScope.map(s=>s.tienda));
   let capturas = getCapturas().filter(c=> (c.tipo==='mercadeo' || c.tipo==='onboarding') && Array.isArray(c.distribucion) && c.distribucion.length && tiendasScope.has(c.tienda));
   capturas = capturas.filter(c=> mesesSet.has((c.fecha_registro||'').slice(0,7)));
+  const dCampoDesdeEl = document.getElementById('distCampoDesde');
+  const dCampoHastaEl = document.getElementById('distCampoHasta');
+  const dCampoDesde = dCampoDesdeEl && dCampoDesdeEl.value;
+  const dCampoHasta = dCampoHastaEl && dCampoHastaEl.value;
+  if(dCampoDesde) capturas = capturas.filter(c=> (c.fecha_registro||'').slice(0,10) >= dCampoDesde);
+  if(dCampoHasta) capturas = capturas.filter(c=> (c.fecha_registro||'').slice(0,10) <= dCampoHasta);
   const porFamilia = {};
   let totalReq = 0, totalCumplido = 0;
   capturas.forEach(c=>{
@@ -8169,12 +8385,23 @@ function renderDistribucionCampo(storesScope){
   }
   const pctGlobal = totalReq ? Math.round(totalCumplido/totalReq*1000)/10 : null;
   const famRows = Object.keys(porFamilia).sort().map(f=>{ const g = porFamilia[f]; return {familia:f, req:g.req, cumplido:g.cumplido, pct: g.req?Math.round(g.cumplido/g.req*1000)/10:null}; });
+  const storeByKeyCampo = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const filasCampoCadena = [];
+  capturas.forEach(c=>{
+    const st = APP_DATA.stores.find(s=>s.tienda===c.tienda && s.cadena===c.cadena) || storesScope.find(s=>s.tienda===c.tienda);
+    (c.distribucion||[]).forEach(r=>{
+      if(!(r.req>0)) return;
+      filasCampoCadena.push({cadena: c.cadena, cluster: st && st.cluster, num_tienda: st && st.num_tienda, meta: 1, real: r.real>0?1:0});
+    });
+  });
+  const insightsCampo = insightsPorCadenaYTop(filasCampoCadena, '% cubrimiento en campo');
   box.innerHTML = `<div class="row" style="margin-bottom:14px;">
       <div class="card kpi ${pctGlobal!==null && pctGlobal<90?'warn':'good'}"><div class="label">% Cubrimiento reportado en campo</div><div class="value">${pctGlobal!==null?pctGlobal+'%':'—'}</div></div>
       <div class="card kpi"><div class="label">Checklists capturados</div><div class="value">${capturas.length}</div></div>
       <div class="card kpi"><div class="label">Códigos requeridos marcados</div><div class="value">${totalReq}</div></div>
       <div class="card kpi ${totalReq-totalCumplido?'bad':'good'}"><div class="label">Códigos requeridos sin presencia</div><div class="value">${totalReq-totalCumplido}</div></div>
     </div>
+    ${insightsCampo.length ? `<div class="card" style="border-left:4px solid var(--brand-dark); margin-bottom:14px;">${insightsCampo.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;">${l}</div>`).join('')}</div>` : ''}
     <div class="table-scroll"><table><thead><tr><th>Familia</th><th class="num">Requerido (marcado)</th><th class="num">Con presencia (real)</th><th class="num">% Cubrimiento</th></tr></thead><tbody>
       ${famRows.map(r=>`<tr><td>${r.familia}</td><td class="num">${r.req}</td><td class="num">${r.cumplido}</td><td class="num" style="font-weight:700; color:${(r.pct??100)<90?'var(--bad)':'var(--good)'};">${r.pct??'—'}%</td></tr>`).join('')}
     </tbody></table></div>`;
@@ -8248,6 +8475,8 @@ function restablecerFiltrosKpis(){
   document.getElementById('kpiTienda').innerHTML = '<option value="">Selecciona...</option>';
   const d1 = document.getElementById('kpiDesde'); if(d1) d1.value = '';
   const d2 = document.getElementById('kpiHasta'); if(d2) d2.value = '';
+  window.kdxFiltroMesesCompletos = new Set();
+  _renderMesesCompletosChips('kdx','kdxMesDdPanel','kdxMesDdBtn');
   document.getElementById('kpiContenido').innerHTML = `<p style="font-size:13px; color:var(--ink-soft);">Selecciona cadena y tienda para ver sus KPIs.</p>`;
   toast('Filtros de KPIs por tienda restablecidos');
 }
@@ -8280,6 +8509,7 @@ function renderKpis(){
   const fDesde = (document.getElementById('kpiDesde')||{}).value || inicioMes;
   const fHasta = (document.getElementById('kpiHasta')||{}).value || hoy;
   const rangoPersonalizado = !!((document.getElementById('kpiDesde')||{}).value || (document.getElementById('kpiHasta')||{}).value);
+  registrarFiltroMesesCompletos('kdx','kdxMesDdPanel','kdxMesDdBtn','kpiDesde','kpiHasta',renderKpis);
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
   const capturasTodas = getCapturas().filter(c=>c.tienda===tienda);
   const capturas = capturasTodas.filter(c=> !c.fecha_registro || (fechaLocal(c.fecha_registro)>=fDesde && fechaLocal(c.fecha_registro)<=fHasta));
