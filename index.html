@@ -1627,10 +1627,16 @@ function guardarLocalStorageSeguro(key, valor){
 }
 function getCapturas(){ return JSON.parse(JSON.stringify(_capturasCache)); }
 function saveCapturas(arr){
+  // Guardado local PRIMERO, siempre — así una captura nunca se pierde aunque la nube (Firestore)
+  // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
   const idsPrevios = new Set(_capturasCache.map(d=>d.id));
-  arr.forEach(d=>{ if(d && d.id && !idsPrevios.has(d.id)) subirAColeccion('capturas_medi', d); });
   _capturasCache = arr;
   guardarLocalStorageSeguro(STORAGE_KEY, arr);
+  arr.forEach(d=>{
+    if(d && d.id && !idsPrevios.has(d.id)){
+      try{ subirAColeccion('capturas_medi', d); }catch(e){ console.warn('Fallo al subir captura a la nube (ya quedó guardada local):', e); }
+    }
+  });
 }
 function getPrioridades(){ return _prioridadesSync.get(); }
 function savePrioridades(arr){ _prioridadesSync.save(arr); }
@@ -1683,18 +1689,38 @@ function iniciarSincronizacion(coleccion, onCambio, onBorrado){
    la promesa se resolvía igual "bien", el cache local se limpiaba, y en cuanto volvía a sincronizar
    la nube regresaba el documento que en realidad nunca se borró. Ahora devuelven siempre {ok, error}
    para que quien llame sepa exactamente qué sí y qué no se logró, y pueda reflejarlo en pantalla. */
+/* IMPORTANTE (bug real detectado en campo, sept-2026): el SDK de Firestore a veces entra en un
+   estado corrupto en el dispositivo (típicamente por falta de espacio o una instalación de la app
+   con caché/IndexedDB dañado) y avienta "FIRESTORE INTERNAL ASSERTION FAILED" como una excepción
+   SÍNCRONA al llamar .set()/.delete() — es decir, truena ANTES de devolver la promesa, saltándose
+   por completo el .catch() de abajo. Cuando eso pasaba, el error se escapaba hacia quien llamó a esta
+   función (por ejemplo saveCapturas / crearColeccionSincronizada) ANTES de que se alcanzara a guardar
+   nada en el celular — la app se sentía "trabada" y la persona perdía la captura que estaba llenando,
+   aunque no tuviera nada que ver con internet. Por eso todo el intento va envuelto en try/catch: pase
+   lo que pase con la nube, esta función NUNCA debe tronar hacia afuera — el guardado local (que es
+   el que de verdad le importa a la persona en el momento) tiene que poder seguir siempre. */
 function subirAColeccion(coleccion, documento){
   if(!db || !documento || !documento.id) return Promise.resolve({ok:true});
   const data = {...documento};
-  return db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
-    .then(()=>({ok:true}))
-    .catch(err=>{ console.warn('No se pudo subir a la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
+  try{
+    return db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
+      .then(()=>({ok:true}))
+      .catch(err=>{ console.warn('No se pudo subir a la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
+  }catch(err){
+    console.warn('Firestore truena internamente al subir a la nube ('+coleccion+') — se sigue guardando local:', err);
+    return Promise.resolve({ok:false, error:(err&&err.message)||String(err)});
+  }
 }
 function borrarDeColeccion(coleccion, id){
   if(!db || !id) return Promise.resolve({ok:true});
-  return db.collection(coleccion).doc(String(id)).delete()
-    .then(()=>({ok:true}))
-    .catch(err=>{ console.warn('No se pudo borrar en la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
+  try{
+    return db.collection(coleccion).doc(String(id)).delete()
+      .then(()=>({ok:true}))
+      .catch(err=>{ console.warn('No se pudo borrar en la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
+  }catch(err){
+    console.warn('Firestore truena internamente al borrar en la nube ('+coleccion+'):', err);
+    return Promise.resolve({ok:false, error:(err&&err.message)||String(err)});
+  }
 }
 
 function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
@@ -1710,15 +1736,18 @@ function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
     // desaparecer un momento y reaparecer solo — y se reporta en el resumen que devuelve la promesa.
     const previoPorId = new Map(estado.cache.map(d=>[d.id, JSON.stringify(d)]));
     const idsNuevos = new Set(arrNuevo.filter(d=>d && d.id).map(d=>d.id));
+    const cacheAnterior = estado.cache;
+    // Guardado local PRIMERO, siempre — así lo capturado nunca se pierde aunque la nube (Firestore)
+    // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
+    estado.cache = arrNuevo;
+    guardarLocalStorageSeguro(storageKey, arrNuevo);
     const operaciones = [];
     arrNuevo.forEach(d=>{
       if(!d || !d.id) return;
       if(previoPorId.get(d.id) !== JSON.stringify(d)) operaciones.push({tipo:'subir', doc:d, promesa: subirAColeccion(nombreColeccion, d)});
     });
-    const aBorrar = estado.cache.filter(d=> d && d.id && !idsNuevos.has(d.id));
+    const aBorrar = cacheAnterior.filter(d=> d && d.id && !idsNuevos.has(d.id));
     aBorrar.forEach(d=> operaciones.push({tipo:'borrar', doc:d, promesa: borrarDeColeccion(nombreColeccion, d.id)}));
-    estado.cache = arrNuevo;
-    guardarLocalStorageSeguro(storageKey, arrNuevo);
     if(!operaciones.length) return Promise.resolve({ok:true, total:0, fallidos:0});
     return Promise.all(operaciones.map(o=>o.promesa)).then(resultados=>{
       const fallidosBorrar = [];
