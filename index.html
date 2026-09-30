@@ -1673,10 +1673,13 @@ try{
 const SYNC_LISTENERS = {};
 const SYNC_DESUSCRIPCIONES = {};
 
-function iniciarSincronizacion(coleccion, onCambio, onBorrado){
+function iniciarSincronizacion(coleccion, onCambio, onBorrado, queryPersonalizada){
   SYNC_LISTENERS[coleccion] = onCambio;
   if(!db || SYNC_DESUSCRIPCIONES[coleccion]) return;
-  SYNC_DESUSCRIPCIONES[coleccion] = db.collection(coleccion).onSnapshot(snap=>{
+  // queryPersonalizada (opcional): permite escuchar solo un subconjunto de la colección (ej. "capturas_medi"
+  // filtrado a un solo usuario) en vez de TODA la colección — ver comentario junto a iniciarSincronizacionCapturas.
+  const ref = queryPersonalizada || db.collection(coleccion);
+  SYNC_DESUSCRIPCIONES[coleccion] = ref.onSnapshot(snap=>{
     snap.docChanges().forEach(change=>{
       if(change.type==='removed'){ if(onBorrado) onBorrado(change.doc.id); return; }
       onCambio({...change.doc.data(), id: change.doc.id});
@@ -1809,9 +1812,43 @@ function crearDocumentoSincronizado(nombreColeccion, idDocumento, storageKey, va
   return {get, save, iniciarSync};
 }
 
-/* Capturas MEDI: caso especial — solo se crean (nunca se editan/borran), basta con detectar altas nuevas */
+/* Capturas MEDI: caso especial — solo se crean (nunca se editan/borran), basta con detectar altas nuevas.
+   BUG REAL detectado en campo (sept-2026): esto escuchaba TODA la colección "capturas_medi" sin filtro,
+   es decir, cada uno de los ~30 celulares del equipo se guardaba localmente TODAS las fotos de TODAS las
+   personas, para siempre — no solo las suyas. Eso crece sin límite (cada captura con foto son varios cientos
+   de KB) y con el tiempo tronaba la memoria del celular al querer procesar otra foto más ("se cierra la app
+   al subir fotos"), afectando a todo el equipo poco a poco conforme se acumulaban más capturas en total.
+   Una Embajadora nunca necesita en su celular las fotos de sus compañeras — "Mis capturas" siempre filtra
+   a currentUser.usuario (ver renderMisCapturas) — así que para ese perfil escuchamos solo SUS documentos.
+   Supervisor/Coordinador/Admin sí necesitan ver a todo su equipo (Reportes del equipo), así que para ellos
+   se mantiene la colección completa — son muchos menos celulares, y ahí aplica el recorte por fecha de abajo. */
 let _capturasCache = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+/* Limpieza de lo que YA se había acumulado en este celular ANTES de este arreglo (el filtro de arriba
+   solo evita que seguir creciendo hacia adelante — los celulares que ya llevaban meses juntando fotos
+   de todo el equipo necesitan que esto se les quite una sola vez para que la memoria se libere de verdad). */
+function limpiarCacheCapturasAntiguo(){
+  let cambio = false;
+  if(currentUser && currentUser.perfil === 'Embajador'){
+    const propias = _capturasCache.filter(d=> d && d.usuario === currentUser.usuario);
+    if(propias.length !== _capturasCache.length){ _capturasCache = propias; cambio = true; }
+  }
+  // Además, sin importar el perfil: a las fotos de capturas de hace más de 45 días ya no vale la pena
+  // seguirlas cargando en memoria en este celular — ya están a salvo en la nube (Firestore), y aquí solo
+  // hacen falta para consulta reciente. Esto evita que, con el tiempo, hasta el cache "propio" de una
+  // sola persona (o el de un Supervisor/Admin viendo a todo su equipo) vuelva a crecer sin límite.
+  const limite = new Date(Date.now() - 45*86400000).toISOString();
+  const aligerado = _capturasCache.map(d=>{
+    const f = d && (d.fecha_registro || d.fecha);
+    if(f && f < limite && !d._fotos_solo_en_la_nube){ cambio = true; return aligerarRegistro(d); }
+    return d;
+  });
+  _capturasCache = aligerado;
+  if(cambio) guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache);
+}
 function iniciarSincronizacionCapturas(){
+  limpiarCacheCapturasAntiguo();
+  const soloMias = currentUser && currentUser.perfil === 'Embajador';
+  const query = (soloMias && db) ? db.collection('capturas_medi').where('usuario','==', currentUser.usuario) : null;
   iniciarSincronizacion('capturas_medi', (doc)=>{
     if(_capturasCache.some(d=>d.id===doc.id)) return;
     _capturasCache = [..._capturasCache, doc];
@@ -1819,7 +1856,7 @@ function iniciarSincronizacionCapturas(){
     try{ renderMisCapturas(); }catch(e){}
     try{ renderReportes(); }catch(e){}
     try{ renderCheckinBar(); }catch(e){}
-  });
+  }, null, query);
 }
 
 /* Un objeto de sincronización por cada tipo de información compartida. Las funciones get/save de cada
