@@ -1648,7 +1648,16 @@ function guardarLocalStorageSeguro(key, valor){
   toast('⚠️ Tu celular se quedó sin espacio para guardar el historial completo aquí — ya se subió todo a la nube, pero libera espacio en tu celular para verlo completo sin internet.', 7000);
   return false;
 }
-function getCapturas(){ return JSON.parse(JSON.stringify(_capturasCache)); }
+/* ANTES esto hacía JSON.parse(JSON.stringify(_capturasCache)) — una copia PROFUNDA de todo el arreglo,
+   incluyendo cada foto en base64 de cada captura de todo el historial que trae ese celular (que para
+   Supervisor/Coordinador/Admin puede ser el historial de TODO el equipo). Esta función se llama desde
+   ~25 lugares distintos (cada pestaña que muestra o cuenta capturas la llama), así que cada cambio de
+   pestaña volvía a serializar y re-parsear esos megabytes de fotos una y otra vez — eso era gran parte
+   de la lentitud real al entrar a "Captura MEDI" o a Reportes. Un copiado NO profundo (solo el arreglo,
+   no cada objeto de adentro) es muchísimo más rápido y es seguro aquí: nadie modifica un campo de una
+   captura ya existente sin inmediatamente guardar el resultado con saveCapturas(arr) (ver
+   guardarRetroShopper como único caso que lo hace, y sí llama saveCapturas justo después). */
+function getCapturas(){ return [..._capturasCache]; }
 function saveCapturas(arr){
   // Guardado local PRIMERO, siempre — así una captura nunca se pierde aunque la nube (Firestore)
   // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
@@ -1872,13 +1881,33 @@ function iniciarSincronizacionCapturas(){
   limpiarCacheCapturasAntiguo();
   const soloMias = currentUser && currentUser.perfil === 'Embajador';
   const query = (soloMias && db) ? db.collection('capturas_medi').where('usuario','==', currentUser.usuario) : null;
+  // La primera vez que se conecta (o tras varios días sin abrir la app), Firestore puede entregar de
+  // golpe cientos de documentos "nuevos" en el mismo instante — antes cada uno disparaba POR SEPARADO
+  // un guardado completo a localStorage (serializando cada vez TODO el arreglo, fotos incluidas) más
+  // un refresco de pantalla, lo que hacía sentir la app trabada justo al entrar. Ahora se juntan todas
+  // las llegadas de ese mismo instante y se guarda/refresca UNA sola vez al final.
+  let _idsConocidos = new Set(_capturasCache.map(d=>d.id));
+  let _pendientes = [];
+  let _flushProgramado = false;
+  const programarFlush = () => {
+    if(_flushProgramado) return;
+    _flushProgramado = true;
+    Promise.resolve().then(()=>{
+      _flushProgramado = false;
+      if(!_pendientes.length) return;
+      _capturasCache = [..._capturasCache, ..._pendientes];
+      _pendientes = [];
+      guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache);
+      try{ renderMisCapturas(); }catch(e){}
+      try{ renderReportes(); }catch(e){}
+      try{ renderCheckinBar(); }catch(e){}
+    });
+  };
   iniciarSincronizacion('capturas_medi', (doc)=>{
-    if(_capturasCache.some(d=>d.id===doc.id)) return;
-    _capturasCache = [..._capturasCache, doc];
-    guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache);
-    try{ renderMisCapturas(); }catch(e){}
-    try{ renderReportes(); }catch(e){}
-    try{ renderCheckinBar(); }catch(e){}
+    if(_idsConocidos.has(doc.id)) return;
+    _idsConocidos.add(doc.id);
+    _pendientes.push(doc);
+    programarFlush();
   }, null, query);
 }
 
@@ -9772,12 +9801,19 @@ function abrirGuiaInstalacion(){
     </div>` : `
     <div class="card" style="margin-top:6px;">
       <p style="font-weight:700; font-size:13px; margin:0 0 8px;">🤖 Android (Chrome) / computadora (Chrome o Edge)</p>
+      ${_deferredInstallPrompt ? `
       <button class="btn btn-brand" style="margin-bottom:10px;" onclick="intentarInstalarApp()">📲 Instalar ahora</button>
-      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">Si el botón no hace nada (por ejemplo, si ya cerraste el aviso automático antes), hazlo manual:</p>
+      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">Si el botón no hace nada, hazlo manual:</p>
+      ` : `
+      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 10px;">Tu celular no mostró el aviso automático de instalar — no pasa nada, hazlo así:</p>
+      `}
       <ol style="font-size:13px; line-height:1.8; margin:0; padding-left:18px;">
         <li>Celular: toca los <b>3 puntitos</b> (⋮) arriba a la derecha de Chrome → <b>"Instalar app"</b> o <b>"Agregar a pantalla de inicio"</b> → <b>"Instalar"</b>.</li>
         <li>Computadora: busca el ícono de <b>instalar</b> ⊕ al final de la barra de direcciones, o los 3 puntitos → <b>"Instalar Délico ODV..."</b>.</li>
       </ol>
+      ${!_deferredInstallPrompt ? `
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:10px 0 0;">¿No te aparece "Instalar app" en ese menú? Es porque Chrome en ese celular necesita que Play Store esté actualizado y con sesión iniciada. Si sigue sin aparecer, usa <b>"Agregar a pantalla de inicio"</b> normal — te deja el ícono igual y la app funciona exactamente igual.</p>
+      ` : ``}
     </div>`}
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
   document.getElementById('modalBg').classList.add('open');
