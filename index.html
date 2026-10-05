@@ -666,6 +666,7 @@
       <div id="degustacionesRecientesBox" style="margin-bottom:18px;"></div>
 
       <h2 class="section-title">Mis últimas capturas</h2>
+      <div id="nubePendientesMis" style="font-size:12px; margin:-6px 0 10px;"></div>
       <div class="table-scroll">
         <table>
           <thead><tr id="misCapturasBodyHead"><th>Tipo</th><th>Fecha</th><th>Tienda</th><th>Detalle</th></tr></thead>
@@ -804,6 +805,7 @@
     <section class="view" id="view-reportes">
       <div class="bloque-tag bloque-retro">Retroalimentación</div>
       <h2 class="section-title">Reportes del equipo</h2>
+      <div id="nubeEstadoBox" class="card" style="font-size:12.5px; margin-bottom:12px; padding:10px 14px;">☁️ Conectando con la nube…</div>
       <div class="controls-bar">
         <label>Tipo:</label>
         <select id="repTipo">
@@ -1658,6 +1660,119 @@ function guardarLocalStorageSeguro(key, valor){
    captura ya existente sin inmediatamente guardar el resultado con saveCapturas(arr) (ver
    guardarRetroShopper como único caso que lo hace, y sí llama saveCapturas justo después). */
 function getCapturas(){ return [..._capturasCache]; }
+
+/* ---------- Subida de capturas a la nube — confiable, con reintento y avisos ----------
+   ANTES: saveCapturas() subía cada captura nueva UNA sola vez, y si fallaba (sin señal, permisos, o porque
+   el documento con fotos pasaba el límite de ~1 MB de Firestore) solo escribía un aviso en la consola que
+   nadie ve — la captura se quedaba para siempre solo en ese celular y Supervisor/Admin jamás la veían.
+   AHORA: cada captura lleva la marca _en_nube cuando la nube confirmó que la recibió; lo que no tenga la
+   marca se reintenta solo (al entrar, al volver el internet, y cada 2 min), las fotos se recomprimen si el
+   documento es demasiado grande, y la persona recibe un aviso claro si no se pudo subir. */
+const LIMITE_DOC_NUBE = 900000; // Firestore rechaza documentos de más de 1 MiB (dejamos margen)
+function tamanoAprox(d){ try{ return JSON.stringify(d).length; }catch(e){ return 0; } }
+async function reducirFotosParaNube(d){
+  const copia = {...d};
+  const niveles = [[1000,0.6],[800,0.5],[640,0.45]];
+  for(const [dim,cal] of niveles){
+    if(tamanoAprox(copia) <= LIMITE_DOC_NUBE) break;
+    for(const k of Object.keys(copia)){
+      const v = copia[k];
+      try{
+        if(typeof v==='string' && v.startsWith('data:image') && v.length>20000){ copia[k] = await comprimirImagen(v, dim, cal); }
+        else if(Array.isArray(v) && v.length && typeof v[0]==='string' && v[0].startsWith('data:image')){
+          copia[k] = await Promise.all(v.map(x=> (typeof x==='string' && x.startsWith('data:image') && x.length>20000) ? comprimirImagen(x,dim,cal) : x));
+        }
+      }catch(e){}
+    }
+  }
+  return copia;
+}
+let _guardarMarcasTimer = null;
+function marcarCapturaEnNube(id){
+  const c = _capturasCache.find(x=>x && x.id===id);
+  if(!c || c._en_nube) return;
+  c._en_nube = true;
+  clearTimeout(_guardarMarcasTimer);
+  _guardarMarcasTimer = setTimeout(()=>{ try{ guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache); }catch(e){} try{ pintarEstadoNube(); }catch(e){} }, 1500);
+}
+function conTiempoMax(promesa, ms){
+  return Promise.race([promesa, new Promise(res=>setTimeout(()=>res({ok:false, error:'tiempo agotado (sin señal o conexión lenta)'}), ms))]);
+}
+async function subirCapturaNube(d){
+  if(!db || !d || !d.id) return {ok:false, error:'la nube no está disponible en este dispositivo'};
+  let listo = {...d}; delete listo._en_nube;
+  if(tamanoAprox(listo) > LIMITE_DOC_NUBE) listo = await reducirFotosParaNube(listo);
+  if(tamanoAprox(listo) > LIMITE_DOC_NUBE){
+    // Último recurso: subir el registro SIN fotos antes que perder el registro completo.
+    listo = aligerarRegistro(listo); delete listo._fotos_solo_en_la_nube; listo._fotos_omitidas_por_tamano = true;
+  }
+  const r = await conTiempoMax(subirAColeccion('capturas_medi', listo), 25000);
+  if(r && r.ok) marcarCapturaEnNube(d.id);
+  return r || {ok:false, error:'sin respuesta'};
+}
+let _ultimoAvisoSubida = 0;
+function avisarSubidaFallida(error){
+  const ahora = Date.now();
+  if(ahora - _ultimoAvisoSubida < 30000) return;
+  _ultimoAvisoSubida = ahora;
+  toast('☁️ Tu captura quedó guardada en tu celular, pero todavía NO se pudo subir a la nube ('+String(error||'sin conexión').slice(0,60)+'). Se reintenta sola — no la repitas.', 7000);
+}
+function contarCapturasPendientesNube(){
+  if(!currentUser) return 0;
+  return _capturasCache.filter(d=> d && d.id && d.usuario===currentUser.usuario && !d._en_nube && !d._fotos_solo_en_la_nube).length;
+}
+let _reintentandoNube = false;
+async function reintentarSubidasPendientes(manual){
+  if(_reintentandoNube || !db || !currentUser) return;
+  _reintentandoNube = true;
+  let subidas = 0, fallidas = 0, ultimoError = null;
+  try{
+    const pendientes = _capturasCache.filter(d=> d && d.id && d.usuario===currentUser.usuario && !d._en_nube && !d._fotos_solo_en_la_nube);
+    for(const d of pendientes){
+      const r = await subirCapturaNube(d);
+      if(r && r.ok) subidas++; else { fallidas++; ultimoError = r && r.error; if(fallidas>=3) break; }
+    }
+  }catch(e){ console.warn('Reintento de subida a la nube falló:', e); ultimoError = (e && e.message) || String(e); fallidas++; }
+  finally{ _reintentandoNube = false; }
+  try{ pintarEstadoNube(); }catch(e){}
+  if(manual){
+    if(fallidas) toast('☁️ No se pudo subir todo ('+String(ultimoError||'').slice(0,80)+'). Subidas: '+subidas+'.', 7000);
+    else toast(subidas ? '☁️ Listo: '+subidas+' captura(s) subidas a la nube ✓' : '☁️ No había nada pendiente — todo está en la nube ✓');
+  }else if(fallidas){
+    avisarSubidaFallida(ultimoError);
+  }
+}
+window.addEventListener('online', ()=>{ try{ reintentarSubidasPendientes(); }catch(e){} });
+setInterval(()=>{ try{ if(currentUser && contarCapturasPendientesNube()>0) reintentarSubidasPendientes(); }catch(e){} }, 120000);
+
+/* Indicador visible del estado de la nube en "Reportes del equipo" (y aviso de pendientes en Mis capturas). */
+function pintarEstadoNube(){
+  const box = document.getElementById('nubeEstadoBox');
+  const est = SYNC_ESTADO['capturas_medi'] || {ok:null, recibidos:0};
+  const pend = contarCapturasPendientesNube();
+  const locales = _capturasCache.length;
+  if(box){
+    let html;
+    if(est.ok === false){
+      const denegado = /permission|denied|insufficient/i.test(String(est.error||''));
+      html = `<b style="color:#a33;">⚠️ La nube NO está entregando las capturas del equipo.</b> Motivo: <code>${String(est.error||'desconocido')}</code>.`
+        + (denegado ? ' Esto significa que las <b>reglas de seguridad de Firestore</b> no te dejan leer las capturas de otras personas — hay que ajustarlas en la consola de Firebase (no es un problema de la app ni de tu internet).' : ' Revisa tu internet y vuelve a entrar.');
+    }else if(est.ok === null){
+      html = '☁️ Conectando con la nube…';
+    }else{
+      html = `☁️ Nube conectada · <b>${est.recibidos}</b> captura(s) recibidas de la nube · ${locales} guardadas en este equipo.`
+        + (est.recibidos===0 ? ' <span style="color:#a60;">La nube respondió vacía: si el equipo ya capturó, sus celulares NO están subiendo (que abran la app con internet para que se reintente la subida).</span>' : '');
+    }
+    if(pend>0) html += ` · <b style="color:#a60;">${pend} tuya(s) pendiente(s) de subir</b> <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button>`;
+    box.innerHTML = html;
+  }
+  const avisoMis = document.getElementById('nubePendientesMis');
+  if(avisoMis){
+    avisoMis.innerHTML = pend>0
+      ? `<span style="color:#a60;">☁️ ${pend} captura(s) tuyas todavía no se han subido a la nube — se reintenta sola con internet.</span> <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button>`
+      : (db ? '<span style="color:var(--ink-soft);">☁️ Todo lo tuyo está en la nube ✓</span>' : '');
+  }
+}
 function saveCapturas(arr){
   // Guardado local PRIMERO, siempre — así una captura nunca se pierde aunque la nube (Firestore)
   // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
@@ -1666,7 +1781,10 @@ function saveCapturas(arr){
   guardarLocalStorageSeguro(STORAGE_KEY, arr);
   arr.forEach(d=>{
     if(d && d.id && !idsPrevios.has(d.id)){
-      try{ subirAColeccion('capturas_medi', d); }catch(e){ console.warn('Fallo al subir captura a la nube (ya quedó guardada local):', e); }
+      try{
+        subirCapturaNube(d).then(r=>{ if(!(r && r.ok)) avisarSubidaFallida(r && r.error); try{ pintarEstadoNube(); }catch(e){} })
+          .catch(e=>avisarSubidaFallida((e&&e.message)||e));
+      }catch(e){ console.warn('Fallo al subir captura a la nube (ya quedó guardada local):', e); }
     }
   });
 }
@@ -1704,19 +1822,32 @@ try{
 
 const SYNC_LISTENERS = {};
 const SYNC_DESUSCRIPCIONES = {};
+/* Estado visible de cada escucha a la nube (para diagnosticar "no veo lo del equipo" sin abrir la consola):
+   { ok:true/false/null, recibidos:N, error:'permission-denied...' , ultima:ISO } */
+const SYNC_ESTADO = {};
 
 function iniciarSincronizacion(coleccion, onCambio, onBorrado, queryPersonalizada){
   SYNC_LISTENERS[coleccion] = onCambio;
-  if(!db || SYNC_DESUSCRIPCIONES[coleccion]) return;
+  if(!db){ SYNC_ESTADO[coleccion] = {ok:false, recibidos:0, error:'Firestore no disponible en este dispositivo (sin conexión al servicio de nube)'}; return; }
+  if(SYNC_DESUSCRIPCIONES[coleccion]) return;
+  SYNC_ESTADO[coleccion] = {ok:null, recibidos:0, error:null};
   // queryPersonalizada (opcional): permite escuchar solo un subconjunto de la colección (ej. "capturas_medi"
   // filtrado a un solo usuario) en vez de TODA la colección — ver comentario junto a iniciarSincronizacionCapturas.
   const ref = queryPersonalizada || db.collection(coleccion);
   SYNC_DESUSCRIPCIONES[coleccion] = ref.onSnapshot(snap=>{
+    const est = SYNC_ESTADO[coleccion];
+    est.ok = true; est.error = null; est.ultima = new Date().toISOString();
     snap.docChanges().forEach(change=>{
       if(change.type==='removed'){ if(onBorrado) onBorrado(change.doc.id); return; }
+      est.recibidos++;
       onCambio({...change.doc.data(), id: change.doc.id});
     });
-  }, err=>{ console.warn('Firestore: no se pudo escuchar la colección "'+coleccion+'".', err); });
+    try{ if(coleccion==='capturas_medi') pintarEstadoNube(); }catch(e){}
+  }, err=>{
+    console.warn('Firestore: no se pudo escuchar la colección "'+coleccion+'".', err);
+    SYNC_ESTADO[coleccion] = {...(SYNC_ESTADO[coleccion]||{recibidos:0}), ok:false, error:(err && (err.code||err.message)) || String(err)};
+    try{ if(coleccion==='capturas_medi') pintarEstadoNube(); }catch(e){}
+  });
 }
 /* IMPORTANTE: estas dos funciones NUNCA deben "tragarse" un error silenciosamente y fingir éxito —
    eso fue justo la causa de que "Borrar todo" pareciera funcionar pero los registros regresaran solos:
@@ -1901,14 +2032,23 @@ function iniciarSincronizacionCapturas(){
       try{ renderMisCapturas(); }catch(e){}
       try{ renderReportes(); }catch(e){}
       try{ renderCheckinBar(); }catch(e){}
+      try{ pintarEstadoNube(); }catch(e){}
     });
   };
   iniciarSincronizacion('capturas_medi', (doc)=>{
-    if(_idsConocidos.has(doc.id)) return;
+    if(_idsConocidos.has(doc.id)){
+      // Ya la teníamos local: si llegó de vuelta desde la nube, quedó confirmada como subida.
+      try{ marcarCapturaEnNube(doc.id); }catch(e){}
+      return;
+    }
     _idsConocidos.add(doc.id);
+    doc._en_nube = true; // vino de la nube, así que ya está allá
     _pendientes.push(doc);
     programarFlush();
   }, null, query);
+  // Sube lo que haya quedado atorado en este celular (capturas hechas sin señal, con error, o antes de este arreglo).
+  setTimeout(()=>{ try{ reintentarSubidasPendientes(); }catch(e){} }, 4000);
+  setTimeout(()=>{ try{ pintarEstadoNube(); }catch(e){} }, 1500);
 }
 
 /* Un objeto de sincronización por cada tipo de información compartida. Las funciones get/save de cada
@@ -4893,6 +5033,7 @@ function renderMisCapturas(){
     tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
   };
   window.render_misCapturasBody();
+  try{ pintarEstadoNube(); }catch(e){}
   renderDegustacionesRecientes();
   const zonaMedi = document.getElementById('reinicioZonaMedi');
   if(zonaMedi) zonaMedi.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
@@ -4941,6 +5082,9 @@ function guardarRetroShopper(capturaId){
   c.retro_shopper = c.retro_shopper || [];
   c.retro_shopper.push({texto, autor:currentUser.nombre, fecha:new Date().toISOString()});
   saveCapturas(arr);
+  // saveCapturas solo sube capturas NUEVAS; este comentario se agrega a una ya existente, así que se sube aparte
+  // (solo el campo retro_shopper, con merge, para no pisar fotos ni nada más de la captura en la nube).
+  try{ subirAColeccion('capturas_medi', {id:c.id, retro_shopper:c.retro_shopper}); }catch(e){}
   closeModal();
   toast('Comentario del shopper agregado ✓');
   renderDegustacionesRecientes();
@@ -5009,6 +5153,7 @@ function renderReportes(){
     zonaInst.classList.toggle('hidden', !esReset);
     if(esReset) renderInstalacionEquipo();
   }
+  try{ pintarEstadoNube(); }catch(e){}
   let arr = capturasFiltradasReporte();
 
   document.getElementById('repTotal').textContent = arr.length;
@@ -5023,7 +5168,7 @@ function renderReportes(){
     if(head) head.innerHTML = `${colHead('repBody','tipo_label','Tipo',false)}${colHead('repBody','persona','Persona',false)}${colHead('repBody','fecha_registro','Fecha',false)}${colHead('repBody','tienda','Tienda',false)}${colHead('repBody','detalle','Detalle',false)}`;
     const filas = ordenarFilas('repBody', rows2, 'fecha_registro');
     const tbody = document.getElementById('repBody');
-    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.persona}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty-state">Sin capturas todavía en este dispositivo. Nota: hoy cada celular guarda su propia información — para ver aquí lo de todo el equipo hace falta conectar el backend compartido (siguiente fase).</td></tr>`;
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.persona}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty-state">Sin capturas con este filtro. Revisa el recuadro de arriba (☁️): ahí dice si la nube está entregando las capturas del equipo, y si no, por qué.</td></tr>`;
   };
   window.render_repBody();
 
