@@ -916,6 +916,85 @@
       </div>
     </section>
 
+    <!-- ---------- PRÓXIMOS A CADUCAR (Supervisor+) ---------- -->
+    <section class="view" id="view-proxcaducar">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">⏳ Próximos a caducar</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 12px; max-width:980px;">
+        Todo lo que el equipo ha capturado en <b>Caducidades</b>, con el riesgo de que se venza antes de venderse. Los <b>KPIs, resúmenes, alertas y evolución</b> se calculan siempre sobre la <b>última captura vigente de cada tienda y código</b> (así una misma tienda visitada lunes, miércoles y viernes no se suma tres veces). La <b>tabla de detalle y el Excel</b> sí cambian según el modo que elijas abajo.
+      </p>
+      <div class="controls-bar">
+        <label>Modo del detalle / Excel:</label>
+        <select id="pcModo" onchange="renderProxCaducar()">
+          <option value="ultima">Última captura por tienda y código (sin duplicados)</option>
+          <option value="todo">Todo lo capturado (incluye repetidos)</option>
+        </select>
+        <label>Mostrar:</label>
+        <select id="pcMostrar" onchange="renderProxCaducar()">
+          <option value="">Todo</option>
+          <option value="riesgo">Solo con piezas en riesgo</option>
+          <option value="vencidos">Ya vencidos</option>
+          <option value="7">Vencen en ≤ 7 días</option>
+          <option value="15">Vencen en ≤ 15 días</option>
+          <option value="30">Vencen en ≤ 30 días</option>
+          <option value="60">Vencen en ≤ 60 días</option>
+        </select>
+        <label title="Días antes de la fecha de caducidad en que la tienda retira el producto (0 = hasta el último día)">Colchón (días):</label>
+        <input type="number" id="pcColchon" min="0" max="90" value="0" style="width:70px;" onchange="renderProxCaducar()">
+      </div>
+      <div class="controls-bar">
+        <label>Cadena:</label>
+        <div class="tienda-dd" id="pcCadenaDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcCadenaDd')" id="pcCadenaDdBtn">Todas</button><div class="tienda-dd-panel hidden" id="pcCadenaDdPanel"></div></div>
+        <label>Región:</label>
+        <div class="tienda-dd" id="pcRegionDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcRegionDd')" id="pcRegionDdBtn">Todas</button><div class="tienda-dd-panel hidden" id="pcRegionDdPanel"></div></div>
+        <label>Supervisor(a):</label>
+        <div class="tienda-dd" id="pcSupervisorDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcSupervisorDd')" id="pcSupervisorDdBtn">Todos</button><div class="tienda-dd-panel hidden" id="pcSupervisorDdPanel"></div></div>
+        <label>Familia:</label>
+        <div class="tienda-dd" id="pcFamiliaDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcFamiliaDd')" id="pcFamiliaDdBtn">Todas</button><div class="tienda-dd-panel hidden" id="pcFamiliaDdPanel"></div></div>
+        <label>Código:</label>
+        <div class="tienda-dd" id="pcCodigoDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcCodigoDd')" id="pcCodigoDdBtn">Todos</button><div class="tienda-dd-panel hidden" id="pcCodigoDdPanel"></div></div>
+        <label>Persona:</label>
+        <select id="pcPersona" onchange="renderProxCaducar()"><option value="">Todas</option></select>
+      </div>
+      <div class="controls-bar">
+        <label>Capturado desde:</label>
+        <input type="date" id="pcDesde" onchange="renderProxCaducar()">
+        <label>hasta:</label>
+        <input type="date" id="pcHasta" onchange="renderProxCaducar()">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="pcMesDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcMesDd')" id="pcMesDdBtn">Selecciona...</button><div class="tienda-dd-panel hidden" id="pcMesDdPanel"></div></div>
+        <button class="btn btn-ghost" onclick="pcLimpiarFiltros()">Limpiar filtros</button>
+        <button class="btn btn-brand" onclick="exportarProxCaducarExcel()">📊 Exportar Excel</button>
+      </div>
+      <div id="pcNota" style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 12px;"></div>
+
+      <div class="row" style="margin-bottom:14px;" id="pcKpis"></div>
+
+      <h2 class="section-title" style="margin-top:6px;">🚨 Alertas y qué hacer</h2>
+      <div id="pcAlertas" style="margin-bottom:18px;"></div>
+
+      <h2 class="section-title">🏪 Riesgo por cadena</h2>
+      <div class="table-scroll" style="margin-bottom:18px;"><table><thead><tr id="pcCadenaHead"></tr></thead><tbody id="pcCadenaBody"></tbody></table></div>
+
+      <h2 class="section-title">📦 Riesgo por código <span style="font-size:12px; font-weight:500; color:var(--ink-soft);">(pasado a valor con el precio promedio del catálogo)</span></h2>
+      <div class="table-scroll" style="margin-bottom:18px;"><table><thead><tr id="pcCodigoHead"></tr></thead><tbody id="pcCodigoBody"></tbody></table></div>
+
+      <h2 class="section-title">📈 Evolución de un lote por fecha de caducidad</h2>
+      <div class="controls-bar">
+        <label>Fecha de caducidad:</label>
+        <select id="pcEvoFecha" onchange="renderProxCaducar()"></select>
+      </div>
+      <div id="pcEvolucion" style="margin-bottom:18px;"></div>
+
+      <h2 class="section-title">🧾 Detalle <span id="pcDetalleTitulo" style="font-size:12px; font-weight:500; color:var(--ink-soft);"></span></h2>
+      <div class="table-scroll">
+        <table><thead><tr id="pcDetalleHead"></tr></thead><tbody id="pcDetalleBody"></tbody></table>
+      </div>
+      <p id="pcDetallePie" style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;"></p>
+    </section>
+
+
+
     <!-- ---------- CUMPLIMIENTO: PLAN VS. REAL ---------- -->
     <section class="view" id="view-cumpventa">
       <div class="bloque-tag bloque-retro">Retroalimentación</div>
@@ -2560,6 +2639,7 @@ const ALL_TABS = [
   {key:'bono',          label:'Bono',                              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'kpis',          label:'Kardex',                            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'reportes',      label:'Reportes del equipo',               perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
+  {key:'proxcaducar',  label:'Próximos a caducar',                perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
   {key:'vacaciones',    label:'Vacaciones',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'evaluaciones',  label:'Evaluaciones',                      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'noticias',      label:'Daily News',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
@@ -2687,6 +2767,7 @@ function showView(key, btnEl){
   else { const tabs = tabsVisiblesParaMi(); const idx = tabs.findIndex(t=>t.key===key); const btns = [...document.querySelectorAll('nav.tabs button')]; if(idx>=0 && btns[idx]) btns[idx].classList.add('active'); }
   toggleMobileNav(false); // si el menú móvil estaba abierto, se cierra al elegir una sección
   if(key==='reportes') renderReportes();
+  if(key==='proxcaducar') renderProxCaducar();
   if(key==='captura'){ renderCheckinBar(); renderMisCapturas(); renderExtraTiendaBox(); }
   if(key==='planeacion'){ renderPlaneacion(); renderTareas(); }
   if(key==='ruta') renderRuta();
@@ -2738,7 +2819,7 @@ function renderObjMesChips(){
 }
 /* ---------- Dropdown genérico (Mes(es) / Tienda(s) en Objetivos) — abrir/cerrar + clic afuera cierra ---------- */
 function toggleObjDropdown(cual){
-  const ids = ['objMesDd','objTiendaDd','objCadenaDd','objFamiliaDd','objCodigoDd','cvMesDd','cvTiendaDd','cvCadenaDd','cpMesDd','cpTiendaDd','distMesDd','ppCadenaDd','ppSupervisorDd','ppFamiliaDd','ppCodigoDd','cumpMesDd','kdxMesDd','repMesDd','evaMesDd'];
+  const ids = ['objMesDd','objTiendaDd','objCadenaDd','objFamiliaDd','objCodigoDd','cvMesDd','cvTiendaDd','cvCadenaDd','cpMesDd','cpTiendaDd','distMesDd','ppCadenaDd','ppSupervisorDd','ppFamiliaDd','ppCodigoDd','cumpMesDd','kdxMesDd','repMesDd','evaMesDd','pcCadenaDd','pcRegionDd','pcSupervisorDd','pcFamiliaDd','pcCodigoDd','pcMesDd'];
   ids.forEach(id=>{
     const p = document.getElementById(id+'Panel');
     if(!p) return;
@@ -2747,7 +2828,7 @@ function toggleObjDropdown(cual){
   });
 }
 document.addEventListener('click', (e)=>{
-  ['objMesDdRoot','objTiendaDdRoot','objCadenaDdRoot','objFamiliaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cvCadenaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCadenaDdRoot','ppSupervisorDdRoot','ppFamiliaDdRoot','ppCodigoDdRoot','cumpMesDdRoot','kdxMesDdRoot','repMesDdRoot','evaMesDdRoot'].forEach(rootId=>{
+  ['objMesDdRoot','objTiendaDdRoot','objCadenaDdRoot','objFamiliaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cvCadenaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCadenaDdRoot','ppSupervisorDdRoot','ppFamiliaDdRoot','ppCodigoDdRoot','cumpMesDdRoot','kdxMesDdRoot','repMesDdRoot','evaMesDdRoot','pcCadenaDdRoot','pcRegionDdRoot','pcSupervisorDdRoot','pcFamiliaDdRoot','pcCodigoDdRoot','pcMesDdRoot'].forEach(rootId=>{
     const root = document.getElementById(rootId);
     if(root && !root.contains(e.target)){
       const panel = root.querySelector('.tienda-dd-panel');
@@ -6294,6 +6375,429 @@ function exportarPreplanExcel(){
       f.pctCubrimiento!==null?f.pctCubrimiento.toFixed(0):'', f.invMaxDias||0, f.invExcedentes||0, 'N/D', f.ventaCero||0, f.tareasCount||0,
       f.riesgoPiezas||0, f.sugerenciaSemana, f.motivos.join(' · ')
     ]));
+}
+
+/* ---------- PRÓXIMOS A CADUCAR (Supervisor / Coordinador / Admin) ----------
+   Fuente: capturas tipo 'caducidad' (un registro = tienda + código + fecha de caducidad + piezas).
+   "Última captura" = por tienda+código se queda SOLO con la visita más reciente (día) y, dentro de ese día,
+   con el último registro por fecha de caducidad -> así lunes/miércoles/viernes no se suman 3 veces.
+   Riesgo = simulación FIFO: se vende primero lo que caduca primero, a la velocidad (pzas/día) de ese código en esa tienda. */
+const PC_DD = {
+  pcCadenaDd:    {sel:null, opts:[], todos:'Todas',  btn:'pcCadenaDdBtn',    panel:'pcCadenaDdPanel',    lista:()=>cadenasDisponiblesFiltro().map(v=>({v,l:v}))},
+  pcRegionDd:    {sel:null, opts:[], todos:'Todas',  btn:'pcRegionDdBtn',    panel:'pcRegionDdPanel',    lista:()=>[...new Set(APP_DATA.stores.map(s=>s.region).filter(Boolean))].sort().map(v=>({v,l:v}))},
+  pcSupervisorDd:{sel:null, opts:[], todos:'Todos',  btn:'pcSupervisorDdBtn',panel:'pcSupervisorDdPanel',lista:()=>nombresSupervisorUnicos().map(v=>({v,l:v}))},
+  pcFamiliaDd:   {sel:null, opts:[], todos:'Todas',  btn:'pcFamiliaDdBtn',   panel:'pcFamiliaDdPanel',   lista:()=>familiasProducto().filter(Boolean).sort().map(v=>({v,l:v}))},
+  pcCodigoDd:    {sel:null, opts:[], todos:'Todos',  btn:'pcCodigoDdBtn',    panel:'pcCodigoDdPanel',    lista:()=>APP_DATA.catalogo_productos.map(p=>({v:p.clave,l:p.clave+' · '+p.nombre})).sort((a,b)=>a.l.localeCompare(b.l))},
+};
+function pcDdRender(id){
+  const d = PC_DD[id]; const panel = document.getElementById(d.panel), btn = document.getElementById(d.btn);
+  if(!panel || !btn) return;
+  d.opts = d.lista();
+  const marcado = v => d.sel===null || d.sel.has(v);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="pcDdTodo('${id}')">Todo</button><button type="button" onclick="pcDdNinguno('${id}')">Ninguno</button></div>`
+    + d.opts.map((o,i)=>`<label class="tienda-dd-item"><input type="checkbox" ${marcado(o.v)?'checked':''} onchange="pcDdToggle('${id}',${i})"> ${pcEsc(o.l)}</label>`).join('');
+  btn.textContent = d.sel===null ? d.todos : d.sel.size===0 ? 'Ninguno' : (d.sel.size===1 ? d.opts.find(o=>d.sel.has(o.v))?.l.slice(0,28)||'1 seleccionado' : d.sel.size+' seleccionados');
+}
+function pcDdTodo(id){ PC_DD[id].sel = null; pcDdRender(id); renderProxCaducar(); }
+function pcDdNinguno(id){ PC_DD[id].sel = new Set(); pcDdRender(id); renderProxCaducar(); }
+function pcDdToggle(id, i){
+  const d = PC_DD[id]; const v = d.opts[i].v;
+  if(d.sel===null) d.sel = new Set(d.opts.map(o=>o.v));
+  if(d.sel.has(v)) d.sel.delete(v); else d.sel.add(v);
+  if(d.sel.size===d.opts.length) d.sel = null;
+  pcDdRender(id); renderProxCaducar();
+}
+function pcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const pcN = (n,d=0)=> (n==null||isNaN(n)) ? '—' : Number(n).toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pcMoney = n => (n==null||isNaN(n)) ? '—' : '$'+Math.round(n).toLocaleString('es-MX');
+function pcDiasEntre(aISO, bISO){ return Math.round((new Date(bISO+'T00:00:00') - new Date(aISO+'T00:00:00'))/86400000); }
+
+/* ---------- velocidad (item velocity) = promedio de venta diario en piezas ---------- */
+let _pcVelCache = null;
+function pcVelocidades(){
+  if(_pcVelCache && _pcVelCache.n === (APP_DATA.combinaciones||[]).length) return _pcVelCache;
+  const tienda = new Map(), cadena = {}, global = {};
+  (APP_DATA.combinaciones||[]).forEach(c=>{
+    const v = Number(c.prom_venta_diario); if(!isFinite(v)) return;
+    tienda.set(c.cadena+'|'+c.tienda+'|'+c.clave, v);
+    if(v>0){
+      const kc = c.cadena+'|'+c.clave;
+      (cadena[kc] = cadena[kc] || []).push(v);
+      (global[c.clave] = global[c.clave] || []).push(v);
+    }
+  });
+  const prom = a => a.reduce((x,y)=>x+y,0)/a.length;
+  const cad = {}, glo = {};
+  Object.keys(cadena).forEach(k=>cad[k]=prom(cadena[k]));
+  Object.keys(global).forEach(k=>glo[k]=prom(global[k]));
+  _pcVelCache = {n:(APP_DATA.combinaciones||[]).length, tienda, cad, glo};
+  return _pcVelCache;
+}
+/* devuelve {vel, fuente}: 'tienda' (dato real de esa tienda), 'cadena' (promedio del código en la cadena), 'global', 'sin dato' */
+function pcVelocidadDe(cadena, tienda, clave){
+  const V = pcVelocidades();
+  const k = cadena+'|'+tienda+'|'+clave;
+  if(V.tienda.has(k)){
+    const v = V.tienda.get(k);
+    if(v>0) return {vel:v, fuente:'Tienda'};
+    // venta 0 en esa tienda: es dato real (no se mueve), no se sustituye
+    return {vel:0, fuente:'Tienda (sin venta)'};
+  }
+  if(V.cad[cadena+'|'+clave]!=null) return {vel:V.cad[cadena+'|'+clave], fuente:'Prom. cadena'};
+  if(V.glo[clave]!=null) return {vel:V.glo[clave], fuente:'Prom. general'};
+  return {vel:0, fuente:'Sin dato'};
+}
+
+/* ---------- filtros ---------- */
+function pcLeerControles(){
+  const g = id => (document.getElementById(id)||{}).value || '';
+  return {
+    modo: g('pcModo') || 'ultima', mostrar: g('pcMostrar'), colchon: Math.max(0, parseInt(g('pcColchon'))||0),
+    persona: g('pcPersona'), desde: g('pcDesde'), hasta: g('pcHasta'),
+    cadena: PC_DD.pcCadenaDd.sel, region: PC_DD.pcRegionDd.sel, supervisor: PC_DD.pcSupervisorDd.sel,
+    familia: PC_DD.pcFamiliaDd.sel, codigo: PC_DD.pcCodigoDd.sel,
+  };
+}
+/* Capturas de caducidad ya enriquecidas y filtradas (sin deduplicar todavía). */
+function pcFilasBase(f){
+  const hoy = todayISO();
+  const prods = {};
+  APP_DATA.catalogo_productos.forEach(p=>prods[p.clave]=p);
+  const out = [];
+  getCapturas().forEach(c=>{
+    if(c.tipo!=='caducidad' || !c.fecha_caducidad || !c.clave) return;
+    const st = storeInfo(c.cadena, c.tienda) || {};
+    const prod = prods[c.clave] || {};
+    const persona = c.persona || '';
+    const sup = (supervisorDePersona(persona) || supervisorDeTienda(st) || '');
+    const reg = st.region || ((APP_DATA.equipo.find(u=>u.usuario===c.usuario)||{}).region) || '';
+    const diaCap = fechaSoloDia(c.fecha_registro);
+    const fam = prod.familia || '';
+    if(f.cadena && !f.cadena.has(c.cadena)) return;
+    if(f.region && !f.region.has(reg)) return;
+    if(f.supervisor && !(sup && [...f.supervisor].some(s=>mismaPersona(s, sup)))) return;
+    if(f.familia && !f.familia.has(fam)) return;
+    if(f.codigo && !f.codigo.has(c.clave)) return;
+    if(f.persona && c.usuario!==f.persona) return;
+    if(f.desde && diaCap < f.desde) return;
+    if(f.hasta && diaCap > f.hasta) return;
+    out.push({
+      id:c.id, cadena:c.cadena||'', tienda:c.tienda||'', num_tienda: st.num_tienda!=null ? Math.round(st.num_tienda) : '',
+      region:reg, supervisor:sup, usuario:c.usuario||'', persona, fecha_registro:c.fecha_registro||'', diaCap,
+      clave:c.clave, producto: prod.nombre || c.clave, familia:fam, precio: Number(prod.precio_promedio)||0,
+      fecha_caducidad: String(c.fecha_caducidad).slice(0,10), piezas: parseInt(c.piezas)||0,
+    });
+  });
+  return out;
+}
+/* modo 'ultima': por tienda+código solo la visita más reciente; dentro de ella, un registro por fecha de caducidad (el último). */
+function pcAplicarModo(filas, modo){
+  if(modo==='todo') return filas.slice();
+  const ultimoDia = new Map();
+  filas.forEach(r=>{ const k=r.cadena+'|'+r.tienda+'|'+r.clave; if(!ultimoDia.has(k) || r.diaCap>ultimoDia.get(k)) ultimoDia.set(k, r.diaCap); });
+  const porLote = new Map();
+  filas.forEach(r=>{
+    const k = r.cadena+'|'+r.tienda+'|'+r.clave;
+    if(r.diaCap !== ultimoDia.get(k)) return;
+    const kl = k+'|'+r.fecha_caducidad;
+    const prev = porLote.get(kl);
+    if(!prev || String(r.fecha_registro) >= String(prev.fecha_registro)) porLote.set(kl, r);
+  });
+  return [...porLote.values()];
+}
+/* Riesgo por FIFO dentro de cada (tienda, código, día de captura). Agrega r.vel, r.fuente, r.dias (desde HOY), r.riesgo, r.valor, etc. */
+function pcCalcularRiesgo(filas, colchon){
+  const hoy = todayISO();
+  const grupos = new Map();
+  filas.forEach(r=>{ const k = r.cadena+'|'+r.tienda+'|'+r.clave+'|'+r.diaCap; (grupos.get(k) || grupos.set(k,[]).get(k)).push(r); });
+  grupos.forEach(lotes=>{
+    lotes.sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad));
+    const v = pcVelocidadDe(lotes[0].cadena, lotes[0].tienda, lotes[0].clave);
+    let vendido = 0;
+    lotes.forEach(r=>{
+      r.vel = v.vel; r.fuente = v.fuente;
+      const diasDesdeCaptura = pcDiasEntre(r.diaCap, r.fecha_caducidad) - colchon;
+      const capacidad = v.vel * Math.max(0, diasDesdeCaptura);
+      const disponible = Math.max(0, capacidad - vendido);
+      const vende = Math.min(r.piezas, disponible);
+      vendido += vende;
+      r.riesgo = Math.max(0, Math.round((r.piezas - vende)*10)/10);
+    });
+  });
+  filas.forEach(r=>{
+    r.dias = pcDiasEntre(hoy, r.fecha_caducidad);
+    r.valor = r.riesgo * r.precio;
+    r.diasCubre = r.vel>0 ? r.piezas / r.vel : null;
+    r.pctRiesgo = r.piezas ? r.riesgo / r.piezas : 0;
+    r.vencido = r.dias < 0;
+    r.edadCaptura = pcDiasEntre(r.diaCap, hoy);
+    r.estatus = r.dias < 0 ? 'Vencido' : (r.riesgo<=0 ? 'Sin riesgo' : (r.dias<=7 ? 'Crítico (≤7 días)' : (r.dias<=15 ? 'Alto (≤15 días)' : (r.dias<=30 ? 'Medio (≤30 días)' : 'Bajo (>30 días)'))));
+  });
+  return filas;
+}
+function pcFiltrarMostrar(filas, mostrar){
+  if(!mostrar) return filas;
+  if(mostrar==='riesgo') return filas.filter(r=>r.riesgo>0);
+  if(mostrar==='vencidos') return filas.filter(r=>r.vencido);
+  const n = parseInt(mostrar); return filas.filter(r=>r.dias>=0 && r.dias<=n);
+}
+
+/* ---------- agregados ---------- */
+function pcAgregar(filas, claveFn, extra){
+  const m = new Map();
+  filas.forEach(r=>{
+    const k = claveFn(r);
+    if(!m.has(k)) m.set(k, {k, piezas:0, riesgo:0, valor:0, vencidas:0, riesgo15:0, tiendas:new Set(), tiendasRiesgo:new Set(), codigos:new Set(), lotes:0, velSum:0, velN:0, ...(extra?extra(r):{})});
+    const a = m.get(k);
+    a.piezas += r.piezas; a.riesgo += r.riesgo; a.valor += r.valor; a.lotes++;
+    if(r.vencido) a.vencidas += r.piezas;
+    if(!r.vencido && r.dias<=15) a.riesgo15 += r.riesgo;
+    a.tiendas.add(r.cadena+'|'+r.tienda); a.codigos.add(r.clave);
+    if(r.riesgo>0) a.tiendasRiesgo.add(r.cadena+'|'+r.tienda);
+    if(r.vel>0){ a.velSum += r.vel; a.velN++; }
+  });
+  return [...m.values()].map(a=>({...a, nTiendas:a.tiendas.size, nTiendasRiesgo:a.tiendasRiesgo.size, nCodigos:a.codigos.size, pct: a.piezas ? a.riesgo/a.piezas*100 : 0, velProm: a.velN ? a.velSum/a.velN : null}));
+}
+
+/* ---------- evolución de un lote (fecha de caducidad) ---------- */
+function pcEvolucionDatos(filasHist, fecha){
+  const reg = filasHist.filter(r=>r.fecha_caducidad===fecha);
+  if(!reg.length) return null;
+  const dias = [...new Set(reg.map(r=>r.diaCap))].sort();
+  const porClave = new Map(); // tienda|clave -> registros ordenados por captura
+  reg.forEach(r=>{ const k=r.cadena+'|'+r.tienda+'|'+r.clave; (porClave.get(k)||porClave.set(k,[]).get(k)).push(r); });
+  porClave.forEach(a=>a.sort((x,y)=>String(x.fecha_registro).localeCompare(String(y.fecha_registro))));
+  // serie: para cada día de captura, piezas conocidas (último registro de cada tienda|clave con día<=d)
+  const serie = dias.map(d=>{
+    let pz = 0, n = 0;
+    porClave.forEach(a=>{ let ult=null; a.forEach(r=>{ if(r.diaCap<=d) ult=r; }); if(ult){ pz += ult.piezas; n++; } });
+    return {dia:d, piezas:pz, n};
+  });
+  let inicial=0, actual=0, sinMover=[], sinRecaptura=[], recapturados=0;
+  const hoy = todayISO();
+  porClave.forEach((a,k)=>{
+    const p0 = a[0], p1 = a[a.length-1];
+    inicial += p0.piezas; actual += p1.piezas;
+    const dist = new Set(a.map(r=>r.diaCap)).size;
+    if(dist>=2){ recapturados++; if(p1.piezas >= p0.piezas) sinMover.push({...p1, p0:p0.piezas}); }
+    else if(pcDiasEntre(p1.diaCap, hoy) >= 7) sinRecaptura.push({...p1});
+  });
+  sinMover.sort((x,y)=>y.piezas-x.piezas); sinRecaptura.sort((x,y)=>y.piezas-x.piezas);
+  return {fecha, serie, inicial, actual, movidas:Math.max(0,inicial-actual), tiendasLote:porClave.size, recapturados, sinMover, sinRecaptura};
+}
+function pcSvgBarras(serie, etiqueta){
+  if(!serie.length) return '';
+  const W = Math.max(320, serie.length*58+40), H=170, pad=28;
+  const max = Math.max(...serie.map(s=>s.piezas), 1);
+  const bw = Math.min(38, (W-2*pad)/serie.length - 10);
+  let g = '';
+  serie.forEach((s,i)=>{
+    const x = pad + i*((W-2*pad)/serie.length) + 4;
+    const h = Math.round((s.piezas/max)*(H-pad*2));
+    g += `<rect x="${x}" y="${H-pad-h}" width="${bw}" height="${h}" rx="3" fill="var(--brand,#a1274b)" opacity="${i===serie.length-1?1:.6}"/>`
+      + `<text x="${x+bw/2}" y="${H-pad-h-4}" font-size="10" text-anchor="middle" fill="currentColor">${pcN(s.piezas)}</text>`
+      + `<text x="${x+bw/2}" y="${H-10}" font-size="9" text-anchor="middle" fill="currentColor" opacity=".7">${s.dia.slice(5)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; height:auto;" role="img" aria-label="${pcEsc(etiqueta)}">${g}</svg>`;
+}
+
+/* ---------- alertas con qué hacer ---------- */
+function pcConstruirAlertas(filas, ctx){
+  const A = [];
+  const add = (nivel, titulo, detalle, accion) => A.push({nivel, titulo, detalle, accion});
+  const vig = filas.filter(r=>!r.vencido);
+  const venc = filas.filter(r=>r.vencido && r.piezas>0);
+  if(venc.length){
+    const pz = venc.reduce((a,r)=>a+r.piezas,0), val = venc.reduce((a,r)=>a+r.piezas*r.precio,0);
+    const top = pcAgregar(venc, r=>r.cadena+' · '+r.tienda).sort((a,b)=>b.piezas-a.piezas).slice(0,3).map(a=>`${a.k} (${pcN(a.piezas)} pzas)`).join('; ');
+    add('bad', `${pcN(venc.length)} lote(s) ya vencido(s) en seguimiento: ${pcN(pz)} pzas (${pcMoney(val)})`, `Donde más: ${top}.`, 'Confirmar en la siguiente visita que se retiró y se dio de baja; si siguen en anaquel, retirar ese mismo día y levantar incidencia.');
+  }
+  const crit = vig.filter(r=>r.dias<=7 && r.riesgo>0).sort((a,b)=>b.valor-a.valor);
+  if(crit.length){
+    const pz = crit.reduce((a,r)=>a+r.riesgo,0), val = crit.reduce((a,r)=>a+r.valor,0);
+    const top = crit.slice(0,3).map(r=>`${r.tienda} / ${r.producto} (${pcN(r.riesgo)} pzas, vence ${r.fecha_caducidad.slice(5)})`).join('; ');
+    add('bad', `${pcN(crit.length)} lote(s) vencen en ≤7 días y no alcanzan a venderse: ${pcN(pz)} pzas (${pcMoney(val)})`, top+'.', 'Acción esta semana: promoción / exhibición adicional en esa tienda, o mover producto a una tienda de la misma cadena con mayor venta; avisar al supervisor hoy.');
+  }
+  const alto = vig.filter(r=>r.dias>7 && r.dias<=30 && r.riesgo>0);
+  if(alto.length){
+    const pz = alto.reduce((a,r)=>a+r.riesgo,0), val = alto.reduce((a,r)=>a+r.valor,0);
+    add('warn', `${pcN(alto.length)} lote(s) vencen en 8–30 días con riesgo: ${pcN(pz)} pzas (${pcMoney(val)})`, 'Todavía hay tiempo de actuar.', 'Planear rotación y reubicación esta semana; priorizar los de mayor valor (ver tabla por código).');
+  }
+  if(ctx.codigos.length && ctx.codigos[0].valor>0){
+    const c = ctx.codigos[0];
+    add('warn', `Código de mayor riesgo: ${c.producto} — ${pcN(c.riesgo)} pzas, ${pcMoney(c.valor)}`, `${pcN(c.nTiendasRiesgo)} tienda(s) con riesgo; ${pcN(c.pct,0)}% de lo capturado de este código.`, 'Revisar sobre-surtido de este código (pedido / inventario) y empujar promoción donde esté concentrado.');
+  }
+  const cadsRiesgo = ctx.cadenas.filter(c=>c.riesgo>0 && c.piezas>=30).sort((a,b)=>b.pct-a.pct);
+  if(cadsRiesgo.length){
+    const c = cadsRiesgo[0];
+    add(c.pct>=25?'bad':'warn', `Cadena con mayor % en riesgo: ${c.k} (${pcN(c.pct,0)}% de ${pcN(c.piezas)} pzas, ${pcMoney(c.valor)})`, 'Sobre la última captura vigente.', 'Hablar con el KAM/comprador de esa cadena: ajustar surtido o pedir apoyo promocional antes de que caduque.');
+  }
+  const sinVenta = vig.filter(r=>r.vel===0 && r.piezas>0 && r.dias<=60);
+  if(sinVenta.length){
+    const pz = sinVenta.reduce((a,r)=>a+r.piezas,0);
+    add('warn', `${pcN(sinVenta.length)} lote(s) sin movimiento de venta (venta diaria 0 o sin dato) vencen en ≤60 días: ${pcN(pz)} pzas`, 'Si es venta cero real, ese producto no se va a mover solo.', 'Verificar en tienda si está bien ubicado/etiquetado/disponible; si no se mueve, transferir o retirar antes de la fecha.');
+  }
+  const viejas = vig.filter(r=>r.dias<=30 && r.edadCaptura>=7);
+  if(viejas.length){
+    const porPers = pcAgregar(viejas, r=>r.persona||'(sin nombre)').sort((a,b)=>b.lotes-a.lotes).slice(0,3).map(a=>`${nombreCorto(a.k)} (${a.lotes})`).join(', ');
+    add('info', `${pcN(viejas.length)} lote(s) que vencen en ≤30 días no se han vuelto a revisar en 7+ días`, `Con más pendientes: ${porPers}.`, 'Pedir recaptura en la próxima visita: sin dato fresco, el riesgo real puede ser mayor o menor al calculado.');
+  }
+  const sinDato = filas.filter(r=>r.fuente==='Sin dato' || r.fuente==='Prom. general').length;
+  if(filas.length && sinDato/filas.length>0.25){
+    add('info', `${pcN(sinDato/filas.length*100,0)}% de los lotes usan velocidad estimada (no es dato de esa tienda)`, 'Esos riesgos son aproximados.', 'Mantener actualizada la base de venta por tienda/SKU para afinar el cálculo.');
+  }
+  const sups = pcAgregar(vig.filter(r=>r.riesgo>0), r=>r.supervisor||'(sin supervisor)').sort((a,b)=>b.valor-a.valor);
+  if(sups.length && sups[0].valor>0){
+    add('info', `Mayor valor en riesgo por supervisor(a): ${nombreCorto(sups[0].k)} — ${pcMoney(sups[0].valor)} (${pcN(sups[0].riesgo)} pzas)`, sups.slice(1,3).map(s=>`${nombreCorto(s.k)} ${pcMoney(s.valor)}`).join(' · '), 'Revisar con su equipo el plan de rotación de sus tiendas esta semana.');
+  }
+  if(!A.length) add('good', 'Sin alertas con los filtros actuales ✓', 'No hay lotes vencidos ni piezas en riesgo.', 'Mantener la captura al día en cada visita.');
+  return A;
+}
+
+/* ---------- render principal ---------- */
+function renderProxCaducar(){
+  if(!document.getElementById('view-proxcaducar')) return;
+  if(!currentUser || currentUser.perfil==='Embajador') return;
+  Object.keys(PC_DD).forEach(id=>{ const d=PC_DD[id]; if(!d.opts.length) pcDdRender(id); });
+  const selP = document.getElementById('pcPersona');
+  if(selP && selP.options.length<=1){
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').forEach(u=>{ const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre; selP.appendChild(o); });
+  }
+  if(!window._pcMesesReg){ registrarFiltroMesesCompletos('pc','pcMesDdPanel','pcMesDdBtn','pcDesde','pcHasta',renderProxCaducar); window._pcMesesReg = true; }
+  window.render_pcCadena = window.render_pcCodigo = window.render_pcDetalle = renderProxCaducar;
+
+  const f = pcLeerControles();
+  const hoy = todayISO();
+  const hist = pcCalcularRiesgo(pcFilasBase(f), f.colchon);          // todo lo capturado (con filtros)
+  const vigentes = pcCalcularRiesgo(pcAplicarModo(pcFilasBase(f), 'ultima'), f.colchon); // base de análisis: sin duplicados
+  const detalleBase = f.modo==='todo' ? hist : vigentes;
+  const detalle = pcFiltrarMostrar(detalleBase, f.mostrar);
+  window._pcDetalleRows = detalle; window._pcVigentes = vigentes; window._pcHist = hist;
+
+  // ---- KPIs
+  const vig = vigentes.filter(r=>!r.vencido);
+  const capturadoHoy = hist.filter(r=>r.diaCap===hoy);
+  const pzVig = vig.reduce((a,r)=>a+r.piezas,0);
+  const riesgoPz = vig.reduce((a,r)=>a+r.riesgo,0), riesgoVal = vig.reduce((a,r)=>a+r.valor,0);
+  const vencPz = vigentes.filter(r=>r.vencido).reduce((a,r)=>a+r.piezas,0);
+  const vencVal = vigentes.filter(r=>r.vencido).reduce((a,r)=>a+r.piezas*r.precio,0);
+  const r15 = vig.filter(r=>r.dias<=15).reduce((a,r)=>a+r.riesgo,0);
+  const tiendasVig = new Set(vig.map(r=>r.cadena+'|'+r.tienda)).size;
+  const kpi = (cls,label,val,sub) => `<div class="card kpi ${cls}"><div class="label">${label}</div><div class="value">${val}${sub?` <small>${sub}</small>`:''}</div></div>`;
+  document.getElementById('pcKpis').innerHTML =
+      kpi('', 'Capturado hoy', pcN(capturadoHoy.reduce((a,r)=>a+r.piezas,0)), `pzas · ${pcN(capturadoHoy.length)} registro(s)`)
+    + kpi('', 'Piezas vigentes en seguimiento', pcN(pzVig), `en ${pcN(tiendasVig)} tienda(s)`)
+    + kpi(riesgoPz>0?'bad':'good', 'Piezas que se pueden caducar', pcN(riesgoPz), pzVig?`${pcN(riesgoPz/pzVig*100,0)}% de lo vigente`:'')
+    + kpi(riesgoVal>0?'bad':'good', 'Valor en riesgo', pcMoney(riesgoVal), 'precio prom. catálogo')
+    + kpi(vencPz>0?'bad':'good', 'Ya vencidas (sin baja confirmada)', pcN(vencPz), pcMoney(vencVal))
+    + kpi(r15>0?'warn':'good', 'En riesgo y vencen ≤15 días', pcN(r15), 'pzas');
+
+  // ---- resúmenes
+  const cadenas = pcAgregar(vigentes, r=>r.cadena);
+  const codigos = pcAgregar(vigentes, r=>r.clave, r=>({producto:r.producto, familia:r.familia}));
+  const cOrd = ordenarFilas('pcCadena', cadenas, 'valor');
+  const kOrd = ordenarFilas('pcCodigo', codigos.sort((a,b)=>b.valor-a.valor), 'valor');
+  document.getElementById('pcCadenaHead').innerHTML = colHead('pcCadena','k','Cadena',false)+colHead('pcCadena','nTiendas','Tiendas',true)+colHead('pcCadena','piezas','Piezas capturadas',true)+colHead('pcCadena','riesgo','Piezas que se pueden caducar',true)+colHead('pcCadena','pct','% en riesgo',true)+colHead('pcCadena','valor','Valor en riesgo',true)+colHead('pcCadena','riesgo15','En riesgo ≤15 días',true)+colHead('pcCadena','vencidas','Ya vencidas (pzas)',true);
+  document.getElementById('pcCadenaBody').innerHTML = cOrd.map(a=>`<tr><td><b>${pcEsc(a.k)}</b></td><td class="num">${pcN(a.nTiendas)}</td><td class="num">${pcN(a.piezas)}</td><td class="num">${pcN(a.riesgo)}</td><td class="num" style="color:${a.pct>=25?'var(--bad)':a.pct>=10?'var(--warn)':'inherit'}">${pcN(a.pct,0)}%</td><td class="num">${pcMoney(a.valor)}</td><td class="num">${pcN(a.riesgo15)}</td><td class="num">${pcN(a.vencidas)}</td></tr>`).join('') || `<tr><td colspan="8" class="empty-state">Sin capturas de caducidad con estos filtros.</td></tr>`;
+  document.getElementById('pcCodigoHead').innerHTML = `<th>#</th>`+colHead('pcCodigo','producto','Producto',false)+colHead('pcCodigo','familia','Familia',false)+colHead('pcCodigo','nTiendas','Tiendas',true)+colHead('pcCodigo','piezas','Piezas',true)+colHead('pcCodigo','riesgo','Se pueden caducar',true)+colHead('pcCodigo','pct','% en riesgo',true)+colHead('pcCodigo','valor','Valor en riesgo',true)+colHead('pcCodigo','nTiendasRiesgo','Tiendas con riesgo',true)+colHead('pcCodigo','velProm','Venta diaria prom.',true);
+  document.getElementById('pcCodigoBody').innerHTML = kOrd.slice(0,50).map((a,i)=>`<tr><td>${i+1}${i===0 && a.valor>0?' 🔥':''}</td><td><b>${pcEsc(a.producto)}</b> <span style="color:var(--ink-soft); font-size:11px;">${pcEsc(a.k)}</span></td><td>${pcEsc(a.familia)}</td><td class="num">${pcN(a.nTiendas)}</td><td class="num">${pcN(a.piezas)}</td><td class="num">${pcN(a.riesgo)}</td><td class="num" style="color:${a.pct>=25?'var(--bad)':a.pct>=10?'var(--warn)':'inherit'}">${pcN(a.pct,0)}%</td><td class="num">${pcMoney(a.valor)}</td><td class="num">${pcN(a.nTiendasRiesgo)}</td><td class="num">${a.velProm==null?'—':pcN(a.velProm,2)}</td></tr>`).join('') || `<tr><td colspan="10" class="empty-state">Sin datos.</td></tr>`;
+
+  // ---- alertas
+  const alertas = pcConstruirAlertas(vigentes, {cadenas, codigos: kOrd});
+  const color = {bad:'var(--bad)', warn:'var(--warn)', info:'var(--brand,#a1274b)', good:'var(--good,#2e8b57)'};
+  const icono = {bad:'🔴', warn:'🟠', info:'🔵', good:'🟢'};
+  document.getElementById('pcAlertas').innerHTML = alertas.map(a=>`<div class="card" style="margin-bottom:8px; padding:10px 14px; border-left:4px solid ${color[a.nivel]};"><div style="font-weight:700; font-size:13.5px;">${icono[a.nivel]} ${pcEsc(a.titulo)}</div>${a.detalle?`<div style="font-size:12.5px; color:var(--ink-soft); margin-top:2px;">${pcEsc(a.detalle)}</div>`:''}<div style="font-size:12.5px; margin-top:4px;">👉 <b>Qué hacer:</b> ${pcEsc(a.accion)}</div></div>`).join('');
+
+  // ---- evolución
+  const evoSel = document.getElementById('pcEvoFecha');
+  const fechas = [...new Set(hist.map(r=>r.fecha_caducidad))].sort();
+  const prevEvo = evoSel.value;
+  if(evoSel.dataset.n !== String(fechas.length) + '|' + fechas.join(',').length){
+    evoSel.innerHTML = fechas.map(d=>`<option value="${d}">${d}${d<hoy?' (vencida)':d===hoy?' (hoy)':` (en ${pcDiasEntre(hoy,d)} d)`}</option>`).join('') || '<option value="">—</option>';
+    evoSel.dataset.n = String(fechas.length) + '|' + fechas.join(',').length;
+    const prox = fechas.find(d=>d>=hoy) || fechas[fechas.length-1] || '';
+    evoSel.value = fechas.includes(prevEvo) ? prevEvo : prox;
+  }
+  const evo = evoSel.value ? pcEvolucionDatos(hist, evoSel.value) : null;
+  const evoBox = document.getElementById('pcEvolucion');
+  if(!evo){ evoBox.innerHTML = `<div class="card"><p style="margin:0; font-size:13px; color:var(--ink-soft);">Sin capturas para esa fecha de caducidad con los filtros actuales.</p></div>`; }
+  else {
+    const pctMov = evo.inicial ? evo.movidas/evo.inicial*100 : 0;
+    const diasFalta = pcDiasEntre(hoy, evo.fecha);
+    const lectura = evo.recapturados===0
+      ? `Aún no hay una segunda captura de este lote: no se puede medir cuánto se ha movido. Pedir recaptura en la próxima visita.`
+      : `De ${pcN(evo.inicial)} pzas en la primera captura quedan ${pcN(evo.actual)} (${pcN(pctMov,0)}% ya se movió). ${evo.sinMover.length?`${pcN(evo.sinMover.length)} tienda(s)/código(s) recapturados NO se movieron.`:'Todo lo recapturado se movió.'}${diasFalta>=0?` Faltan ${pcN(diasFalta)} día(s) para que venza.`:' Esta fecha ya venció: lo que sigue en tienda debe darse de baja.'}`;
+    const filasTabla = [...evo.sinMover.slice(0,8).map(r=>({...r, nota:`Sin movimiento (antes ${pcN(r.p0)} pzas)`})), ...evo.sinRecaptura.slice(0,8).map(r=>({...r, nota:`Sin recaptura hace ${pcN(r.edadCaptura)} días`}))];
+    evoBox.innerHTML = `<div class="row" style="margin-bottom:10px;">`
+      + kpi('', 'Primera captura', pcN(evo.inicial), 'pzas')
+      + kpi('', 'Última captura', pcN(evo.actual), 'pzas')
+      + kpi(pctMov>=50?'good':'warn', 'Ya se movió', pcN(evo.movidas), `${pcN(pctMov,0)}%`)
+      + kpi(evo.sinMover.length?'bad':'good', 'Recapturados sin moverse', pcN(evo.sinMover.length), 'tienda-código')
+      + kpi(evo.sinRecaptura.length?'warn':'good', 'Sin recaptura (7+ días)', pcN(evo.sinRecaptura.length), 'tienda-código')
+      + `</div><div class="card" style="padding:12px 14px;"><div style="font-size:13px; margin-bottom:8px;"><b>Lote que caduca el ${evo.fecha}</b> — ${pcEsc(lectura)}</div>${pcSvgBarras(evo.serie, 'Piezas conocidas por día de captura')}<div style="font-size:11px; color:var(--ink-soft);">Piezas conocidas de este lote por día de captura (última captura de cada tienda y código hasta ese día).</div>`
+      + (filasTabla.length ? `<div class="table-scroll" style="margin-top:10px;"><table><thead><tr><th>Cadena</th><th>Tienda</th><th>Producto</th><th class="num">Pzas</th><th>Lectura</th></tr></thead><tbody>${filasTabla.map(r=>`<tr><td>${pcEsc(r.cadena)}</td><td>${pcEsc(r.tienda)}</td><td>${pcEsc(r.producto)}</td><td class="num">${pcN(r.piezas)}</td><td>${pcEsc(r.nota)}</td></tr>`).join('')}</tbody></table></div>`:'')
+      + `</div>`;
+  }
+
+  // ---- detalle
+  document.getElementById('pcDetalleTitulo').textContent = `(${f.modo==='todo'?'todo lo capturado':'última captura por tienda y código'} · ${pcN(detalle.length)} fila(s))`;
+  document.getElementById('pcDetalleHead').innerHTML = colHead('pcDetalle','num_tienda','# Tienda',true)+colHead('pcDetalle','tienda','Tienda',false)+colHead('pcDetalle','supervisor','Supervisor(a)',false)+colHead('pcDetalle','persona','Capturó',false)+colHead('pcDetalle','fecha_registro','Cuándo',false)+colHead('pcDetalle','fecha_caducidad','Caduca',false)+colHead('pcDetalle','dias','Días',true)+colHead('pcDetalle','producto','Producto',false)+colHead('pcDetalle','piezas','Pzas',true)+colHead('pcDetalle','vel','Venta diaria',true)+colHead('pcDetalle','riesgo','Se pueden caducar',true)+colHead('pcDetalle','valor','Valor',true)+colHead('pcDetalle','estatus','Estatus',false);
+  const dOrd = ordenarFilas('pcDetalle', detalle, 'valor');
+  const LIM = 500;
+  document.getElementById('pcDetalleBody').innerHTML = dOrd.slice(0,LIM).map(r=>`<tr><td class="num">${pcEsc(r.num_tienda)}</td><td>${pcEsc(r.cadena)} · ${pcEsc(r.tienda)}</td><td>${pcEsc(nombreCorto(r.supervisor))}</td><td>${pcEsc(nombreCorto(r.persona))}</td><td>${pcEsc(fechaHoraLocal(r.fecha_registro))}</td><td>${r.fecha_caducidad}</td><td class="num" style="color:${r.dias<0?'var(--bad)':r.dias<=7?'var(--warn)':'inherit'}">${r.dias}</td><td>${pcEsc(r.producto)} <span style="color:var(--ink-soft); font-size:11px;">${pcEsc(r.clave)}</span></td><td class="num">${pcN(r.piezas)}</td><td class="num" title="${pcEsc(r.fuente)}">${pcN(r.vel,2)}</td><td class="num">${pcN(r.riesgo)}</td><td class="num">${pcMoney(r.valor)}</td><td>${pcEsc(r.estatus)}</td></tr>`).join('') || `<tr><td colspan="13" class="empty-state">Sin capturas de caducidad con estos filtros.</td></tr>`;
+  document.getElementById('pcDetallePie').textContent = (dOrd.length>LIM ? `Mostrando ${LIM} de ${pcN(dOrd.length)} filas (el Excel trae todas). ` : '') + 'Venta diaria = piezas/día de esa tienda y código (si no hay dato de la tienda, se usa el promedio de la cadena). "Se pueden caducar" = lo que no alcanza a venderse antes de la fecha (se vende primero lo que caduca primero).';
+  document.getElementById('pcNota').textContent = f.modo==='todo'
+    ? '⚠️ Modo "Todo": la tabla y el Excel incluyen visitas repetidas; los KPIs y resúmenes siguen usando la última captura (sin duplicados).'
+    : `Se descartaron ${pcN(Math.max(0, hist.length - vigentes.length))} registro(s) repetidos o de visitas anteriores.`;
+}
+function pcLimpiarFiltros(){
+  Object.values(PC_DD).forEach(d=>d.sel=null);
+  ['pcPersona','pcDesde','pcHasta','pcMostrar'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  const m = document.getElementById('pcModo'); if(m) m.value='ultima';
+  const c = document.getElementById('pcColchon'); if(c) c.value='0';
+  window.pcFiltroMesesCompletos = new Set();
+  try{ _renderMesesCompletosChips('pc','pcMesDdPanel','pcMesDdBtn'); }catch(e){}
+  Object.keys(PC_DD).forEach(pcDdRender);
+  renderProxCaducar();
+}
+
+/* ---------- Excel ---------- */
+function pcFilasExcel(rows){
+  return rows.map(r=>({
+    'Núm. tienda': r.num_tienda, 'Cadena': r.cadena, 'Tienda': r.tienda, 'Región': r.region, 'Supervisor(a)': r.supervisor,
+    'Capturó': r.persona, 'Cuándo capturó': fechaHoraLocal(r.fecha_registro), 'Fecha de caducidad': r.fecha_caducidad, 'Días para caducar (hoy)': r.dias,
+    'Código': r.clave, 'Producto': r.producto, 'Familia': r.familia, 'Piezas': r.piezas,
+    'Item velocity (pzas/día)': Math.round(r.vel*100)/100, 'Fuente de la velocidad': r.fuente,
+    'Días de venta que cubre el stock': r.diasCubre==null ? '' : Math.round(r.diasCubre),
+    'Piezas que se pueden caducar': Math.round(r.riesgo*10)/10, '% en riesgo': Math.round(r.pctRiesgo*100),
+    'Precio promedio': r.precio, 'Valor en riesgo $': Math.round(r.valor), 'Estatus': r.estatus,
+  }));
+}
+async function exportarProxCaducarExcel(){
+  if(!currentUser || currentUser.perfil==='Embajador'){ toast('Esta vista es solo para Supervisor, Coordinador y Admin.'); return; }
+  renderProxCaducar();
+  const rows = window._pcDetalleRows || [];
+  if(!rows.length){ toast('No hay datos para exportar con estos filtros.'); return; }
+  const f = pcLeerControles();
+  const ordenadas = [...rows].sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad) || b.valor-a.valor);
+  const detalle = pcFilasExcel(ordenadas);
+  const vig = window._pcVigentes || [];
+  const resCad = pcAgregar(vig, r=>r.cadena).sort((a,b)=>b.valor-a.valor).map(a=>({'Cadena':a.k,'Tiendas':a.nTiendas,'Piezas capturadas':a.piezas,'Piezas que se pueden caducar':Math.round(a.riesgo),'% en riesgo':Math.round(a.pct),'Valor en riesgo $':Math.round(a.valor),'En riesgo ≤15 días':Math.round(a.riesgo15),'Ya vencidas (pzas)':a.vencidas}));
+  const resCod = pcAgregar(vig, r=>r.clave, r=>({producto:r.producto, familia:r.familia})).sort((a,b)=>b.valor-a.valor).map(a=>({'Código':a.k,'Producto':a.producto,'Familia':a.familia,'Tiendas':a.nTiendas,'Piezas':a.piezas,'Piezas que se pueden caducar':Math.round(a.riesgo),'% en riesgo':Math.round(a.pct),'Valor en riesgo $':Math.round(a.valor),'Tiendas con riesgo':a.nTiendasRiesgo}));
+  const nombre = `proximos_a_caducar_${f.modo==='todo'?'todo':'ultima_captura'}_${todayISO()}`;
+  const ok = await cargarXLSX();
+  if(ok && typeof XLSX!=='undefined'){
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalle), f.modo==='todo'?'Todo lo capturado':'Última captura');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resCad), 'Por cadena');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resCod), 'Por código');
+    XLSX.writeFile(wb, nombre+'.xlsx');
+    toast(`Excel listo ✓ (${detalle.length} filas)`);
+  } else {
+    const headers = Object.keys(detalle[0]);
+    exportarCSV(nombre+'.csv', headers, detalle.map(o=>headers.map(h=>o[h])));
+    toast('No se pudo cargar la librería de Excel; se descargó en CSV (abre en Excel).');
+  }
 }
 
 /* ---------- VACACIONES ---------- */
