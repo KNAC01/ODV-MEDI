@@ -189,6 +189,20 @@
   .persona-chip{background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12px; cursor:grab; font-weight:600;}
   .persona-chip:active{cursor:grabbing;}
   .ruta-board{flex:1; display:grid; grid-template-columns:repeat(7,minmax(150px,1fr)); gap:8px; overflow-x:auto;}
+  .ruta-board{display:block !important; overflow:auto; max-height:78vh; min-width:0;}
+  .ruta-tabla{border-collapse:separate; border-spacing:0; min-width:100%; background:var(--surface);}
+  .ruta-tabla th, .ruta-tabla td{border:1px solid var(--line); vertical-align:top; padding:6px;}
+  .ruta-tabla thead th{position:sticky; top:0; z-index:3; background:var(--brand-soft); font-size:12px; text-align:center; min-width:210px;}
+  .ruta-tabla thead th.rt-dia{left:0; z-index:4; min-width:96px; width:96px;}
+  .ruta-tabla tbody th.rt-dia{position:sticky; left:0; z-index:2; background:var(--surface-2); text-transform:uppercase; font-size:12px; color:var(--brand-dark); text-align:center; min-width:96px;}
+  .ruta-tabla .rt-fecha{font-size:11px; color:var(--ink-soft); font-weight:600; text-transform:none;}
+  .ruta-tabla .rt-sub{font-size:10px; font-weight:600; color:var(--ink-soft);}
+  .ruta-tabla .rt-celda{min-width:210px; background:var(--surface-2);}
+  .ruta-tabla .rt-celda .ruta-card{margin-bottom:6px;}
+  .ruta-tabla .rt-nada{text-align:center; color:var(--ink-soft); font-size:12px; padding:8px 0;}
+  .ruta-tabla .rt-vacia{text-align:center; color:var(--ink-soft); font-size:12px; height:54px; vertical-align:middle;}
+  .ruta-tabla .dragover{background:var(--brand-soft) !important;}
+  .ruta-tabla tr.rt-hoy th.rt-dia{background:var(--warn-soft);}
   .day-col{background:var(--surface-2); border:1px dashed var(--line); border-radius:12px; min-height:420px; padding:8px; transition:background .15s, border-color .15s;}
   .day-col.dragover{border-color:var(--spring-dark); background:var(--brand-soft);}
   .day-col .day-head{font-weight:700; font-size:12px; text-transform:uppercase; color:var(--brand-dark); text-align:center; letter-spacing:.02em;}
@@ -1054,6 +1068,9 @@
 
       <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
       <div id="cvInsights"></div>
+
+      <h2 class="section-title" style="margin-top:18px;">🔎 ¿Qué se está atorando y qué hacemos?</h2>
+      <div id="cvDiag"></div>
 
       <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 8px;">
         <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Por código de tienda (clic para ver el detalle semanal)</h3>
@@ -8562,6 +8579,192 @@ function renderCvInsights(storesScope, semanas){
 
   box.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
 }
+/* ---------- DIAGNÓSTICO "¿Qué se está atorando?" (Cumplimiento de venta) ----------
+   Solo compara contra las semanas que YA tienen sell out cargado (si no, las semanas futuras salen como 0% y todo parece atorado). */
+function cvDiagSemanasConDato(semanas){
+  const tot = {};
+  (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{ tot[r.semana] = (tot[r.semana]||0) + (r.real_uni||0); });
+  return [...semanas].filter(s=>tot[s]>0).sort((a,b)=>a-b);
+}
+function cvDiagAgrupar(filas, keyFn){
+  const m = new Map();
+  filas.forEach(r=>{
+    const k = keyFn(r); if(k==null || k==='') return;
+    if(!m.has(k)) m.set(k, {k, meta:0, real:0, sem:{}, tiendas:new Set()});
+    const a = m.get(k); a.meta += r.meta; a.real += r.real; a.tiendas.add(r.cadena+'|'+r.num_tienda);
+    const s = a.sem[r.semana] = a.sem[r.semana] || {meta:0, real:0}; s.meta += r.meta; s.real += r.real;
+  });
+  const arr = [...m.values()].map(a=>({...a, falta:Math.max(0,a.meta-a.real), pct:a.meta?a.real/a.meta*100:null, n:a.tiendas.size}));
+  const totFalta = arr.reduce((x,a)=>x+a.falta,0);
+  arr.forEach(a=>{ a.peso = totFalta ? a.falta/totFalta*100 : 0; });
+  return arr;
+}
+function cvDiagTendencia(a, semsDato){
+  const pts = semsDato.map(s=>({s, pct: a.sem[s] && a.sem[s].meta ? a.sem[s].real/a.sem[s].meta*100 : null})).filter(p=>p.pct!=null);
+  if(pts.length<2) return {txt:'', delta:0, desde:null};
+  const ult = pts.slice(-3);
+  const delta = pts[pts.length-1].pct - pts[pts.length-2].pct;
+  let desde = null;
+  for(let i=pts.length-1;i>=0 && pts[i].pct<85;i--) desde = pts[i].s;
+  return {txt: ult.map(p=>`S${p.s} ${Math.round(p.pct)}%`).join(' → '), delta, desde};
+}
+const cvDiagColor = pct => pct==null ? 'var(--ink-soft)' : pct>=100 ? 'var(--good,#2e8b57)' : pct>=85 ? '#9a9a1f' : pct>=60 ? 'var(--warn)' : 'var(--bad)';
+function cvDiagTabla(titulo, icono, arr, semsDato, opts){
+  opts = opts || {};
+  const filas = arr.filter(a=>a.meta>0).sort((a,b)=>b.falta-a.falta).slice(0, opts.top||6);
+  if(arr.filter(a=>a.meta>0).length<2 && !opts.siempre) return '';
+  const html = filas.map(a=>{
+    const t = a.sem ? cvDiagTendencia(a, semsDato) : {txt:'',delta:0,desde:null};
+    const flecha = t.delta<=-8 ? '🔻' : t.delta>=8 ? '🔺' : '▪️';
+    const pct = a.pct==null ? 0 : a.pct;
+    return `<tr><td style="max-width:210px;"><b>${pcEsc(a.etiqueta||a.k)}</b>${a.sub?`<div style="font-size:10.5px; color:var(--ink-soft);">${pcEsc(a.sub)}</div>`:''}</td>
+      <td style="min-width:90px;"><div style="background:var(--line,#e6e6d8); border-radius:5px; height:9px; width:90px;"><div style="height:9px; border-radius:5px; width:${Math.min(100,Math.max(2,pct))}%; background:${cvDiagColor(a.pct)};"></div></div><div style="font-size:11.5px; font-weight:700; color:${cvDiagColor(a.pct)};">${a.pct==null?'—':Math.round(a.pct)+'%'}</div></td>
+      <td class="num">${fmtNum(a.falta)}</td><td class="num">${Math.round(a.peso)}%</td>
+      <td style="font-size:11px; color:var(--ink-soft);">${t.txt?`${flecha} ${t.txt}`:''}${t.desde?`<div>bajo 85% desde S${t.desde}</div>`:''}</td></tr>`;
+  }).join('');
+  if(!html) return '';
+  return `<div class="card" style="padding:12px 14px; margin-bottom:12px;"><div style="font-weight:700; font-size:13.5px; margin-bottom:6px;">${icono} ${titulo}</div>
+    <div class="table-scroll"><table><thead><tr><th></th><th>Cumplimiento</th><th class="num">Falta (pzas)</th><th class="num">Pesa en el rezago</th><th>Tendencia</th></tr></thead><tbody>${html}</tbody></table></div></div>`;
+}
+function cvDiagFamiliasYCodigos(storesScope, semanas, semsDato){
+  // Agosto: ventas_cuota_sku (meta y real del mes completo). Septiembre: cuota_sep del SKU prorrateada a las semanas con dato vs. mtd_26 del pipeline.
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const meses = [...cvFiltroMeses];
+  const porSku = new Map();
+  const nombres = {}; APP_DATA.catalogo_productos.forEach(p=>nombres[p.clave]=p.nombre);
+  const suma = (fam, clave, meta, real)=>{
+    const k = clave; if(!porSku.has(k)) porSku.set(k,{k, etiqueta:(nombres[clave]||clave), familia:fam||'', meta:0, real:0});
+    const a = porSku.get(k); a.meta+=meta; a.real+=real;
+  };
+  if(meses.includes('Agosto')){
+    (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda)).forEach(r=>suma(r.familia, r.clave, r.cuota_uni||0, r.real_uni||0));
+  }
+  if(meses.includes('Septiembre')){
+    const sepSems = semanasCuotaMes('Septiembre');
+    const conDato = new Set(semsDato);
+    const tot = {}, aFecha = {};
+    (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{
+      if(!sepSems.includes(r.semana)) return;
+      const k = r.cadena+'|'+r.num_tienda; const m = cvMetaUni(r)||0;
+      tot[k]=(tot[k]||0)+m; if(conDato.has(r.semana)) aFecha[k]=(aFecha[k]||0)+m;
+    });
+    const mtd = {};
+    (APP_DATA.combinaciones||[]).forEach(c=>{ const k=c.cadena+'|'+c.num_tienda+'|'+c.clave; mtd[k]=(mtd[k]||0)+(c.mtd_26||0); });
+    const tiendasConPipeline = new Set((APP_DATA.combinaciones||[]).map(c=>c.cadena+'|'+c.num_tienda));
+    (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda) && tiendasConPipeline.has(r.cadena+'|'+r.num_tienda)).forEach(r=>{
+      const k = r.cadena+'|'+r.num_tienda;
+      const f = tot[k] ? (aFecha[k]||0)/tot[k] : 0;
+      const base = cvMetaTipo==='escalon' ? (r.escalon_sep_uni ?? r.cuota_sep_uni ?? 0) : (r.cuota_sep_uni ?? 0);
+      suma(r.familia, r.clave, base*f, mtd[k+'|'+r.clave]||0);
+    });
+  }
+  const skus = [...porSku.values()].map(a=>({...a, falta:Math.max(0,a.meta-a.real), pct:a.meta?a.real/a.meta*100:null, sub:a.familia, sem:null}));
+  const fams = new Map();
+  skus.forEach(a=>{ const f=a.familia||'Sin familia'; if(!fams.has(f)) fams.set(f,{k:f,meta:0,real:0,sem:null,n:0}); const x=fams.get(f); x.meta+=a.meta; x.real+=a.real; x.n++; });
+  const famArr = [...fams.values()].map(a=>({...a, falta:Math.max(0,a.meta-a.real), pct:a.meta?a.real/a.meta*100:null, sub:`${a.n} código(s)`}));
+  const tF = famArr.reduce((x,a)=>x+a.falta,0), tS = skus.reduce((x,a)=>x+a.falta,0);
+  famArr.forEach(a=>a.peso = tF? a.falta/tF*100:0); skus.forEach(a=>a.peso = tS? a.falta/tS*100:0);
+  return {fams:famArr, skus};
+}
+function renderCvDiagnostico(storesScope, semanas){
+  const box = document.getElementById('cvDiag'); if(!box) return;
+  const semsDato = cvDiagSemanasConDato(semanas);
+  const storeBy = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const filas = (APP_DATA.cumplimiento_semanal||[]).filter(r=>storeBy.has(r.cadena+'|'+r.num_tienda) && semsDato.includes(r.semana)).map(r=>{
+    const st = storeBy.get(r.cadena+'|'+r.num_tienda);
+    return {cadena:r.cadena, num_tienda:r.num_tienda, tienda:st.tienda, semana:r.semana, meta:cvMetaUni(r)||0, real:r.real_uni||0, st};
+  });
+  const metaTxt = cvMetaTipo==='escalon' ? 'escalón Bono' : 'cuota';
+  if(!filas.length || !filas.some(r=>r.meta>0)){
+    box.innerHTML = `<div class="card"><p style="margin:0; font-size:13px; color:var(--ink-soft);">Todavía no hay semanas con venta real cargada dentro del periodo elegido, así que no se puede diagnosticar. Elige otro mes o sube el sell out más reciente.</p></div>`;
+    return;
+  }
+  const metaT = filas.reduce((a,r)=>a+r.meta,0), realT = filas.reduce((a,r)=>a+r.real,0);
+  const pctT = metaT ? realT/metaT*100 : null;
+  const metaPeriodo = (APP_DATA.cumplimiento_semanal||[]).filter(r=>storeBy.has(r.cadena+'|'+r.num_tienda) && semanas.has(r.semana)).reduce((a,r)=>a+(cvMetaUni(r)||0),0);
+  const semsFaltan = [...semanas].filter(s=>!semsDato.includes(s)).length;
+  const ritmoSem = realT/Math.max(1,semsDato.length);
+  const proy = realT + ritmoSem*semsFaltan;
+  const pctProy = metaPeriodo ? proy/metaPeriodo*100 : null;
+
+  // ---- dimensiones
+  const dims = [
+    cvDiagTabla('Por cadena','🏪', cvDiagAgrupar(filas, r=>r.cadena), semsDato),
+    cvDiagTabla('Por región','🗺️', cvDiagAgrupar(filas, r=>(r.st.region && String(r.st.region)!=='0') ? r.st.region : '(sin región)'), semsDato),
+    currentUser.perfil==='Embajador' ? '' : cvDiagTabla('Por supervisor(a)','👩‍💼', cvDiagAgrupar(filas, r=>{ const s=supervisorDeTienda(r.st); return s?nombreCorto(s):'(sin supervisor)'; }), semsDato),
+    currentUser.perfil==='Embajador' ? '' : cvDiagTabla('Por embajador(a) / sector','🧑‍🍳', cvDiagAgrupar(filas, r=>{ const e=embajadorDeTienda(r.st); return e?nombreCorto(e):(r.st.sector||'(sin asignar)'); }), semsDato),
+    cvDiagTabla('Por cluster de tienda','💎', cvDiagAgrupar(filas, r=>r.st.cluster||'Sin cluster'), semsDato),
+    cvDiagTabla('Tiendas que más pesan en el rezago','📍', cvDiagAgrupar(filas, r=>r.cadena+'|'+r.num_tienda).map(a=>{ const s=storeBy.get(a.k); return {...a, etiqueta:`${s.num_tienda} · ${s.tienda}`, sub:s.cadena}; }), semsDato, {top:8, siempre:true}),
+  ];
+  const fc = cvDiagFamiliasYCodigos(storesScope, semanas, semsDato);
+  dims.splice(2,0, cvDiagTabla('Por familia','🥣', fc.fams, semsDato));
+  dims.push(cvDiagTabla('Códigos (SKU) que más pesan en el rezago','🔻', fc.skus, semsDato, {top:8, siempre:true}));
+
+  // ---- causas: visitas, demos, distribución, venta cero (solo tiendas rezagadas)
+  const porTienda = cvDiagAgrupar(filas, r=>r.cadena+'|'+r.num_tienda).filter(a=>a.meta>0);
+  const rez = porTienda.filter(a=>a.pct<80);
+  const mesesAnioMes = new Set([...cvFiltroMeses].map(m=>MES_NUM_BONO[m]).filter(Boolean).map(n=>'2026-'+String(n).padStart(2,'0')));
+  const caps = getCapturas().filter(c=>c.fecha_registro && mesesAnioMes.has(fechaLocal(c.fecha_registro).slice(0,7)));
+  const visitas = new Set(caps.filter(c=>c.tipo==='entrada_tienda').map(c=>c.cadena+'|'+c.tienda));
+  const demos = new Set(caps.filter(c=>c.tipo==='degustacion').map(c=>c.cadena+'|'+c.tienda));
+  const hayCapturas = caps.some(c=>c.tipo==='entrada_tienda');
+  const dist = new Map((APP_DATA.distribucion_por_tienda||[]).map(d=>[d.cadena+'|'+d.num_tienda, d]));
+  const vcero = {}; (APP_DATA.alertas_venta_cero||[]).forEach(a=>{ const k=a.cadena+'|'+a.num_tienda; vcero[k]=(vcero[k]||0)+1; });
+  const nombreSt = k => { const s=storeBy.get(k); return s? `${s.num_tienda} · ${s.tienda}` : k; };
+  const rezSinVisita = hayCapturas ? rez.filter(a=>!visitas.has(storeBy.get(a.k).cadena+'|'+storeBy.get(a.k).tienda)) : [];
+  const rezSinDemo = hayCapturas ? rez.filter(a=>!demos.has(storeBy.get(a.k).cadena+'|'+storeBy.get(a.k).tienda)) : [];
+  const rezDist = rez.filter(a=>dist.get(a.k) && dist.get(a.k).pct_distribucion<100);
+  const rezVCero = rez.filter(a=>vcero[a.k]>0);
+  const pctProm = arr => arr.length ? arr.reduce((x,a)=>x+a.real,0)/Math.max(1,arr.reduce((x,a)=>x+a.meta,0))*100 : null;
+  const conDemo = porTienda.filter(a=>{const s=storeBy.get(a.k); return demos.has(s.cadena+'|'+s.tienda);});
+  const sinDemo = porTienda.filter(a=>{const s=storeBy.get(a.k); return !demos.has(s.cadena+'|'+s.tienda);});
+  const conVisita = porTienda.filter(a=>{const s=storeBy.get(a.k); return visitas.has(s.cadena+'|'+s.tienda);});
+  const sinVisita = porTienda.filter(a=>{const s=storeBy.get(a.k); return !visitas.has(s.cadena+'|'+s.tienda);});
+
+  // ---- alertas y sugerencias
+  const A = []; const add=(n,t,d,a)=>A.push({n,t,d,a});
+  const piv = (APP_DATA.bi_meta||{}).pipeline_actualizado_utc;
+  if(piv){
+    const dias = Math.round((Date.now()-new Date(piv).getTime())/86400000);
+    if(dias>=7) add('warn', `El sell out solo está cargado hasta la semana S${semsDato[semsDato.length-1]} (actualizado hace ${dias} días)`, 'Los % de abajo son "a la fecha de carga"; lo que se vendió después no se está viendo.', 'Cargar el sell out y el pipeline más recientes antes de tomar decisiones con estos %.');
+  }
+  if(pctT!=null && pctT<85) add('bad', `Ritmo atorado: ${Math.round(pctT)}% de la ${metaTxt} a la fecha (${fmtNum(realT)} de ${fmtNum(metaT)} pzas)`, pctProy!=null ? `Si siguen al ritmo actual (~${fmtNum(ritmoSem)} pzas/semana) cierran en ~${Math.round(pctProy)}% de la ${metaTxt} del periodo.` : '', `Para cerrar necesitan ~${fmtNum(Math.max(0,metaPeriodo-realT)/Math.max(1,semsFaltan||1))} pzas/semana en las ${semsFaltan||1} semana(s) restantes: concentrar esfuerzo en las tiendas y códigos que más pesan (tablas de abajo).`);
+  else if(pctT!=null) add('good', `Vas en ${Math.round(pctT)}% de la ${metaTxt} a la fecha`, '', 'Mantener el ritmo y cuidar las tiendas rezagadas para que no jalen el promedio.');
+  const dimsFuertes = [['cadena',cvDiagAgrupar(filas,r=>r.cadena)],['región',cvDiagAgrupar(filas,r=>(r.st.region && String(r.st.region)!=='0') ? r.st.region : '(sin región)')],['familia',fc.fams],['código',fc.skus]];
+  dimsFuertes.forEach(([n,arr])=>{
+    const top = arr.filter(a=>a.meta>0).sort((a,b)=>b.falta-a.falta)[0];
+    if(top && arr.length>1 && top.peso>=30 && top.pct<90) add(top.pct<70?'bad':'warn', `${top.etiqueta||top.k}: concentra ${Math.round(top.peso)}% del rezago por ${n} (cumple ${Math.round(top.pct)}%)`, `Faltan ${fmtNum(top.falta)} pzas.`, `Sentarse con el responsable de ${top.etiqueta||top.k} para un plan específico (exhibición, promoción, resurtido o degustaciones).`);
+  });
+  const sups = cvDiagAgrupar(filas, r=>{ const s=supervisorDeTienda(r.st); return s?nombreCorto(s):''; }).filter(a=>a.meta>0).sort((a,b)=>b.falta-a.falta);
+  if(currentUser.perfil!=='Embajador' && sups.length>1 && sups[0].pct<80) add('warn', `Supervisión con más rezago: ${sups[0].k} (${Math.round(sups[0].pct)}%, faltan ${fmtNum(sups[0].falta)} pzas)`, `Le siguen ${sups.slice(1,3).map(s=>`${s.k} ${Math.round(s.pct)}%`).join(' · ')}.`, 'Acompañamiento en piso esta semana y revisar su ruta: ¿las tiendas rezagadas están dentro de las visitas?');
+  const cae = cvDiagAgrupar(filas, r=>r.cadena).filter(a=>a.meta>0).map(a=>({a, t:cvDiagTendencia(a, semsDato)})).filter(x=>x.t.delta<=-15).sort((x,y)=>x.t.delta-y.t.delta);
+  if(cae.length) add('warn', `Caída fuerte en la última semana: ${cae.slice(0,3).map(x=>`${x.a.k} (${Math.round(x.t.delta)} pts)`).join(', ')}`, 'Pasó de una semana a otra, no es un problema de todo el mes.', 'Revisar qué cambió esa semana: quiebres de inventario, cambio de exhibición, precio, o falta de visita.');
+  if(rez.length){
+    if(rezDist.length) add('warn', `${rezDist.length} de ${rez.length} tiendas rezagadas no tienen toda la distribución (<100% de lo objetivo)`, rezDist.slice(0,3).map(a=>`${nombreSt(a.k)} (${Math.round(dist.get(a.k).pct_distribucion)}%)`).join('; ')+'.', 'Si no está en anaquel no se vende: gestionar altas/resurtido de esos códigos con la cadena antes de pedir más esfuerzo en piso.');
+    if(rezVCero.length) add('warn', `${rezVCero.length} tiendas rezagadas tienen códigos con venta cero`, rezVCero.slice(0,3).map(a=>`${nombreSt(a.k)} (${vcero[a.k]} código(s))`).join('; ')+'.', 'Revisar si hay producto, precio correcto y ubicación; si hay inventario sin venta, impulsar con degustación o promoción.');
+    if(hayCapturas && rezSinVisita.length) add('warn', `${rezSinVisita.length} de ${rez.length} tiendas rezagadas NO tienen visita registrada en el periodo`, rezSinVisita.slice(0,3).map(a=>nombreSt(a.k)).join('; ')+'.', 'Meterlas a la ruta de esta semana (Preasignación de rutas) como prioridad.');
+    if(hayCapturas && rezSinDemo.length) add('info', `${rezSinDemo.length} de ${rez.length} tiendas rezagadas no han tenido degustación en el periodo`, '', 'Programar demos en las tiendas rezagadas con mayor tráfico (empezar por las de mayor "falta").');
+  }
+  if(hayCapturas && conDemo.length>=3 && sinDemo.length>=3){
+    const a = pctProm(conDemo), b = pctProm(sinDemo);
+    add(a>b?'info':'info', `Tiendas con degustación cumplen ${Math.round(a)}% vs ${Math.round(b)}% las que no tuvieron`, `${conDemo.length} con demo vs ${sinDemo.length} sin demo (solo cuenta lo capturado en la app; es una pista, no una prueba de causa).`, a>b+5 ? 'Las demos parecen ayudar: priorizarlas en tiendas con rezago.' : 'Por ahora no se ve una diferencia clara; revisar calidad/ubicación de las demos.');
+  }
+  if(hayCapturas && conVisita.length>=3 && sinVisita.length>=3){
+    const a = pctProm(conVisita), b = pctProm(sinVisita);
+    add('info', `Tiendas visitadas cumplen ${Math.round(a)}% vs ${Math.round(b)}% las sin visita registrada`, `${conVisita.length} visitadas vs ${sinVisita.length} sin visita (según capturas de check-in).`, a>b+5 ? 'La visita se nota en venta: subir cobertura en las no visitadas.' : 'La visita por sí sola no explica el rezago: revisar qué se hace en la visita (exhibición, resurtido, demo).');
+  }
+  const color = {bad:'var(--bad)', warn:'var(--warn)', info:'var(--brand,#a1274b)', good:'var(--good,#2e8b57)'}, ico={bad:'🔴',warn:'🟠',info:'🔵',good:'🟢'};
+  const alertasHtml = A.map(x=>`<div class="card" style="margin-bottom:8px; padding:10px 14px; border-left:4px solid ${color[x.n]};"><div style="font-weight:700; font-size:13.5px;">${ico[x.n]} ${pcEsc(x.t)}</div>${x.d?`<div style="font-size:12.5px; color:var(--ink-soft); margin-top:2px;">${pcEsc(x.d)}</div>`:''}<div style="font-size:12.5px; margin-top:4px;">👉 <b>Qué hacer:</b> ${pcEsc(x.a)}</div></div>`).join('');
+
+  box.innerHTML = `<div class="card" style="padding:12px 14px; margin-bottom:12px;"><div style="font-size:13px; line-height:1.55;">
+      Comparando <b>${metaTxt}</b> contra venta real en las <b>${semsDato.length} semana(s) con dato</b> (S${semsDato[0]}–S${semsDato[semsDato.length-1]})${semsFaltan?` · faltan ${semsFaltan} semana(s) del periodo por cargar`:''}.
+      <b>${Math.round(pctT)}%</b> de cumplimiento a la fecha, faltan <b>${fmtNum(Math.max(0,metaT-realT))} pzas</b>. "Pesa en el rezago" = qué parte del hueco total explica cada renglón: ahí es donde más vale la pena actuar primero.</div></div>
+    <h3 style="font-size:14px; color:var(--brand-dark); margin:6px 0 8px;">🚨 Alertas y qué hacer</h3>${alertasHtml}
+    <h3 style="font-size:14px; color:var(--brand-dark); margin:16px 0 8px;">¿Dónde se está atorando?</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:0 14px;">${dims.join('')}</div>
+    <p style="font-size:11px; color:var(--ink-soft); margin:2px 0 0;">Familia y código: Septiembre usa la cuota por SKU prorrateada a las semanas con dato vs. venta del pipeline (tiendas sin detalle por SKU en el pipeline no entran); Agosto usa la cuota y real por SKU del mes completo.</p>`;
+}
+
 let cvTiendaExpandida = null;
 let cvSemanaTiendaExpandida = null;
 function renderCvTablaTienda(storesScope, semanas){
@@ -8688,6 +8891,7 @@ function renderCumpVenta(){
 
   renderCvSemanal(storesScope, semanas);
   renderCvInsights(storesScope, semanas);
+  try{ renderCvDiagnostico(storesScope, semanas); }catch(e){ console.error('cvDiag', e); const bx=document.getElementById('cvDiag'); if(bx) bx.innerHTML=''; }
   renderCvTablaTienda(storesScope, semanas);
   poblarCvSemanaPick(semanas);
   renderCvPorSemanaTienda();
@@ -10057,26 +10261,41 @@ function renderRuta(){
   const board = document.getElementById('rutaBoard');
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
   const arr = getRutas().filter(a => visibleUsuarios.has(a.usuario));
-  board.innerHTML = '';
-  for(let i=0;i<7;i++){
-    const d = new Date(start); d.setDate(d.getDate()+i);
-    const dateISO = isoDate(d);
-    const col = document.createElement('div');
-    col.className = 'day-col';
-    col.dataset.date = dateISO;
-    if(!locked){
-      col.ondragover = e=>{ e.preventDefault(); col.classList.add('dragover'); };
-      col.ondragleave = ()=> col.classList.remove('dragover');
-      col.ondrop = e => onDropPersona(e, dateISO);
-    } else {
-      col.ondrop = e=>{ e.preventDefault(); toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); };
-      col.ondragover = e=>e.preventDefault();
+  // Vista en tabla: FILAS = los 7 días (viernes → jueves), COLUMNAS = cada persona. Así un descanso, vacación
+  // o doble tienda de una persona nunca descuadra a las demás (cada quien tiene su columna).
+  const dias = [];
+  for(let i=0;i<7;i++){ const d = new Date(start); d.setDate(d.getDate()+i); dias.push({i, d, iso:isoDate(d)}); }
+  const enSemana = arr.filter(a=>a.fecha>=startISO && a.fecha<=endISO);
+  const ordenEquipo = new Map(APP_DATA.equipo.map((u,k)=>[u.usuario,k]));
+  const usuariosCol = [...new Set(enSemana.map(a=>a.usuario))].sort((a,b)=>(ordenEquipo.get(a)??999)-(ordenEquipo.get(b)??999));
+  const personaDe = us => APP_DATA.equipo.find(u=>u.usuario===us);
+  const hoyISO = todayISO();
+  const attrDrop = locked
+    ? `ondragover="event.preventDefault()" ondrop="event.preventDefault(); toast('Esta semana ya está guardada. Da clic en &quot;✏️ Editar&quot; para modificarla.')"`
+    : null;
+  const dropAttrs = iso => attrDrop || `ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="onDropPersona(event,'${iso}')"`;
+  let html = `<table class="ruta-tabla"><thead><tr><th class="rt-dia">Día</th>`;
+  if(!usuariosCol.length) html += `<th class="rt-vacio">Personas</th>`;
+  usuariosCol.forEach(us=>{
+    const u = personaDe(us);
+    const nombre = u ? nombreCorto(u.nombre) : us;
+    const diasPlan = enSemana.filter(a=>a.usuario===us).length;
+    html += `<th class="rt-persona"><div>${pcEsc(nombre)}</div><div class="rt-sub">${u?pcEsc(u.rol):''} · ${diasPlan}/7 días</div></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+  dias.forEach(({i,d,iso})=>{
+    html += `<tr${iso===hoyISO?' class="rt-hoy"':''}><th class="rt-dia" ${dropAttrs(iso)}><div>${DAY_NAMES[i]}</div><div class="rt-fecha">${fmtDateLabel(d)}</div></th>`;
+    if(!usuariosCol.length){
+      html += `<td class="rt-celda rt-vacia" ${dropAttrs(iso)}>${locked?'Sin cambios en este día':'Suelta aquí a una persona'}</td>`;
     }
-    const cardsForDay = arr.filter(a=>a.fecha===dateISO);
-    col.innerHTML = `<div class="day-head">${DAY_NAMES[i]}</div><div class="day-date">${fmtDateLabel(d)}</div>` +
-      (cardsForDay.map(a=>renderRutaCard(a, locked)).join('') || `<div style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:20px;">${locked?'Sin cambios en este día':'Suelta aquí a una persona'}</div>`);
-    board.appendChild(col);
-  }
+    usuariosCol.forEach(us=>{
+      const cards = enSemana.filter(a=>a.usuario===us && a.fecha===iso);
+      html += `<td class="rt-celda" ${dropAttrs(iso)}>${cards.map(a=>renderRutaCard(a, locked)).join('') || '<div class="rt-nada">—</div>'}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  board.innerHTML = html;
   renderRutaResumenSemana(startISO, endISO);
 }
 function renderRutaResumenSemana(startISO, endISO){
@@ -10301,12 +10520,293 @@ async function exportRutaExcel(){
   toast('Excel exportado ✓');
 }
 
+/* ---------- EQUIPO ODV (fuente: EQUIPO ODV.xlsx, actualizado oct-2026) ----------
+   Se aplica sobre app_data.json al cargar: nombres/roles/región de cada usuario y a quién reporta cada embajador(a)
+   (CDMX/METROPOLITANA -> SCDM01, FORÁNEAS -> SGDL01). Para cambiar al equipo, edita esta lista. */
+const EQUIPO_ODV = [
+ {
+  "rol": "SUPERVISIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "SCDM01",
+  "nombre": "VACANTE* (SCDM01)",
+  "usuario": "SCDM01",
+  "perfil": "Supervisor"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM01",
+  "nombre": "CASTILLO HERNANDEZ BELEM",
+  "usuario": "DCDM01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM02",
+  "nombre": "DOTOR CABRERA YASMIN",
+  "usuario": "DCDM02",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM03",
+  "nombre": "ESTEBAN GARCIA YULISSA JAQUELIN",
+  "usuario": "DCDM03",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM04",
+  "nombre": "GONZALEZ BRITO ROCIO",
+  "usuario": "DCDM04",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM05",
+  "nombre": "HERNANDEZ GUTIERREZ YOLANDA",
+  "usuario": "DCDM05",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM06",
+  "nombre": "MORA SANCHEZ ENGRACIA",
+  "usuario": "DCDM06",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM07",
+  "nombre": "RAMIREZ DOMINGUEZ YASMIN",
+  "usuario": "DCDM07",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM08",
+  "nombre": "RODRIGUEZ DIAZ MARIA ELENA",
+  "usuario": "DCDM08",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM09",
+  "nombre": "SANTA SONIA",
+  "usuario": "DCDM09",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM10",
+  "nombre": "ZAMUDIO PIEDRA MARIA IMELDA",
+  "usuario": "DCDM10",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM11",
+  "nombre": "BARRIOS CARBAJAL CARMEN SANDRA",
+  "usuario": "DCDM11",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM12",
+  "nombre": "PÉREZ CAUDILLO BLANCA XÓCHITL",
+  "usuario": "DCDM12",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "HÍBRIDO",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "HCDM01",
+  "nombre": "VACANTE* (HCDM01)",
+  "usuario": "HCDM01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "PROMOTORÍA",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "PCDM101",
+  "nombre": "GARCIA GARCIA MARIA DE JESUS",
+  "usuario": "PCDM101",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "PROMOTORÍA",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "PCDM102",
+  "nombre": "SALAZAR MARIN GILBERTO",
+  "usuario": "PCDM102",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "SUPERVISIÓN",
+  "region": "FORÁNEAS",
+  "sector": "SGDL01",
+  "nombre": "MÓNICA ROMO GÓMEZ",
+  "usuario": "SGDL01",
+  "perfil": "Supervisor"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL01",
+  "nombre": "CASTILLO MORALES ALICIA",
+  "usuario": "DGDL01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL02",
+  "nombre": "CERVANTES PADILLA SILVIA ALICIA",
+  "usuario": "DGDL02",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL03",
+  "nombre": "CORTES HERNANDEZ JULIA ISABEL",
+  "usuario": "DGDL03",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL04",
+  "nombre": "ESQUIVEL OROZCO IRENE",
+  "usuario": "DGDL04",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL05",
+  "nombre": "GUZMAN GOMEZ CINTHIA NAITZE",
+  "usuario": "DGDL05",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL06",
+  "nombre": "LOPEZ SOTO NADIA",
+  "usuario": "DGDL06",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL07",
+  "nombre": "PADILLA PLASCENCIA BRENDA ADRIANA",
+  "usuario": "DGDL07",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "HÍBRIDO",
+  "region": "FORÁNEAS",
+  "sector": "HLEO01",
+  "nombre": "MENDOZA LUNA MARIA MAGDALENA",
+  "usuario": "HLEO01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "PROMOTORÍA",
+  "region": "FORÁNEAS",
+  "sector": "PGDL101",
+  "nombre": "VACANTE* (PGDL101)",
+  "usuario": "PGDL101",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "COORDINADOR",
+  "region": "NACIONAL",
+  "sector": "CNAC01",
+  "nombre": "COBA FABIOLA",
+  "usuario": "CNAC01",
+  "perfil": "Coordinador"
+ },
+ {
+  "rol": "GERENTE",
+  "region": "NACIONAL",
+  "sector": "GNAC01",
+  "nombre": "JIMÉNEZ FANNY",
+  "usuario": "GNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "KAM",
+  "region": "NACIONAL",
+  "sector": "KNAC01",
+  "nombre": "SANTIAGO ALEJANDRA",
+  "usuario": "KNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "CPFR / PLANEACIÓN",
+  "region": "NACIONAL",
+  "sector": "PNAC01",
+  "nombre": "NORIEGA ALEJANDRA",
+  "usuario": "PNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "BI",
+  "region": "NACIONAL",
+  "sector": "BNAC01",
+  "nombre": "CAMACHO EVELIN",
+  "usuario": "BNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "MARKETING",
+  "region": "NACIONAL",
+  "sector": "MNAC01",
+  "nombre": "HEDDERICH INGRID",
+  "usuario": "MNAC01",
+  "perfil": "Admin"
+ }
+];
+function aplicarEquipoODV(){
+  if(!APP_DATA) return;
+  const porUsuario = new Map(APP_DATA.equipo.map(u=>[u.usuario,u]));
+  EQUIPO_ODV.forEach(r=>{
+    const u = porUsuario.get(r.usuario);
+    if(u){ u.nombre=r.nombre; u.rol=r.rol; u.region=r.region; u.sector=r.sector; u.perfil=r.perfil; }
+    else { const nuevo = {...r}; APP_DATA.equipo.push(nuevo); porUsuario.set(r.usuario, nuevo); }
+  });
+  // el orden del equipo = el del Excel (así las columnas de Asignación de ruta salen agrupadas igual)
+  const orden = new Map(EQUIPO_ODV.map((r,i)=>[r.usuario,i]));
+  APP_DATA.equipo.sort((a,b)=>(orden.has(a.usuario)?orden.get(a.usuario):999)-(orden.has(b.usuario)?orden.get(b.usuario):999));
+  // plantilla (quién reporta a quién) reconstruida desde el Excel
+  const supPorRegion = {};
+  EQUIPO_ODV.filter(r=>r.perfil==='Supervisor').forEach(r=>{ supPorRegion[r.region]=r; });
+  APP_DATA.plantilla = EQUIPO_ODV.filter(r=>r.perfil==='Embajador'||r.perfil==='Supervisor').map(r=>{
+    const sup = r.perfil==='Embajador' ? (supPorRegion[r.region]||null) : r;
+    return {nombre:r.nombre, sector:r.sector, supervisor: sup ? sup.nombre : r.nombre};
+  });
+}
 /* ---------- Carga de datos (app_data.json) + sesión persistente (validada por Firebase, no por localStorage a ciegas) ---------- */
 function iniciarApp(){
   fetch('app_data.json', {cache:'no-store'})
     .then(r => { if(!r.ok) throw new Error('http '+r.status); return r.json(); })
     .then(data => {
       APP_DATA = data;
+      aplicarEquipoODV();
       document.getElementById('loadingScreen').style.display = 'none';
       // onAuthStateChanged es la fuente de verdad de la sesión: Firebase ya trae su propia
       // persistencia entre recargas, así que ya no confiamos en un valor de localStorage editable a mano.
