@@ -2,7 +2,7 @@
 // IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
 // también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
 // celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v96';
+const CACHE_NAME = 'delico-odv-v97';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png'];
 // El SDK de Firebase se carga desde gstatic.com cada vez que arranca la app. Si no se guarda también
 // aquí, un celular que abre la app SIN internet (o con el caché del navegador ya vencido) se puede
@@ -36,26 +36,36 @@ self.addEventListener('activate', (event) => {
 });
 
 // Red primero (para traer la versión más nueva cuando hay internet), y si falla, usa el caché (modo sin conexión).
+// NUEVO (v97): si la red NO falla pero se queda "colgada" (señal débil / datos lentos), antes la app se quedaba
+// pegada en el logo de ODV por minutos. Ahora, si ya hay una copia guardada y la red no responde en
+// ESPERA_RED_MS, se abre la copia guardada de inmediato y la red sigue actualizando el caché por detrás.
 // Importante: el "de vuelta a index.html" solo debe pasar para la página misma (navegación),
 // nunca para otros archivos (como las librerías externas de exportar Excel/PDF) — si no, un archivo
 // externo que falla podría terminar mostrando el HTML de la app y romperse con un error de sintaxis.
+const ESPERA_RED_MS = 4000;
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const esNavegacion = event.request.mode === 'navigate';
   const esMismoOrigen = event.request.url.startsWith(self.location.origin);
+  const desdeRed = fetch(event.request).then((resp) => {
+    if (esMismoOrigen || resp.type === 'opaque') {
+      const copy = resp.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+    }
+    return resp;
+  });
+  const enCache = () => caches.match(event.request).then((cached) => cached || (esNavegacion ? caches.match('./index.html') : undefined));
   event.respondWith(
-    fetch(event.request)
-      .then((resp) => {
-        if (esMismoOrigen) {
-          const copy = resp.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        }
-        return resp;
-      })
-      .catch(() => caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        if (esNavegacion) return caches.match('./index.html');
-        return Response.error();
-      }))
+    caches.match(event.request).then((hayCopia) => {
+      if (!hayCopia) {
+        // Sin copia guardada: se espera a la red (no hay otra opción)
+        return desdeRed.catch(() => enCache().then((c) => c || (esNavegacion ? Response.error() : Response.error())));
+      }
+      // Con copia guardada: la red tiene ESPERA_RED_MS para contestar; si no, se usa la copia
+      return Promise.race([
+        desdeRed,
+        new Promise((resolve) => setTimeout(() => resolve(hayCopia), ESPERA_RED_MS)),
+      ]).catch(() => enCache().then((c) => c || Response.error()));
+    })
   );
 });
