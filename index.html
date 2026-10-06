@@ -3424,15 +3424,19 @@ function renderCheckinBar(){
   box.innerHTML = html;
   poblarDatalistTiendas();
 }
+/* Check-in / check-out: TODOS los caminos (el cuadro "Registro — Check-in/out", el botón Check-in de la barra,
+   "Check-in aquí" y "Salir de la tienda") abren el MISMO formulario, que exige foto de cómo encontraste / dejaste la tienda. */
+function abrirCheckinConFoto(tienda, cadena, rol, fueraRuta){
+  window._prefillCheckin = {tienda, cadena, rol: rol||'', fueraRuta: fueraRuta||null};
+  openForm('entrada_tienda');
+}
 function hacerCheckin(){
   const idx = document.getElementById('checkinSelect').value;
   if(idx==='') { toast('Elige una tienda'); return; }
   const o = misTiendasHoy()[idx];
-  setCheckin({tienda:o.tienda, cadena:o.cadena, rol:o.rol, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
-  renderCheckinBar();
-  toast('Check-in hecho en ' + o.tienda);
+  abrirCheckinConFoto(o.tienda, o.cadena, o.rol);
 }
-function salirCheckin(){ setCheckin(null); renderCheckinBar(); }
+function salirCheckin(){ window._prefillCheckin = null; openForm('salida_tienda'); }
 /* Check-in en una tienda que no está en la ruta de hoy: si de verdad no está en la ruta, pide un motivo
    breve y genera la incidencia automáticamente (ya no hay que pedir permiso antes ni esperar aprobación). */
 function hacerCheckinOtraTienda(){
@@ -3441,9 +3445,8 @@ function hacerCheckinOtraTienda(){
   const tienda = match.tienda, cadena = match.cadena;
   const enRuta = misTiendasHoy().some(o=>o.tienda===tienda);
   if(enRuta){
-    setCheckin({tienda, cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
-    renderCheckinBar();
-    toast('Check-in hecho en ' + tienda);
+    const o = misTiendasHoy().find(x=>x.tienda===tienda);
+    abrirCheckinConFoto(tienda, cadena, o ? o.rol : '');
     return;
   }
   abrirMotivoFueraRuta(tienda, cadena);
@@ -3461,6 +3464,12 @@ function confirmarCheckinFueraRuta(tienda, cadena){
   const motivoInput = document.getElementById('motivoFueraRuta');
   const motivo = motivoInput ? motivoInput.value.trim() : '';
   if(!motivo){ toast('Escribe un motivo breve'); return; }
+  closeModal();
+  // la incidencia de ruta se registra al GUARDAR el check-in (con su foto), no antes
+  abrirCheckinConFoto(tienda, cadena, '', {motivo});
+}
+/* Se llama al guardar un check-in que venía de una tienda fuera de ruta: registra la incidencia automática y la tienda extra. */
+function registrarIncidenciaFueraRuta(tienda, cadena, motivo){
   const recIncidencia = { id: uid(), tipo:'incidencia', usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), tienda, cadena, tipo_incidencia:'Visita fuera de ruta asignada', descripcion: motivo, foto:'' };
   const capturasArr = getCapturas();
   capturasArr.push(recIncidencia);
@@ -3468,13 +3477,7 @@ function confirmarCheckinFueraRuta(tienda, cadena){
   const extraArr = getExtraTiendas();
   extraArr.unshift({id:uid(), persona:currentUser.nombre, usuario:currentUser.usuario, tienda, cadena, motivo, fecha:todayISO(), estado:'aprobada', auto:true});
   saveExtraTiendas(extraArr);
-  setCheckin({tienda, cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
-  closeModal();
-  toast('Check-in hecho en ' + tienda + ' — se registró la incidencia de ruta.');
-  renderCheckinBar();
-  renderMisCapturas();
   renderExtraTiendaBox();
-  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
 }
 
 /* ---------- Catálogo de productos (familia > producto) ---------- */
@@ -3787,6 +3790,7 @@ function pickIconSingle(key, opt){
   wrap.querySelectorAll('.icon-pick').forEach(b=>b.classList.toggle('active', b.dataset.opt===opt));
 }
 function abrirCheckInOut(){
+  window._prefillCheckin = null;
   const checkin = getCheckin();
   openForm(checkin ? 'salida_tienda' : 'entrada_tienda');
 }
@@ -4258,7 +4262,10 @@ function openForm(type){
         ? `<input type="text" value="${checkin.tienda} (${checkin.cadena})" disabled>
            <input type="hidden" id="f_${key}_locked" value="${checkin.tienda}">
            <div class="file-note">Bloqueada por tu check-in. Sal de la tienda en Captura para cambiarla.</div>`
-        : `<input type="text" id="f_${key}" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off">`;
+        : (type==='entrada_tienda' && window._prefillCheckin
+          ? `<input type="text" id="f_${key}" value="${window._prefillCheckin.tienda} — ${window._prefillCheckin.cadena}" readonly>
+             <div class="file-note">Tienda elegida${window._prefillCheckin.fueraRuta?' (fuera de tu ruta — se registrará la incidencia al guardar)':''}. Para cambiarla, cierra y elige otra.</div>`
+          : `<input type="text" id="f_${key}" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off">`);
     } else if(type_==='caducidad_multi'){
       html += `<div id="fcadrows_${key}"></div>
         <button type="button" class="btn btn-ghost" style="margin-top:2px;" onclick="agregarFilaCaducidad('${key}')">+ Agregar otra fecha de caducidad</button>
@@ -4608,7 +4615,12 @@ function submitForm(type){
           saveCapturas(arr);
           closeModal();
           toast('Captura guardada ✓');
-          if(type==='entrada_tienda' && rec.tienda){ setCheckin({tienda:rec.tienda, cadena:rec.cadena, hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}); }
+          if(type==='entrada_tienda' && rec.tienda){
+            const pre = window._prefillCheckin;
+            setCheckin({tienda:rec.tienda, cadena:rec.cadena, rol: (pre && pre.tienda===rec.tienda) ? pre.rol : '', hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
+            if(pre && pre.fueraRuta && pre.tienda===rec.tienda) registrarIncidenciaFueraRuta(rec.tienda, rec.cadena, pre.fueraRuta.motivo);
+            window._prefillCheckin = null;
+          }
           if(type==='salida_tienda'){ setCheckin(null); }
         }
         renderMisCapturas();
