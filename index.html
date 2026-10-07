@@ -867,6 +867,7 @@
         <div class="card kpi"><div class="label">Personas activas</div><div class="value" id="repPersonas">0</div></div>
         <div class="card kpi bad"><div class="label">Incidencias abiertas</div><div class="value" id="repIncidencias">0</div></div>
         <div class="card kpi warn"><div class="label">Caducidades reportadas</div><div class="value" id="repCaducidades">0</div></div>
+        <div class="card kpi bad"><div class="label">Capturas con foto fuera de zona</div><div class="value" id="repFueraZona">0</div></div>
       </div>
       <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
       <div id="repInsights" style="margin-bottom:18px;"></div>
@@ -4220,6 +4221,7 @@ function openForm(type){
   const checkin = getCheckin();
   window._fotosMulti = window._fotosMulti || {};
   def.fields.forEach(([key,type_])=>{ if(type_==='file_multi') window._fotosMulti[key] = []; });
+  if(def.fields.some(f=>f[1]==='file_multi')){ try{ pedirUbicacion(); }catch(e){} } // pide el permiso/ubicación desde ya, para que la foto salga sellada rápido
   let html = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>${def.icon} ${def.title}</h3>
     <p class="d">Los campos con * son obligatorios.${checkin?' Tienda precargada por tu check-in.':''}</p>
@@ -4405,6 +4407,105 @@ function previewFile(key){
   reader.onerror = () => { clearTimeout(seguro); window._fotosPendientes.delete(key); if(note) note.textContent = 'No se pudo leer la foto, intenta de nuevo.'; };
   reader.readAsDataURL(file);
 }
+/* ---------- SELLO DE FOTO: fecha, hora, ubicación (GPS) y distancia a la tienda ----------
+   Cada foto que se toma/sube se "sella" con fecha y hora de México, coordenadas y la distancia a la tienda
+   (coordenadas del catálogo de tiendas). Dentro de GEO_RADIO_OK_M metros = OK; más lejos = FUERA DE ZONA.
+   Si no hay permiso/GPS la foto se guarda igual, marcada "sin ubicación" (no se bloquea la captura). */
+const GEO_RADIO_OK_M = 300;
+let _geoUltima = null, _geoPromesa = null;
+function pedirUbicacion(forzar){
+  if(!forzar && _geoUltima && Date.now()-_geoUltima.t < 90000) return Promise.resolve(_geoUltima);
+  if(_geoPromesa) return _geoPromesa;
+  _geoPromesa = new Promise(res=>{
+    if(!navigator.geolocation){ _geoPromesa=null; res({error:'sin_gps'}); return; }
+    let hecho = false;
+    const fin = v => { if(hecho) return; hecho = true; _geoPromesa = null; res(v); };
+    setTimeout(()=>fin({error:'timeout'}), 12000);
+    try{
+      navigator.geolocation.getCurrentPosition(
+        p => { _geoUltima = {lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.round(p.coords.accuracy||0), t:Date.now()}; fin(_geoUltima); },
+        e => fin({error: (e && e.code===1) ? 'permiso' : 'no_disponible'}),
+        {enableHighAccuracy:true, timeout:10000, maximumAge:30000});
+    }catch(e){ fin({error:'no_disponible'}); }
+  });
+  return _geoPromesa;
+}
+function distanciaMetros(lat1, lon1, lat2, lon2){
+  const R = 6371000, rad = x => x*Math.PI/180;
+  const dLat = rad(lat2-lat1), dLon = rad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLon/2)**2;
+  return Math.round(2*R*Math.asin(Math.min(1, Math.sqrt(a))));
+}
+function fmtDistancia(m){ return m<1000 ? m+' m' : (m/1000).toFixed(1)+' km'; }
+/* tienda contra la que se mide la foto: la del check-in, o la que se está escribiendo/eligiendo en el formulario */
+function tiendaParaSello(){
+  let st = null;
+  const ci = getCheckin();
+  const locked = document.getElementById('f_tienda_locked');
+  if(locked && locked.value && ci) st = storeInfo(ci.cadena, ci.tienda);
+  if(!st && document.getElementById('f_tienda')) st = resolverTiendaEscrita('f_tienda');
+  if(!st && ci) st = storeInfo(ci.cadena, ci.tienda);
+  return st || null;
+}
+function sellarFoto(dataUrl, lineas, colorUltima){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+        const fs = Math.max(12, Math.round(c.width/38)), pad = Math.round(fs*0.55), lh = Math.round(fs*1.3);
+        const h = lineas.length*lh + pad*2;
+        x.fillStyle = 'rgba(0,0,0,0.66)'; x.fillRect(0, c.height-h, c.width, h);
+        x.font = `bold ${fs}px Arial, Helvetica, sans-serif`; x.textBaseline = 'top';
+        lineas.forEach((t,i)=>{ x.fillStyle = (i===lineas.length-1 && colorUltima) ? colorUltima : '#ffffff'; x.fillText(t, pad, c.height-h+pad+i*lh, c.width-pad*2); });
+        res(c.toDataURL('image/jpeg', 0.74));
+      }catch(e){ res(dataUrl); }
+    };
+    img.onerror = () => res(dataUrl);
+    img.src = dataUrl;
+  });
+}
+/* devuelve {b64 sellada, meta} — nunca rechaza: si algo falla, la foto va sin sello pero la captura no se pierde */
+async function sellarConGeo(b64){
+  const ahora = new Date();
+  const store = tiendaParaSello();
+  let g;
+  try{ g = await pedirUbicacion(); }catch(e){ g = {error:'no_disponible'}; }
+  const fecha = ahora.toLocaleDateString('es-MX', {timeZone:'America/Mexico_City', day:'2-digit', month:'2-digit', year:'numeric'});
+  const hora = ahora.toLocaleTimeString('es-MX', {timeZone:'America/Mexico_City', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+  const meta = {ts: ahora.toISOString(), estado:'sin_ubicacion', tienda_ref: store ? store.tienda : ''};
+  const lineas = [`${fecha}  ${hora}`];
+  let color = '#ffd27a';
+  if(g && !g.error){
+    meta.lat = Math.round(g.lat*1e6)/1e6; meta.lon = Math.round(g.lon*1e6)/1e6; meta.acc = g.acc;
+    lineas.push(`GPS ${meta.lat.toFixed(5)}, ${meta.lon.toFixed(5)}  (±${g.acc} m)`);
+    if(store && store.lat && store.lon){
+      meta.dist_m = distanciaMetros(g.lat, g.lon, Number(store.lat), Number(store.lon));
+      meta.estado = meta.dist_m <= GEO_RADIO_OK_M ? 'ok' : 'lejos';
+      color = meta.estado==='ok' ? '#8be28b' : '#ff7b7b';
+      lineas.push(`${store.tienda}: a ${fmtDistancia(meta.dist_m)} de la tienda ${meta.estado==='ok'?'(EN TIENDA)':'(FUERA DE ZONA)'}`);
+    } else {
+      meta.estado = 'sin_referencia';
+      lineas.push(store ? 'Tienda sin coordenadas en el catálogo' : 'Sin tienda de referencia');
+    }
+  } else {
+    meta.error = g && g.error;
+    lineas.push('GPS: sin ubicación (' + (meta.error==='permiso' ? 'permiso negado' : 'no disponible') + ')');
+  }
+  try{ return {b64: await sellarFoto(b64, lineas, color), meta}; }
+  catch(e){ return {b64, meta}; }
+}
+const GEO_ETIQUETA = {ok:'📍 En tienda', lejos:'⚠️ Fuera de zona', sin_ubicacion:'📵 Sin ubicación', sin_referencia:'📍 Sin referencia'};
+function resumenGeo(metas){
+  const arr = (metas||[]).filter(Boolean);
+  if(!arr.length) return null;
+  const orden = ['lejos','sin_ubicacion','sin_referencia','ok'];
+  const estado = orden.find(e=>arr.some(m=>m.estado===e)) || 'ok';
+  const dists = arr.map(m=>m.dist_m).filter(d=>d!=null);
+  return {estado, dist_m: dists.length ? Math.max(...dists) : null};
+}
+
 /* Campo de VARIAS fotos (ej. Degustación): cada vez que se eligen fotos se AGREGAN a lo que ya había
    (no lo reemplazan), así se puede ir sumando una por una o varias a la vez. Se puede quitar cualquiera. */
 window._fotosMulti = window._fotosMulti || {};
@@ -4418,13 +4519,15 @@ function previewFileMulti(key){
     const localId = uid();
     const pendKey = key+'_'+localId;
     window._fotosPendientes.add(pendKey);
-    const seguro = setTimeout(() => { window._fotosPendientes.delete(pendKey); }, 12000);
+    const seguro = setTimeout(() => { window._fotosPendientes.delete(pendKey); }, 25000);
     const reader = new FileReader();
     const terminar = (b64) => {
-      window._fotosMulti[key].push({id:localId, b64});
-      clearTimeout(seguro);
-      window._fotosPendientes.delete(pendKey);
-      renderFotosMultiPreview(key);
+      sellarConGeo(b64).then(r=>r, () => ({b64, meta:null})).then(({b64:b64s, meta})=>{
+        window._fotosMulti[key].push({id:localId, b64:b64s, meta});
+        clearTimeout(seguro);
+        window._fotosPendientes.delete(pendKey);
+        renderFotosMultiPreview(key);
+      });
     };
     reader.onload = (e) => {
       comprimirImagen(e.target.result, 1280, 0.72).then(terminar).catch(() => terminar(e.target.result));
@@ -4438,7 +4541,7 @@ function renderFotosMultiPreview(key){
   const box = document.getElementById('prev_'+key);
   if(!box) return;
   const fotos = window._fotosMulti[key] || [];
-  box.innerHTML = fotos.map(f=>`<div style="position:relative;"><img src="${f.b64}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--line);"><button type="button" onclick="quitarFotoMulti('${key}','${f.id}')" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:var(--bad); color:#fff; border:none; cursor:pointer; font-size:12px; line-height:1;">✕</button></div>`).join('')
+  box.innerHTML = fotos.map(f=>`<div style="position:relative;"><img src="${f.b64}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:2px solid ${f.meta ? (f.meta.estado==='ok'?'#4caf50':f.meta.estado==='lejos'?'#e53935':'#e0a800') : 'var(--line)'};" title="${f.meta ? (GEO_ETIQUETA[f.meta.estado]||'')+(f.meta.dist_m!=null?' · a '+fmtDistancia(f.meta.dist_m):'') : ''}"><button type="button" onclick="quitarFotoMulti('${key}','${f.id}')" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:var(--bad); color:#fff; border:none; cursor:pointer; font-size:12px; line-height:1;">✕</button></div>`).join('')
     + (fotos.length ? `<div style="font-size:11px; color:var(--ink-soft); align-self:center;">${fotos.length} foto(s)</div>` : '');
 }
 function quitarFotoMulti(key, id){
@@ -4537,14 +4640,18 @@ function submitForm(type){
     const rec = { id: uid(), tipo: type, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString() };
     let missing = false;
     let faltantes = [];
+    const geoMetasTodas = [];
     def.fields.forEach(([key,type_,label,req])=>{
       if(type_==='file'){
         const input = document.getElementById('f_'+key) || document.getElementById(key);
         rec[key] = input ? (input.dataset.b64 || '') : '';
         if(req && !rec[key]){ missing = true; faltantes.push(label); }
       } else if(type_==='file_multi'){
-        const fotos = ((window._fotosMulti||{})[key]||[]).map(f=>f.b64);
+        const fotosObj = ((window._fotosMulti||{})[key]||[]);
+        const fotos = fotosObj.map(f=>f.b64);
         rec[key] = fotos;
+        const metasGeo = fotosObj.map(f=>f.meta).filter(Boolean);
+        if(metasGeo.length){ rec[key+'_geo'] = metasGeo; geoMetasTodas.push(...metasGeo); }
         if(req && !fotos.length){ missing = true; faltantes.push(label); }
       } else if(type_==='file_video'){
         const input = document.getElementById('f_'+key);
@@ -4590,6 +4697,7 @@ function submitForm(type){
         rec[key] = val;
       }
     });
+    { const rg = resumenGeo(geoMetasTodas); if(rg){ rec.geo_estado = rg.estado; if(rg.dist_m!=null) rec.geo_dist_m = rg.dist_m; } }
     if(type==='incidencia' && rec.tipo_incidencia==='Calidad (olor/consistencia/objeto ajeno)'){
       if(!rec.lote){ missing = true; faltantes.push('Número de lote'); }
       if(!(rec.foto && rec.foto.length)){ missing = true; faltantes.push('Foto del lote'); }
@@ -5140,7 +5248,7 @@ function renderMisCapturas(){
     if(head) head.innerHTML = `${colHead('misCapturasBody','tipo_label','Tipo',false)}${colHead('misCapturasBody','fecha_registro','Fecha',false)}${colHead('misCapturasBody','tienda','Tienda',false)}${colHead('misCapturasBody','detalle','Detalle',false)}`;
     const filas = ordenarFilas('misCapturasBody', rows2, 'fecha_registro');
     const tbody = document.getElementById('misCapturasBody');
-    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}${badgeGeo(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
   };
   window.render_misCapturasBody();
   try{ pintarEstadoNube(); }catch(e){}
@@ -5244,6 +5352,11 @@ function capturasFiltradasReporte(){
   if(hasta) arr = arr.filter(c=> fechaSoloDia(c.fecha_registro) <= hasta);
   return arr;
 }
+function badgeGeo(c){
+  if(!c.geo_estado) return '';
+  const col = c.geo_estado==='ok' ? 'var(--good,#2e8b57)' : c.geo_estado==='lejos' ? 'var(--bad)' : 'var(--warn)';
+  return ` <span style="font-size:11px; font-weight:700; color:${col}; white-space:nowrap;">${GEO_ETIQUETA[c.geo_estado]||''}${c.geo_dist_m!=null?' · a '+fmtDistancia(c.geo_dist_m):''}</span>`;
+}
 function renderReportes(){
   if(!document.getElementById('repPersona').options.length) populateRepPersona();
   populateRepFiltrosExtra();
@@ -5270,6 +5383,7 @@ function renderReportes(){
   document.getElementById('repPersonas').textContent = new Set(arr.map(c=>c.usuario)).size;
   document.getElementById('repIncidencias').textContent = arr.filter(c=>c.tipo==='incidencia').length;
   document.getElementById('repCaducidades').textContent = arr.filter(c=>c.tipo==='caducidad').length;
+  const repFuera = document.getElementById('repFueraZona'); if(repFuera) repFuera.textContent = arr.filter(c=>c.geo_estado==='lejos').length;
 
   window._repBodyRows = arr.slice(0,200).map(c=>({...c, tipo_label: TIPO_LABEL[c.tipo], detalle: detalleCaptura(c)}));
   window.render_repBody = function(){
@@ -5278,7 +5392,7 @@ function renderReportes(){
     if(head) head.innerHTML = `${colHead('repBody','tipo_label','Tipo',false)}${colHead('repBody','persona','Persona',false)}${colHead('repBody','fecha_registro','Fecha',false)}${colHead('repBody','tienda','Tienda',false)}${colHead('repBody','detalle','Detalle',false)}`;
     const filas = ordenarFilas('repBody', rows2, 'fecha_registro');
     const tbody = document.getElementById('repBody');
-    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.persona}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty-state">Sin capturas con este filtro. Revisa el recuadro de arriba (☁️): ahí dice si la nube está entregando las capturas del equipo, y si no, por qué.</td></tr>`;
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.persona}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}${badgeGeo(c)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty-state">Sin capturas con este filtro. Revisa el recuadro de arriba (☁️): ahí dice si la nube está entregando las capturas del equipo, y si no, por qué.</td></tr>`;
   };
   window.render_repBody();
 
@@ -9832,7 +9946,7 @@ function exportarDetalleFormularios(){
 function exportCSV(){
   const arr = capturasFiltradasReporte();
   if(!arr.length){ toast('No hay capturas para exportar'); return; }
-  const cols = ['tipo','persona','usuario','fecha_registro','tienda','clave','clave2','clave3','fecha_caducidad','piezas','tipo_incidencia','descripcion','lote','fecha','comentarios','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
+  const cols = ['geo_estado','geo_dist_m','tipo','persona','usuario','fecha_registro','tienda','clave','clave2','clave3','fecha_caducidad','piezas','tipo_incidencia','descripcion','lote','fecha','comentarios','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
   let csv = cols.join(',') + '\n';
   arr.forEach(c=>{
     csv += cols.map(k=>{
