@@ -2530,7 +2530,7 @@ const BORRADO_SELECTIVO_OPCIONES = [
   {
     key: 'checkin_rutas',
     label: 'Check-in activo (este dispositivo) y rutas asignadas de prueba',
-    detalle: 'Cierra el check-in activo en este celular/computadora y borra las rutas asignadas (asignación de septiembre) de todo el equipo en la nube.',
+    detalle: 'Cierra el check-in activo en este celular/computadora y borra las rutas asignadas (asignación del mes) de todo el equipo en la nube.',
   },
   {
     key: 'pipeline_ajustes',
@@ -2814,7 +2814,7 @@ function showView(key, btnEl){
 let objFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
 function mesesDisponiblesObj(){ return APP_DATA.meses_disponibles || []; }
 function asegurarObjFiltroMesesInicial(){
-  if(objFiltroMeses === null) objFiltroMeses = new Set(mesesDisponiblesObj());
+  if(objFiltroMeses === null) objFiltroMeses = new Set(mesesConDatoReal());
 }
 function objMesTodo(){ objFiltroMeses = new Set(mesesDisponiblesObj()); renderObjMesChips(); renderPlaneacion(); }
 function objMesNinguno(){ objFiltroMeses = new Set(); renderObjMesChips(); renderPlaneacion(); }
@@ -2892,7 +2892,26 @@ let objMetaTipo = 'cuota'; // 'cuota' | 'escalon'
 function metaUni(row){ return objMetaTipo==='escalon' ? (row.escalon_uni ?? null) : (row.cuota_uni ?? 0); }
 function metaPesos(row){ return objMetaTipo==='escalon' ? (row.escalon_pesos ?? null) : (row.cuota_pesos ?? 0); }
 /* SKU (ventas_cuota_sku) trae la meta mensual con otros nombres de campo que las filas de cumplimiento_semanal */
-function metaUniSku(row){ return objMetaTipo==='escalon' ? (row.escalon_sep_uni ?? row.cuota_uni ?? 0) : (row.cuota_uni ?? 0); }
+/* Meta / real por SKU (ventas_cuota_sku) según el mes: Agosto = cuota_uni/real_uni, Septiembre = *_sep_*, Octubre = *_oct_* (real de oct aún no cargado) */
+function skuMetaMes(r, mes, tipo){
+  if(mes==='Octubre') return tipo==='escalon' ? (r.escalon_oct_uni ?? r.cuota_oct_uni ?? 0) : (r.cuota_oct_uni ?? 0);
+  if(mes==='Septiembre') return tipo==='escalon' ? (r.escalon_sep_uni ?? r.cuota_sep_uni ?? 0) : (r.cuota_sep_uni ?? 0);
+  return r.cuota_uni ?? 0;
+}
+function skuRealMes(r, mes){
+  if(mes==='Octubre') return r.real_oct_uni ?? 0;
+  if(mes==='Septiembre') return r.real_sep_uni ?? 0;
+  return r.real_uni ?? 0;
+}
+/* Meses con venta real cargada (por defecto los filtros de mes arrancan con estos; los demás se pueden activar a mano) */
+function mesesConDatoReal(){
+  const todos = mesesDisponiblesObj();
+  const conDato = new Set();
+  (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{ if((r.real_pesos||0)>0 || (r.real_uni||0)>0) conDato.add(r.semana); });
+  const out = todos.filter(m=>semanasCuotaMes(m).some(sm=>conDato.has(sm)));
+  return out.length ? out : todos;
+}
+function metaUniSku(row){ asegurarObjFiltroMesesInicial(); return [...objFiltroMeses].reduce((a,m)=>a+skuMetaMes(row,m,objMetaTipo),0); }
 function sumMetaUni(rows){ return rows.reduce((a,r)=>a+(metaUni(r)||0),0); }
 function sumMetaPesos(rows){ return rows.reduce((a,r)=>a+(metaPesos(r)||0),0); }
 function setObjMetaTipo(t){ objMetaTipo = t; renderObjMetaTipoChips(); renderPlaneacion(); }
@@ -3054,7 +3073,7 @@ function restablecerFiltrosObjetivos(){
   objFiltroCadenas.clear();
   objFiltroFamilias.clear();
   objFiltroCodigos.clear();
-  objFiltroMeses = new Set(mesesDisponiblesObj());
+  objFiltroMeses = new Set(mesesConDatoReal());
   renderObjMesChips();
   renderObjTiendaDropdown();
   renderObjCadenaChips();
@@ -8005,7 +8024,7 @@ function renderBonoTab(){
   const meses = mesesConEscalonDisponibles();
   const mesSel = document.getElementById('bonoTabMesSel');
   if(mesSel && !mesSel.options.length){
-    const mesDefault = meses[meses.length-1] || (APP_DATA.meses_disponibles||[])[0];
+    const conDatoB = mesesConDatoReal().filter(m=>meses.includes(m)); const mesDefault = conDatoB[conDatoB.length-1] || meses[meses.length-1] || (APP_DATA.meses_disponibles||[])[0];
     mesSel.innerHTML = meses.map(m=>`<option value="${m}" ${m===mesDefault?'selected':''}>${m} 2026</option>`).join('');
   }
   const mes = mesSel ? mesSel.value : (meses.slice(-1)[0]);
@@ -8277,7 +8296,8 @@ function renderAnalisisObjetivos(){
   // --- Peso semanal de cada tienda (tomado de cumplimiento_semanal, que sí trae desglose por semana) para poder
   // prorratear la cuota mensual por SKU (ventas_cuota_sku) — así todo lo de abajo (gráfica, pastel, tablas)
   // puede respetar los filtros de familia/código, que son a nivel SKU. ---
-  const semanasCodigoArr = [...semanasMesChart].sort((a,b)=>a-b);
+  const semsConFilas = new Set((APP_DATA.cumplimiento_semanal||[]).map(c=>c.semana)); // semanas sin filas (ej. la 31) no deben repartir peso
+  const semanasCodigoArr = [...semanasMesChart].filter(s=>semsConFilas.has(s)).sort((a,b)=>a-b);
   const pesoSemanaTienda = {}; // 'cadena|num_tienda' -> {semana: proporcion 0-1}
   const totalPorTienda = {};
   cumpRows.forEach(c=>{ const k = c.cadena+'|'+c.num_tienda; totalPorTienda[k] = (totalPorTienda[k]||0) + (metaUni(c)||0); });
@@ -8297,7 +8317,7 @@ function renderAnalisisObjetivos(){
     const total = metaUniSku(r) || 0;
     const k = r.cadena+'|'+r.num_tienda;
     const pesos = pesoSemanaTienda[k] || pesoSemanaParejo;
-    semanasCodigoArr.forEach(s=>{ porSemana[s].cuota += total * (pesos[s]!=null ? pesos[s] : pesoSemanaParejo[s]); });
+    semanasCodigoArr.forEach(s=>{ porSemana[s].cuota += total * (pesos===pesoSemanaParejo ? pesoSemanaParejo[s] : (pesos[s]||0)); });
   });
   const semanas = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
   const maxVal = Math.max(1, ...semanas.map(s=>porSemana[s].cuota));
@@ -8401,7 +8421,7 @@ function renderAnalisisObjetivos(){
     const tc = t.porCodigo[r.clave];
     tc.total += total;
     semanasCodigoArr.forEach(s=>{
-      const estim = total * (pesos[s]!=null ? pesos[s] : pesoSemanaParejo[s]);
+      const estim = total * (pesos===pesoSemanaParejo ? pesoSemanaParejo[s] : (pesos[s]||0));
       g.semanas[s] = (g.semanas[s]||0) + estim;
       g.porTienda[k].semanas[s] = (g.porTienda[k].semanas[s]||0) + estim;
       t.semanas[s] = (t.semanas[s]||0) + estim;
@@ -8463,7 +8483,7 @@ function renderAnalisisObjetivos(){
 /* ---------- CUMPLIMIENTO DE VENTA (Comunicar/Retroalimentación): cuota/escalón vs. venta real, siempre del mismo periodo exacto elegido ---------- */
 let cvFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
 function asegurarCvFiltroMesesInicial(){
-  if(cvFiltroMeses === null) cvFiltroMeses = new Set(mesesDisponiblesObj());
+  if(cvFiltroMeses === null) cvFiltroMeses = new Set(mesesConDatoReal());
 }
 function cvMesTodo(){ cvFiltroMeses = new Set(mesesDisponiblesObj()); renderCvMesChips(); renderCumpVenta(); }
 function cvMesNinguno(){ cvFiltroMeses = new Set(); renderCvMesChips(); renderCumpVenta(); }
@@ -8599,7 +8619,7 @@ function restablecerFiltrosCumpVenta(){
   if(cvTiendaMultiSel) [...cvTiendaMultiSel.options].forEach(o=>o.selected=false);
   cvFiltroTiendas.clear();
   cvFiltroCadenas = new Set();
-  cvFiltroMeses = new Set(mesesDisponiblesObj());
+  cvFiltroMeses = new Set(mesesConDatoReal());
   renderCvMesChips();
   renderCvCadenaChips();
   renderCvTiendaDropdown();
@@ -8765,25 +8785,24 @@ function cvDiagFamiliasYCodigos(storesScope, semanas, semsDato){
   if(meses.includes('Agosto')){
     (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda)).forEach(r=>suma(r.familia, r.clave, r.cuota_uni||0, r.real_uni||0));
   }
-  if(meses.includes('Septiembre')){
-    const sepSems = semanasCuotaMes('Septiembre');
+  ['Septiembre','Octubre'].forEach(mesX=>{
+    if(!meses.includes(mesX)) return;
+    const mesSems = semanasCuotaMes(mesX);
     const conDato = new Set(semsDato);
     const tot = {}, aFecha = {};
     (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{
-      if(!sepSems.includes(r.semana)) return;
+      if(!mesSems.includes(r.semana)) return;
       const k = r.cadena+'|'+r.num_tienda; const m = cvMetaUni(r)||0;
       tot[k]=(tot[k]||0)+m; if(conDato.has(r.semana)) aFecha[k]=(aFecha[k]||0)+m;
     });
-    const mtd = {};
-    (APP_DATA.combinaciones||[]).forEach(c=>{ const k=c.cadena+'|'+c.num_tienda+'|'+c.clave; mtd[k]=(mtd[k]||0)+(c.mtd_26||0); });
-    const tiendasConPipeline = new Set((APP_DATA.combinaciones||[]).map(c=>c.cadena+'|'+c.num_tienda));
-    (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda) && tiendasConPipeline.has(r.cadena+'|'+r.num_tienda)).forEach(r=>{
+    // La cuota del SKU se prorratea a las semanas que ya tienen venta cargada; el real sale del sell out por código (real_sep_uni / real_oct_uni)
+    (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda)).forEach(r=>{
       const k = r.cadena+'|'+r.num_tienda;
       const f = tot[k] ? (aFecha[k]||0)/tot[k] : 0;
-      const base = cvMetaTipo==='escalon' ? (r.escalon_sep_uni ?? r.cuota_sep_uni ?? 0) : (r.cuota_sep_uni ?? 0);
-      suma(r.familia, r.clave, base*f, mtd[k+'|'+r.clave]||0);
+      if(!f) return;
+      suma(r.familia, r.clave, skuMetaMes(r, mesX, cvMetaTipo)*f, skuRealMes(r, mesX));
     });
-  }
+  });
   const skus = [...porSku.values()].map(a=>({...a, falta:Math.max(0,a.meta-a.real), pct:a.meta?a.real/a.meta*100:null, sub:a.familia, sem:null}));
   const fams = new Map();
   skus.forEach(a=>{ const f=a.familia||'Sin familia'; if(!fams.has(f)) fams.set(f,{k:f,meta:0,real:0,sem:null,n:0}); const x=fams.get(f); x.meta+=a.meta; x.real+=a.real; x.n++; });
@@ -8808,7 +8827,8 @@ function renderCvDiagnostico(storesScope, semanas){
   const metaT = filas.reduce((a,r)=>a+r.meta,0), realT = filas.reduce((a,r)=>a+r.real,0);
   const pctT = metaT ? realT/metaT*100 : null;
   const metaPeriodo = (APP_DATA.cumplimiento_semanal||[]).filter(r=>storeBy.has(r.cadena+'|'+r.num_tienda) && semanas.has(r.semana)).reduce((a,r)=>a+(cvMetaUni(r)||0),0);
-  const semsFaltan = [...semanas].filter(s=>!semsDato.includes(s)).length;
+  const semsExisten = new Set((APP_DATA.cumplimiento_semanal||[]).map(r=>r.semana));
+  const semsFaltan = [...semanas].filter(s=>!semsDato.includes(s) && semsExisten.has(s)).length;
   const ritmoSem = realT/Math.max(1,semsDato.length);
   const proy = realT + ritmoSem*semsFaltan;
   const pctProy = metaPeriodo ? proy/metaPeriodo*100 : null;
@@ -8854,7 +8874,7 @@ function renderCvDiagnostico(storesScope, semanas){
     const dias = Math.round((Date.now()-new Date(piv).getTime())/86400000);
     if(dias>=7) add('warn', `El sell out solo está cargado hasta la semana S${semsDato[semsDato.length-1]} (actualizado hace ${dias} días)`, 'Los % de abajo son "a la fecha de carga"; lo que se vendió después no se está viendo.', 'Cargar el sell out y el pipeline más recientes antes de tomar decisiones con estos %.');
   }
-  if(pctT!=null && pctT<85) add('bad', `Ritmo atorado: ${Math.round(pctT)}% de la ${metaTxt} a la fecha (${fmtNum(realT)} de ${fmtNum(metaT)} pzas)`, pctProy!=null ? `Si siguen al ritmo actual (~${fmtNum(ritmoSem)} pzas/semana) cierran en ~${Math.round(pctProy)}% de la ${metaTxt} del periodo.` : '', `Para cerrar necesitan ~${fmtNum(Math.max(0,metaPeriodo-realT)/Math.max(1,semsFaltan||1))} pzas/semana en las ${semsFaltan||1} semana(s) restantes: concentrar esfuerzo en las tiendas y códigos que más pesan (tablas de abajo).`);
+  if(pctT!=null && pctT<85) add('bad', `Ritmo atorado: ${Math.round(pctT)}% de la ${metaTxt} a la fecha (${fmtNum(realT)} de ${fmtNum(metaT)} pzas)`, pctProy!=null ? `Si siguen al ritmo actual (~${fmtNum(ritmoSem)} pzas/semana) cierran en ~${Math.round(pctProy)}% de la ${metaTxt} del periodo.` : '', (semsFaltan ? `Para cerrar necesitan ~${fmtNum(Math.max(0,metaPeriodo-realT)/semsFaltan)} pzas/semana en las ${semsFaltan} semana(s) restantes: concentrar esfuerzo en las tiendas y códigos que más pesan (tablas de abajo).` : `El periodo ya cerró con ${fmtNum(Math.max(0,metaPeriodo-realT))} pzas por debajo de la meta: usa las tablas de abajo para decidir dónde arrancar fuerte el siguiente mes.`));
   else if(pctT!=null) add('good', `Vas en ${Math.round(pctT)}% de la ${metaTxt} a la fecha`, '', 'Mantener el ritmo y cuidar las tiendas rezagadas para que no jalen el promedio.');
   const dimsFuertes = [['cadena',cvDiagAgrupar(filas,r=>r.cadena)],['región',cvDiagAgrupar(filas,r=>(r.st.region && String(r.st.region)!=='0') ? r.st.region : '(sin región)')],['familia',fc.fams],['código',fc.skus]];
   dimsFuertes.forEach(([n,arr])=>{
@@ -8888,7 +8908,7 @@ function renderCvDiagnostico(storesScope, semanas){
     <h3 style="font-size:14px; color:var(--brand-dark); margin:6px 0 8px;">🚨 Alertas y qué hacer</h3>${alertasHtml}
     <h3 style="font-size:14px; color:var(--brand-dark); margin:16px 0 8px;">¿Dónde se está atorando?</h3>
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:0 14px;">${dims.join('')}</div>
-    <p style="font-size:11px; color:var(--ink-soft); margin:2px 0 0;">Familia y código: Septiembre usa la cuota por SKU prorrateada a las semanas con dato vs. venta del pipeline (tiendas sin detalle por SKU en el pipeline no entran); Agosto usa la cuota y real por SKU del mes completo.</p>`;
+    <p style="font-size:11px; color:var(--ink-soft); margin:2px 0 0;">Familia y código: Septiembre y Octubre usan la cuota por SKU prorrateada a las semanas con dato vs. la venta real por código del sell out; Agosto usa la cuota y real por SKU del mes completo.</p>`;
 }
 
 let cvTiendaExpandida = null;
@@ -8973,9 +8993,9 @@ function renderCvPorSemanaTienda(){
         const skus = (APP_DATA.ventas_cuota_sku||[]).filter(v=>v.cadena===f.cadena && v.num_tienda===f.num_tienda);
         fila += skus.length ? `<tr style="background:#f7f8ee;"><td colspan="7" style="padding:6px 10px 2px 26px; font-size:11px; color:var(--ink-soft);">Detalle por código (SKU) — cuota y venta real del periodo completo con datos cargados, no solo de esta semana:</td></tr>`
           + skus.sort((a,b)=>(b.cuota_uni||0)-(a.cuota_uni||0)).map(v=>{
-            const metaSku = cvMetaTipo==='escalon' ? (v.escalon_sep_uni ?? null) : (v.cuota_uni ?? 0);
-            const pctSku = metaSku ? Math.round((v.real_uni||0)/metaSku*1000)/10 : null;
-            return `<tr style="background:#f7f8ee;"><td colspan="2" style="padding-left:26px; font-size:12px;">${v.clave}</td><td style="font-size:12px;">${v.familia||''}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(metaSku):'—'}</td><td class="num" style="font-size:12px;">${fmtNum(v.real_uni||0)}</td><td class="num" style="font-size:12px;">${pctSku!=null?pctSku+'%':'—'}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(Math.max(0,metaSku-(v.real_uni||0))):'—'}</td></tr>`;
+            const mesesSel = [...cvFiltroMeses]; const metaSku = mesesSel.reduce((a,m)=>a+skuMetaMes(v,m,cvMetaTipo),0); const realSku = mesesSel.reduce((a,m)=>a+skuRealMes(v,m),0);
+            const pctSku = metaSku ? Math.round(realSku/metaSku*1000)/10 : null;
+            return `<tr style="background:#f7f8ee;"><td colspan="2" style="padding-left:26px; font-size:12px;">${v.clave}</td><td style="font-size:12px;">${v.familia||''}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(metaSku):'—'}</td><td class="num" style="font-size:12px;">${fmtNum(realSku)}</td><td class="num" style="font-size:12px;">${pctSku!=null?pctSku+'%':'—'}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(Math.max(0,metaSku-(v.real_uni||0))):'—'}</td></tr>`;
           }).join('')
           : `<tr style="background:#f7f8ee;"><td colspan="7" style="padding-left:26px; font-size:12px; color:var(--ink-soft);">Sin detalle por código disponible para esta tienda.</td></tr>`;
       }
