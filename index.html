@@ -886,6 +886,7 @@
         <div class="card" style="border:1px solid var(--bad);">
           <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todo lo que el equipo ha capturado en la app (fase de construcción) para que empiecen a capturar información real desde cero. No toca el catálogo, cuotas, tiendas ni Pipeline.</p>
           <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioCapturas()">🗑️ Reiniciar capturas del equipo</button>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad); margin-left:8px;" onclick="abrirBorradoPorUsuario()">👤 Borrar por usuario…</button>
         </div>
       </div>
 
@@ -2500,6 +2501,171 @@ function abrirReinicioCapturas(){
       }
     },
   });
+}
+
+/* ---------- Borrado POR USUARIO (solo RESET_TOTAL_USUARIO) ----------
+   Ale elige una o varias personas, qué módulos limpiar de esas personas y (opcional) un rango de fechas.
+   Antes de borrar se ve cuántos registros caen en cada módulo, así no hay sorpresas. */
+const BORRADO_USUARIO_MODULOS = [
+  {key:'capturas_medi', label:'Capturas de Ejecución MEDI (con fotos)', detalle:'Mercadeo, caducidades, degustación, precios, check-in/out, incidencias, etc.', especial:true},
+  {key:'rutas', label:'Rutas / calendario asignado', get:()=>_rutasSync.get(), sync:()=>_rutasSync},
+  {key:'vacaciones', label:'Vacaciones y onomásticos', get:()=>_vacacionesSync.get(), sync:()=>_vacacionesSync},
+  {key:'extra_tiendas', label:'Tiendas extra de ruta', get:()=>_extraTiendasSync.get(), sync:()=>_extraTiendasSync},
+  {key:'cumplimiento_prioridades', label:'Cumplimiento de prioridades', get:()=>_cumpPrioridadSync.get(), sync:()=>_cumpPrioridadSync},
+  {key:'tareas', label:'Tareas', get:()=>_tareasSync.get(), sync:()=>_tareasSync},
+  {key:'cartas', label:'Solicitudes de cartas', get:()=>_cartasSync.get(), sync:()=>_cartasSync},
+  {key:'materiales', label:'Solicitudes de materiales', get:()=>_materialesSync.get(), sync:()=>_materialesSync},
+  {key:'uniformes', label:'Solicitudes de uniformes', get:()=>_uniformesSync.get(), sync:()=>_uniformesSync},
+  {key:'ley_silla', label:'Ley de la silla', get:()=>_leySillaSync.get(), sync:()=>_leySillaSync},
+  {key:'noticias', label:'Daily News (publicaciones)', get:()=>_noticiasSync.get(), sync:()=>_noticiasSync},
+  {key:'escucha', label:'Délico te escucha', get:()=>_escuchaSync.get(), sync:()=>_escuchaSync},
+  {key:'eval360', label:'Evaluaciones 360° (de esa persona)', get:()=>_eval360Sync.get(), sync:()=>_eval360Sync},
+  {key:'auditorias', label:'Auditorías (de esa persona)', get:()=>_auditoriasSync.get(), sync:()=>_auditoriasSync},
+];
+/* ¿Este registro es de esta persona? Primero por código de usuario; si el registro no trae código, por nombre. */
+function registroEsDeUsuario(rec, u){
+  if(!rec || !u) return false;
+  let hayCodigo = false;
+  for(const f of ['usuario','persona_usuario','embajador_usuario']){
+    if(rec[f]!=null && rec[f]!==''){ hayCodigo = true; if(String(rec[f])===u.usuario) return true; }
+  }
+  if(hayCodigo) return false;
+  for(const f of ['persona','nombre','persona_nombre']){
+    if(rec[f] && mismaPersona(String(rec[f]), u.nombre)) return true;
+  }
+  return false;
+}
+function registroEnRangoFechas(rec, desde, hasta){
+  if(!desde && !hasta) return true;
+  const f = String(rec.fecha_registro || rec.fecha || rec.fecha_solicitud || rec.desde || '').slice(0,10);
+  if(!f) return false;
+  if(desde && f < desde) return false;
+  if(hasta && f > hasta) return false;
+  return true;
+}
+function _bpuSeleccion(){
+  const usuarios = [...document.querySelectorAll('.bpu-user:checked')].map(x=>x.value);
+  const modulos = [...document.querySelectorAll('.bpu-mod:checked')].map(x=>x.value);
+  const desde = (document.getElementById('bpuDesde')||{}).value || '';
+  const hasta = (document.getElementById('bpuHasta')||{}).value || '';
+  return {usuarios, modulos, desde, hasta};
+}
+/* Registros que se borrarían: {modulo: [registros]} */
+function _bpuCoincidencias(sel){
+  const us = APP_DATA.equipo.filter(u=>sel.usuarios.includes(u.usuario));
+  const out = {};
+  sel.modulos.forEach(k=>{
+    const m = BORRADO_USUARIO_MODULOS.find(x=>x.key===k); if(!m) return;
+    const base = m.especial ? getCapturas() : m.get();
+    out[k] = (base||[]).filter(r=> r && r.id && us.some(u=>registroEsDeUsuario(r,u)) && registroEnRangoFechas(r, sel.desde, sel.hasta));
+  });
+  return out;
+}
+function actualizarPreviewBorradoUsuario(){
+  const box = document.getElementById('bpuPreview'); if(!box) return;
+  const sel = _bpuSeleccion();
+  if(!sel.usuarios.length || !sel.modulos.length){
+    box.innerHTML = '<span style="color:var(--ink-soft);">Elige al menos una persona y un módulo para ver qué se borraría.</span>'; return;
+  }
+  const co = _bpuCoincidencias(sel);
+  const total = Object.values(co).reduce((a,l)=>a+l.length,0);
+  box.innerHTML = `<b>${total}</b> registro(s) se borrarían:` + '<ul style="margin:4px 0 0 18px; padding:0;">' + sel.modulos.map(k=>{
+    const m = BORRADO_USUARIO_MODULOS.find(x=>x.key===k);
+    return `<li>${m.label}: <b>${co[k].length}</b></li>`;
+  }).join('') + '</ul>';
+}
+function bpuMarcar(clase, valor){ document.querySelectorAll('.'+clase).forEach(x=>{ if(x.closest('label') && x.closest('label').style.display==='none') return; x.checked = valor; }); actualizarPreviewBorradoUsuario(); }
+function bpuFiltrarUsuarios(){
+  const q = ((document.getElementById('bpuBuscar')||{}).value||'').toLowerCase().trim();
+  document.querySelectorAll('.bpu-fila').forEach(l=>{ l.style.display = (!q || l.dataset.txt.includes(q)) ? '' : 'none'; });
+}
+function abrirBorradoPorUsuario(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const caps = getCapturas();
+  const gente = APP_DATA.equipo.filter(u=>u.usuario!==RESET_TOTAL_USUARIO).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>👤 Borrar información por usuario</h3>
+    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:10px 14px; margin:8px 0 12px;">
+      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 2px;">⚠️ Esta acción no se puede deshacer.</p>
+      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Solo se borra lo que corresponde a las personas que marques. Todo lo demás se queda igual.</p>
+    </div>
+    <div class="form-grid">
+      <div class="field full">
+        <label style="font-weight:700;">1. ¿De quién?</label>
+        <input type="text" id="bpuBuscar" placeholder="Buscar por nombre o usuario…" oninput="bpuFiltrarUsuarios()" autocomplete="off">
+        <div style="margin:4px 0; font-size:12px;"><a href="#" onclick="bpuMarcar('bpu-user',true); return false;">Marcar visibles</a> · <a href="#" onclick="bpuMarcar('bpu-user',false); return false;">Quitar todos</a></div>
+        <div style="max-height:190px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px 8px;">
+          ${gente.map(u=>{ const n = caps.filter(c=>registroEsDeUsuario(c,u)).length;
+            return `<label class="bpu-fila" data-txt="${(u.nombre+' '+u.usuario).toLowerCase()}" style="display:flex; align-items:center; gap:8px; font-size:12.5px; padding:2px 0;"><input type="checkbox" class="bpu-user" value="${u.usuario}" style="width:auto;" onchange="actualizarPreviewBorradoUsuario()"> <span>${u.nombre} <small style="color:var(--ink-soft);">· ${u.usuario} · ${u.perfil} · ${n} captura(s) MEDI</small></span></label>`; }).join('')}
+        </div>
+      </div>
+      <div class="field full">
+        <label style="font-weight:700;">2. ¿Qué borrar?</label>
+        <div style="margin:4px 0; font-size:12px;"><a href="#" onclick="bpuMarcar('bpu-mod',true); return false;">Marcar todo</a> · <a href="#" onclick="bpuMarcar('bpu-mod',false); return false;">Quitar todo</a></div>
+        ${BORRADO_USUARIO_MODULOS.map(m=>`<label style="display:flex; align-items:flex-start; gap:8px; font-size:12.5px; padding:2px 0;"><input type="checkbox" class="bpu-mod" value="${m.key}" ${m.key==='capturas_medi'?'checked':''} style="width:auto; margin-top:3px;" onchange="actualizarPreviewBorradoUsuario()"> <span>${m.label}${m.detalle?`<br><small style="color:var(--ink-soft);">${m.detalle}</small>`:''}</span></label>`).join('')}
+      </div>
+      <div class="field">
+        <label style="font-weight:700;">3. Desde (opcional)</label>
+        <input type="date" id="bpuDesde" onchange="actualizarPreviewBorradoUsuario()">
+      </div>
+      <div class="field">
+        <label style="font-weight:700;">Hasta (opcional)</label>
+        <input type="date" id="bpuHasta" onchange="actualizarPreviewBorradoUsuario()">
+      </div>
+      <div class="field full" id="bpuPreview" style="font-size:12.5px; background:#f7f8ee; border:1px solid var(--line); border-radius:8px; padding:8px 10px;"></div>
+      <div class="field full">
+        <label>Para confirmar, escribe <b>BORRAR</b>:</label>
+        <input type="text" id="bpuConfirma" placeholder="BORRAR" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" id="btnBorradoUsuario" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarBorradoPorUsuario()">Borrar lo seleccionado</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+  actualizarPreviewBorradoUsuario();
+}
+async function ejecutarBorradoPorUsuario(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const sel = _bpuSeleccion();
+  if(!sel.usuarios.length){ toast('Marca al menos una persona.'); return; }
+  if(!sel.modulos.length){ toast('Marca al menos un módulo.'); return; }
+  if(((document.getElementById('bpuConfirma')||{}).value||'').trim().toUpperCase() !== 'BORRAR'){ toast('Escribe exactamente "BORRAR" para confirmar.'); return; }
+  const co = _bpuCoincidencias(sel);
+  const total = Object.values(co).reduce((a,l)=>a+l.length,0);
+  if(!total){ toast('No hay registros que coincidan con lo seleccionado.'); return; }
+  const btn = document.getElementById('btnBorradoUsuario'); const txt0 = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  try{
+    const resultados = [];
+    for(const k of sel.modulos){
+      const lista = co[k]; if(!lista || !lista.length) continue;
+      const ids = new Set(lista.map(r=>r.id));
+      if(k==='capturas_medi'){
+        const rs = await Promise.all(lista.map(c=>borrarDeColeccion('capturas_medi', c.id).then(r=>({r,c}))));
+        const okIds = new Set(rs.filter(x=>x.r && x.r.ok).map(x=>x.c.id));
+        const quedan = getCapturas().filter(c=>!okIds.has(c.id));
+        _capturasCache = quedan; guardarLocalStorageSeguro(STORAGE_KEY, quedan);
+        resultados.push({ok: okIds.size===lista.length, total: lista.length, fallidos: lista.length-okIds.size});
+      } else {
+        const m = BORRADO_USUARIO_MODULOS.find(x=>x.key===k);
+        resultados.push(await m.sync().save(m.get().filter(r=>!ids.has(r.id))));
+      }
+    }
+    if(sel.modulos.includes('rutas') && sel.usuarios.includes(currentUser.usuario)) setCheckin(null);
+    const resumen = combinarResumenesBorrado(resultados);
+    closeModal();
+    toast(resumen.fallidos>0
+      ? `⚠️ Se borraron ${resumen.total-resumen.fallidos} de ${resumen.total}; ${resumen.fallidos} NO se pudieron borrar en la nube (permisos o conexión). Vuelve a intentar.`
+      : `Listo — se borraron ${resumen.total} registro(s) de ${sel.usuarios.length} persona(s).`, 8000);
+    try{ renderMisCapturas(); }catch(e){}
+    try{ renderReportes(); }catch(e){}
+    try{ renderRuta(); renderPreplan(); renderCalendario(); }catch(e){}
+  }catch(e){
+    toast('⚠️ Hubo un problema al borrar: ' + e.message, 6500);
+    if(btn){ btn.disabled = false; btn.textContent = txt0; }
+  }
 }
 
 /* ---------- Reinicio de solo las capturas de Ejecución MEDI (solo RESET_TOTAL_USUARIO) ---------- */
