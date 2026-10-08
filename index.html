@@ -1362,7 +1362,15 @@
         <span id="calFiltroClusterWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Cluster:</label>
         <select id="calFiltroCluster" onchange="renderCalendario()"><option value="">Todos</option></select></span>
       </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Vista:</label>
+        <button class="btn btn-brand" id="calVistaLista" onclick="setCalVista('lista')">☰ Lista</button>
+        <button class="btn btn-ghost" id="calVistaCal" onclick="setCalVista('cal')">📅 Calendario</button>
+        <span id="calNavMes" style="display:none; gap:6px;"><button class="btn btn-ghost" onclick="shiftCalMes(-1)">◀ Mes</button><button class="btn btn-ghost" onclick="shiftCalMes(1)">Mes ▶</button></span>
+      </div>
       <div class="cal-board" id="calBoard"></div>
+      <div id="calMes" style="display:none;"></div>
+      <div id="calDiaDetalle" style="display:none;"></div>
       <h2 class="section-title" style="margin-top:20px;">Participación por visita, por cadena</h2>
       <div class="card" id="calParticipacionCadena"></div>
     </section>
@@ -6138,7 +6146,7 @@ let calWeekStart = inicioSemanaCampo(new Date());
 function shiftCalWeek(delta){ calWeekStart.setDate(calWeekStart.getDate()+delta*7); renderCalendario(); }
 function shiftCalDay(delta){ calWeekStart.setDate(calWeekStart.getDate()+delta); renderCalendario(); }
 function onCalWeekPickerChange(val){ if(!val) return; calWeekStart = new Date(val+'T00:00:00'); renderCalendario(); }
-function calIrHoy(){ calWeekStart = inicioSemanaCampo(new Date()); renderCalendario(); }
+function calIrHoy(){ calWeekStart = (calVistaActual()==='cal') ? new Date() : inicioSemanaCampo(new Date()); calDiaSel = null; renderCalendario(); }
 function renderCalendario(){
   const hoy = todayISO();
   const start = calWeekStart;
@@ -6169,49 +6177,121 @@ function renderCalendario(){
   const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
   // Días especiales (descanso, vacaciones, incapacidad...) también se muestran, para que no parezca que "no hay ruta"
   const especiales = (fCadena||fCluster||fSupervisor) ? [] : getRutas().filter(a=>a.tipo && a.tipo!=='visita' && visibleUsuarios.has(a.usuario));
-  const ICONO_ESPECIAL = {descanso:'😴 Descanso', vacacion:'🏖️ Vacaciones', incidencia:'🩺 Incapacidad', home_office:'🏠 Home office', otra:'📌 Otro'};
+  const ICONO_ESPECIAL = {descanso:'😴 Descanso', vacacion:'🏖️ Vacaciones', incidencia:'🩺 Incapacidad', home_office:'💻 Home office', otra:'📌 Otro'};
   try{
     const se = (typeof SYNC_ESTADO!=='undefined' && SYNC_ESTADO['rutas']) || null;
     const total = getRutas().filter(a=>visibleUsuarios.has(a.usuario)).length;
     const lb = document.getElementById('calSyncEstado');
     if(lb){
       const nube = !se ? '' : se.ok===false ? ` · <span style="color:var(--bad);">☁️ sin conexión con la nube (${pcEsc(se.error||'')})</span>` : se.ok ? ' · ☁️ nube conectada' : ' · ☁️ conectando…';
-      lb.innerHTML = `Rutas en tu app: <b>${total}</b> registro(s)${nube}`;
+      const malas = Object.entries(SYNC_ESTADO||{}).filter(([k,v])=>v && v.ok===false).map(([k,v])=>`${k} (${v.error||'error'})`);
+      lb.innerHTML = `Rutas en tu app: <b>${total}</b> registro(s)${nube}` + (malas.length ? `<br><span style="color:var(--bad);">Colecciones que la nube NO deja leer: ${pcEsc(malas.join(', '))}</span>` : '');
     }
   }catch(e){}
 
+  const ctx = {plan, especiales, capturas, realSet, hoy, ICONO_ESPECIAL};
+  window._calCtx = ctx;
+  const vista = calVistaActual();
   const board = document.getElementById('calBoard');
+  const mesBox = document.getElementById('calMes');
+  const detBox = document.getElementById('calDiaDetalle');
+  const navMes = document.getElementById('calNavMes');
+  ['calVistaLista','calVistaCal'].forEach(id=>{ const b=document.getElementById(id); if(b) b.className = 'btn ' + ((id==='calVistaLista')===(vista==='lista') ? 'btn-brand' : 'btn-ghost'); });
+  board.style.display = vista==='lista' ? '' : 'none';
+  if(mesBox) mesBox.style.display = vista==='cal' ? '' : 'none';
+  if(detBox) detBox.style.display = vista==='cal' ? '' : 'none';
+  if(navMes) navMes.style.display = vista==='cal' ? 'inline-flex' : 'none';
   board.innerHTML = '';
-  for(let i=0;i<7;i++){
-    const d = new Date(start); d.setDate(d.getDate()+i);
-    const dateISO = isoDate(d);
-    const esHoy = dateISO === hoy;
-    const col = document.createElement('div');
-    col.className = 'cal-col' + (esHoy ? ' cal-today' : '');
-    const cardsForDay = plan.filter(a=>a.fecha===dateISO);
-    const especialesDia = especiales.filter(a=>a.fecha===dateISO);
-    const cardsHtml = cardsForDay.map(a=>{
-      const cumplida = realSet.has(a.usuario+'|'+dateISO+'|'+a.tienda);
-      let cls, icono, texto;
-      if(dateISO < hoy){
-        cls = cumplida ? 'cal-ok' : 'cal-no';
-        icono = cumplida ? '✅' : '❌';
-        texto = cumplida ? 'Realizada' : 'No realizada';
-      } else if(dateISO === hoy){
-        const entrada = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='entrada_tienda');
-        const salida = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='salida_tienda');
-        if(cumplida && salida){ cls='cal-ok'; icono='✅'; texto='Realizada hoy'; }
-        else if(entrada){ cls='cal-hoy'; icono='🟡'; texto='En curso'; }
-        else { cls='cal-hoy'; icono='⏳'; texto='Se debe ejecutar hoy'; }
-      } else {
-        cls = 'cal-futuro'; icono = '🔵'; texto = 'Próxima';
-      }
-      return `<div class="cal-card ${cls}"><b>${icono} ${nombreCorto(a.nombre)}</b><br>🏬 ${a.tienda}<br><span style="color:var(--ink-soft);">${a.cadena||''} · ${texto}</span></div>`;
-    }).join('') + especialesDia.map(a=>`<div class="cal-card cal-futuro" style="background:#f3efe2;"><b>${ICONO_ESPECIAL[a.tipo]||a.tipo}</b><br><span style="color:var(--ink-soft);">${nombreCorto(a.nombre)}</span></div>`).join('') || `<div style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:16px;">Sin ruta este día</div>`;
-    col.innerHTML = `<div class="day-head">${DAY_NAMES[i]}</div><div class="day-date">${fmtDateLabel(d)}</div>` + cardsHtml;
-    board.appendChild(col);
+  if(vista==='lista'){
+    for(let i=0;i<7;i++){
+      const d = new Date(start); d.setDate(d.getDate()+i);
+      const dateISO = isoDate(d);
+      const col = document.createElement('div');
+      col.className = 'cal-col' + (dateISO === hoy ? ' cal-today' : '');
+      col.innerHTML = `<div class="day-head">${diaNombreDe(d)}</div><div class="day-date">${fmtDateLabel(d)}</div>` + calCardsDia(dateISO, ctx);
+      board.appendChild(col);
+    }
+  } else {
+    renderCalMes(ctx);
   }
   renderCalParticipacionCadena(plan);
+}
+/* ---- Calendario: logos de cadena, estado de cada visita y dos vistas (lista / calendario mensual) ---- */
+function logoCadenaHtml(cadena, px){
+  const src = (APP_DATA.cadena_logos||{})[cadena];
+  px = px || 22;
+  if(!src) return '🏬';
+  return `<img src="${src}" alt="${pcEsc(cadena||'')}" title="${pcEsc(cadena||'')}" style="width:${px}px; height:${px}px; object-fit:contain; border-radius:5px; vertical-align:middle; background:#fff; border:1px solid var(--line);">`;
+}
+function calEstadoVisita(a, dateISO, ctx){
+  const {capturas, realSet, hoy} = ctx;
+  const cumplida = realSet.has(a.usuario+'|'+dateISO+'|'+a.tienda);
+  if(dateISO < hoy) return cumplida ? {cls:'cal-ok', k:'ok', icono:'✅', texto:'Realizada'} : {cls:'cal-no', k:'no', icono:'❌', texto:'No realizada'};
+  if(dateISO === hoy){
+    const entrada = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='entrada_tienda');
+    const salida = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='salida_tienda');
+    if(cumplida && salida) return {cls:'cal-ok', k:'ok', icono:'✅', texto:'Realizada hoy'};
+    if(entrada) return {cls:'cal-hoy', k:'hoy', icono:'🟡', texto:'En curso'};
+    return {cls:'cal-hoy', k:'hoy', icono:'⏳', texto:'Se debe ejecutar hoy'};
+  }
+  return {cls:'cal-futuro', k:'prox', icono:'🔵', texto:'Próxima'};
+}
+function calEspecialHtml(a, ICONO_ESPECIAL){
+  const u = APP_DATA.equipo.find(x=>x.usuario===a.usuario);
+  const admin = a.tipo==='home_office' && u && ['Supervisor','Coordinador','Admin'].includes(u.perfil);
+  const etiqueta = admin ? '💻 Administrativo · home office' : (ICONO_ESPECIAL[a.tipo]||a.tipo);
+  return `<div class="cal-card cal-futuro" style="background:#f3efe2;"><b>${etiqueta}</b><br><span style="color:var(--ink-soft);">${pcEsc(nombreCorto(a.nombre))}</span></div>`;
+}
+function calCardsDia(dateISO, ctx){
+  const visitas = ctx.plan.filter(a=>a.fecha===dateISO).map(a=>{
+    const e = calEstadoVisita(a, dateISO, ctx);
+    return `<div class="cal-card ${e.cls}"><b>${e.icono} ${pcEsc(nombreCorto(a.nombre))}</b><div style="display:flex; align-items:center; gap:6px; margin:3px 0;">${logoCadenaHtml(a.cadena, 24)}<span style="font-weight:600;">${pcEsc(a.tienda)}</span></div><span style="color:var(--ink-soft);">${pcEsc(a.cadena||'')} · ${e.texto}</span></div>`;
+  }).join('');
+  const esp = ctx.especiales.filter(a=>a.fecha===dateISO).map(a=>calEspecialHtml(a, ctx.ICONO_ESPECIAL)).join('');
+  return (visitas + esp) || `<div style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:16px;">Sin ruta este día</div>`;
+}
+function calVistaActual(){
+  try{ const v = localStorage.getItem('delico_odv_cal_vista'); if(v==='cal'||v==='lista') return v; }catch(e){}
+  return 'lista';
+}
+function setCalVista(v){ try{ localStorage.setItem('delico_odv_cal_vista', v); }catch(e){} renderCalendario(); }
+let calDiaSel = null;
+function calSelDia(iso){ calDiaSel = iso; renderCalendario(); setTimeout(()=>{ const el=document.getElementById('calDiaDetalle'); if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 50); }
+function shiftCalMes(delta){
+  const d = new Date(calWeekStart); d.setDate(1); d.setMonth(d.getMonth()+delta);
+  calWeekStart = d; calDiaSel = null; renderCalendario();
+}
+function renderCalMes(ctx){
+  const ref = new Date(calWeekStart); ref.setDate(1);
+  const mesBox = document.getElementById('calMes'), detBox = document.getElementById('calDiaDetalle');
+  const nombreMes = ref.toLocaleDateString('es-MX',{month:'long', year:'numeric'});
+  document.getElementById('calWeekLabel').textContent = nombreMes.charAt(0).toUpperCase()+nombreMes.slice(1);
+  const hoy = ctx.hoy;
+  const primero = new Date(ref);
+  const offset = (primero.getDay()+6)%7; // semana Lunes → Domingo
+  const diasMes = new Date(ref.getFullYear(), ref.getMonth()+1, 0).getDate();
+  if(!calDiaSel || calDiaSel.slice(0,7)!==isoDate(ref).slice(0,7)){
+    calDiaSel = (hoy.slice(0,7)===isoDate(ref).slice(0,7)) ? hoy : isoDate(ref);
+  }
+  let html = `<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;">` +
+    ['L','M','M','J','V','S','D'].map(x=>`<div style="text-align:center; font-size:11px; font-weight:700; color:var(--ink-soft); padding:2px 0;">${x}</div>`).join('');
+  for(let i=0;i<offset;i++) html += `<div></div>`;
+  for(let n=1;n<=diasMes;n++){
+    const d = new Date(ref.getFullYear(), ref.getMonth(), n); const iso = isoDate(d);
+    const cnt = {ok:0,no:0,prox:0,hoy:0};
+    ctx.plan.filter(a=>a.fecha===iso).forEach(a=>{ cnt[calEstadoVisita(a, iso, ctx).k]++; });
+    const nEsp = ctx.especiales.filter(a=>a.fecha===iso).length;
+    const badge = (n_,bg,txt)=> n_ ? `<span style="background:${bg}; color:#fff; border-radius:8px; font-size:9.5px; font-weight:700; padding:0 4px; line-height:15px;">${n_}${txt||''}</span>` : '';
+    const sel = iso===calDiaSel;
+    html += `<div onclick="calSelDia('${iso}')" style="cursor:pointer; border:2px solid ${sel?'var(--brand)':(iso===hoy?'#e0a800':'var(--line)')}; border-radius:10px; background:${sel?'var(--brand-soft)':'#fff'}; min-height:62px; padding:3px 3px 4px; display:flex; flex-direction:column; gap:2px; align-items:center;">
+      <div style="font-size:12.5px; font-weight:${iso===hoy?'800':'600'}; color:${iso===hoy?'#946600':'inherit'};">${n}</div>
+      <div style="display:flex; gap:2px; flex-wrap:wrap; justify-content:center;">${badge(cnt.ok,'#2e8b57')}${badge(cnt.no,'#c0392b')}${badge(cnt.hoy,'#e0a800')}${badge(cnt.prox,'#1d4ed8')}${badge(nEsp,'#8a7f5a')}</div>
+    </div>`;
+  }
+  html += `</div><div style="font-size:11px; color:var(--ink-soft); margin-top:6px;"><span style="color:#2e8b57;">●</span> realizada · <span style="color:#c0392b;">●</span> no realizada · <span style="color:#e0a800;">●</span> hoy · <span style="color:#1d4ed8;">●</span> próxima · <span style="color:#8a7f5a;">●</span> descanso / vacaciones / home office</div>`;
+  mesBox.innerHTML = html;
+  const dsel = new Date(calDiaSel+'T00:00:00');
+  detBox.innerHTML = `<h3 style="margin:14px 0 8px; font-size:14px; color:var(--brand-dark);">${diaNombreDe(dsel)} ${fmtDateLabel(dsel)}</h3><div style="display:flex; flex-direction:column; gap:8px;">${calCardsDia(calDiaSel, ctx)}</div>`;
 }
 function renderCalParticipacionCadena(plan){
   const box = document.getElementById('calParticipacionCadena');
@@ -10322,6 +10402,8 @@ async function exportPDFReporte(){
 
 /* ---------- ASIGNACIÓN DE RUTA ---------- */
 const RUTA_KEY = 'delico_odv_rutas_v1';
+const DIA_SEMANA_REAL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+function diaNombreDe(d){ return DIA_SEMANA_REAL[d.getDay()]; }
 const DAY_NAMES = ['Viernes','Sábado','Domingo','Lunes','Martes','Miércoles','Jueves']; // semana de campo: viernes a jueves (ciclo real de captura), no lunes-domingo
 const TIPO_DIA = [['visita','Visita a tienda'],['descanso','Día de descanso'],['vacacion','Vacación'],['home_office','Home office'],['incidencia','Incapacidad'],['otra','Otra']];
 const TIPO_DIA_LABEL = Object.fromEntries(TIPO_DIA);
@@ -10689,7 +10771,7 @@ function renderRuta(){
   });
   html += `</tr></thead><tbody>`;
   dias.forEach(({i,d,iso})=>{
-    html += `<tr${iso===hoyISO?' class="rt-hoy"':''}><th class="rt-dia" ${dropAttrs(iso)}><div>${DAY_NAMES[i]}</div><div class="rt-fecha">${fmtDateLabel(d)}</div></th>`;
+    html += `<tr${iso===hoyISO?' class="rt-hoy"':''}><th class="rt-dia" ${dropAttrs(iso)}><div>${diaNombreDe(d)}</div><div class="rt-fecha">${fmtDateLabel(d)}</div></th>`;
     if(!usuariosCol.length){
       html += `<td class="rt-celda rt-vacia" ${dropAttrs(iso)}>${locked?'Sin cambios en este día':'Suelta aquí a una persona'}</td>`;
     }
@@ -10708,7 +10790,7 @@ function renderRuta(){
    una fila por persona+tienda, columnas por fecha, "1" = visita, DESCANSO/VACACIONES/... = día especial.
    Muestra vista previa, deja corregir quién es quién y pregunta caso por caso cuando ya hay ruta capturada. */
 const IMP_PERFILES = ['Supervisor','Coordinador','Admin'];
-const IMP_ESTADOS = {DESCANSO:'descanso', VACACIONES:'vacacion', VACACION:'vacacion', INCAPACIDAD:'incidencia', ONOMASTICO:'otra', ADMINISTRACION:'otra', 'HOME OFFICE':'home_office', HOME:'home_office'};
+const IMP_ESTADOS = {DESCANSO:'descanso', VACACIONES:'vacacion', VACACION:'vacacion', INCAPACIDAD:'incidencia', ONOMASTICO:'otra', ADMINISTRACION:'home_office', ADMINISTRATIVO:'home_office', 'HOME OFFICE':'home_office', HOME:'home_office'};
 const IMP_PRIO = {incidencia:5, vacacion:4, otra:3, home_office:2, descanso:1};
 function impNrm(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
 function impTokens(s, quitarParentesis){
@@ -11047,7 +11129,7 @@ function impRenderResumen(){
       const clave = g.usuario+'|'+g.fecha, dec = imp.decisiones[clave];
       const dn = new Date(g.fecha+'T00:00:00');
       return `<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:7px 10px; border-top:1px solid var(--line); font-size:12px; ${dec?'':'background:#fff8ee;'}">
-        <div style="min-width:150px;"><b>${pcEsc(nombreCorto(g.nombre))}</b><div style="font-size:10.5px; color:var(--ink-soft);">${DAY_NAMES[(dn.getDay()+2)%7]||''} ${fmt(g.fecha)}</div></div>
+        <div style="min-width:150px;"><b>${pcEsc(nombreCorto(g.nombre))}</b><div style="font-size:10.5px; color:var(--ink-soft);">${diaNombreDe(dn)} ${fmt(g.fecha)}</div></div>
         <label style="flex:1; min-width:150px; cursor:pointer;"><input type="radio" name="imp_${pcEsc(clave)}" ${dec==='actual'?'checked':''} onchange="impDecidir('${clave}','actual')"> <span style="color:var(--ink-soft);">Actual:</span> ${pcEsc(impDescr(ex))}</label>
         <label style="flex:1; min-width:150px; cursor:pointer;"><input type="radio" name="imp_${pcEsc(clave)}" ${dec==='archivo'?'checked':''} onchange="impDecidir('${clave}','archivo')"> <span style="color:var(--ink-soft);">Archivo:</span> <b>${pcEsc(impDescr(g.recs))}</b></label>
       </div>`;
@@ -11243,7 +11325,7 @@ function detalleRutaEntry(a){
 }
 function buildResumenNode(scope){
   const {startISO, start, end} = visibleDateRange();
-  const dias = Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return {iso:isoDate(d), label:DAY_NAMES[i], num:String(d.getDate()).padStart(2,'0')}; });
+  const dias = Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return {iso:isoDate(d), label:diaNombreDe(d), num:String(d.getDate()).padStart(2,'0')}; });
   let personas = equipoVisibleParaMi();
   if(scope === 'embajadores') personas = personas.filter(u => ROLES_EMBAJADOR.includes(u.rol));
   const arr = getRutas();
@@ -11312,7 +11394,7 @@ async function exportRutaExcel(){
   await cargarXLSX();
   if(typeof XLSX === 'undefined'){ toast('No se pudo cargar el exportador de Excel (sin conexión).'); return; }
   const {startISO, start} = visibleDateRange();
-  const dias = Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return {iso:isoDate(d), label:DAY_NAMES[i]+' '+String(d.getDate()).padStart(2,'0')}; });
+  const dias = Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return {iso:isoDate(d), label:diaNombreDe(d)+' '+String(d.getDate()).padStart(2,'0')}; });
   const personas = equipoVisibleParaMi();
   const arr = getRutas();
   const rows = personas.map(u=>{
