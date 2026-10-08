@@ -613,6 +613,7 @@
         <button class="btn btn-ghost" onclick="exportResumen('todos','imagen')">🖼️ Exportar resumen — Todos los roles</button>
         <button class="btn btn-ghost" onclick="exportRutaExcel()">📊 Exportar a Excel — Todos los roles</button>
         <button class="btn btn-ghost" id="rutaBtnImportar" onclick="impAbrirSelector()" title="Sube el rol en Excel de las supervisoras y se pasa a la asignación">📥 Cargar desde archivo</button>
+        <button class="btn btn-ghost" onclick="reenviarRutasNube()" title="Vuelve a subir a la nube todas las rutas de este dispositivo para que le lleguen al equipo">☁️ Reenviar rutas al equipo</button>
         <input type="file" id="rutaImpInput" accept=".xlsx,.xlsm,.xls" multiple style="display:none" onchange="impArchivosElegidos(this)">
         <button class="btn btn-ghost" style="color:var(--bad); border-color:#e3b3ad;" onclick="borrarTodaLaSemana()">🗑️ Borrar todo (esta vista)</button>
         <span id="rutaSaveStatus" style="font-size:12px; color:var(--ink-soft);"></span>
@@ -1352,6 +1353,7 @@
         <button class="btn btn-brand" onclick="calIrHoy()">Hoy</button>
         <span id="calWeekLabel" style="font-weight:700; color:var(--brand-dark);"></span>
       </div>
+      <div id="calSyncEstado" style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 8px;"></div>
       <div class="controls-bar">
         <label>Cadena:</label>
         <select id="calFiltroCadena" onchange="renderCalendario()"><option value="">Todas</option></select>
@@ -6165,6 +6167,18 @@ function renderCalendario(){
   if(fCluster) plan = plan.filter(a=>{ const s = storeInfo(a.cadena, a.tienda); return s && s.cluster===fCluster; });
   const capturas = getCapturas();
   const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
+  // Días especiales (descanso, vacaciones, incapacidad...) también se muestran, para que no parezca que "no hay ruta"
+  const especiales = (fCadena||fCluster||fSupervisor) ? [] : getRutas().filter(a=>a.tipo && a.tipo!=='visita' && visibleUsuarios.has(a.usuario));
+  const ICONO_ESPECIAL = {descanso:'😴 Descanso', vacacion:'🏖️ Vacaciones', incidencia:'🩺 Incapacidad', home_office:'🏠 Home office', otra:'📌 Otro'};
+  try{
+    const se = (typeof SYNC_ESTADO!=='undefined' && SYNC_ESTADO['rutas']) || null;
+    const total = getRutas().filter(a=>visibleUsuarios.has(a.usuario)).length;
+    const lb = document.getElementById('calSyncEstado');
+    if(lb){
+      const nube = !se ? '' : se.ok===false ? ` · <span style="color:var(--bad);">☁️ sin conexión con la nube (${pcEsc(se.error||'')})</span>` : se.ok ? ' · ☁️ nube conectada' : ' · ☁️ conectando…';
+      lb.innerHTML = `Rutas en tu app: <b>${total}</b> registro(s)${nube}`;
+    }
+  }catch(e){}
 
   const board = document.getElementById('calBoard');
   board.innerHTML = '';
@@ -6175,6 +6189,7 @@ function renderCalendario(){
     const col = document.createElement('div');
     col.className = 'cal-col' + (esHoy ? ' cal-today' : '');
     const cardsForDay = plan.filter(a=>a.fecha===dateISO);
+    const especialesDia = especiales.filter(a=>a.fecha===dateISO);
     const cardsHtml = cardsForDay.map(a=>{
       const cumplida = realSet.has(a.usuario+'|'+dateISO+'|'+a.tienda);
       let cls, icono, texto;
@@ -6192,7 +6207,7 @@ function renderCalendario(){
         cls = 'cal-futuro'; icono = '🔵'; texto = 'Próxima';
       }
       return `<div class="cal-card ${cls}"><b>${icono} ${nombreCorto(a.nombre)}</b><br>🏬 ${a.tienda}<br><span style="color:var(--ink-soft);">${a.cadena||''} · ${texto}</span></div>`;
-    }).join('') || `<div style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:16px;">Sin ruta este día</div>`;
+    }).join('') + especialesDia.map(a=>`<div class="cal-card cal-futuro" style="background:#f3efe2;"><b>${ICONO_ESPECIAL[a.tipo]||a.tipo}</b><br><span style="color:var(--ink-soft);">${nombreCorto(a.nombre)}</span></div>`).join('') || `<div style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:16px;">Sin ruta este día</div>`;
     col.innerHTML = `<div class="day-head">${DAY_NAMES[i]}</div><div class="day-date">${fmtDateLabel(d)}</div>` + cardsHtml;
     board.appendChild(col);
   }
@@ -10337,7 +10352,7 @@ function isoWeekNumber(d){
 }
 function fmtDateLabel(d){ return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}); }
 function getRutas(){ return _rutasSync.get(); }
-function saveRutas(arr){ _rutasSync.save(arr); }
+function saveRutas(arr){ return _rutasSync.save(arr); }
 function getSemanasPublicadas(){ return JSON.parse(localStorage.getItem('delico_odv_semanas_publicadas') || '[]'); }
 /* Semanas ya guardadas quedan bloqueadas para edición; se desbloquean manualmente con el lápiz.
    rutaUnlockedWeeks vive solo en memoria (se re-bloquea al recargar la página o al re-guardar). */
@@ -11046,7 +11061,7 @@ function impRenderResumen(){
   btn.disabled = !!pend || !aCargar;
   btn.style.opacity = btn.disabled ? .5 : 1;
 }
-function impConfirmar(){
+async function impConfirmar(){
   const imp = window._imp; if(!imp) return;
   if(!IMP_PERFILES.includes(currentUser.perfil)) return;
   const an = impAnalizar();
@@ -11058,13 +11073,37 @@ function impConfirmar(){
   let arr = getRutas().filter(a=>!reemplazar.has(a.usuario+'|'+a.fecha));
   let n = 0;
   agregar.forEach(g=>g.recs.forEach(r=>{ arr.push(Object.assign({id: uid()+'_i'+(n++)}, r)); }));
-  saveRutas(arr);
+  const btn = document.getElementById('impBtnCargar');
+  if(btn){ btn.disabled = true; btn.textContent = '☁️ Subiendo a la nube… no cierres la app'; }
+  let res = {ok:true, total:0, fallidos:0};
+  try{ res = await saveRutas(arr) || res; }catch(e){ res = {ok:false, total:0, fallidos:1}; }
   const fechas = agregar.map(g=>g.fecha).sort();
   closeModal();
   rutaWeekStart = new Date(fechas[0]+'T00:00:00');
   window._imp = null;
-  toast(`Listo: se cargaron ${agregar.length} día(s) de ${new Set(agregar.map(g=>g.usuario)).size} persona(s). Revisa la vista y da "Guardar y distribuir" cuando esté bien.`, 6000);
+  const nPers = new Set(agregar.map(g=>g.usuario)).size;
+  if(res.fallidos){
+    toast(`Se cargaron ${agregar.length} día(s) de ${nPers} persona(s) en ESTE dispositivo, pero ${res.fallidos} registro(s) NO subieron a la nube, así que al equipo no le llegan todavía. Revisa tu internet y usa "☁️ Reenviar rutas al equipo".`, 12000);
+  } else {
+    toast(`Listo: ${agregar.length} día(s) de ${nPers} persona(s) cargados y subidos a la nube — ya les llegan al equipo en su calendario. Revisa la vista y da "Guardar y distribuir" cuando esté bien.`, 8000);
+  }
   renderRuta();
+}
+/* Reenvía a la nube TODAS las rutas guardadas en este dispositivo (por si una carga se quedó a medias,
+   por ejemplo si se cerró o recargó la app antes de que terminara de subir). */
+async function reenviarRutasNube(){
+  if(!IMP_PERFILES.includes(currentUser.perfil)){ toast('Esta opción es solo para Supervisor, Coordinador y Admin.'); return; }
+  const arr = getRutas().filter(a=>a && a.id);
+  if(!arr.length){ toast('No hay rutas guardadas en este dispositivo.'); return; }
+  toast(`☁️ Subiendo ${arr.length} registro(s) de ruta a la nube…`, 4000);
+  const resultados = await Promise.all(arr.map(d=>subirAColeccion('rutas', d)));
+  const malos = resultados.filter(r=>!(r && r.ok));
+  if(malos.length){
+    const motivo = (malos.find(r=>r && r.error)||{}).error || 'sin detalle';
+    toast(`No se pudieron subir ${malos.length} de ${arr.length}. Motivo: ${motivo}. Revisa tu internet o los permisos de la nube.`, 12000);
+  } else {
+    toast(`✓ Listo: ${arr.length} registro(s) de ruta ya están en la nube. El equipo los ve al abrir o refrescar su app.`, 8000);
+  }
 }
 function impAbrirSelector(){
   if(!IMP_PERFILES.includes(currentUser.perfil)){ toast('Esta opción es solo para Supervisor, Coordinador y Admin.'); return; }
