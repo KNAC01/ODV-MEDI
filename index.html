@@ -612,6 +612,8 @@
         <button class="btn btn-ghost" onclick="exportResumen('embajadores','imagen')">🖼️ Exportar resumen — Embajadores</button>
         <button class="btn btn-ghost" onclick="exportResumen('todos','imagen')">🖼️ Exportar resumen — Todos los roles</button>
         <button class="btn btn-ghost" onclick="exportRutaExcel()">📊 Exportar a Excel — Todos los roles</button>
+        <button class="btn btn-ghost" id="rutaBtnImportar" onclick="impAbrirSelector()" title="Sube el rol en Excel de las supervisoras y se pasa a la asignación">📥 Cargar desde archivo</button>
+        <input type="file" id="rutaImpInput" accept=".xlsx,.xlsm,.xls" multiple style="display:none" onchange="impArchivosElegidos(this)">
         <button class="btn btn-ghost" style="color:var(--bad); border-color:#e3b3ad;" onclick="borrarTodaLaSemana()">🗑️ Borrar todo (esta vista)</button>
         <span id="rutaSaveStatus" style="font-size:12px; color:var(--ink-soft);"></span>
       </div>
@@ -10652,6 +10654,389 @@ function renderRuta(){
   board.innerHTML = html;
   renderRutaResumenSemana(startISO, endISO);
 }
+/* ===================== CARGAR RUTAS DESDE ARCHIVO EXCEL ===================== */
+/* Lee el "rol" que arman las supervisoras en Excel (formatos CENTRO y OCCIDENTE, y parecidos):
+   una fila por persona+tienda, columnas por fecha, "1" = visita, DESCANSO/VACACIONES/... = día especial.
+   Muestra vista previa, deja corregir quién es quién y pregunta caso por caso cuando ya hay ruta capturada. */
+const IMP_PERFILES = ['Supervisor','Coordinador','Admin'];
+const IMP_ESTADOS = {DESCANSO:'descanso', VACACIONES:'vacacion', VACACION:'vacacion', INCAPACIDAD:'incidencia', ONOMASTICO:'otra', ADMINISTRACION:'otra', 'HOME OFFICE':'home_office', HOME:'home_office'};
+const IMP_PRIO = {incidencia:5, vacacion:4, otra:3, home_office:2, descanso:1};
+function impNrm(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
+function impTokens(s, quitarParentesis){
+  let t = impNrm(s);
+  if(quitarParentesis) t = t.replace(/\([^)]*\)/g,' ');
+  return t.replace(/[^A-Z0-9 ]/g,' ').split(/\s+/).filter(x=>x && !['DE','DEL','LA','LOS','Y'].includes(x)).map(x=>x==='MA'?'MARIA':x);
+}
+function impLev1(a,b){ // distancia de edición <=1
+  if(a===b) return true;
+  if(Math.abs(a.length-b.length)>1) return false;
+  let i=0,j=0,dif=0;
+  while(i<a.length && j<b.length){
+    if(a[i]===b[j]){ i++; j++; continue; }
+    if(++dif>1) return false;
+    if(a.length>b.length) i++; else if(a.length<b.length) j++; else { i++; j++; }
+  }
+  return dif + (a.length-i) + (b.length-j) <= 1;
+}
+function impTokEq(a,b){ return a===b || (a.length>=5 && b.length>=5 && impLev1(a,b)); }
+function impCover(from, inTo){ if(!from.length) return 0; return from.filter(t=>inTo.some(x=>impTokEq(t,x))).length / from.length; }
+function impBuscarUsuario(nombreArchivo){
+  const tf = impTokens(nombreArchivo, true);
+  if(!tf.length) return null;
+  let mejor = null, mejorScore = 0, empate = false;
+  APP_DATA.equipo.forEach(u=>{
+    const te = impTokens(u.nombre, true);
+    const covF = impCover(tf, te), covE = impCover(te, tf);
+    const comunes = tf.filter(t=>te.some(x=>impTokEq(t,x))).length;
+    if(!(covF>=0.999 || covE>=0.999) || comunes<2) return;
+    const score = covF + 0.01*covE + (covF>=0.999 && covE>=0.999 ? 1 : 0);
+    if(score>mejorScore+1e-9){ mejor=u; mejorScore=score; empate=false; }
+    else if(Math.abs(score-mejorScore)<=1e-9) empate=true;
+  });
+  return (mejor && !empate) ? mejor : null;
+}
+function impSimNombres(a,b){
+  const ta = impTokens(a), tb = impTokens(b);
+  if(!ta.length || !tb.length) return 0;
+  const inter = ta.filter(t=>tb.some(x=>impTokEq(t,x))).length;
+  return inter / Math.max(ta.length, tb.length);
+}
+function impBuscarTienda(det, nombre, cadena){
+  const n = parseInt(String(det||'').replace(/\D/g,''),10);
+  const cadN = impNrm(cadena);
+  const sinEspacios = s => impNrm(s).replace(/[^A-Z0-9]/g,'');
+  let porNum = [];
+  if(n) porNum = APP_DATA.stores.filter(s=>Math.round(Number(s.num_tienda))===n);
+  if(porNum.length>1){
+    const f = porNum.filter(s=>impNrm(s.cadena)===cadN);
+    if(f.length) porNum = f;
+  }
+  let candNum = null;
+  if(porNum.length){
+    candNum = porNum.map(s=>({s, sim: impSimNombres(nombre, s.tienda)})).sort((a,b)=>b.sim-a.sim)[0];
+  }
+  // por nombre
+  let candNom = null;
+  if(nombre){
+    const ex = APP_DATA.stores.filter(s=>sinEspacios(s.tienda)===sinEspacios(nombre));
+    if(ex.length){ candNom = {s: ex.find(s=>impNrm(s.cadena)===cadN) || ex[0], sim:1}; }
+    else {
+      const cands = APP_DATA.stores.map(s=>({s, sim: impSimNombres(nombre, s.tienda) + (impNrm(s.cadena)===cadN?0.05:0)})).sort((a,b)=>b.sim-a.sim);
+      if(cands[0] && cands[0].sim>=0.75) candNom = cands[0];
+    }
+  }
+  if(candNum && (candNum.sim>=0.34 || !candNom)) return {store:candNum.s, via:'numero'};
+  if(candNom) return {store:candNom.s, via:'nombre'};
+  return {store:null, via:''};
+}
+function impFechaDeCelda(v){
+  if(v==null || v==='') return null;
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  if(typeof v==='number' && v>40000 && v<60000) return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10);
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+function impLeerHoja(filas){
+  let hdr=-1, colsFecha=[];
+  for(let r=0; r<Math.min(filas.length,25); r++){
+    const cols = [];
+    (filas[r]||[]).forEach((c,i)=>{ const f=impFechaDeCelda(c); if(f) cols.push({i,f}); });
+    if(cols.length>=5){ hdr=r; colsFecha=cols; break; }
+  }
+  if(hdr<0) return null;
+  const celdasHdr = [];
+  for(let r=Math.max(0,hdr-2); r<=Math.min(filas.length-1,hdr+1); r++) (filas[r]||[]).forEach((c,i)=>celdasHdr.push({i, t:impNrm(c)}));
+  const buscaCol = (...nombres) => { const x = celdasHdr.find(c=>nombres.some(n=>c.t===n || c.t.startsWith(n))); return x?x.i:-1; };
+  let cDemo = buscaCol('DEMO','DEMOSTRADORA','EMBAJADOR','PERSONA','NOMBRE');
+  if(cDemo<0) cDemo = colsFecha[0].i-1;
+  let cDet = buscaCol('DET'); if(cDet<0) cDet=0;
+  let cTienda = buscaCol('TIENDA'); if(cTienda<0) cTienda=1;
+  let cCadena = buscaCol('CADENA'); if(cCadena<0) cCadena=2;
+  const out = {personas:{}, orden:[], huerfanas:0, pendientes:0, desconocidos:{}, tiendas:{}};
+  let actual = null;
+  for(let r=hdr+1; r<filas.length; r++){
+    const fila = filas[r]||[];
+    const demo = String(fila[cDemo]==null?'':fila[cDemo]).trim();
+    const tienda = String(fila[cTienda]==null?'':fila[cTienda]).trim();
+    const detTxt = String(fila[cDet]==null?'':fila[cDet]).trim();
+    const cadena = String(fila[cCadena]==null?'':fila[cCadena]).trim();
+    let rolTxt = '';
+    for(let c=0;c<cDemo;c++){ const t=impNrm(fila[c]); if(/DEGUST|PROMOT|SUPERV|HIBRID/.test(t)){ rolTxt=t; break; } }
+    let persona = null;
+    if(demo){
+      const key = impNrm(demo);
+      persona = out.personas[key];
+      if(!persona){ persona = out.personas[key] = {key, nombreArchivo:demo, dias:{}, filas:0}; out.orden.push(key); }
+      actual = persona;
+    } else if(!tienda && !detTxt){
+      persona = actual; // fila de descansos/incapacidad sin nombre: pertenece al bloque de arriba
+      if(!fila.some(c=>c!=null && c!=='')) continue;
+      if(!colsFecha.some(({i})=>String(fila[i]==null?'':fila[i]).trim())) { actual = actual; continue; }
+    } else {
+      // tiene tienda pero no persona
+      if(colsFecha.some(({i})=>String(fila[i]==null?'':fila[i]).trim()!=='')) out.huerfanas++;
+      continue;
+    }
+    if(!persona) continue;
+    if(demo) persona.filas++;
+    colsFecha.forEach(({i,f})=>{
+      const raw = fila[i]; if(raw==null || raw==='') return;
+      const t = impNrm(raw);
+      const dia = persona.dias[f] = persona.dias[f] || {estado:null, visitas:[], pisadas:0};
+      if(IMP_ESTADOS[t]){
+        const e = IMP_ESTADOS[t];
+        if(!dia.estado || IMP_PRIO[e]>IMP_PRIO[dia.estado]) dia.estado = e;
+      } else if(t==='PENDIENTE' || t===''){ out.pendientes++; }
+      else if(/^[1-9]\d*$/.test(t) || t==='X'){
+        if(!demo) return; // un "1" en una fila sin tienda no sirve
+        const sk = detTxt+'|'+impNrm(tienda)+'|'+impNrm(cadena);
+        if(!out.tiendas[sk]) out.tiendas[sk] = {det:detTxt, tienda, cadena, m:impBuscarTienda(detTxt, tienda, cadena), store:null, veces:0};
+        out.tiendas[sk].veces++;
+        if(!dia.visitas.some(v=>v.sk===sk)) dia.visitas.push({sk, rolTxt});
+      } else { out.desconocidos[t] = (out.desconocidos[t]||0)+1; }
+    });
+  }
+  return out;
+}
+async function impArchivosElegidos(input){
+  const files = [...(input.files||[])]; input.value='';
+  if(!files.length) return;
+  if(!IMP_PERFILES.includes(currentUser.perfil)){ toast('Esta opción es solo para Supervisor, Coordinador y Admin.'); return; }
+  toast('Leyendo archivo(s)…');
+  try{
+    if(!(await cargarXLSX())) throw new Error('no se pudo cargar el lector de Excel (revisa tu internet)');
+    const imp = window._imp = {archivos:[], personas:[], tiendas:{}, huerfanas:0, pendientes:0, desconocidos:{}, decisiones:{}};
+    for(const f of files){
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      let hojasOk = 0;
+      for(const nombreHoja of wb.SheetNames){
+        if(/DEGUST|PIVOT|PLAN/i.test(nombreHoja) && wb.SheetNames.length>1) continue;
+        const filas = XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], {header:1, raw:true, cellDates:false, defval:null});
+        const r = impLeerHoja(filas);
+        if(!r || !r.orden.length) continue;
+        hojasOk++;
+        r.orden.forEach(k=>{
+          const p = r.personas[k];
+          let ex = imp.personas.find(x=>x.key===k);
+          if(!ex){ ex = {key:k, nombreArchivo:p.nombreArchivo, dias:{}, filas:0, usuario:'', auto:false}; imp.personas.push(ex); }
+          ex.filas += p.filas;
+          Object.keys(p.dias).forEach(fe=>{ ex.dias[fe] = p.dias[fe]; });
+        });
+        Object.entries(r.tiendas).forEach(([sk,v])=>{ if(!imp.tiendas[sk]) imp.tiendas[sk]=v; else imp.tiendas[sk].veces+=v.veces; });
+        imp.huerfanas += r.huerfanas; imp.pendientes += r.pendientes;
+        Object.entries(r.desconocidos).forEach(([t,n])=>imp.desconocidos[t]=(imp.desconocidos[t]||0)+n);
+      }
+      imp.archivos.push({nombre:f.name, hojas:hojasOk});
+    }
+    if(!imp.personas.length){ toast('No encontré un rol de rutas en el archivo (necesito columna de persona y columnas con fechas).'); return; }
+    const visibles = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+    imp.personas.forEach(p=>{
+      p.vacante = /VACANTE/.test(p.key);
+      const u = p.vacante ? null : impBuscarUsuario(p.nombreArchivo);
+      if(u){
+        p.auto = true;
+        if(visibles.has(u.usuario)) p.usuario = u.usuario; else { p.usuario=''; p.fuera = u.nombre; }
+      }
+    });
+    impRenderModal();
+  }catch(e){
+    console.error(e);
+    toast('No pude leer el archivo: '+(e && e.message ? e.message : e));
+  }
+}
+function impStoreDe(sk){
+  const t = window._imp.tiendas[sk];
+  if(!t) return {cadena:'', tienda:''};
+  const s = t.store || t.m.store;
+  if(s) return {cadena:s.cadena, tienda:s.tienda};
+  return {cadena:t.cadena.replace(/^CADENA$/i,''), tienda:t.tienda};
+}
+function impRolDe(u, rolTxt){
+  if(/DEGUST/.test(rolTxt)) return 'Degustación';
+  if(/PROMOT/.test(rolTxt)) return 'Promotoría';
+  if(/SUPERV/.test(rolTxt)) return 'Supervisión';
+  return rolSugeridoParaUsuario(u);
+}
+/* Registros que se cargarían: lista de {usuario, fecha, recs[]} */
+function impPropuesta(){
+  const imp = window._imp, out = [];
+  imp.personas.forEach(p=>{
+    if(!p.usuario) return;
+    const u = APP_DATA.equipo.find(x=>x.usuario===p.usuario); if(!u) return;
+    Object.keys(p.dias).sort().forEach(fecha=>{
+      const d = p.dias[fecha];
+      let recs = [];
+      if(d.estado) recs = [{fecha, usuario:u.usuario, nombre:u.nombre, tipo:d.estado, cadena:'', tienda:'', rol:''}];
+      else recs = d.visitas.map(v=>{ const s=impStoreDe(v.sk); return {fecha, usuario:u.usuario, nombre:u.nombre, tipo:'visita', cadena:s.cadena, tienda:s.tienda, rol:impRolDe(u, v.rolTxt)}; });
+      if(recs.length) out.push({usuario:u.usuario, nombre:u.nombre, fecha, recs, conVisitaYEstado: !!(d.estado && d.visitas.length)});
+    });
+  });
+  return out;
+}
+function impDescr(recs){
+  if(!recs.length) return '—';
+  if(recs[0].tipo!=='visita') return TIPO_DIA_LABEL[recs[0].tipo]||recs[0].tipo;
+  return recs.map(r=>r.tienda||'(sin tienda)').join(' + ');
+}
+function impAnalizar(){
+  const prop = impPropuesta(), existentes = getRutas();
+  const porClave = {};
+  existentes.forEach(a=>{ (porClave[a.usuario+'|'+a.fecha] = porClave[a.usuario+'|'+a.fecha] || []).push(a); });
+  const nuevos = [], iguales = [], conflictos = [], bloqueados = [];
+  prop.forEach(g=>{
+    if(fechaBloqueada(g.fecha)){ bloqueados.push(g); return; }
+    const ex = porClave[g.usuario+'|'+g.fecha];
+    if(!ex || !ex.length){ nuevos.push(g); return; }
+    const s1 = ex.map(serializeRutaEntry).sort().join('~'), s2 = g.recs.map(serializeRutaEntry).sort().join('~');
+    if(s1===s2) iguales.push(g); else conflictos.push({g, ex});
+  });
+  return {nuevos, iguales, conflictos, bloqueados};
+}
+function impRenderModal(){
+  const imp = window._imp;
+  const visibles = equipoVisibleParaMi();
+  const optsPersona = sel => `<option value="">— No cargar —</option>` + visibles.map(u=>`<option value="${u.usuario}" ${sel===u.usuario?'selected':''}>${pcEsc(u.nombre)} (${u.usuario})</option>`).join('');
+  const filasPers = imp.personas.map((p,i)=>{
+    const dias = Object.keys(p.dias).length;
+    let nVis=0, nEst=0; Object.values(p.dias).forEach(d=>{ if(d.estado) nEst++; else nVis += d.visitas.length; });
+    const nota = p.vacante ? '<span style="color:var(--ink-soft);">Vacante — sin persona asignada</span>'
+      : p.fuera ? `<span style="color:var(--bad);">Es ${pcEsc(nombreCorto(p.fuera))}, fuera de tu equipo</span>`
+      : (!p.usuario ? '<span style="color:var(--bad);">No la reconocí — elige quién es</span>' : (p.auto?'<span style="color:var(--good);">✓ reconocida</span>':'<span>elegida por ti</span>'));
+    return `<tr style="border-top:1px solid var(--line);">
+      <td style="padding:6px 6px; font-size:12px;"><b>${pcEsc(p.nombreArchivo)}</b><div style="font-size:10.5px;">${nota}</div></td>
+      <td style="padding:6px 6px;"><select onchange="impElegirPersona(${i}, this.value)" style="max-width:230px; font-size:12px; padding:4px 6px;">${optsPersona(p.usuario)}</select></td>
+      <td style="padding:6px 6px; font-size:12px; text-align:center;">${dias}</td>
+      <td style="padding:6px 6px; font-size:12px; text-align:center;">${nVis}</td>
+      <td style="padding:6px 6px; font-size:12px; text-align:center;">${nEst}</td>
+    </tr>`;
+  }).join('');
+  const sinReconocer = Object.entries(imp.tiendas).filter(([sk,t])=>!t.m.store && !t.store);
+  const tiendasHtml = sinReconocer.length ? `
+    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:14px 0 4px;">Tiendas que no pude identificar (${sinReconocer.length})</div>
+    <p style="font-size:11.5px; color:var(--ink-soft); margin:0 0 6px;">Si no eliges nada, se cargan tal como vienen en el archivo (con el nombre escrito). Si quieres, busca la tienda correcta del catálogo.</p>
+    ${sinReconocer.map(([sk,t])=>`<div style="display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
+      <span style="font-size:12px; min-width:210px;">${pcEsc(t.tienda||'(sin nombre)')} <span style="color:var(--ink-soft);">· ${pcEsc(t.cadena)} ${t.det?('· #'+pcEsc(t.det)):''}</span></span>
+      <input type="text" list="dlTodasTiendas" placeholder="Buscar tienda del catálogo…" data-sk="${pcEsc(sk)}" onchange="impElegirTienda(this)" style="flex:1; min-width:200px; font-size:12px; padding:4px 6px;">
+    </div>`).join('')}` : '';
+  const body = document.getElementById('modalBody');
+  body.classList.add('modal-wide');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>📥 Cargar rutas desde archivo</h3>
+    <p class="d">${imp.archivos.map(a=>pcEsc(a.nombre)+' ('+a.hojas+' hoja'+(a.hojas===1?'':'s')+')').join(' · ')}. Revisa quién es quién y las diferencias; no se guarda nada hasta que confirmes.</p>
+    <div style="overflow:auto; max-height:240px; border:1px solid var(--line); border-radius:10px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead><tr style="background:var(--brand-soft); font-size:11px; text-align:left;"><th style="padding:6px;">En el archivo</th><th style="padding:6px;">Se carga como</th><th style="padding:6px;">Días</th><th style="padding:6px;">Visitas</th><th style="padding:6px;">Descansos / otros</th></tr></thead>
+        <tbody>${filasPers}</tbody>
+      </table>
+    </div>
+    ${tiendasHtml}
+    <div id="impResumen" style="margin-top:14px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" id="impBtnCargar" onclick="impConfirmar()">Cargar</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+  impRenderResumen();
+}
+function impElegirPersona(i, usuario){
+  const p = window._imp.personas[i]; p.usuario = usuario; p.auto = false; p.fuera = '';
+  impRenderModal();
+}
+function impElegirTienda(inp){
+  const sk = inp.dataset.sk, t = window._imp.tiendas[sk]; if(!t) return;
+  const v = inp.value.trim();
+  if(!v){ t.store = null; }
+  else {
+    const s = APP_DATA.stores.find(x=>(x.tienda+' — '+x.cadena)===v);
+    if(s) t.store = s; else { t.store=null; toast('Elige una tienda de la lista.'); }
+  }
+  impRenderResumen();
+}
+function impDecidir(clave, valor){
+  window._imp.decisiones[clave] = valor;
+  impRenderResumen();
+}
+function impDecidirTodos(valor){
+  impAnalizar().conflictos.forEach(c=>{ window._imp.decisiones[c.g.usuario+'|'+c.g.fecha] = valor; });
+  impRenderResumen();
+}
+function impRenderResumen(){
+  const box = document.getElementById('impResumen'); if(!box) return;
+  const an = impAnalizar(), imp = window._imp;
+  const pend = an.conflictos.filter(c=>!imp.decisiones[c.g.usuario+'|'+c.g.fecha]).length;
+  const fechas = [...an.nuevos, ...an.iguales, ...an.conflictos.map(c=>c.g), ...an.bloqueados].map(g=>g.fecha).sort();
+  const fmt = iso => { const [y,m,d] = iso.split('-'); return `${d}/${m}`; };
+  const sinPersona = imp.personas.filter(p=>!p.usuario && !p.vacante && !p.fuera).length;
+  const visitasYestado = impPropuesta().filter(g=>g.conVisitaYEstado).length;
+  let html = `<div class="row" style="gap:8px; margin-bottom:10px;">
+    <div class="card kpi good" style="flex:1; min-width:110px;"><div class="label">Días nuevos</div><div class="value">${an.nuevos.length}</div></div>
+    <div class="card kpi" style="flex:1; min-width:110px;"><div class="label">Ya estaban igual</div><div class="value">${an.iguales.length}</div></div>
+    <div class="card kpi ${an.conflictos.length?'warn':''}" style="flex:1; min-width:110px;"><div class="label">Distintos a lo capturado</div><div class="value">${an.conflictos.length}</div></div>
+    ${an.bloqueados.length?`<div class="card kpi" style="flex:1; min-width:110px;"><div class="label">Semana ya guardada (se omiten)</div><div class="value">${an.bloqueados.length}</div></div>`:''}
+  </div>`;
+  if(fechas.length) html += `<p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">Fechas del archivo: ${fmt(fechas[0])} al ${fmt(fechas[fechas.length-1])}.</p>`;
+  const avisos = [];
+  if(sinPersona) avisos.push(`${sinPersona} persona(s) del archivo sin asignar — no se cargarán hasta que las elijas.`);
+  if(imp.huerfanas) avisos.push(`${imp.huerfanas} celda(s) con visita en filas sin persona (no se cargan).`);
+  if(imp.pendientes) avisos.push(`${imp.pendientes} celda(s) con "PENDIENTE" — se dejaron en blanco.`);
+  if(visitasYestado) avisos.push(`${visitasYestado} día(s) traen visita y además descanso/vacaciones: se cargó el descanso/vacaciones.`);
+  const desc = Object.entries(imp.desconocidos);
+  if(desc.length) avisos.push('Textos que no entendí y omití: '+desc.map(([t,n])=>`"${pcEsc(t)}" (${n})`).join(', '));
+  if(avisos.length) html += `<div style="background:var(--warn-soft); border:1px solid #ecd9a8; border-radius:8px; padding:8px 11px; font-size:12px; color:#6b4f16; margin-bottom:10px;">${avisos.map(a=>'⚠️ '+a).join('<br>')}</div>`;
+  if(an.conflictos.length){
+    html += `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+      <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark);">Ya hay ruta capturada en estos días — decide caso por caso</div>
+      <span style="font-size:11.5px; color:${pend?'var(--bad)':'var(--good)'};">${pend?pend+' por decidir':'Todo decidido ✓'}</span>
+      <button class="btn btn-ghost" style="font-size:11px; padding:3px 8px; margin-left:auto;" onclick="impDecidirTodos('actual')">Todos: conservar lo actual</button>
+      <button class="btn btn-ghost" style="font-size:11px; padding:3px 8px;" onclick="impDecidirTodos('archivo')">Todos: usar el archivo</button>
+    </div>
+    <div style="max-height:260px; overflow:auto; border:1px solid var(--line); border-radius:10px;">
+    ${an.conflictos.map(({g, ex})=>{
+      const clave = g.usuario+'|'+g.fecha, dec = imp.decisiones[clave];
+      const dn = new Date(g.fecha+'T00:00:00');
+      return `<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:7px 10px; border-top:1px solid var(--line); font-size:12px; ${dec?'':'background:#fff8ee;'}">
+        <div style="min-width:150px;"><b>${pcEsc(nombreCorto(g.nombre))}</b><div style="font-size:10.5px; color:var(--ink-soft);">${DAY_NAMES[(dn.getDay()+2)%7]||''} ${fmt(g.fecha)}</div></div>
+        <label style="flex:1; min-width:150px; cursor:pointer;"><input type="radio" name="imp_${pcEsc(clave)}" ${dec==='actual'?'checked':''} onchange="impDecidir('${clave}','actual')"> <span style="color:var(--ink-soft);">Actual:</span> ${pcEsc(impDescr(ex))}</label>
+        <label style="flex:1; min-width:150px; cursor:pointer;"><input type="radio" name="imp_${pcEsc(clave)}" ${dec==='archivo'?'checked':''} onchange="impDecidir('${clave}','archivo')"> <span style="color:var(--ink-soft);">Archivo:</span> <b>${pcEsc(impDescr(g.recs))}</b></label>
+      </div>`;
+    }).join('')}
+    </div>`;
+  }
+  box.innerHTML = html;
+  const btn = document.getElementById('impBtnCargar');
+  const aCargar = an.nuevos.length + an.conflictos.filter(c=>imp.decisiones[c.g.usuario+'|'+c.g.fecha]==='archivo').length;
+  btn.textContent = pend ? `Faltan ${pend} por decidir` : (aCargar ? `Cargar ${aCargar} día${aCargar===1?'':'s'}` : 'Nada nuevo que cargar');
+  btn.disabled = !!pend || !aCargar;
+  btn.style.opacity = btn.disabled ? .5 : 1;
+}
+function impConfirmar(){
+  const imp = window._imp; if(!imp) return;
+  if(!IMP_PERFILES.includes(currentUser.perfil)) return;
+  const an = impAnalizar();
+  if(an.conflictos.some(c=>!imp.decisiones[c.g.usuario+'|'+c.g.fecha])){ toast('Faltan casos por decidir.'); return; }
+  const reemplazar = new Set(), agregar = [];
+  an.nuevos.forEach(g=>agregar.push(g));
+  an.conflictos.forEach(c=>{ if(imp.decisiones[c.g.usuario+'|'+c.g.fecha]==='archivo'){ reemplazar.add(c.g.usuario+'|'+c.g.fecha); agregar.push(c.g); } });
+  if(!agregar.length){ toast('No hay nada que cargar.'); return; }
+  let arr = getRutas().filter(a=>!reemplazar.has(a.usuario+'|'+a.fecha));
+  let n = 0;
+  agregar.forEach(g=>g.recs.forEach(r=>{ arr.push(Object.assign({id: uid()+'_i'+(n++)}, r)); }));
+  saveRutas(arr);
+  const fechas = agregar.map(g=>g.fecha).sort();
+  closeModal();
+  rutaWeekStart = new Date(fechas[0]+'T00:00:00');
+  window._imp = null;
+  toast(`Listo: se cargaron ${agregar.length} día(s) de ${new Set(agregar.map(g=>g.usuario)).size} persona(s). Revisa la vista y da "Guardar y distribuir" cuando esté bien.`, 6000);
+  renderRuta();
+}
+function impAbrirSelector(){
+  if(!IMP_PERFILES.includes(currentUser.perfil)){ toast('Esta opción es solo para Supervisor, Coordinador y Admin.'); return; }
+  document.getElementById('rutaImpInput').click();
+}
+
 function renderRutaResumenSemana(startISO, endISO){
   const box = document.getElementById('rutaResumenSemana');
   if(!box) return;
