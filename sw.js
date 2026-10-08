@@ -1,39 +1,11784 @@
-// Service worker de Délico ODV — permite instalar la app y usarla sin conexión.
-// IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
-// también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
-// celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v105';
-const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png'];
-// El SDK de Firebase se carga desde gstatic.com cada vez que arranca la app. Si no se guarda también
-// aquí, un celular que abre la app SIN internet (o con el caché del navegador ya vencido) se puede
-// quedar en pantalla en blanco porque nunca terminó de cargar "firebase" y todo lo demás depende de eso.
-const ASSETS_EXTERNOS = [
-  'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js',
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DELICO . ODV</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#a7ab27">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ODV Délico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- html2canvas, jsPDF y XLSX (~1.2MB entre las tres) ya NO se cargan aquí de entrada — solo las
+     usan los botones de "Exportar Excel/PDF/imágenes", que es una minoría de las veces que se abre
+     la app. Ahora se cargan solo cuando de verdad se necesitan (ver cargarLibreriaExport más abajo),
+     para que abrir la app normal (capturar, ver Objetivos, etc.) sea más rápido. -->
+<script>
+/*! JsBarcode v3.12.3 | (c) Johan Lindell | MIT license */
+!function(t){var e={};function n(r){if(e[r])return e[r].exports;var o=e[r]={i:r,l:!1,exports:{}};return t[r].call(o.exports,o,o.exports,n),o.l=!0,o.exports}n.m=t,n.c=e,n.d=function(t,e,r){n.o(t,e)||Object.defineProperty(t,e,{enumerable:!0,get:r})},n.r=function(t){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(t,"__esModule",{value:!0})},n.t=function(t,e){if(1&e&&(t=n(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var r=Object.create(null);if(n.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var o in t)n.d(r,o,function(e){return t[e]}.bind(null,o));return r},n.n=function(t){var e=t&&t.__esModule?function(){return t.default}:function(){return t};return n.d(e,"a",e),e},n.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},n.p="",n(n.s=16)}([function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});e.default=function t(e,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.data=e,this.text=n.text||e,this.options=n}},function(t,e,n){"use strict";var r;function o(t,e,n){return e in t?Object.defineProperty(t,e,{value:n,enumerable:!0,configurable:!0,writable:!0}):t[e]=n,t}Object.defineProperty(e,"__esModule",{value:!0});var i=e.SET_A=0,a=e.SET_B=1,u=e.SET_C=2,f=(e.SHIFT=98,e.START_A=103),c=e.START_B=104,s=e.START_C=105;e.MODULO=103,e.STOP=106,e.FNC1=207,e.SET_BY_CODE=(o(r={},f,i),o(r,c,a),o(r,s,u),r),e.SWAP={101:i,100:a,99:u},e.A_START_CHAR=String.fromCharCode(208),e.B_START_CHAR=String.fromCharCode(209),e.C_START_CHAR=String.fromCharCode(210),e.A_CHARS="[\0-_È-Ï]",e.B_CHARS="[ -È-Ï]",e.C_CHARS="(Ï*[0-9]{2}Ï*)",e.BARS=[11011001100,11001101100,11001100110,10010011e3,10010001100,10001001100,10011001e3,10011000100,10001100100,11001001e3,11001000100,11000100100,10110011100,10011011100,10011001110,10111001100,10011101100,10011100110,11001110010,11001011100,11001001110,11011100100,11001110100,11101101110,11101001100,11100101100,11100100110,11101100100,11100110100,11100110010,11011011e3,11011000110,11000110110,10100011e3,10001011e3,10001000110,10110001e3,10001101e3,10001100010,11010001e3,11000101e3,11000100010,10110111e3,10110001110,10001101110,10111011e3,10111000110,10001110110,11101110110,11010001110,11000101110,11011101e3,11011100010,11011101110,11101011e3,11101000110,11100010110,11101101e3,11101100010,11100011010,11101111010,11001000010,11110001010,1010011e4,10100001100,1001011e4,10010000110,10000101100,10000100110,1011001e4,10110000100,1001101e4,10011000010,10000110100,10000110010,11000010010,1100101e4,11110111010,11000010100,10001111010,10100111100,10010111100,10010011110,10111100100,10011110100,10011110010,11110100100,11110010100,11110010010,11011011110,11011110110,11110110110,10101111e3,10100011110,10001011110,10111101e3,10111100010,11110101e3,11110100010,10111011110,10111101110,11101011110,11110101110,11010000100,1101001e4,11010011100,1100011101011]},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});e.SIDE_BIN="101",e.MIDDLE_BIN="01010",e.BINARIES={L:["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"],G:["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"],R:["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"],O:["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"],E:["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"]},e.EAN2_STRUCTURE=["LL","LG","GL","GG"],e.EAN5_STRUCTURE=["GGLLL","GLGLL","GLLGL","GLLLG","LGGLL","LLGGL","LLLGG","LGLGL","LGLLG","LLGLG"],e.EAN13_STRUCTURE=["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"]},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=n(2);e.default=function(t,e,n){var o=t.split("").map((function(t,n){return r.BINARIES[e[n]]})).map((function(e,n){return e?e[t[n]]:""}));if(n){var i=t.length-1;o=o.map((function(t,e){return e<i?t+n:t}))}return o.join("")}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(0);var a=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"encode",value:function(){for(var t="110",e=0;e<this.data.length;e++){var n=parseInt(this.data[e]).toString(2);n=u(n,4-n.length);for(var r=0;r<n.length;r++)t+="0"==n[r]?"100":"110"}return{data:t+="1001",text:this.text}}},{key:"valid",value:function(){return-1!==this.data.search(/^[0-9]+$/)}}]),e}(((r=i)&&r.__esModule?r:{default:r}).default);function u(t,e){for(var n=0;n<e;n++)t="0"+t;return t}e.default=a},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(0),a=(r=i)&&r.__esModule?r:{default:r},u=n(1);var f=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e);var r=function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t.substring(1),n));return r.bytes=t.split("").map((function(t){return t.charCodeAt(0)})),r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return/^[\x00-\x7F\xC8-\xD3]+$/.test(this.data)}},{key:"encode",value:function(){var t=this.bytes,n=t.shift()-105,r=u.SET_BY_CODE[n];if(void 0===r)throw new RangeError("The encoding does not start with a start character.");!0===this.shouldEncodeAsEan128()&&t.unshift(u.FNC1);var o=e.next(t,1,r);return{text:this.text===this.data?this.text.replace(/[^\x20-\x7E]/g,""):this.text,data:e.getBar(n)+o.result+e.getBar((o.checksum+n)%u.MODULO)+e.getBar(u.STOP)}}},{key:"shouldEncodeAsEan128",value:function(){var t=this.options.ean128||!1;return"string"==typeof t&&(t="true"===t.toLowerCase()),t}}],[{key:"getBar",value:function(t){return u.BARS[t]?u.BARS[t].toString():""}},{key:"correctIndex",value:function(t,e){if(e===u.SET_A){var n=t.shift();return n<32?n+64:n-32}return e===u.SET_B?t.shift()-32:10*(t.shift()-48)+t.shift()-48}},{key:"next",value:function(t,n,r){if(!t.length)return{result:"",checksum:0};var o=void 0,i=void 0;if(t[0]>=200){i=t.shift()-105;var a=u.SWAP[i];void 0!==a?o=e.next(t,n+1,a):(r!==u.SET_A&&r!==u.SET_B||i!==u.SHIFT||(t[0]=r===u.SET_A?t[0]>95?t[0]-96:t[0]:t[0]<32?t[0]+96:t[0]),o=e.next(t,n+1,r))}else i=e.correctIndex(t,r),o=e.next(t,n+1,r);var f=i*n;return{result:e.getBar(i)+o.result,checksum:f+o.checksum}}}]),e}(a.default);e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.mod10=function(t){for(var e=0,n=0;n<t.length;n++){var r=parseInt(t[n]);(n+t.length)%2==0?e+=r:e+=2*r%10+Math.floor(2*r/10)}return(10-e%10)%10},e.mod11=function(t){for(var e=0,n=[2,3,4,5,6,7],r=0;r<t.length;r++){var o=parseInt(t[t.length-1-r]);e+=n[r%n.length]*o}return(11-e%11)%11}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=Object.assign||function(t){for(var e=1;e<arguments.length;e++){var n=arguments[e];for(var r in n)Object.prototype.hasOwnProperty.call(n,r)&&(t[r]=n[r])}return t};e.default=function(t,e){return r({},t,e)}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),o=n(2),i=a(n(3));function a(t){return t&&t.__esModule?t:{default:t}}var u=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e);var r=function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n));return r.fontSize=!n.flat&&n.fontSize>10*n.width?10*n.width:n.fontSize,r.guardHeight=n.height+r.fontSize/2+n.textMargin,r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),r(e,[{key:"encode",value:function(){return this.options.flat?this.encodeFlat():this.encodeGuarded()}},{key:"leftText",value:function(t,e){return this.text.substr(t,e)}},{key:"leftEncode",value:function(t,e){return(0,i.default)(t,e)}},{key:"rightText",value:function(t,e){return this.text.substr(t,e)}},{key:"rightEncode",value:function(t,e){return(0,i.default)(t,e)}},{key:"encodeGuarded",value:function(){var t={fontSize:this.fontSize},e={height:this.guardHeight};return[{data:o.SIDE_BIN,options:e},{data:this.leftEncode(),text:this.leftText(),options:t},{data:o.MIDDLE_BIN,options:e},{data:this.rightEncode(),text:this.rightText(),options:t},{data:o.SIDE_BIN,options:e}]}},{key:"encodeFlat",value:function(){return{data:[o.SIDE_BIN,this.leftEncode(),o.MIDDLE_BIN,this.rightEncode(),o.SIDE_BIN].join(""),text:this.text}}}]),e}(a(n(0)).default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}();e.checksum=u;var o=i(n(3));function i(t){return t&&t.__esModule?t:{default:t}}var a=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),-1!==t.search(/^[0-9]{11}$/)&&(t+=u(t));var r=function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n));return r.displayValue=n.displayValue,n.fontSize>10*n.width?r.fontSize=10*n.width:r.fontSize=n.fontSize,r.guardHeight=n.height+r.fontSize/2+n.textMargin,r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),r(e,[{key:"valid",value:function(){return-1!==this.data.search(/^[0-9]{12}$/)&&this.data[11]==u(this.data)}},{key:"encode",value:function(){return this.options.flat?this.flatEncoding():this.guardedEncoding()}},{key:"flatEncoding",value:function(){var t="";return t+="101",t+=(0,o.default)(this.data.substr(0,6),"LLLLLL"),t+="01010",t+=(0,o.default)(this.data.substr(6,6),"RRRRRR"),{data:t+="101",text:this.text}}},{key:"guardedEncoding",value:function(){var t=[];return this.displayValue&&t.push({data:"00000000",text:this.text.substr(0,1),options:{textAlign:"left",fontSize:this.fontSize}}),t.push({data:"101"+(0,o.default)(this.data[0],"L"),options:{height:this.guardHeight}}),t.push({data:(0,o.default)(this.data.substr(1,5),"LLLLL"),text:this.text.substr(1,5),options:{fontSize:this.fontSize}}),t.push({data:"01010",options:{height:this.guardHeight}}),t.push({data:(0,o.default)(this.data.substr(6,5),"RRRRR"),text:this.text.substr(6,5),options:{fontSize:this.fontSize}}),t.push({data:(0,o.default)(this.data[11],"R")+"101",options:{height:this.guardHeight}}),this.displayValue&&t.push({data:"00000000",text:this.text.substr(11,1),options:{textAlign:"right",fontSize:this.fontSize}}),t}}]),e}(i(n(0)).default);function u(t){var e,n=0;for(e=1;e<11;e+=2)n+=parseInt(t[e]);for(e=0;e<11;e+=2)n+=3*parseInt(t[e]);return(10-n%10)%10}e.default=a},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(32),a=n(0);function u(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function f(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}var c=function(t){function e(){return u(this,e),f(this,(e.__proto__||Object.getPrototypeOf(e)).apply(this,arguments))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return-1!==this.data.search(/^([0-9]{2})+$/)}},{key:"encode",value:function(){var t=this,e=this.data.match(/.{2}/g).map((function(e){return t.encodePair(e)})).join("");return{data:i.START_BIN+e+i.END_BIN,text:this.text}}},{key:"encodePair",value:function(t){var e=i.BINARIES[t[1]];return i.BINARIES[t[0]].split("").map((function(t,n){return("1"===t?"111":"1")+("1"===e[n]?"000":"0")})).join("")}}]),e}(((r=a)&&r.__esModule?r:{default:r}).default);e.default=c},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(42),a=n(0);var u=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return/^[0-9A-Z\-. $/+%]+$/.test(this.data)}},{key:"encode",value:function(){var t=this.data.split("").flatMap((function(t){return i.MULTI_SYMBOLS[t]||t})),n=t.map((function(t){return e.getEncoding(t)})).join(""),r=e.checksum(t,20),o=e.checksum(t.concat(r),15);return{text:this.text,data:e.getEncoding("ÿ")+n+e.getEncoding(r)+e.getEncoding(o)+e.getEncoding("ÿ")+"1"}}}],[{key:"getEncoding",value:function(t){return i.BINARIES[e.symbolValue(t)]}},{key:"getSymbol",value:function(t){return i.SYMBOLS[t]}},{key:"symbolValue",value:function(t){return i.SYMBOLS.indexOf(t)}},{key:"checksum",value:function(t,n){var r=t.slice().reverse().reduce((function(t,r,o){var i=o%n+1;return t+e.symbolValue(r)*i}),0);return e.getSymbol(r%47)}}]),e}(((r=a)&&r.__esModule?r:{default:r}).default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(t){var e=["width","height","textMargin","fontSize","margin","marginTop","marginBottom","marginLeft","marginRight"];for(var n in e)e.hasOwnProperty(n)&&(n=e[n],"string"==typeof t[n]&&(t[n]=parseInt(t[n],10)));"string"==typeof t.displayValue&&(t.displayValue="false"!=t.displayValue);return t}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r={width:2,height:100,format:"auto",displayValue:!0,fontOptions:"",font:"monospace",text:void 0,textAlign:"center",textPosition:"bottom",textMargin:2,fontSize:20,background:"#ffffff",lineColor:"#000000",margin:10,marginTop:void 0,marginBottom:void 0,marginLeft:void 0,marginRight:void 0,valid:function(){}};e.default=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.getTotalWidthOfEncodings=e.calculateEncodingAttributes=e.getBarcodePadding=e.getEncodingHeight=e.getMaximumHeightOfEncodings=void 0;var r,o=n(7),i=(r=o)&&r.__esModule?r:{default:r};function a(t,e){return e.height+(e.displayValue&&t.text.length>0?e.fontSize+e.textMargin:0)+e.marginTop+e.marginBottom}function u(t,e,n){if(n.displayValue&&e<t){if("center"==n.textAlign)return Math.floor((t-e)/2);if("left"==n.textAlign)return 0;if("right"==n.textAlign)return Math.floor(t-e)}return 0}function f(t,e,n){var r;if(n)r=n;else{if("undefined"==typeof document)return 0;r=document.createElement("canvas").getContext("2d")}r.font=e.fontOptions+" "+e.fontSize+"px "+e.font;var o=r.measureText(t);return o?o.width:0}e.getMaximumHeightOfEncodings=function(t){for(var e=0,n=0;n<t.length;n++)t[n].height>e&&(e=t[n].height);return e},e.getEncodingHeight=a,e.getBarcodePadding=u,e.calculateEncodingAttributes=function(t,e,n){for(var r=0;r<t.length;r++){var o,c=t[r],s=(0,i.default)(e,c.options);o=s.displayValue?f(c.text,s,n):0;var l=c.data.length*s.width;c.width=Math.ceil(Math.max(o,l)),c.height=a(c,s),c.barcodePadding=u(o,l,s)}},e.getTotalWidthOfEncodings=function(t){for(var e=0,n=0;n<t.length;n++)e+=t[n].width;return e}},function(t,e,n){"use strict";function r(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function o(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}function i(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}Object.defineProperty(e,"__esModule",{value:!0});var a=function(t){function e(t,n){r(this,e);var i=o(this,(e.__proto__||Object.getPrototypeOf(e)).call(this));return i.name="InvalidInputException",i.symbology=t,i.input=n,i.message='"'+i.input+'" is not a valid input for '+i.symbology,i}return i(e,Error),e}(),u=function(t){function e(){r(this,e);var t=o(this,(e.__proto__||Object.getPrototypeOf(e)).call(this));return t.name="InvalidElementException",t.message="Not supported type to render on",t}return i(e,Error),e}(),f=function(t){function e(){r(this,e);var t=o(this,(e.__proto__||Object.getPrototypeOf(e)).call(this));return t.name="NoElementException",t.message="No element to render on.",t}return i(e,Error),e}();e.InvalidInputException=a,e.InvalidElementException=u,e.NoElementException=f},function(t,e,n){"use strict";var r=p(n(17)),o=p(n(7)),i=p(n(45)),a=p(n(46)),u=p(n(47)),f=p(n(12)),c=p(n(53)),s=n(15),l=p(n(13));function p(t){return t&&t.__esModule?t:{default:t}}var d=function(){},h=function(t,e,n){var r=new d;if(void 0===t)throw Error("No element to render on was provided.");return r._renderProperties=(0,u.default)(t),r._encodings=[],r._options=l.default,r._errorHandler=new c.default(r),void 0!==e&&((n=n||{}).format||(n.format=_()),r.options(n)[n.format](e,n).render()),r};for(var y in h.getModule=function(t){return r.default[t]},r.default)r.default.hasOwnProperty(y)&&b(r.default,y);function b(t,e){d.prototype[e]=d.prototype[e.toUpperCase()]=d.prototype[e.toLowerCase()]=function(n,r){var i=this;return i._errorHandler.wrapBarcodeCall((function(){r.text=void 0===r.text?void 0:""+r.text;var a=(0,o.default)(i._options,r);a=(0,f.default)(a);var u=t[e],c=v(n,u,a);return i._encodings.push(c),i}))}}function v(t,e,n){var r=new e(t=""+t,n);if(!r.valid())throw new s.InvalidInputException(r.constructor.name,t);var a=r.encode();a=(0,i.default)(a);for(var u=0;u<a.length;u++)a[u].options=(0,o.default)(n,a[u].options);return a}function _(){return r.default.CODE128?"CODE128":Object.keys(r.default)[0]}function g(t,e,n){e=(0,i.default)(e);for(var r=0;r<e.length;r++)e[r].options=(0,o.default)(n,e[r].options),(0,a.default)(e[r].options);(0,a.default)(n),new(0,t.renderer)(t.element,e,n).render(),t.afterRender&&t.afterRender()}d.prototype.options=function(t){return this._options=(0,o.default)(this._options,t),this},d.prototype.blank=function(t){var e=new Array(t+1).join("0");return this._encodings.push({data:e}),this},d.prototype.init=function(){var t;if(this._renderProperties)for(var e in Array.isArray(this._renderProperties)||(this._renderProperties=[this._renderProperties]),this._renderProperties){t=this._renderProperties[e];var n=(0,o.default)(this._options,t.options);"auto"==n.format&&(n.format=_()),this._errorHandler.wrapBarcodeCall((function(){var e=v(n.value,r.default[n.format.toUpperCase()],n);g(t,e,n)}))}},d.prototype.render=function(){if(!this._renderProperties)throw new s.NoElementException;if(Array.isArray(this._renderProperties))for(var t=0;t<this._renderProperties.length;t++)g(this._renderProperties[t],this._encodings,this._options);else g(this._renderProperties,this._encodings,this._options);return this},d.prototype._defaults=l.default,"undefined"!=typeof window&&(window.JsBarcode=h),"undefined"!=typeof jQuery&&(jQuery.fn.JsBarcode=function(t,e){var n=[];return jQuery(this).each((function(){n.push(this)})),h(n,t,e)}),t.exports=h},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=n(18),o=n(19),i=n(25),a=n(31),u=n(34),f=n(39),c=n(40),s=n(41),l=n(44);e.default={CODE39:r.CODE39,CODE128:o.CODE128,CODE128A:o.CODE128A,CODE128B:o.CODE128B,CODE128C:o.CODE128C,EAN13:i.EAN13,EAN8:i.EAN8,EAN5:i.EAN5,EAN2:i.EAN2,UPC:i.UPC,UPCE:i.UPCE,ITF14:a.ITF14,ITF:a.ITF,MSI:u.MSI,MSI10:u.MSI10,MSI11:u.MSI11,MSI1010:u.MSI1010,MSI1110:u.MSI1110,pharmacode:f.pharmacode,codabar:c.codabar,CODE93:s.CODE93,CODE93FullASCII:s.CODE93FullASCII,GenericBarcode:l.GenericBarcode}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.CODE39=void 0;var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(0);var a=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),t=t.toUpperCase(),n.mod43&&(t+=function(t){return u[t]}(function(t){for(var e=0,n=0;n<t.length;n++)e+=s(t[n]);return e%=43}(t))),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"encode",value:function(){for(var t=c("*"),e=0;e<this.data.length;e++)t+=c(this.data[e])+"0";return{data:t+=c("*"),text:this.text}}},{key:"valid",value:function(){return-1!==this.data.search(/^[0-9A-Z\-\.\ \$\/\+\%]+$/)}}]),e}(((r=i)&&r.__esModule?r:{default:r}).default),u=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","-","."," ","$","/","+","%","*"],f=[20957,29783,23639,30485,20951,29813,23669,20855,29789,23645,29975,23831,30533,22295,30149,24005,21623,29981,23837,22301,30023,23879,30545,22343,30161,24017,21959,30065,23921,22385,29015,18263,29141,17879,29045,18293,17783,29021,18269,17477,17489,17681,20753,35770];function c(t){return function(t){return f[t].toString(2)}(s(t))}function s(t){return u.indexOf(t)}e.CODE39=a},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.CODE128C=e.CODE128B=e.CODE128A=e.CODE128=void 0;var r=u(n(20)),o=u(n(22)),i=u(n(23)),a=u(n(24));function u(t){return t&&t.__esModule?t:{default:t}}e.CODE128=r.default,e.CODE128A=o.default,e.CODE128B=i.default,e.CODE128C=a.default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=i(n(5)),o=i(n(21));function i(t){return t&&t.__esModule?t:{default:t}}function a(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}var u=function(t){function e(t,n){if(function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),/^[\x00-\x7F\xC8-\xD3]+$/.test(t))var r=a(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,(0,o.default)(t),n));else r=a(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n));return a(r)}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),e}(r.default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=n(1),o=function(t){return t.match(new RegExp("^"+r.A_CHARS+"*"))[0].length},i=function(t){return t.match(new RegExp("^"+r.B_CHARS+"*"))[0].length},a=function(t){return t.match(new RegExp("^"+r.C_CHARS+"*"))[0]};function u(t,e){var n=e?r.A_CHARS:r.B_CHARS,o=t.match(new RegExp("^("+n+"+?)(([0-9]{2}){2,})([^0-9]|$)"));if(o)return o[1]+String.fromCharCode(204)+f(t.substring(o[1].length));var i=t.match(new RegExp("^"+n+"+"))[0];return i.length===t.length?t:i+String.fromCharCode(e?205:206)+u(t.substring(i.length),!e)}function f(t){var e=a(t),n=e.length;if(n===t.length)return t;t=t.substring(n);var r=o(t)>=i(t);return e+String.fromCharCode(r?206:205)+u(t,r)}e.default=function(t){var e=void 0;if(a(t).length>=2)e=r.C_START_CHAR+f(t);else{var n=o(t)>i(t);e=(n?r.A_START_CHAR:r.B_START_CHAR)+u(t,n)}return e.replace(/[\xCD\xCE]([^])[\xCD\xCE]/,(function(t,e){return String.fromCharCode(203)+e}))}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(5),a=(r=i)&&r.__esModule?r:{default:r},u=n(1);var f=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,u.A_START_CHAR+t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return new RegExp("^"+u.A_CHARS+"+$").test(this.data)}}]),e}(a.default);e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(5),a=(r=i)&&r.__esModule?r:{default:r},u=n(1);var f=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,u.B_START_CHAR+t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return new RegExp("^"+u.B_CHARS+"+$").test(this.data)}}]),e}(a.default);e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(5),a=(r=i)&&r.__esModule?r:{default:r},u=n(1);var f=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,u.C_START_CHAR+t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return new RegExp("^"+u.C_CHARS+"+$").test(this.data)}}]),e}(a.default);e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.UPCE=e.UPC=e.EAN2=e.EAN5=e.EAN8=e.EAN13=void 0;var r=c(n(26)),o=c(n(27)),i=c(n(28)),a=c(n(29)),u=c(n(9)),f=c(n(30));function c(t){return t&&t.__esModule?t:{default:t}}e.EAN13=r.default,e.EAN8=o.default,e.EAN5=i.default,e.EAN2=a.default,e.UPC=u.default,e.UPCE=f.default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=function t(e,n,r){null===e&&(e=Function.prototype);var o=Object.getOwnPropertyDescriptor(e,n);if(void 0===o){var i=Object.getPrototypeOf(e);return null===i?void 0:t(i,n,r)}if("value"in o)return o.value;var a=o.get;return void 0!==a?a.call(r):void 0},a=n(2),u=n(8),f=(r=u)&&r.__esModule?r:{default:r};var c=function(t){return(10-t.substr(0,12).split("").map((function(t){return+t})).reduce((function(t,e,n){return n%2?t+3*e:t+e}),0)%10)%10},s=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),-1!==t.search(/^[0-9]{12}$/)&&(t+=c(t));var r=function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n));return r.lastChar=n.lastChar,r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return-1!==this.data.search(/^[0-9]{13}$/)&&+this.data[12]===c(this.data)}},{key:"leftText",value:function(){return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"leftText",this).call(this,1,6)}},{key:"leftEncode",value:function(){var t=this.data.substr(1,6),n=a.EAN13_STRUCTURE[this.data[0]];return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"leftEncode",this).call(this,t,n)}},{key:"rightText",value:function(){return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"rightText",this).call(this,7,6)}},{key:"rightEncode",value:function(){var t=this.data.substr(7,6);return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"rightEncode",this).call(this,t,"RRRRRR")}},{key:"encodeGuarded",value:function(){var t=i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"encodeGuarded",this).call(this);return this.options.displayValue&&(t.unshift({data:"000000000000",text:this.text.substr(0,1),options:{textAlign:"left",fontSize:this.fontSize}}),this.options.lastChar&&(t.push({data:"00"}),t.push({data:"00000",text:this.options.lastChar,options:{fontSize:this.fontSize}}))),t}}]),e}(f.default);e.default=s},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=function t(e,n,r){null===e&&(e=Function.prototype);var o=Object.getOwnPropertyDescriptor(e,n);if(void 0===o){var i=Object.getPrototypeOf(e);return null===i?void 0:t(i,n,r)}if("value"in o)return o.value;var a=o.get;return void 0!==a?a.call(r):void 0},a=n(8),u=(r=a)&&r.__esModule?r:{default:r};var f=function(t){return(10-t.substr(0,7).split("").map((function(t){return+t})).reduce((function(t,e,n){return n%2?t+e:t+3*e}),0)%10)%10},c=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),-1!==t.search(/^[0-9]{7}$/)&&(t+=f(t)),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return-1!==this.data.search(/^[0-9]{8}$/)&&+this.data[7]===f(this.data)}},{key:"leftText",value:function(){return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"leftText",this).call(this,0,4)}},{key:"leftEncode",value:function(){var t=this.data.substr(0,4);return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"leftEncode",this).call(this,t,"LLLL")}},{key:"rightText",value:function(){return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"rightText",this).call(this,4,4)}},{key:"rightEncode",value:function(){var t=this.data.substr(4,4);return i(e.prototype.__proto__||Object.getPrototypeOf(e.prototype),"rightEncode",this).call(this,t,"RRRR")}}]),e}(u.default);e.default=c},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),o=n(2),i=u(n(3)),a=u(n(0));function u(t){return t&&t.__esModule?t:{default:t}}var f=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),r(e,[{key:"valid",value:function(){return-1!==this.data.search(/^[0-9]{5}$/)}},{key:"encode",value:function(){var t,e=o.EAN5_STRUCTURE[(t=this.data,t.split("").map((function(t){return+t})).reduce((function(t,e,n){return n%2?t+9*e:t+3*e}),0)%10)];return{data:"1011"+(0,i.default)(this.data,e,"01"),text:this.text}}}]),e}(a.default);e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),o=n(2),i=a(n(3));function a(t){return t&&t.__esModule?t:{default:t}}var u=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),r(e,[{key:"valid",value:function(){return-1!==this.data.search(/^[0-9]{2}$/)}},{key:"encode",value:function(){var t=o.EAN2_STRUCTURE[parseInt(this.data)%4];return{data:"1011"+(0,i.default)(this.data,t,"01"),text:this.text}}}]),e}(a(n(0)).default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),o=u(n(3)),i=u(n(0)),a=n(9);function u(t){return t&&t.__esModule?t:{default:t}}function f(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}var c=["XX00000XXX","XX10000XXX","XX20000XXX","XXX00000XX","XXXX00000X","XXXXX00005","XXXXX00006","XXXXX00007","XXXXX00008","XXXXX00009"],s=[["EEEOOO","OOOEEE"],["EEOEOO","OOEOEE"],["EEOOEO","OOEEOE"],["EEOOOE","OOEEEO"],["EOEEOO","OEOOEE"],["EOOEEO","OEEOOE"],["EOOOEE","OEEEOO"],["EOEOEO","OEOEOE"],["EOEOOE","OEOEEO"],["EOOEOE","OEEOEO"]],l=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e);var r=f(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n));if(r.isValid=!1,-1!==t.search(/^[0-9]{6}$/))r.middleDigits=t,r.upcA=p(t,"0"),r.text=n.text||""+r.upcA[0]+t+r.upcA[r.upcA.length-1],r.isValid=!0;else{if(-1===t.search(/^[01][0-9]{7}$/))return f(r);if(r.middleDigits=t.substring(1,t.length-1),r.upcA=p(r.middleDigits,t[0]),r.upcA[r.upcA.length-1]!==t[t.length-1])return f(r);r.isValid=!0}return r.displayValue=n.displayValue,n.fontSize>10*n.width?r.fontSize=10*n.width:r.fontSize=n.fontSize,r.guardHeight=n.height+r.fontSize/2+n.textMargin,r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),r(e,[{key:"valid",value:function(){return this.isValid}},{key:"encode",value:function(){return this.options.flat?this.flatEncoding():this.guardedEncoding()}},{key:"flatEncoding",value:function(){var t="";return t+="101",t+=this.encodeMiddleDigits(),{data:t+="010101",text:this.text}}},{key:"guardedEncoding",value:function(){var t=[];return this.displayValue&&t.push({data:"00000000",text:this.text[0],options:{textAlign:"left",fontSize:this.fontSize}}),t.push({data:"101",options:{height:this.guardHeight}}),t.push({data:this.encodeMiddleDigits(),text:this.text.substring(1,7),options:{fontSize:this.fontSize}}),t.push({data:"010101",options:{height:this.guardHeight}}),this.displayValue&&t.push({data:"00000000",text:this.text[7],options:{textAlign:"right",fontSize:this.fontSize}}),t}},{key:"encodeMiddleDigits",value:function(){var t=this.upcA[0],e=this.upcA[this.upcA.length-1],n=s[parseInt(e)][parseInt(t)];return(0,o.default)(this.middleDigits,n)}}]),e}(i.default);function p(t,e){for(var n=parseInt(t[t.length-1]),r=c[n],o="",i=0,u=0;u<r.length;u++){var f=r[u];o+="X"===f?t[i++]:f}return""+(o=""+e+o)+(0,a.checksum)(o)}e.default=l},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.ITF14=e.ITF=void 0;var r=i(n(10)),o=i(n(33));function i(t){return t&&t.__esModule?t:{default:t}}e.ITF=r.default,e.ITF14=o.default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});e.START_BIN="1010",e.END_BIN="11101",e.BINARIES=["00110","10001","01001","11000","00101","10100","01100","00011","10010","01010"]},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(10),a=(r=i)&&r.__esModule?r:{default:r};var u=function(t){var e=t.substr(0,13).split("").map((function(t){return parseInt(t,10)})).reduce((function(t,e,n){return t+e*(3-n%2*2)}),0);return 10*Math.ceil(e/10)-e},f=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),-1!==t.search(/^[0-9]{13}$/)&&(t+=u(t)),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return-1!==this.data.search(/^[0-9]{14}$/)&&+this.data[13]===u(this.data)}}]),e}(a.default);e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.MSI1110=e.MSI1010=e.MSI11=e.MSI10=e.MSI=void 0;var r=f(n(4)),o=f(n(35)),i=f(n(36)),a=f(n(37)),u=f(n(38));function f(t){return t&&t.__esModule?t:{default:t}}e.MSI=r.default,e.MSI10=o.default,e.MSI11=i.default,e.MSI1010=a.default,e.MSI1110=u.default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=n(4),i=(r=o)&&r.__esModule?r:{default:r},a=n(6);var u=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t+(0,a.mod10)(t),n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),e}(i.default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=n(4),i=(r=o)&&r.__esModule?r:{default:r},a=n(6);var u=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t+(0,a.mod11)(t),n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),e}(i.default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=n(4),i=(r=o)&&r.__esModule?r:{default:r},a=n(6);var u=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),t+=(0,a.mod10)(t),t+=(0,a.mod10)(t),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),e}(i.default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=n(4),i=(r=o)&&r.__esModule?r:{default:r},a=n(6);var u=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),t+=(0,a.mod11)(t),t+=(0,a.mod10)(t),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),e}(i.default);e.default=u},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.pharmacode=void 0;var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(0);var a=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e);var r=function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n));return r.number=parseInt(t,10),r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"encode",value:function(){for(var t=this.number,e="";!isNaN(t)&&0!=t;)t%2==0?(e="11100"+e,t=(t-2)/2):(e="100"+e,t=(t-1)/2);return{data:e=e.slice(0,-2),text:this.text}}},{key:"valid",value:function(){return this.number>=3&&this.number<=131070}}]),e}(((r=i)&&r.__esModule?r:{default:r}).default);e.pharmacode=a},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.codabar=void 0;var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(0);var a=function(t){function e(t,n){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),0===t.search(/^[0-9\-\$\:\.\+\/]+$/)&&(t="A"+t+"A");var r=function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t.toUpperCase(),n));return r.text=r.options.text||r.text.replace(/[A-D]/g,""),r}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return-1!==this.data.search(/^[A-D][0-9\-\$\:\.\+\/]+[A-D]$/)}},{key:"encode",value:function(){for(var t=[],e=this.getEncodings(),n=0;n<this.data.length;n++)t.push(e[this.data.charAt(n)]),n!==this.data.length-1&&t.push("0");return{text:this.text,data:t.join("")}}},{key:"getEncodings",value:function(){return{0:"101010011",1:"101011001",2:"101001011",3:"110010101",4:"101101001",5:"110101001",6:"100101011",7:"100101101",8:"100110101",9:"110100101","-":"101001101",$:"101100101",":":"1101011011","/":"1101101011",".":"1101101101","+":"1011011011",A:"1011001001",B:"1001001011",C:"1010010011",D:"1010011001"}}}]),e}(((r=i)&&r.__esModule?r:{default:r}).default);e.codabar=a},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.CODE93FullASCII=e.CODE93=void 0;var r=i(n(11)),o=i(n(43));function i(t){return t&&t.__esModule?t:{default:t}}e.CODE93=r.default,e.CODE93FullASCII=o.default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});e.SYMBOLS=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","-","."," ","$","/","+","%","($)","(%)","(/)","(+)","ÿ"],e.BINARIES=["100010100","101001000","101000100","101000010","100101000","100100100","100100010","101010000","100010010","100001010","110101000","110100100","110100010","110010100","110010010","110001010","101101000","101100100","101100010","100110100","100011010","101011000","101001100","101000110","100101100","100010110","110110100","110110010","110101100","110100110","110010110","110011010","101101100","101100110","100110110","100111010","100101110","111010100","111010010","111001010","101101110","101110110","110101110","100100110","111011010","111010110","100110010","101011110"],e.MULTI_SYMBOLS={"\0":["(%)","U"],"":["($)","A"],"":["($)","B"],"":["($)","C"],"":["($)","D"],"":["($)","E"],"":["($)","F"],"":["($)","G"],"\b":["($)","H"],"\t":["($)","I"],"\n":["($)","J"],"\v":["($)","K"],"\f":["($)","L"],"\r":["($)","M"],"":["($)","N"],"":["($)","O"],"":["($)","P"],"":["($)","Q"],"":["($)","R"],"":["($)","S"],"":["($)","T"],"":["($)","U"],"":["($)","V"],"":["($)","W"],"":["($)","X"],"":["($)","Y"],"":["($)","Z"],"":["(%)","A"],"":["(%)","B"],"":["(%)","C"],"":["(%)","D"],"":["(%)","E"],"!":["(/)","A"],'"':["(/)","B"],"#":["(/)","C"],"&":["(/)","F"],"'":["(/)","G"],"(":["(/)","H"],")":["(/)","I"],"*":["(/)","J"],",":["(/)","L"],":":["(/)","Z"],";":["(%)","F"],"<":["(%)","G"],"=":["(%)","H"],">":["(%)","I"],"?":["(%)","J"],"@":["(%)","V"],"[":["(%)","K"],"\\":["(%)","L"],"]":["(%)","M"],"^":["(%)","N"],_:["(%)","O"],"`":["(%)","W"],a:["(+)","A"],b:["(+)","B"],c:["(+)","C"],d:["(+)","D"],e:["(+)","E"],f:["(+)","F"],g:["(+)","G"],h:["(+)","H"],i:["(+)","I"],j:["(+)","J"],k:["(+)","K"],l:["(+)","L"],m:["(+)","M"],n:["(+)","N"],o:["(+)","O"],p:["(+)","P"],q:["(+)","Q"],r:["(+)","R"],s:["(+)","S"],t:["(+)","T"],u:["(+)","U"],v:["(+)","V"],w:["(+)","W"],x:["(+)","X"],y:["(+)","Y"],z:["(+)","Z"],"{":["(%)","P"],"|":["(%)","Q"],"}":["(%)","R"],"~":["(%)","S"],"":["(%)","T"]}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(11);var a=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"valid",value:function(){return/^[\x00-\x7f]+$/.test(this.data)}}]),e}(((r=i)&&r.__esModule?r:{default:r}).default);e.default=a},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.GenericBarcode=void 0;var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(0);var a=function(t){function e(t,n){return function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,e),function(t,e){if(!t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return!e||"object"!=typeof e&&"function"!=typeof e?t:e}(this,(e.__proto__||Object.getPrototypeOf(e)).call(this,t,n))}return function(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function, not "+typeof e);t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,enumerable:!1,writable:!0,configurable:!0}}),e&&(Object.setPrototypeOf?Object.setPrototypeOf(t,e):t.__proto__=e)}(e,t),o(e,[{key:"encode",value:function(){return{data:"10101010101010101010101010101010101010101",text:this.text}}},{key:"valid",value:function(){return!0}}]),e}(((r=i)&&r.__esModule?r:{default:r}).default);e.GenericBarcode=a},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(t){var e=[];return function t(n){if(Array.isArray(n))for(var r=0;r<n.length;r++)t(n[r]);else n.text=n.text||"",n.data=n.data||"",e.push(n)}(t),e}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(t){return t.marginTop=t.marginTop||t.margin,t.marginBottom=t.marginBottom||t.margin,t.marginRight=t.marginRight||t.margin,t.marginLeft=t.marginLeft||t.margin,t}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(t){return typeof t}:function(t){return t&&"function"==typeof Symbol&&t.constructor===Symbol&&t!==Symbol.prototype?"symbol":typeof t},o=u(n(48)),i=u(n(49)),a=n(15);function u(t){return t&&t.__esModule?t:{default:t}}function f(t){if("string"==typeof t)return function(t){var e=document.querySelectorAll(t);if(0===e.length)return;for(var n=[],r=0;r<e.length;r++)n.push(f(e[r]));return n}(t);if(Array.isArray(t)){for(var e=[],n=0;n<t.length;n++)e.push(f(t[n]));return e}if("undefined"!=typeof HTMLCanvasElement&&t instanceof HTMLImageElement)return u=t,{element:c=document.createElement("canvas"),options:(0,o.default)(u),renderer:i.default.CanvasRenderer,afterRender:function(){u.setAttribute("src",c.toDataURL())}};if(t&&t.nodeName&&"svg"===t.nodeName.toLowerCase()||"undefined"!=typeof SVGElement&&t instanceof SVGElement)return{element:t,options:(0,o.default)(t),renderer:i.default.SVGRenderer};if("undefined"!=typeof HTMLCanvasElement&&t instanceof HTMLCanvasElement)return{element:t,options:(0,o.default)(t),renderer:i.default.CanvasRenderer};if(t&&t.getContext)return{element:t,renderer:i.default.CanvasRenderer};if(t&&"object"===(void 0===t?"undefined":r(t))&&!t.nodeName)return{element:t,renderer:i.default.ObjectRenderer};throw new a.InvalidElementException;var u,c}e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=i(n(12)),o=i(n(13));function i(t){return t&&t.__esModule?t:{default:t}}e.default=function(t){var e={};for(var n in o.default)o.default.hasOwnProperty(n)&&(t.hasAttribute("jsbarcode-"+n.toLowerCase())&&(e[n]=t.getAttribute("jsbarcode-"+n.toLowerCase())),t.hasAttribute("data-"+n.toLowerCase())&&(e[n]=t.getAttribute("data-"+n.toLowerCase())));return e.value=t.getAttribute("jsbarcode-value")||t.getAttribute("data-value"),e=(0,r.default)(e)}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=a(n(50)),o=a(n(51)),i=a(n(52));function a(t){return t&&t.__esModule?t:{default:t}}e.default={CanvasRenderer:r.default,SVGRenderer:o.default,ObjectRenderer:i.default}},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(7),a=(r=i)&&r.__esModule?r:{default:r},u=n(14);var f=function(){function t(e,n,r){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.canvas=e,this.encodings=n,this.options=r}return o(t,[{key:"render",value:function(){if(!this.canvas.getContext)throw new Error("The browser does not support canvas.");this.prepareCanvas();for(var t=0;t<this.encodings.length;t++){var e=(0,a.default)(this.options,this.encodings[t].options);this.drawCanvasBarcode(e,this.encodings[t]),this.drawCanvasText(e,this.encodings[t]),this.moveCanvasDrawing(this.encodings[t])}this.restoreCanvas()}},{key:"prepareCanvas",value:function(){var t=this.canvas.getContext("2d");t.save(),(0,u.calculateEncodingAttributes)(this.encodings,this.options,t);var e=(0,u.getTotalWidthOfEncodings)(this.encodings),n=(0,u.getMaximumHeightOfEncodings)(this.encodings);this.canvas.width=e+this.options.marginLeft+this.options.marginRight,this.canvas.height=n,t.clearRect(0,0,this.canvas.width,this.canvas.height),this.options.background&&(t.fillStyle=this.options.background,t.fillRect(0,0,this.canvas.width,this.canvas.height)),t.translate(this.options.marginLeft,0)}},{key:"drawCanvasBarcode",value:function(t,e){var n,r=this.canvas.getContext("2d"),o=e.data;n="top"==t.textPosition?t.marginTop+t.fontSize+t.textMargin:t.marginTop,r.fillStyle=t.lineColor;for(var i=0;i<o.length;i++){var a=i*t.width+e.barcodePadding;"1"===o[i]?r.fillRect(a,n,t.width,t.height):o[i]&&r.fillRect(a,n,t.width,t.height*o[i])}}},{key:"drawCanvasText",value:function(t,e){var n,r,o=this.canvas.getContext("2d"),i=t.fontOptions+" "+t.fontSize+"px "+t.font;t.displayValue&&(r="top"==t.textPosition?t.marginTop+t.fontSize-t.textMargin:t.height+t.textMargin+t.marginTop+t.fontSize,o.font=i,"left"==t.textAlign||e.barcodePadding>0?(n=0,o.textAlign="left"):"right"==t.textAlign?(n=e.width-1,o.textAlign="right"):(n=e.width/2,o.textAlign="center"),o.fillText(e.text,n,r))}},{key:"moveCanvasDrawing",value:function(t){this.canvas.getContext("2d").translate(t.width,0)}},{key:"restoreCanvas",value:function(){this.canvas.getContext("2d").restore()}}]),t}();e.default=f},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r,o=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}(),i=n(7),a=(r=i)&&r.__esModule?r:{default:r},u=n(14);var f="http://www.w3.org/2000/svg",c=function(){function t(e,n,r){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.svg=e,this.encodings=n,this.options=r,this.document=r.xmlDocument||document}return o(t,[{key:"render",value:function(){var t=this.options.marginLeft;this.prepareSVG();for(var e=0;e<this.encodings.length;e++){var n=this.encodings[e],r=(0,a.default)(this.options,n.options),o=this.createGroup(t,r.marginTop,this.svg);this.setGroupOptions(o,r),this.drawSvgBarcode(o,r,n),this.drawSVGText(o,r,n),t+=n.width}}},{key:"prepareSVG",value:function(){for(;this.svg.firstChild;)this.svg.removeChild(this.svg.firstChild);(0,u.calculateEncodingAttributes)(this.encodings,this.options);var t=(0,u.getTotalWidthOfEncodings)(this.encodings),e=(0,u.getMaximumHeightOfEncodings)(this.encodings),n=t+this.options.marginLeft+this.options.marginRight;this.setSvgAttributes(n,e),this.options.background&&this.drawRect(0,0,n,e,this.svg).setAttribute("fill",this.options.background)}},{key:"drawSvgBarcode",value:function(t,e,n){var r,o=n.data;r="top"==e.textPosition?e.fontSize+e.textMargin:0;for(var i=0,a=0,u=0;u<o.length;u++)a=u*e.width+n.barcodePadding,"1"===o[u]?i++:i>0&&(this.drawRect(a-e.width*i,r,e.width*i,e.height,t),i=0);i>0&&this.drawRect(a-e.width*(i-1),r,e.width*i,e.height,t)}},{key:"drawSVGText",value:function(t,e,n){var r,o,i=this.document.createElementNS(f,"text");e.displayValue&&(i.setAttribute("font-family",e.font),i.setAttribute("font-size",e.fontSize),e.fontOptions.includes("bold")&&i.setAttribute("font-weight","bold"),e.fontOptions.includes("italic")&&i.setAttribute("font-style","italic"),o="top"==e.textPosition?e.fontSize-e.textMargin:e.height+e.textMargin+e.fontSize,"left"==e.textAlign||n.barcodePadding>0?(r=0,i.setAttribute("text-anchor","start")):"right"==e.textAlign?(r=n.width-1,i.setAttribute("text-anchor","end")):(r=n.width/2,i.setAttribute("text-anchor","middle")),i.setAttribute("x",r),i.setAttribute("y",o),i.appendChild(this.document.createTextNode(n.text)),t.appendChild(i))}},{key:"setSvgAttributes",value:function(t,e){var n=this.svg;n.setAttribute("width",t+"px"),n.setAttribute("height",e+"px"),n.setAttribute("x","0px"),n.setAttribute("y","0px"),n.setAttribute("viewBox","0 0 "+t+" "+e),n.setAttribute("xmlns",f),n.setAttribute("version","1.1")}},{key:"createGroup",value:function(t,e,n){var r=this.document.createElementNS(f,"g");return r.setAttribute("transform","translate("+t+", "+e+")"),n.appendChild(r),r}},{key:"setGroupOptions",value:function(t,e){t.setAttribute("fill",e.lineColor)}},{key:"drawRect",value:function(t,e,n,r,o){var i=this.document.createElementNS(f,"rect");return i.setAttribute("x",t),i.setAttribute("y",e),i.setAttribute("width",n),i.setAttribute("height",r),o.appendChild(i),i}}]),t}();e.default=c},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}();var o=function(){function t(e,n,r){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.object=e,this.encodings=n,this.options=r}return r(t,[{key:"render",value:function(){this.object.encodings=this.encodings}}]),t}();e.default=o},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var r=function(){function t(t,e){for(var n=0;n<e.length;n++){var r=e[n];r.enumerable=r.enumerable||!1,r.configurable=!0,"value"in r&&(r.writable=!0),Object.defineProperty(t,r.key,r)}}return function(e,n,r){return n&&t(e.prototype,n),r&&t(e,r),e}}();var o=function(){function t(e){!function(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}(this,t),this.api=e}return r(t,[{key:"handleCatch",value:function(t){if("InvalidInputException"!==t.name)throw t;if(this.api._options.valid===this.api._defaults.valid)throw t.message;this.api._options.valid(!1),this.api.render=function(){}}},{key:"wrapBarcodeCall",value:function(t){try{var e=t.apply(void 0,arguments);return this.api._options.valid(!0),e}catch(t){return this.handleCatch(t),this.api}}}]),t}();e.default=o}]);
+</script>
+<!-- Firebase (login real por persona) — SDK "compat" para poder usarlo con <script> normal, sin herramientas de build -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    /* Paleta oficial Delico, en orden de prioridad: 1 oliva, 2 crema, 3 lila, 4 naranja (solo acentos, con medida) */
+    --moss:#26260f; --spring:#a7ab27; --spring-dark:#767a1a; --cream:#faf3d7; --orchid:#cba3dd; --mango:#c1502c;
+
+    --bg:var(--cream); --surface:#ffffff; --surface-2:#fbf6e6;
+    --ink:var(--moss); --ink-soft:#6d6a4a; --line:#e9e2c6;
+    /* Color primario de acción = oliva (spring), no naranja */
+    --brand:var(--spring); --brand-ink:var(--moss); --brand-dark:var(--spring-dark); --brand-soft:#eef0d1;
+    --lilac:var(--orchid); --lilac-soft:#f1e4f7; --lilac-dark:#7c5a92;
+    --good:#5c7a2e; --good-soft:#eaf0d9;
+    --warn:#b8862a; --warn-soft:#faf0dd;
+    --bad:#a83b3b; --bad-soft:#f7e2df;
+    --info:#7c5a92; --info-soft:#f1e4f7;
+    /* Naranja: solo para toques puntuales (acento), no como color de acción principal */
+    --touch:var(--mango); --touch-soft:#f2ddd0;
+    --radius:14px; --shadow:0 1px 3px rgba(38,38,15,.10), 0 8px 24px rgba(38,38,15,.08);
+    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  h1,h2,h3,.display{font-family:"Oswald","Poppins",sans-serif; text-transform:none; letter-spacing:.01em;}
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased;}
+  button{font-family:inherit; cursor:pointer;}
+  input, select, textarea{font-family:inherit; font-size:15px;}
+  .hidden{display:none !important;}
+
+  /* ---- Login ---- */
+  #loginScreen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:
+    radial-gradient(1200px 600px at 10% -10%, var(--brand-soft), transparent),
+    var(--bg);}
+  .login-card{background:var(--surface); border-radius:20px; box-shadow:var(--shadow); padding:36px 32px; width:100%; max-width:380px;}
+  .login-card h1{font-size:22px; margin:0 0 4px; color:var(--brand-dark);}
+  .login-card p.sub{margin:0 0 24px; color:var(--ink-soft); font-size:14px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; font-weight:600; color:var(--ink-soft); margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); color:var(--ink);}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--brand); outline-offset:1px; background:var(--surface);}
+  .btn{border:none; border-radius:10px; padding:11px 18px; font-weight:600; font-size:14.5px;}
+  .btn-brand{background:var(--brand); color:var(--brand-ink); font-weight:700;}
+  .btn-brand:hover{background:var(--brand-dark); color:#fff;}
+  .btn-block{width:100%;}
+  .btn-ghost{background:transparent; color:var(--brand-dark); border:1px solid var(--line);}
+  .error-msg{color:var(--bad); font-size:13.5px; margin-top:10px; min-height:18px;}
+  .login-hint{margin-top:18px; font-size:12px; color:var(--ink-soft); background:var(--surface-2); border:1px dashed var(--line); border-radius:10px; padding:10px 12px;}
+
+  /* ---- Logos de marca ---- */
+  .delico-logo{display:inline-flex; align-items:baseline; font-family:"Oswald",sans-serif; font-weight:700; font-size:16px; letter-spacing:.02em; color:var(--moss); line-height:1;}
+  .delico-logo.lg{font-size:24px;}
+  .vivemedi-word{font-family:"Oswald",sans-serif; font-weight:700; color:var(--spring-dark); letter-spacing:.01em;}
+  .medi-logo{display:inline-flex; flex-direction:column; align-items:flex-start; background:var(--spring); border-radius:10px; padding:10px 16px; line-height:1.05;}
+  .medi-logo .m-word{font-family:"Oswald",sans-serif; font-weight:700; font-size:20px; color:var(--moss); letter-spacing:.02em;}
+  .medi-logo .m-sub{font-size:10.5px; font-weight:600; color:#3d3f16; margin-top:3px; letter-spacing:.02em;}
+
+  /* ---- App shell ---- */
+  #app{display:none; min-height:100vh; flex-direction:column;}
+  header.topbar{background:var(--surface); border-bottom:1px solid var(--line); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:20;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand .logo{width:34px; height:34px; border-radius:9px; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;}
+  .brand-name{font-weight:800; font-size:15px; color:var(--brand-dark); line-height:1.1;}
+  .brand-name small{display:block; font-weight:500; color:var(--ink-soft); font-size:11px;}
+  .who{display:flex; align-items:center; gap:10px; font-size:13.5px;}
+  .who .perfil-badge{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:.03em;}
+  .badge-Embajador{background:var(--info-soft); color:var(--info);}
+  .badge-Supervisor{background:var(--warn-soft); color:var(--warn);}
+  .badge-Coordinador{background:var(--good-soft); color:var(--good);}
+  .badge-Admin{background:var(--brand-soft); color:var(--brand-dark);}
+  .vista-toggle{display:flex; gap:2px; background:#eef0e4; border-radius:999px; padding:2px; margin-right:6px;}
+  .vista-toggle button{border:none; background:transparent; padding:6px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; color:var(--ink-soft);}
+  .vista-toggle button.active{background:var(--brand-dark); color:#fff;}
+  .bloque-tag{display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 10px; border-radius:999px; margin-bottom:8px;}
+  .bloque-planeacion{background:#dbe6fb; color:#1d4ed8;}
+  .bloque-ejecucion{background:#dcf3e2; color:#15803d;}
+  .bloque-retro{background:#ece1fb; color:#6d28d9;}
+  nav.tabs .bloque-sep{display:flex; align-items:center; padding:0 8px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap;}
+  nav.tabs .bloque-sep.bloque-planeacion{color:#1d4ed8;}
+  nav.tabs .bloque-sep.bloque-ejecucion{color:#15803d;}
+  nav.tabs .bloque-sep.bloque-retro{color:#6d28d9;}
+
+  nav.tabs{display:flex; gap:4px; padding:10px 20px 0; background:var(--surface); border-bottom:1px solid var(--line); overflow-x:auto;}
+  nav.tabs button{background:transparent; border:none; padding:10px 14px; font-size:14px; font-weight:600; color:var(--ink-soft); border-bottom:3px solid transparent; white-space:nowrap;}
+  nav.tabs button.active{color:var(--brand-dark); border-bottom-color:var(--brand);}
+
+  main{flex:1; padding:20px; max-width:1180px; margin:0 auto; width:100%;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .banner{background:var(--info-soft); color:#2a4d6e; border:1px solid #cddbe9; border-radius:12px; padding:12px 16px; font-size:13.5px; margin-bottom:18px; line-height:1.5;}
+  .banner b{color:var(--info);}
+
+  .row{display:flex; gap:14px; flex-wrap:wrap;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--shadow);}
+  .kpi{flex:1; min-width:150px;}
+  .kpi .label{font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); margin-bottom:6px;}
+  .kpi .value{font-size:24px; font-weight:800; color:var(--ink);}
+  .kpi .value small{font-size:13px; font-weight:600; color:var(--ink-soft);}
+  .kpi.warn .value{color:var(--warn);}
+  .kpi.bad .value{color:var(--bad);}
+  .kpi.good .value{color:var(--good);}
+
+  h2.section-title{font-size:18px; margin:26px 0 12px; color:var(--brand-dark);}
+  h2.section-title:first-child{margin-top:0;}
+
+  .controls-bar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .controls-bar select, .controls-bar input[type=text]{padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface);}
+  .controls-bar label{font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-right:4px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px; background:var(--surface); border-radius:12px; overflow:hidden;}
+  table.tablewrap{box-shadow:var(--shadow); border:1px solid var(--line); border-radius:12px;}
+  th, td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--line);}
+  th{background:var(--surface-2); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-soft); position:sticky; top:0;}
+  tbody tr:hover{background:var(--surface-2);}
+  .table-scroll{max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);}
+  .table-scroll table{box-shadow:none; border:none; border-radius:0;}
+  .num{text-align:right; font-variant-numeric:tabular-nums;}
+
+  .form-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+  @media (max-width:640px){.form-grid{grid-template-columns:1fr;}}
+  .form-grid .full{grid-column:1/-1;}
+
+  .mdi-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  @media (max-width:900px){.mdi-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:600px){.mdi-grid{grid-template-columns:repeat(2,1fr); gap:8px;}}
+  .mdi-tile{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); cursor:pointer; text-align:left;}
+  .icon-pick{display:flex; flex-direction:column; align-items:center; gap:2px; width:76px; padding:8px 4px; border:2px solid var(--line); border-radius:10px; background:#fff; cursor:pointer;}
+  .icon-pick.active{border-color:var(--brand); background:var(--brand-soft);}
+  .icon-pick-emoji{font-size:22px;}
+  .icon-pick-label{font-size:9.5px; text-align:center; line-height:1.15; color:var(--ink-soft);}
+  .mdi-tile:hover{border-color:var(--brand);}
+  .mdi-tile .icon{font-size:26px; margin-bottom:8px;}
+  .mdi-tile .t{font-weight:700; font-size:15px; margin-bottom:3px;}
+  .mdi-tile .d{font-size:12.5px; color:var(--ink-soft); line-height:1.4;}
+  /* Captura MEDI en celular: tarjetas más chicas y centradas en el ícono, para ver más de un vistazo y escrolear menos. */
+  @media (max-width:600px){
+    .mdi-tile{padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; min-height:104px;}
+    .mdi-tile .icon{font-size:26px; margin-bottom:4px;}
+    .mdi-tile .t{font-size:12px; margin-bottom:0; line-height:1.2;}
+    .mdi-tile .d{display:none;}
+    .mdi-tile .mdi-badge{position:absolute; top:4px; right:4px; font-size:8.5px; padding:1px 5px;}
+  }
+
+  .modal-bg{display:none; position:fixed; inset:0; background:rgba(36,27,20,.45); z-index:100; align-items:flex-start; justify-content:center; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:30px 16px; overscroll-behavior:contain;}
+  .modal-bg.open{display:flex;}
+  /* Con el modal abierto, la página de fondo queda fija (no se puede scrollear a la vez que el modal).
+     Esto evita el bug de iOS/Android donde el fondo "se transparenta" al hacer scroll dentro del modal.
+     overscroll-behavior:contain evita que el "rebote" (bounce) del scroll dentro del modal deje ver
+     el fondo semitransparente detrás — esa es la causa real de la "transparencia" al escrolear. */
+  body.modal-lock{position:fixed; left:0; right:0; overflow:hidden; width:100%;}
+  .modal{background:var(--surface); border-radius:16px; max-width:560px; width:100%; padding:24px; box-shadow:var(--shadow); overscroll-behavior:contain;}
+  .modal.modal-wide{max-width:1440px;}
+  .modal h3{margin:0 0 4px; color:var(--brand-dark);}
+  .modal p.d{margin:0 0 18px; color:var(--ink-soft); font-size:13.5px;}
+  .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
+  .close-x{float:right; background:none; border:none; font-size:20px; color:var(--ink-soft);}
+
+  .prioridad-box{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 16px; margin-bottom:18px;}
+  .prioridad-box .lbl{font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); letter-spacing:.03em; margin-bottom:4px;}
+  .prioridad-box textarea{width:100%; min-height:60px; border:1px solid var(--line); border-radius:8px; padding:8px; background:#fff;}
+
+  /* ---- Asignación de Ruta ---- */
+  .ruta-layout{display:flex; gap:14px; align-items:flex-start;}
+  .ruta-pool{width:210px; flex-shrink:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); max-height:640px; overflow:auto; position:sticky; top:150px;}
+  .chip-pool{display:flex; flex-direction:column; gap:6px;}
+  .persona-chip{background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12px; cursor:grab; font-weight:600;}
+  .persona-chip:active{cursor:grabbing;}
+  .ruta-board{flex:1; display:grid; grid-template-columns:repeat(7,minmax(150px,1fr)); gap:8px; overflow-x:auto;}
+  .ruta-board{display:block !important; overflow:auto; max-height:78vh; min-width:0;}
+  .ruta-tabla{border-collapse:separate; border-spacing:0; min-width:100%; background:var(--surface);}
+  .ruta-tabla th, .ruta-tabla td{border:1px solid var(--line); vertical-align:top; padding:6px;}
+  .ruta-tabla thead th{position:sticky; top:0; z-index:3; background:var(--brand-soft); font-size:12px; text-align:center; min-width:210px;}
+  .ruta-tabla thead th.rt-dia{left:0; z-index:4; min-width:96px; width:96px;}
+  .ruta-tabla tbody th.rt-dia{position:sticky; left:0; z-index:2; background:var(--surface-2); text-transform:uppercase; font-size:12px; color:var(--brand-dark); text-align:center; min-width:96px;}
+  .ruta-tabla .rt-fecha{font-size:11px; color:var(--ink-soft); font-weight:600; text-transform:none;}
+  .ruta-tabla .rt-sub{font-size:10px; font-weight:600; color:var(--ink-soft);}
+  .ruta-tabla .rt-celda{min-width:210px; background:var(--surface-2);}
+  .ruta-tabla .rt-celda .ruta-card{margin-bottom:6px;}
+  .ruta-tabla .rt-nada{text-align:center; color:var(--ink-soft); font-size:12px; padding:8px 0;}
+  .ruta-tabla .rt-vacia{text-align:center; color:var(--ink-soft); font-size:12px; height:54px; vertical-align:middle;}
+  .ruta-tabla .dragover{background:var(--brand-soft) !important;}
+  .ruta-tabla tr.rt-hoy th.rt-dia{background:var(--warn-soft);}
+  .day-col{background:var(--surface-2); border:1px dashed var(--line); border-radius:12px; min-height:420px; padding:8px; transition:background .15s, border-color .15s;}
+  .day-col.dragover{border-color:var(--spring-dark); background:var(--brand-soft);}
+  .day-col .day-head{font-weight:700; font-size:12px; text-transform:uppercase; color:var(--brand-dark); text-align:center; letter-spacing:.02em;}
+  .day-col .day-date{font-size:11px; color:var(--ink-soft); text-align:center; margin-bottom:8px; font-weight:600;}
+  .ruta-card{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px; font-size:12px; box-shadow:0 1px 2px rgba(38,38,15,.08);}
+  .cal-board{display:grid; grid-template-columns:repeat(7,minmax(150px,1fr)); gap:8px; overflow-x:auto;}
+  .cal-col{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; min-height:200px; padding:8px;}
+  .cal-col.cal-today{border:2px solid var(--brand-dark);}
+  .cal-card{border-radius:8px; padding:7px 8px; margin-bottom:7px; font-size:11.5px; border-left:5px solid; box-shadow:0 1px 2px rgba(38,38,15,.08);}
+  .cal-card.cal-ok{background:var(--good-soft); border-left-color:var(--good);}
+  .cal-card.cal-no{background:#fbe4e0; border-left-color:var(--bad);}
+  .cal-card.cal-hoy{background:var(--warn-soft); border-left-color:var(--warn);}
+  .cal-card.cal-futuro{background:#dbe6fb; border-left-color:#1d4ed8;}
+  .cal-badge{display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--bad); color:#fff; font-size:10px; font-weight:700; margin-left:6px;}
+  .cal-badge-dot{display:inline-block; width:9px; height:9px; border-radius:999px; background:var(--bad); margin-left:6px; vertical-align:middle;}
+  .mdi-tile.mdi-tile-alert{box-shadow:0 0 0 2px var(--warn) inset;}
+  .mdi-tile{position:relative; border-left:5px solid var(--line);}
+  .mdi-tile.mdi-oblig{border-left-color:var(--bad);}
+  .mdi-tile.mdi-condicional{border-left-color:var(--warn);}
+  .mdi-badge{position:absolute; top:10px; right:10px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; padding:2px 7px; border-radius:999px;}
+  .mdi-badge.b-oblig{background:#fbe4e0; color:var(--bad);}
+  .mdi-badge.b-condicional{background:var(--warn-soft); color:var(--warn);}
+  .ruta-card .rc-name{font-weight:700; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; gap:4px;}
+  .ruta-card select{width:100%; font-size:11.5px; padding:5px 4px; margin-top:4px; border:1px solid var(--line); border-radius:6px; background:var(--surface-2);}
+  .ruta-card .rc-del{background:none; border:none; color:var(--bad); font-weight:700; cursor:pointer; font-size:14px; line-height:1; padding:0 2px;}
+  .ruta-card.tipo-descanso, .ruta-card.tipo-vacacion, .ruta-card.tipo-home_office, .ruta-card.tipo-incidencia, .ruta-card.tipo-otra{background:var(--lilac-soft); border-color:#ddc3ea;}
+  .rc-tipobtn, .rc-rolbtn{border:1px solid var(--line); background:var(--surface-2); color:var(--ink-soft); font-size:10px; font-weight:700; padding:3px 6px; border-radius:6px; cursor:pointer;}
+  .rc-tipobtn.active{background:var(--lilac); color:#3d2a52; border-color:#c799de;}
+  .rc-rolbtn.active{background:var(--spring); color:var(--moss); border-color:var(--spring-dark);}
+  .rc-tipobtn:disabled, .rc-rolbtn:disabled{opacity:.55; cursor:default;}
+  .ruta-card select:disabled{opacity:.6; cursor:default;}
+
+  .pill{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;}
+  .pill-caducidad{background:var(--bad-soft); color:var(--bad);}
+  .pill-incidencia{background:var(--warn-soft); color:var(--warn);}
+  .pill-degustacion{background:var(--good-soft); color:var(--good);}
+  .pill-precio_delico{background:var(--info-soft); color:var(--info);}
+  .pill-precio_competencia{background:var(--touch-soft); color:var(--touch);}
+  .pill-foto{background:var(--brand-soft); color:var(--brand-dark);}
+  .pill-gasto_ticket{background:#efe6f7; color:#6a4a94;}
+  .pill-entrada_tienda{background:var(--accent-soft, #eef0d1); color:var(--spring-dark);}
+  .pill-salida_tienda{background:var(--accent-soft, #eef0d1); color:var(--spring-dark);}
+  .pill-mercadeo{background:var(--good-soft); color:var(--good);}
+  .pill-factores_ambiente{background:var(--info-soft); color:var(--info);}
+  .pill-carga_anaquel{background:var(--touch-soft); color:var(--touch);}
+
+  .checkin-active{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  .checkin-empty{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  .checkin-store{font-weight:700; font-size:14.5px;}
+  .checkin-store small{display:block; font-weight:500; color:var(--ink-soft); font-size:11.5px;}
+
+  /* ---- Viz: resumen de visitas por cadena (paleta validada del skill dataviz) ---- */
+  .viz-root{ --v-s1:#2a78d6; --v-s2:#eb6834; --v-s3:#1baf7a; --v-s4:#eda100; --v-text:var(--ink); --v-text-soft:var(--ink-soft); }
+  .viz-bar-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .viz-bar-label{width:110px; flex-shrink:0; font-size:12.5px; font-weight:700;}
+  .viz-bar-track{flex:1; background:var(--surface-2); border-radius:6px; height:14px; position:relative; overflow:hidden;}
+  .viz-bar-fill{height:100%; border-radius:6px; transition:width .3s;}
+  .viz-bar-value{width:130px; flex-shrink:0; text-align:right; font-size:12px; color:var(--v-text-soft); font-variant-numeric:tabular-nums;}
+
+  .empty-state{text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:14px;}
+  footer.appfoot{padding:16px 20px; text-align:center; font-size:11.5px; color:var(--ink-soft);}
+  .toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 18px; border-radius:10px; font-size:13.5px; z-index:200; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .25s;}
+  .toast.show{opacity:1;}
+  .thumb{width:100%; max-height:220px; object-fit:cover; border-radius:8px; margin-top:6px;}
+  .file-note{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
+
+  /* ---------- Menú hamburguesa (oculto en escritorio, aparece en celular) ---------- */
+  .nav-hamburger{display:none; background:transparent; border:none; font-size:22px; line-height:1; padding:4px 8px; margin-right:2px; color:var(--ink); cursor:pointer;}
+  .nav-overlay{display:none;}
+
+  /* ============================================================
+     MODO CELULAR — se activa a partir de aquí (pantallas angostas)
+     ============================================================ */
+  @media (max-width:820px){
+    main{padding:12px;}
+    h2.section-title{font-size:16.5px; margin:20px 0 10px;}
+    .banner{font-size:12.5px; padding:10px 12px;}
+
+    /* topbar más compacto */
+    header.topbar{padding:10px 12px;}
+    .brand{display:flex; align-items:center; gap:2px;}
+    .brand .delico-logo{font-size:14px;}
+    .brand-name{display:none;}
+    .who{gap:8px;}
+    .vista-toggle{display:none;} /* en celular el menú ya resuelve la navegación; no hace falta el switch */
+
+    /* botón hamburguesa visible */
+    .nav-hamburger{display:inline-flex; align-items:center; justify-content:center;}
+
+    /* la barra de tabs se convierte en un cajón (drawer) que se abre con el botón ☰ */
+    nav.tabs{
+      position:fixed; top:0; left:0; bottom:0; z-index:150;
+      width:78%; max-width:300px;
+      background:var(--surface); border-right:1px solid var(--line); border-bottom:none;
+      flex-direction:column; align-items:stretch; gap:0; padding:66px 0 20px;
+      overflow-y:auto; overflow-x:hidden;
+      transform:translateX(-105%); transition:transform .22s ease;
+      box-shadow:2px 0 18px rgba(0,0,0,.18);
+    }
+    nav.tabs.open{transform:translateX(0);}
+    nav.tabs .bloque-sep{padding:14px 18px 6px; font-size:10.5px;}
+    nav.tabs button{
+      width:100%; text-align:left; padding:14px 18px; font-size:15px; font-weight:600;
+      border-bottom:1px solid var(--line); border-left:3px solid transparent; white-space:normal;
+    }
+    nav.tabs button.active{background:var(--brand-soft); border-left-color:var(--brand); border-bottom-color:var(--line);}
+
+    .nav-overlay.open{display:block; position:fixed; inset:0; background:rgba(20,16,8,.4); z-index:140;}
+
+    /* tarjetas KPI: más grandes y legibles, dos por renglón */
+    .row{gap:10px;}
+    .kpi{min-width:calc(50% - 5px); flex:none; padding:14px;}
+    .kpi .value{font-size:21px;}
+
+    /* formularios / controles con objetivos de toque más grandes */
+    .controls-bar{gap:8px;}
+    .controls-bar select, .controls-bar input[type=text], select, input[type=text], input[type=number], input[type=date], input[type=password], textarea{
+      font-size:16px; /* evita que iOS haga zoom automático al enfocar */
+      padding:11px 10px;
+    }
+    .btn{padding:11px 16px; font-size:14.5px;}
+    .btn-block{width:100%;}
+    nav.tabs .bloque-sep + button, nav.tabs button:first-child{border-top:none;}
+
+    /* Calendario en celular: una sola columna (como calendario real, sin scroll horizontal entre días) */
+    .cal-board{grid-template-columns:1fr; overflow-x:visible; gap:10px;}
+    .cal-col{min-height:0;}
+    .cal-col .day-head, .cal-col .day-date{display:inline;}
+    .cal-col .day-head{font-size:13.5px;}
+    .cal-col .day-date{font-size:11.5px; margin-left:6px;}
+    .cal-card{font-size:13px; padding:9px 10px;}
+
+    /* modales casi de pantalla completa: fondo sólido (no translúcido) para que el rebote del
+       scroll dentro del modal nunca deje ver un fondo "transparente" detrás. */
+    .modal-bg{padding:0; align-items:stretch; background:var(--surface);}
+    .modal, .modal.modal-wide{max-width:100%; width:100%; min-height:100%; min-height:100dvh; border-radius:0; padding:18px 16px 24px; display:flex; flex-direction:column;}
+    .modal-actions{background:var(--surface); margin:18px -16px -24px; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line);}
+
+    /* tablas: siguen con scroll horizontal, pero con más aire para el dedo */
+    table{font-size:12.5px;}
+    th, td{padding:8px 9px;}
+
+    footer.appfoot{padding:12px;}
+  }/* ---------- Dropdown-checklist reutilizable (Mes(es), Tienda(s), etc.) — reemplaza los <select multiple> nativos ---------- */
+.tienda-dd{ position:relative; display:inline-block; }
+.tienda-dd-btn{ padding:8px 14px; border-radius:8px; border:1.5px solid #d8dba0; background:#fff; color:var(--ink); font-size:12.5px; font-weight:700; cursor:pointer; min-width:140px; text-align:left; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.tienda-dd-btn::after{ content:'▾'; font-size:10px; opacity:.7; }
+.tienda-dd-panel{ position:absolute; z-index:50; top:calc(100% + 4px); left:0; min-width:220px; max-width:320px; max-height:280px; overflow-y:auto; background:#fff; border:1.5px solid #d8dba0; border-radius:10px; box-shadow:0 8px 24px rgba(38,38,15,.18); padding:6px; }
+.tienda-dd-item{ display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:6px; font-size:12.5px; cursor:pointer; }
+.tienda-dd-item:hover{ background:var(--brand-soft); }
+.tienda-dd-accion{ display:flex; gap:6px; padding:4px 4px 8px; border-bottom:1px solid #eee; margin-bottom:4px; }
+.tienda-dd-accion button{ flex:1; padding:5px 8px; font-size:11px; font-weight:700; border-radius:6px; border:1px solid #d8dba0; background:#fff; cursor:pointer; }
+/* Buscador de tiendas con lista desplegable propia (no depende del autocompletado nativo del
+   teclado/navegador, que en varios celulares no se ve o no sirve como filtro visible). */
+.buscador-tienda-lista{ position:fixed; background:#fff; border:1.5px solid #d8dba0; border-radius:10px; box-shadow:0 8px 24px rgba(38,38,15,.18); max-height:240px; overflow-y:auto; z-index:9999; }
+.buscador-tienda-lista .bt-opt{ padding:9px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid #f1f1e8; }
+.buscador-tienda-lista .bt-opt:last-child{ border-bottom:none; }
+.buscador-tienda-lista .bt-opt:hover{ background:var(--brand-soft); }
+.buscador-tienda-lista .bt-vacio{ padding:9px 12px; font-size:12px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<!-- ============ ACCESO (barrera temporal — se retira cuando esté el login real con backend) ============ -->
+<div id="gateScreen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#faf3d7;z-index:10000;padding:24px;text-align:center;">
+  <div class="delico-logo lg">DELICO . ODV</div>
+  <div style="color:#4a4a2a; font-size:13px; max-width:320px;">Esta app es de uso interno del equipo Délico. Ingresa la clave de acceso que te compartió tu coordinador(a).</div>
+  <div class="login-card" style="box-shadow:none; border:1px solid #e2d9a8; margin-top:4px;">
+    <div class="field">
+      <label for="gatePass">Clave de acceso</label>
+      <input id="gatePass" type="password" placeholder="••••••••" autocomplete="off">
+    </div>
+    <button class="btn btn-brand btn-block" onclick="verificarClaveAcceso()">Entrar</button>
+    <div class="error-msg" id="gateError"></div>
+  </div>
+</div>
+
+<!-- ============ CARGANDO ============ -->
+<div id="loadingScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#faf3d7;z-index:9999;padding:24px;text-align:center;">
+  <div class="delico-logo lg">DELICO . ODV</div>
+  <div id="loadingTexto" style="color:#4a4a2a;">Cargando información…</div>
+  <div id="loadingError" style="display:none;color:#8a1f1f;max-width:320px;">
+    No se pudo cargar la información. Revisa tu conexión a internet e intenta de nuevo.
+    <br><button class="btn btn-brand" onclick="location.reload()" style="margin-top:12px;">Reintentar</button>
+  </div>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen" style="display:none;">
+  <div class="login-card">
+    <div class="delico-logo lg" style="margin-bottom:10px;">DELICO . ODV</div>
+    <h1 class="vivemedi-word" style="font-size:22px;">#modoMEDI</h1>
+    <p class="sub">Inicia sesión con tu usuario</p>
+    <div class="field">
+      <label for="loginUser">Usuario</label>
+      <input id="loginUser" type="text" placeholder="Ej. DCDM01" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="loginPass">Contraseña</label>
+      <input id="loginPass" type="password" placeholder="••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-brand btn-block" onclick="doLogin()">Entrar</button>
+    <div class="error-msg" id="loginError"></div>
+    <div class="login-hint">Tu información se guarda en este dispositivo. La sincronización en vivo entre todo el equipo llega en la siguiente fase.</div>
+    <button type="button" class="btn btn-ghost btn-block btnInstalarApp hidden" style="margin-top:10px;" onclick="intentarInstalarApp()">📲 Instalar la app en tu celular</button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <button id="navHamburger" class="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menú">☰</button>
+      <div class="delico-logo">DELICO . ODV</div>
+      <div class="brand-name vivemedi-word" style="font-size:16px;">#modoMEDI</div>
+    </div>
+    <div class="who">
+      <div class="vista-toggle" id="vistaToggle">
+        <button id="vistaBtnEscritorio" onclick="setVista('escritorio')">🖥️ Escritorio</button>
+        <button id="vistaBtnCelular" onclick="setVista('celular')">📱 Celular</button>
+      </div>
+      <div style="text-align:right;">
+        <div id="whoName" style="font-weight:700;"></div>
+        <span class="perfil-badge" id="whoPerfil"></span>
+      </div>
+      <button class="btn btn-ghost hidden" id="btnMigrarFirebase" onclick="migrarCuentasFirebase()" title="Crea la cuenta real de acceso (Firebase) para cada persona del equipo que todavía no la tenga.">🔐 Migrar cuentas</button>
+      <button class="btn btn-ghost" onclick="doLogout()">Salir</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabsNav"></nav>
+  <div class="nav-overlay" id="navOverlay" onclick="toggleMobileNav(false)"></div>
+
+  <main>
+    <!-- ---------- INICIO ---------- -->
+    <section class="view" id="view-inicio">
+      <h2 class="section-title" id="inicioSaludo">Hola</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 16px;" id="inicioFecha"></p>
+      <div class="row" style="margin-bottom:10px;">
+        <div class="card kpi" id="inicioCardRutas"><div class="label" id="inicioCardRutasLabel">Rutas activas esta semana</div><div class="value">—</div></div>
+        <div class="card kpi warn" id="inicioCardVacPendientes"><div class="label">Vacaciones por autorizar</div><div class="value">—</div></div>
+        <div class="card kpi good" id="inicioCardVacProximas"><div class="label" id="inicioCardVacProximasLabel">Vacaciones próximas / en curso</div><div class="value">—</div></div>
+        <div class="card kpi bad" id="inicioCardCaducidad"><div class="label">Alertas de caducidad próxima</div><div class="value">—</div></div>
+      </div>
+      <div id="inicioRutasListaWrap" class="hidden" style="margin-bottom:14px;">
+        <div class="card"><div class="lbl" style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin-bottom:8px;">Tus tiendas asignadas esta semana</div><div id="inicioRutasLista"></div></div>
+      </div>
+      <div id="inicioMiniIconos" class="hidden" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
+      <div id="inicioNotificaciones" style="margin-bottom:14px;"></div>
+      <div id="inicioAlertas"></div>
+    </section>
+
+    <!-- ---------- PLANEACIÓN OBJETIVOS (bloque azul) ---------- -->
+    <section class="view" id="view-planeacion">
+      <div class="bloque-tag bloque-planeacion">Planeación</div>
+      <h2 class="section-title">Objetivos</h2>
+      <div class="controls-bar" style="align-items:center; background:var(--brand-soft); border-radius:10px; margin-bottom:8px;">
+        <label style="font-weight:700;">Meta a comparar:</label>
+        <div id="objMetaTipoWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <span id="objMetaTipoNota" style="font-size:11px; color:var(--ink-soft);"></span>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Mes(es):</label>
+        <div class="tienda-dd" id="objMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objMesDd')" id="objMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="objMesDdPanel"></div>
+        </div>
+        <span id="filtroSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
+        <select id="objSupervisor" onchange="renderPlaneacion()"><option value="">Todos</option></select></span>
+        <span id="objEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;">
+        <label>Embajador(a):</label>
+        <select id="objEmbajador" onchange="renderPlaneacion()"><option value="">Todos</option></select>
+        </span>
+        <label>Tienda(s):</label>
+        <div class="tienda-dd" id="objTiendaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objTiendaDd')" id="objTiendaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="objTiendaDdPanel"></div>
+        </div>
+        <select id="objTiendaMulti" multiple style="display:none;"></select>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosObjetivos()">↺ Restablecer filtros</button>
+      </div>
+      <div class="controls-bar" id="objCadenaFiltroWrap" style="align-items:center;">
+        <label>Cadena(s):</label>
+        <div class="tienda-dd" id="objCadenaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objCadenaDd')" id="objCadenaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="objCadenaDdPanel"></div>
+        </div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Familia(s):</label>
+        <div class="tienda-dd" id="objFamiliaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objFamiliaDd')" id="objFamiliaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="objFamiliaDdPanel"></div>
+        </div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Código(s):</label>
+        <div class="tienda-dd" id="objCodigoDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('objCodigoDd')" id="objCodigoDdBtn">Todos</button>
+          <div class="tienda-dd-panel hidden" id="objCodigoDdPanel"></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-bottom:6px;">
+        <div class="card kpi" style="min-width:240px;"><div class="label" id="kpiUdsLabel">Cuota del periodo (piezas)</div><div class="value" id="kpiUds">—</div></div>
+        <div class="card kpi"><div class="label"># Tiendas en vista</div><div class="value" id="kpiTiendas">—</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div class="lbl" style="font-weight:700;">Piezas pedidas por semana</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" id="anzSemanaToggleBtn" onclick="toggleAnzSemanaVista()">Ver tabla</button>
+            <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarAnzSemana()">⬇ Excel</button>
+          </div>
+        </div>
+        <div id="anzChartSemana"></div>
+        <div id="anzTablaSemanaWrap" class="hidden" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div class="lbl" style="font-weight:700;">Participación por cadena (piezas pedidas)</div>
+          <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarParticipacionCadenaCSV()">⬇ Excel</button>
+        </div>
+        <div id="objPieParticipacion"></div>
+      </div>
+
+      <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
+      <div id="anzInsights"></div>
+      <div id="anzTablas"></div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:22px 0 8px;">
+        <h2 class="section-title" style="margin:0;">Prioridades</h2>
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPrioridades()">⬇ Excel</button>
+      </div>
+      <div class="prioridad-box" style="padding:18px;">
+        <div id="prioridadResumenBreve" style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;"></div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:11.5px; color:var(--ink-soft); display:block; margin-bottom:5px;">Cadena(s) a la(s) que aplica:</label>
+          <div id="prioridadCadenaPick" style="display:flex; gap:7px; flex-wrap:wrap;"></div>
+        </div>
+        <div id="prioridadView" style="display:flex; flex-direction:column; gap:2px;"></div>
+        <div id="prioridadEditWrap" class="hidden" style="margin-top:14px; display:flex; flex-direction:column; gap:9px; padding-top:14px; border-top:1px solid #d8dba0;">
+          <input type="text" id="prioridadNueva" placeholder="Ej. La Comer: cabecera de innovación..." style="padding:9px; border:1px solid #d8dba0; border-radius:8px;">
+          <input type="text" id="prioridadMarcador" placeholder="Marcador personalizado (opcional, ej. Innovación, Campaña, Riesgo...)" style="padding:9px; border:1px solid #d8dba0; border-radius:8px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:11.5px; color:var(--ink-soft);">
+            <span>Vigencia:</span>
+            <input type="date" id="prioridadDesde" style="padding:6px 8px; border:1px solid #d8dba0; border-radius:8px;">
+            <span>al</span>
+            <input type="date" id="prioridadHasta" style="padding:6px 8px; border:1px solid #d8dba0; border-radius:8px;">
+          </div>
+          <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft);">
+            <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="prioridadReqFoto"> Requiere foto obligatoria al ejecutarla</label>
+            <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="prioridadReqConfirm"> Requiere confirmar si está activa (sí/no)</label>
+          </div>
+          <div>
+            <label style="font-size:11.5px; color:var(--ink-soft); display:block; margin-bottom:5px;">Persona(s) específica(s) (opcional — vacío = para todo el equipo que aplique por cadena):</label>
+            <select id="prioridadUsuariosPick" multiple size="4" style="width:100%; padding:6px; border:1px solid #d8dba0; border-radius:8px; font-size:12.5px;"></select>
+          </div>
+          <button class="btn btn-brand" style="align-self:flex-start;" onclick="agregarPrioridad()">+ Agregar</button>
+        </div>
+      </div>
+
+      <div id="tareaAsignarSeccion">
+      <h2 class="section-title" style="margin-top:22px;">Tareas personales</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Asigna tareas puntuales a una persona (no es obligatorio, pero le aparece en sus Prioridades). Se quedan abiertas — pueden llevar varias retroalimentaciones — hasta que se marquen como finalizadas con una conclusión.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="form-grid">
+          <div class="field full"><label>¿Qué se necesita?</label><input type="text" id="tareaTexto" placeholder="Ej. Levantamiento de pesto en anaquel..."></div>
+          <div class="field"><label>Asignar a</label><select id="tareaAsignarA"></select></div>
+          <div class="field"><label>Prioridad</label>
+            <select id="tareaPrioridad"><option value="A">Prioridad A (urgente)</option><option value="B" selected>Prioridad B</option><option value="C">Prioridad C</option></select>
+          </div>
+        </div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="agregarTarea()">+ Agregar nueva</button>
+      </div>
+      </div>
+      <h2 class="section-title" id="tareasMisTitulo" style="margin-top:22px; display:none;">Mis tareas</h2>
+      <div class="row" id="tareaKpiRow" style="margin-bottom:10px;">
+        <div class="card kpi"><div class="label">Tareas en total</div><div class="value" id="tareaKpiTotal">—</div></div>
+        <div class="card kpi warn"><div class="label">Abiertas</div><div class="value" id="tareaKpiAbiertas">—</div></div>
+        <div class="card kpi good"><div class="label">Finalizadas</div><div class="value" id="tareaKpiFinalizadas">—</div></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin:0 0 8px;">
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarTareas()">⬇ Excel</button>
+      </div>
+      <div id="tareasGrid" class="hidden" style="display:none; flex-direction:column; gap:12px; margin-bottom:22px;"></div>
+      <p id="planeacionScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:0 0 10px;"></p>
+    </section>
+
+    <!-- ---------- ASIGNACIÓN DE RUTA (Supervisor/Coordinador/Admin) ---------- -->
+    <section class="view" id="view-ruta">
+      <div class="bloque-tag bloque-planeacion">Planeación</div>
+      <h2 class="section-title">Asignación de Ruta</h2>
+      <div class="controls-bar">
+        <label>Inicio de vista:</label>
+        <input type="date" id="rutaWeekPicker" oninput="onWeekPickerChange(this.value)">
+        <button class="btn btn-ghost" onclick="shiftDay(-1)">◀ Día</button>
+        <button class="btn btn-ghost" onclick="shiftDay(1)">Día ▶</button>
+        <button class="btn btn-ghost" onclick="shiftWeek(-1)">◀◀ Semana</button>
+        <button class="btn btn-ghost" onclick="shiftWeek(1)">Semana ▶▶</button>
+        <span id="rutaWeekLabel" style="font-weight:700; color:var(--brand-dark);"></span>
+      </div>
+      <div class="controls-bar">
+        <button class="btn btn-brand" onclick="guardarSemanaRuta()">💾 Guardar y distribuir a embajadores</button>
+        <button class="btn btn-ghost" onclick="exportResumen('embajadores','imagen')">🖼️ Exportar resumen — Embajadores</button>
+        <button class="btn btn-ghost" onclick="exportResumen('todos','imagen')">🖼️ Exportar resumen — Todos los roles</button>
+        <button class="btn btn-ghost" onclick="exportRutaExcel()">📊 Exportar a Excel — Todos los roles</button>
+        <button class="btn btn-ghost" id="rutaBtnImportar" onclick="impAbrirSelector()" title="Sube el rol en Excel de las supervisoras y se pasa a la asignación">📥 Cargar desde archivo</button>
+        <button class="btn btn-ghost" onclick="reenviarRutasNube()" title="Vuelve a subir a la nube todas las rutas de este dispositivo para que le lleguen al equipo">☁️ Reenviar rutas al equipo</button>
+        <input type="file" id="rutaImpInput" accept=".xlsx,.xlsm,.xls" multiple style="display:none" onchange="impArchivosElegidos(this)">
+        <button class="btn btn-ghost" style="color:var(--bad); border-color:#e3b3ad;" onclick="borrarTodaLaSemana()">🗑️ Borrar todo (esta vista)</button>
+        <span id="rutaSaveStatus" style="font-size:12px; color:var(--ink-soft);"></span>
+      </div>
+      <div id="rutaLockBar" style="margin:-4px 0 4px;"></div>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:-6px 0 12px;">El resumen de "Embajadores" solo incluye Degustación, Híbrido y Promotoría — nunca supervisión, coordinación, gerencia ni admin.</p>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-2px 0 14px;">Arrastra a una persona hacia cualquier día y se le llenan automáticamente los 7 días de la vista — quita ✕ o cambia lo que no aplique (ej. marca "Descanso" en el día que no trabaja). Puedes agregar más de una tienda el mismo día con el botón "+ otra tienda ese día". La vista no está fija a lunes-domingo: usa "Día" para correr la ventana al ciclo real de captura (ej. miércoles a martes).</p>
+      <div class="ruta-layout">
+        <aside class="ruta-pool">
+          <h3 style="margin:0 0 8px; font-size:13px; color:var(--brand-dark);">Personas</h3>
+          <div style="display:flex; flex-direction:column; gap:3px; margin-bottom:10px; font-size:11.5px;">
+            <label style="display:flex; align-items:center; gap:5px;"><input type="radio" name="rutaModo" value="cero" checked onchange="setRutaModoArrastre('cero')"> Arrastrar de cero</label>
+            <label style="display:flex; align-items:center; gap:5px;"><input type="radio" name="rutaModo" value="preplan" onchange="setRutaModoArrastre('preplan')"> Arrastrar con Pre-plan sugerido</label>
+          </div>
+          <input type="text" id="personaSearch" placeholder="Buscar por nombre..." oninput="renderPersonaPool()" style="width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; font-size:12.5px;">
+          <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+            <select id="rutaFiltroSupervisor" onchange="renderPersonaPool()" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"><option value="">Todos los supervisores</option></select>
+            <select id="rutaFiltroRegion" onchange="renderPersonaPool()" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"><option value="">Todas las regiones</option></select>
+            <select id="rutaFiltroCadena" onchange="renderPersonaPool()" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"><option value="">Todas las cadenas</option></select>
+            <select id="rutaFiltroCluster" onchange="renderPersonaPool()" style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"><option value="">Todos los clusters</option></select>
+          </div>
+          <div id="personaPool" class="chip-pool"></div>
+        </aside>
+        <div class="ruta-board" id="rutaBoard"></div>
+        <datalist id="dlTodasTiendas"></datalist>
+      </div>
+      <h2 class="section-title" style="margin-top:20px;">Resumen de la semana visible</h2>
+      <div id="rutaResumenSemana"></div>
+    </section>
+
+    <!-- ---------- CAPTURA MDI ---------- -->
+    <section class="view" id="view-captura">
+      <div class="bloque-tag bloque-ejecucion">Ejecución</div>
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:4px;">
+        <div class="medi-logo">
+          <div class="m-word">#modoMEDI</div>
+          <div class="m-sub">Mercadeo · Ejecución · Demostración Impecable</div>
+        </div>
+      </div>
+      <h2 class="section-title">Captura MEDI</h2>
+
+      <div class="card" id="checkinBar" style="margin-bottom:18px;"></div>
+      <div id="extraTiendaBox"></div>
+
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:-2px 0 10px;"><span style="color:var(--bad); font-weight:700;">■</span> Obligatorio en cada visita &nbsp; <span style="color:var(--warn); font-weight:700;">■</span> Según tu rol &nbsp; <span style="color:var(--line); font-weight:700;">■</span> Opcional</p>
+      <div class="mdi-grid">
+        <button class="mdi-tile mdi-oblig" onclick="abrirCheckInOut()"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">🚪🚶</div><div class="t" id="tCheckInOut">Registro — Check-in / Check-out</div><div class="d" id="dCheckInOut">Foto al llegar y al salir de la tienda, en un solo lugar.</div></button>
+        <button class="mdi-tile mdi-oblig" onclick="abrirMercadeo()"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">🧹</div><div class="t">Mercadeo</div><div class="d">Checklist completo — cambia según tu perfil (Embajador/Promotor o Supervisor).</div></button>
+        <button class="mdi-tile mdi-condicional" onclick="openForm('degustacion')"><span class="mdi-badge b-condicional">Según tu rol</span><div class="icon">🥄</div><div class="t">Degustación</div><div class="d">Producto degustado, con qué, reacción del shopper. Foto obligatoria.</div></button>
+        <button class="mdi-tile mdi-oblig" onclick="openForm('caducidad')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">⏳</div><div class="t">Caducidades</div><div class="d">Producto, fecha de caducidad y piezas en riesgo.</div></button>
+        <button class="mdi-tile" id="tilePrioridades" onclick="abrirPrioridadesCaptura()"><span class="mdi-badge b-oblig hidden" id="prioridadesObligBadge">Obligatoria</span><div class="icon">🎯</div><div class="t">Prioridades y tareas<span class="cal-badge-dot hidden" id="prioridadesBadge"></span></div><div class="d">Prioridades del mes (confirma activas, sube foto donde lo pidan) y tareas asignadas a ti — respóndelas aquí mismo.</div></button>
+        <button class="mdi-tile" onclick="abrirPipeline()"><span class="cal-badge hidden" id="pipelineAccionablesBadge">0</span><div class="icon">📦</div><div class="t">Pipeline</div><div class="d">Inventarios por tienda — pendiente de conectar tu archivo.</div></button>
+        <button class="mdi-tile mdi-oblig" onclick="abrirLeySilla()"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">🪑</div><div class="t">Ley Silla</div><div class="d">Registra tus 2 descansos de 15 min al día (obligación y derecho legal).</div></button>
+        <button class="mdi-tile" onclick="openGastoTicket()"><div class="icon">🧾</div><div class="t">Gasto (ticket)</div><div class="d">Un solo ticket, varias líneas: producto Delico, insumos, material.</div></button>
+        <button class="mdi-tile mdi-oblig" onclick="openForm('precio_delico')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">💲</div><div class="t">Precio Delico</div><div class="d">Precio en piso de nuestro producto.</div></button>
+        <button class="mdi-tile" onclick="openForm('precio_competencia')"><div class="icon">🏷️</div><div class="t">Precio competencia</div><div class="d">Marca, producto, precio, promos, fotos/videos de activaciones de otras marcas y comentarios.</div></button>
+        <button class="mdi-tile" onclick="openForm('incidencia')"><div class="icon">⚠️</div><div class="t">Incidencias</div><div class="d">Inventario, calidad, tienda/instalaciones, refrigeración, otro.</div></button>
+        <button class="mdi-tile" onclick="abrirCargaAnaquel()"><div class="icon">📐</div><div class="t">Carga de anaquel</div><div class="d">Frentes y profundidad por producto — como tabla, con foto de cada SKU.</div></button>
+        <button class="mdi-tile" onclick="openForm('foto')"><div class="icon">📷</div><div class="t">Categoría</div><div class="d">Tipo de exhibición (refri, barco, búnker, otro) y foto.</div></button>
+        <button class="mdi-tile hidden" id="tileOnboarding" onclick="abrirOnboarding()"><div class="icon">🧭</div><div class="t">Onboarding</div><div class="d">Checklist completo de onboarding — lo llenan juntas Supervisor y la persona nueva.</div></button>
+        <button class="mdi-tile hidden" id="tileAuditoria" onclick="showView('auditoria')"><div class="icon">🕵️</div><div class="t">Registrar supervisión</div><div class="d">Evalúa conocimiento de ruta/tienda, comunicación, proactividad y ejecución MEDI.</div></button>
+        <button class="mdi-tile hidden" id="tileEval360" onclick="showView('eval360')"><div class="icon">⭐</div><div class="t">Evaluación 360°</div><div class="d">Uniforme, higiene, herramientas, charola y lineamientos de marca — resultado al momento.</div></button>
+      </div>
+
+      <h2 class="section-title">🥄 Comentarios del shopper (Degustación)</h2>
+      <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 10px;">Aquí puedes agregar la reacción del shopper cuando puedas — no hace falta tenerla al momento de guardar la degustación.</p>
+      <div id="degustacionesRecientesBox" style="margin-bottom:18px;"></div>
+
+      <h2 class="section-title">Mis últimas capturas</h2>
+      <div id="nubePendientesMis" style="font-size:12px; margin:-6px 0 10px;"></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="misCapturasBodyHead"><th>Tipo</th><th>Fecha</th><th>Tienda</th><th>Detalle</th></tr></thead>
+          <tbody id="misCapturasBody"></tbody>
+        </table>
+      </div>
+
+      <div id="reinicioZonaMedi" class="hidden" style="margin-top:30px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra solo los registros de Ejecución MEDI (Mercadeo, Caducidades, Degustación, Precios, Categoría, Gasto, Carga de anaquel, Check-in/out, Incidencias, Onboarding) de todo el equipo, con sus fotos. No toca rutas, vacaciones, tareas ni el resto de las pestañas.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioMedi()">🗑️ Borrar todo MEDI</button>
+        </div>
+        <div class="card" style="border:1px solid var(--bad); margin-top:10px;">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Mientras seguimos probando la app: elige exactamente qué borrar (puedes marcar solo una cosa, o varias) sin tener que borrar todo MEDI de un jalón.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorradoSelectivoPruebas()">🗑️ Borrar información de pruebas (elegir qué)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- REGISTRAR SUPERVISIÓN (auditoría, Supervisor+ — se abre desde el tile de Captura MEDI) ---------- -->
+    <section class="view" id="view-auditoria">
+      <div class="bloque-tag bloque-ejecucion">Ejecución</div>
+      <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="showView('captura')">← Volver a Captura MEDI</button>
+      <h2 class="section-title">Registrar supervisión</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Evalúa cómo se está ejecutando MEDI en campo. Jerárquico: Supervisor evalúa Embajadores, Coordinador evalúa Supervisores y Embajadores, Admin/Gerente evalúa a todos. Al finalizar, se notifica a la persona evaluada (y a su jerarquía) con la calificación y los pendientes.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="form-grid">
+          <div class="field"><label>Persona evaluada</label><select id="audPersona"></select></div>
+          <div class="field"><label>Tienda</label><select id="audTienda"><option value="">Selecciona tienda...</option></select></div>
+        </div>
+        <div id="audDimensiones" style="display:flex; flex-direction:column; gap:10px; margin-top:12px;"></div>
+        <div class="field full" style="margin-top:10px;"><label>Comentarios generales</label><textarea id="audComentarios" rows="3"></textarea></div>
+        <div class="field full" style="margin-top:10px;"><label>Pendientes / retroalimentación para la siguiente visita</label><textarea id="audPendientes" rows="2" placeholder="Ej. Reforzar acomodo en refri, subir foto de anaquel la próxima visita..."></textarea></div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="guardarAuditoria()">Guardar evaluación y notificar</button>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Evaluaciones registradas</h3>
+      <div class="table-scroll">
+        <table><thead><tr id="audBodyHead"><th>Persona</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Promedio</th><th>Detalle</th><th>Pendiente</th></tr></thead><tbody id="audBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ---------- EVALUACIÓN 360° DEMOSTRADORAS (Supervisor+ — se abre desde el tile de Captura MEDI) ---------- -->
+    <section class="view" id="view-eval360">
+      <div class="bloque-tag bloque-ejecucion">Ejecución</div>
+      <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="showView('captura')">← Volver a Captura MEDI</button>
+      <h2 class="section-title">Evaluación 360° — Demostradoras</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Uniforme e imagen (20%) · Seguridad e higiene (15%) · Herramientas (15%) · Presentación de charola (25%) · Lineamientos de marca (25%). El resultado se calcula al momento conforme calificas.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="form-grid">
+          <div class="field"><label>Demostradora</label><select id="ev360Persona"></select></div>
+          <div class="field"><label>Bodega / Tienda</label><select id="ev360Tienda"><option value="">Selecciona tienda...</option></select></div>
+          <div class="field"><label>Fecha</label><input type="date" id="ev360Fecha"></div>
+        </div>
+        <div id="ev360Categorias" style="display:flex; flex-direction:column; gap:16px; margin-top:14px;"></div>
+        <div class="card" id="ev360ResultadoBox" style="margin-top:14px; background:var(--bg-soft, #f7f7f5); border:1px dashed var(--line);">
+          <div style="font-size:13px; font-weight:700; color:var(--brand-dark); margin-bottom:8px;">Resultado (al momento)</div>
+          <div id="ev360ResultadoDetalle" style="font-size:12px; color:var(--ink-soft); line-height:1.7;"></div>
+          <div id="ev360ResultadoTotal" style="font-size:20px; font-weight:800; margin-top:6px;"></div>
+        </div>
+        <div class="field full" style="margin-top:10px;"><label>Observaciones</label><textarea id="ev360Observaciones" rows="2"></textarea></div>
+        <div class="field full" style="margin-top:10px;"><label>Compromiso / plan de acción</label><textarea id="ev360Compromiso" rows="2" placeholder="Qué se compromete a mejorar la demostradora antes de la próxima visita..."></textarea></div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="guardarEval360()">Guardar evaluación</button>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Evaluaciones registradas</h3>
+      <div class="table-scroll">
+        <table><thead><tr id="ev360BodyHead"><th>Demostradora</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Total</th><th>Clasificación</th><th>Detalle</th></tr></thead><tbody id="ev360Body"></tbody></table>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:20px 0 8px;">Elegibilidad trimestral (reconocimiento)</h3>
+      <p style="font-size:12px; color:var(--ink-soft); margin:-4px 0 10px;">Requiere 3 evaluaciones en el trimestre, promedio trimestral ≥ 90/100 y ningún mes por debajo de 80/100. Empates: prioriza Lineamientos de Marca y después Presentación de Charola.</p>
+      <div class="table-scroll">
+        <table><thead><tr><th>Demostradora</th><th>Trimestre</th><th># Evaluaciones</th><th>Promedio</th><th>Mín. mensual</th><th>Elegible</th></tr></thead><tbody id="ev360TrimBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ---------- EVALUACIONES (consolidado, solo consulta — Eval 360°, Auditoría/Supervisión, Onboarding) ---------- -->
+    <section class="view" id="view-evaluaciones">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">📋 Evaluaciones</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;" id="evaluacionesIntro">Aquí puedes ver las evaluaciones que te han hecho — qué se evaluó y los comentarios — para tenerlo presente. Esta vista es solo de consulta.</p>
+
+      <div class="controls-bar" id="evaFiltrosBar">
+        <label>Persona:</label>
+        <select id="evaPersona" onchange="renderEvaluaciones()"><option value="">Todas</option></select>
+        <label>Cadena:</label>
+        <select id="evaCadena" onchange="renderEvaluaciones()"><option value="">Todas</option></select>
+        <label>Región:</label>
+        <select id="evaRegion" onchange="renderEvaluaciones()"><option value="">Todas</option></select>
+        <label>Supervisor:</label>
+        <select id="evaSupervisor" onchange="renderEvaluaciones()"><option value="">Todos</option></select>
+        <label>Desde:</label>
+        <input type="date" id="evaDesde" onchange="renderEvaluaciones()">
+        <label>Hasta:</label>
+        <input type="date" id="evaHasta" onchange="renderEvaluaciones()">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="evaMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('evaMesDd')" id="evaMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="evaMesDdPanel"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('evaPersona').value='';document.getElementById('evaCadena').value='';document.getElementById('evaRegion').value='';document.getElementById('evaSupervisor').value='';document.getElementById('evaDesde').value='';document.getElementById('evaHasta').value='';window.evaFiltroMesesCompletos=new Set();_renderMesesCompletosChips('eva','evaMesDdPanel','evaMesDdBtn');renderEvaluaciones();">↺ Restablecer filtros</button>
+        <button class="btn btn-ghost" onclick="exportarEvaluacionesExcel()">⬇ Exportar Excel</button>
+        <button class="btn btn-ghost" onclick="exportarEvaluacionesPDF()">📄 Exportar PDF</button>
+      </div>
+
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">⭐ Evaluación 360°</h3>
+      <div class="table-scroll" style="margin-bottom:20px;">
+        <table><thead><tr><th>Demostradora</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Total</th><th>Clasificación</th><th>Detalle</th></tr></thead><tbody id="evalu360Body"></tbody></table>
+      </div>
+
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">🕵️ Auditoría / Registrar supervisión</h3>
+      <div class="table-scroll" style="margin-bottom:20px;">
+        <table><thead><tr><th>Persona</th><th>Tienda</th><th>Fecha</th><th>Evaluó</th><th>Promedio</th><th>Detalle</th></tr></thead><tbody id="evaluAudBody"></tbody></table>
+      </div>
+
+      <div id="evaluOnboardingWrap">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">🧭 Onboarding</h3>
+        <p style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 8px;">El onboarding se registra por nombre de la persona nueva, así que aquí se muestra a Supervisor y arriba.</p>
+        <div class="table-scroll" style="margin-bottom:10px;">
+          <table><thead><tr><th>Persona nueva</th><th>Tienda</th><th>Fecha</th><th>Registró</th><th>Cumplimiento</th></tr></thead><tbody id="evaluOnboardingBody"></tbody></table>
+        </div>
+      </div>
+
+      <h2 class="section-title" style="margin-top:18px;">💡 Insights</h2>
+      <div id="evaInsights" style="margin-bottom:10px;"></div>
+
+      <div id="reinicioZonaEvaluaciones" class="hidden" style="margin-top:30px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todas las Evaluaciones 360° y Auditorías/supervisión de todo el equipo. No borra Onboarding.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorrarEvaluaciones()">🗑️ Borrar todo Evaluaciones</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- REPORTES (Supervisor+) ---------- -->
+    <section class="view" id="view-reportes">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">Reportes del equipo</h2>
+      <div id="nubeEstadoBox" class="card" style="font-size:12.5px; margin-bottom:12px; padding:10px 14px;">☁️ Conectando con la nube…</div>
+      <div class="controls-bar">
+        <label>Tipo:</label>
+        <select id="repTipo">
+          <option value="">Todos</option>
+          <option value="entrada_tienda">Registro — Check-in</option>
+          <option value="mercadeo">Mercadeo</option>
+          <option value="caducidad">Caducidades</option>
+          <option value="incidencia">Incidencias</option>
+          <option value="incapacidad">Incapacidad</option>
+          <option value="inasistencia">Inasistencia</option>
+          <option value="degustacion">Degustación</option>
+          <option value="precio_delico">Precio Delico</option>
+          <option value="precio_competencia">Precio competencia</option>
+          <option value="foto">Foto de categoría</option>
+          <option value="factores_ambiente">Factores ambiente</option>
+          <option value="gasto_ticket">Gasto (ticket)</option>
+          <option value="carga_anaquel">Carga de anaquel</option>
+          <option value="salida_tienda">Registro — Check-out</option>
+        </select>
+        <label>Persona:</label>
+        <select id="repPersona"><option value="">Todas</option></select>
+        <label>Cadena:</label>
+        <select id="repCadena"><option value="">Todas</option></select>
+        <label>Región:</label>
+        <select id="repRegion"><option value="">Todas</option></select>
+        <label>Supervisor:</label>
+        <select id="repSupervisor"><option value="">Todos</option></select>
+        <label>Desde:</label>
+        <input type="date" id="repDesde" onchange="renderReportes()">
+        <label>Hasta:</label>
+        <input type="date" id="repHasta" onchange="renderReportes()">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="repMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('repMesDd')" id="repMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="repMesDdPanel"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="exportCSV()">Exportar CSV</button>
+        <button class="btn btn-ghost" onclick="exportImagenesReporte()">🖼️ Exportar imágenes</button>
+        <button class="btn btn-ghost" onclick="exportPDFReporte()">📄 Exportar PDF reporte</button>
+        <button class="btn btn-ghost" onclick="exportarDetalleFormularios()">📝 Exportar detalle de formularios</button>
+      </div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">"Exportar detalle de formularios" saca, para lo que esté filtrado, la respuesta real de cada pregunta/campo de cualquier tipo de captura (Mercadeo, Onboarding, Gasto/ticket, Degustación, Caducidades, Incidencias, Carga de anaquel, etc.) — no solo si se hizo o se cumplió. Filtra por Tipo arriba para exportar solo uno en específico.</p>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="label">Total capturas</div><div class="value" id="repTotal">0</div></div>
+        <div class="card kpi"><div class="label">Personas activas</div><div class="value" id="repPersonas">0</div></div>
+        <div class="card kpi bad"><div class="label">Incidencias abiertas</div><div class="value" id="repIncidencias">0</div></div>
+        <div class="card kpi warn"><div class="label">Caducidades reportadas</div><div class="value" id="repCaducidades">0</div></div>
+        <div class="card kpi bad"><div class="label">Capturas con foto fuera de zona</div><div class="value" id="repFueraZona">0</div></div>
+        <div class="card kpi warn"><div class="label">Check-in/out sin foto</div><div class="value" id="repSinFoto">0</div></div>
+      </div>
+      <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
+      <div id="repInsights" style="margin-bottom:18px;"></div>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:0 0 8px;">
+        <span style="font-size:12px; font-weight:700;">Fotos:</span>
+        <button class="btn btn-ghost" id="repFoto_todas" style="padding:3px 10px; font-size:12px;" onclick="setRepFotoFiltro('')">Todas</button>
+        <button class="btn btn-ghost" id="repFoto_con" style="padding:3px 10px; font-size:12px;" onclick="setRepFotoFiltro('con')">📷 Con foto</button>
+        <button class="btn btn-ghost" id="repFoto_sin" style="padding:3px 10px; font-size:12px;" onclick="setRepFotoFiltro('sin')">⚠️ Check-in/out sin foto</button>
+        <span id="repMasWrap" style="margin-left:8px;"></span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="repBodyHead"><th>Tipo</th><th>Persona</th><th>Fecha</th><th>Tienda</th><th>Detalle</th><th>Fotos</th></tr></thead>
+          <tbody id="repBody"></tbody>
+        </table>
+      </div>
+
+      <h2 class="section-title" style="margin-top:26px;">Degustación por horario (ritmo de charolas)</h2>
+      <div class="card" id="degustacionPorHoraCard"></div>
+
+      <div id="reinicioZonaAdmin" class="hidden" style="margin-top:30px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todo lo que el equipo ha capturado en la app (fase de construcción) para que empiecen a capturar información real desde cero. No toca el catálogo, cuotas, tiendas ni Pipeline.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirReinicioCapturas()">🗑️ Reiniciar capturas del equipo</button>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad); margin-left:8px;" onclick="abrirBorradoPorUsuario()">👤 Borrar por usuario…</button>
+        </div>
+      </div>
+
+      <div id="passwordsZonaAdmin" class="hidden" style="margin-top:26px;">
+        <h2 class="section-title">🔐 Contraseñas del equipo</h2>
+        <div class="card">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 12px;">Cambia la contraseña de acceso de cualquier persona del equipo (incluida la tuya). Necesitas saber su contraseña actual — esto no la resetea a ciegas, solo la reemplaza. Cada quien sigue entrando con su propio usuario; nadie más se entera del cambio hasta que tú se lo des.</p>
+          <div class="field">
+            <label for="pwZonaUsuario">Persona</label>
+            <select id="pwZonaUsuario"></select>
+          </div>
+          <div class="field">
+            <label for="pwZonaActual">Contraseña actual de esa persona</label>
+            <input id="pwZonaActual" type="password" placeholder="••••••" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="pwZonaNueva">Contraseña nueva</label>
+            <input id="pwZonaNueva" type="password" placeholder="••••••" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="pwZonaNueva2">Confirmar contraseña nueva</label>
+            <input id="pwZonaNueva2" type="password" placeholder="••••••" autocomplete="off">
+          </div>
+          <button class="btn btn-brand" id="btnCambiarPasswordZona" onclick="cambiarPasswordEquipo()">Cambiar contraseña</button>
+          <p id="pwZonaMsg" style="font-size:12.5px; margin:10px 0 0;"></p>
+        </div>
+      </div>
+
+      <div id="instalacionZonaAdmin" class="hidden" style="margin-top:26px;">
+        <h2 class="section-title">📲 Instalación del equipo</h2>
+        <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 12px;">Se llena solo, a partir de que cada persona entre con esta versión de la app — no hay manera de saber cómo entró alguien antes de hoy. Si alguien nunca aparece aquí, es porque no ha vuelto a entrar desde que subiste esta versión.</p>
+        <div class="row" style="margin-bottom:14px;">
+          <div class="card kpi good"><div class="label">Instalada correctamente</div><div class="value" id="instKpiOk">0</div></div>
+          <div class="card kpi warn"><div class="label">Solo abre en el navegador</div><div class="value" id="instKpiNav">0</div></div>
+          <div class="card kpi bad"><div class="label">Nunca ha entrado (con esta versión)</div><div class="value" id="instKpiNunca">0</div></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Persona</th><th>Usuario</th><th>Último acceso</th><th>Estado</th><th>Plataforma</th></tr></thead>
+            <tbody id="instalacionBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- PRÓXIMOS A CADUCAR (Supervisor+) ---------- -->
+    <section class="view" id="view-proxcaducar">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">⏳ Próximos a caducar</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 12px; max-width:980px;">
+        Todo lo que el equipo ha capturado en <b>Caducidades</b>, con el riesgo de que se venza antes de venderse. Los <b>KPIs, resúmenes, alertas y evolución</b> se calculan siempre sobre la <b>última captura vigente de cada tienda y código</b> (así una misma tienda visitada lunes, miércoles y viernes no se suma tres veces). La <b>tabla de detalle y el Excel</b> sí cambian según el modo que elijas abajo.
+      </p>
+      <div class="controls-bar">
+        <label>Modo del detalle / Excel:</label>
+        <select id="pcModo" onchange="renderProxCaducar()">
+          <option value="ultima">Última captura por tienda y código (sin duplicados)</option>
+          <option value="todo">Todo lo capturado (incluye repetidos)</option>
+        </select>
+        <label>Mostrar:</label>
+        <select id="pcMostrar" onchange="renderProxCaducar()">
+          <option value="">Todo</option>
+          <option value="riesgo">Solo con piezas en riesgo</option>
+          <option value="vencidos">Ya vencidos</option>
+          <option value="7">Vencen en ≤ 7 días</option>
+          <option value="15">Vencen en ≤ 15 días</option>
+          <option value="30">Vencen en ≤ 30 días</option>
+          <option value="60">Vencen en ≤ 60 días</option>
+        </select>
+        <label title="Días antes de la fecha de caducidad en que la tienda retira el producto (0 = hasta el último día)">Colchón (días):</label>
+        <input type="number" id="pcColchon" min="0" max="90" value="0" style="width:70px;" onchange="renderProxCaducar()">
+      </div>
+      <div class="controls-bar">
+        <label>Cadena:</label>
+        <div class="tienda-dd" id="pcCadenaDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcCadenaDd')" id="pcCadenaDdBtn">Todas</button><div class="tienda-dd-panel hidden" id="pcCadenaDdPanel"></div></div>
+        <label>Región:</label>
+        <div class="tienda-dd" id="pcRegionDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcRegionDd')" id="pcRegionDdBtn">Todas</button><div class="tienda-dd-panel hidden" id="pcRegionDdPanel"></div></div>
+        <label>Supervisor(a):</label>
+        <div class="tienda-dd" id="pcSupervisorDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcSupervisorDd')" id="pcSupervisorDdBtn">Todos</button><div class="tienda-dd-panel hidden" id="pcSupervisorDdPanel"></div></div>
+        <label>Familia:</label>
+        <div class="tienda-dd" id="pcFamiliaDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcFamiliaDd')" id="pcFamiliaDdBtn">Todas</button><div class="tienda-dd-panel hidden" id="pcFamiliaDdPanel"></div></div>
+        <label>Código:</label>
+        <div class="tienda-dd" id="pcCodigoDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcCodigoDd')" id="pcCodigoDdBtn">Todos</button><div class="tienda-dd-panel hidden" id="pcCodigoDdPanel"></div></div>
+        <label>Persona:</label>
+        <select id="pcPersona" onchange="renderProxCaducar()"><option value="">Todas</option></select>
+      </div>
+      <div class="controls-bar">
+        <label>Capturado desde:</label>
+        <input type="date" id="pcDesde" onchange="renderProxCaducar()">
+        <label>hasta:</label>
+        <input type="date" id="pcHasta" onchange="renderProxCaducar()">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="pcMesDdRoot"><button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('pcMesDd')" id="pcMesDdBtn">Selecciona...</button><div class="tienda-dd-panel hidden" id="pcMesDdPanel"></div></div>
+        <button class="btn btn-ghost" onclick="pcLimpiarFiltros()">Limpiar filtros</button>
+        <button class="btn btn-brand" onclick="exportarProxCaducarExcel()">📊 Exportar Excel</button>
+      </div>
+      <div id="pcNota" style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 12px;"></div>
+
+      <div class="row" style="margin-bottom:14px;" id="pcKpis"></div>
+
+      <h2 class="section-title" style="margin-top:6px;">🚨 Alertas y qué hacer</h2>
+      <div id="pcAlertas" style="margin-bottom:18px;"></div>
+
+      <h2 class="section-title">🏪 Riesgo por cadena</h2>
+      <div class="table-scroll" style="margin-bottom:18px;"><table><thead><tr id="pcCadenaHead"></tr></thead><tbody id="pcCadenaBody"></tbody></table></div>
+
+      <h2 class="section-title">📦 Riesgo por código <span style="font-size:12px; font-weight:500; color:var(--ink-soft);">(pasado a valor con el precio promedio del catálogo)</span></h2>
+      <div class="table-scroll" style="margin-bottom:18px;"><table><thead><tr id="pcCodigoHead"></tr></thead><tbody id="pcCodigoBody"></tbody></table></div>
+
+      <h2 class="section-title">📈 Evolución de un lote por fecha de caducidad</h2>
+      <div class="controls-bar">
+        <label>Fecha de caducidad:</label>
+        <select id="pcEvoFecha" onchange="renderProxCaducar()"></select>
+      </div>
+      <div id="pcEvolucion" style="margin-bottom:18px;"></div>
+
+      <h2 class="section-title">🧾 Detalle <span id="pcDetalleTitulo" style="font-size:12px; font-weight:500; color:var(--ink-soft);"></span></h2>
+      <div class="table-scroll">
+        <table><thead><tr id="pcDetalleHead"></tr></thead><tbody id="pcDetalleBody"></tbody></table>
+      </div>
+      <p id="pcDetallePie" style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;"></p>
+    </section>
+
+
+
+    <!-- ---------- CUMPLIMIENTO: PLAN VS. REAL ---------- -->
+    <section class="view" id="view-cumpventa">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">Cumplimiento de venta</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Compara lo que de verdad se vendió contra la cuota (o el escalón del Bono) del mismo periodo exacto que elijas abajo — nunca mezcla meses.</p>
+      <div class="controls-bar" style="align-items:center; background:var(--brand-soft); border-radius:10px; margin-bottom:8px;">
+        <label style="font-weight:700;">Meta a comparar:</label>
+        <div id="cvMetaTipoWrap" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+        <span id="cvMetaTipoNota" style="font-size:11px; color:var(--ink-soft);"></span>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Mes(es):</label>
+        <div class="tienda-dd" id="cvMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cvMesDd')" id="cvMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="cvMesDdPanel"></div>
+        </div>
+        <label>Cadena(s):</label>
+        <div class="tienda-dd" id="cvCadenaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cvCadenaDd')" id="cvCadenaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="cvCadenaDdPanel"></div>
+        </div>
+        <span id="cvSupervisorWrap" style="display:inline-flex; gap:10px; align-items:center;"><label>Supervisor(a):</label>
+        <select id="cvSupervisor"><option value="">Todos</option></select></span>
+        <span id="cvEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;">
+        <label>Embajador(a):</label>
+        <select id="cvEmbajador"><option value="">Todos</option></select>
+        </span>
+        <label>Tienda(s):</label>
+        <div class="tienda-dd" id="cvTiendaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cvTiendaDd')" id="cvTiendaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="cvTiendaDdPanel"></div>
+        </div>
+        <select id="cvTiendaMulti" multiple style="display:none;"></select>
+        <button class="btn btn-brand" onclick="renderCumpVenta()">Filtrar</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosCumpVenta()">↺ Restablecer filtros</button>
+      </div>
+
+      <div class="row" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="label" id="cvKpiMetaLabel">Cuota del periodo (piezas)</div><div class="value" id="cvKpiMeta">—</div></div>
+        <div class="card kpi good"><div class="label">Real vendido (piezas)</div><div class="value" id="cvKpiReal">—</div></div>
+        <div class="card kpi warn"><div class="label">% Cumplimiento</div><div class="value" id="cvKpiPct">—</div></div>
+        <div class="card kpi bad"><div class="label">Falta por cubrir (piezas)</div><div class="value" id="cvKpiFalta">—</div></div>
+        <div class="card kpi"><div class="label"># Tiendas en vista</div><div class="value" id="cvKpiTiendas">—</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div class="lbl" style="font-weight:700;">Cubrimiento por semana (meta vs. real, piezas)</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" id="cvSemanaToggleBtn" onclick="toggleCvSemanaVista()">Ver tabla</button>
+            <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarCvSemana()">⬇ Excel</button>
+          </div>
+        </div>
+        <div id="cvChartSemana"></div>
+        <div id="cvTablaSemanaWrap" class="hidden" style="margin-top:10px;"></div>
+      </div>
+
+      <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
+      <div id="cvInsights"></div>
+
+      <h2 class="section-title" style="margin-top:18px;">🔎 ¿Qué se está atorando y qué hacemos?</h2>
+      <div id="cvDiag"></div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 8px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Por código de tienda (clic para ver el detalle semanal)</h3>
+        <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCvTablaCSV()">⬇ Exportar a Excel</button>
+      </div>
+      <div class="table-scroll" id="cvTablaTienda" style="margin-bottom:22px;"></div>
+
+      <div class="controls-bar" style="align-items:center; margin-top:6px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0; flex:1;">Por semana — a nivel código de tienda</h3>
+        <label>Semana:</label>
+        <select id="cvSemanaPick" onchange="renderCvPorSemanaTienda()"></select>
+        <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCvSemanaTiendaCSV()">⬇ Exportar a Excel</button>
+      </div>
+      <div class="table-scroll" id="cvTablaSemanaTienda" style="margin-bottom:22px;"></div>
+
+      <p id="cvScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:14px 0 0;"></p>
+    </section>
+
+    <section class="view" id="view-cumpprioridades">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">Prioridades y tareas</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Qué tanto se está ejecutando en piso cada prioridad vigente (foto/confirmación) y cómo va el cumplimiento de tareas asignadas, por mes y por tienda. Para dar de alta o quitar prioridades, ve a Cartas / materiales. Para responder una tarea o confirmar una prioridad, ve a Ejecución › Prioridades y tareas.</p>
+      <div class="controls-bar" style="align-items:center;" id="cpFiltrosBar">
+        <label>Mes(es):</label>
+        <div class="tienda-dd" id="cpMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cpMesDd')" id="cpMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="cpMesDdPanel"></div>
+        </div>
+        <label>Tienda(s):</label>
+        <div class="tienda-dd" id="cpTiendaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cpTiendaDd')" id="cpTiendaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="cpTiendaDdPanel"></div>
+        </div>
+        <select id="cpTiendaMulti" multiple style="display:none;"></select>
+        <button class="btn btn-brand" onclick="renderCumpPrioridades()">Filtrar</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosCumpPrioridades()">↺ Restablecer filtros</button>
+      </div>
+
+      <div class="row" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="label">Prioridades vigentes en filtro</div><div class="value" id="cpKpiTotal">—</div></div>
+        <div class="card kpi"><div class="label">Con seguimiento (foto/confirmación)</div><div class="value" id="cpKpiSeguimiento">—</div></div>
+        <div class="card kpi warn"><div class="label">% Cobertura promedio</div><div class="value" id="cpKpiPct">—</div></div>
+        <div class="card kpi" id="cpKpiTiendasWrap"><div class="label"># Tiendas en vista</div><div class="value" id="cpKpiTiendas">—</div></div>
+      </div>
+
+      <div id="cpInsightsWrap">
+        <h2 class="section-title" style="margin-top:6px;">💡 Insights</h2>
+        <div id="cpInsights"></div>
+      </div>
+
+      <div id="cpTablaWrap">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin:18px 0 8px;">
+          <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Por prioridad (clic para ver el detalle por tienda y las respuestas)</h3>
+          <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCpTablaCSV()">⬇ Exportar a Excel</button>
+        </div>
+        <div class="table-scroll" id="cpTablaPrioridades" style="margin-bottom:22px;"></div>
+      </div>
+
+      <h2 class="section-title" style="margin-top:6px;">📋 Tareas</h2>
+      <div id="cpTareasBox" style="margin-bottom:18px;"></div>
+
+      <p id="cpScopeNote" style="font-size:11.5px; color:var(--ink-soft); margin:14px 0 0;"></p>
+    </section>
+
+    <section class="view" id="view-bono">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">🏆 Bono — Plan "Valor al Esfuerzo"</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Bono adicional mensual posible: hasta <b>$1,500</b> por embajadora (60% Sell Out + 40% Distribución), + reconocimientos trimestrales para Top Performers.</p>
+      <div class="controls-bar" style="align-items:center;">
+        <span id="bonoTabEmbWrap" style="display:inline-flex; gap:8px; align-items:center;">
+          <label>Embajadora(s) <small style="font-weight:400; color:var(--ink-soft);">(vacío = todo tu equipo · Ctrl/Cmd-clic para elegir varias)</small></label>
+          <select id="bonoTabEmbSel" multiple size="4" style="min-width:200px;" onchange="renderBonoTab()"></select>
+        </span>
+        <label>Mes (meta de escalón cargada)</label>
+        <select id="bonoTabMesSel" onchange="renderBonoTab()"></select>
+      </div>
+      <div id="bonoInsightsWrap">
+        <h2 class="section-title" style="margin-top:14px;">💡 Insights</h2>
+        <div id="bonoInsights"></div>
+      </div>
+      <div id="bonoTabBody"></div>
+    </section>
+
+    <section class="view" id="view-cumplimiento">
+      <div class="bloque-tag bloque-retro">Retroalimentación · resumen hoy/semana</div>
+      <h2 class="section-title">Cumplimiento — Plan de ruta vs. visita real</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">"Real" = se registró al menos una captura (entrada, mercadeo, degustación, etc.) de esa persona en esa tienda ese día. Compara lo planeado en Asignación de Ruta contra lo que de verdad se ejecutó en campo.</p>
+      <div class="controls-bar">
+        <label>Desde:</label>
+        <input type="date" id="cumpDesde">
+        <label>Hasta:</label>
+        <input type="date" id="cumpHasta">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="cumpMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('cumpMesDd')" id="cumpMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="cumpMesDdPanel"></div>
+        </div>
+        <label>Cadena:</label>
+        <select id="cumpCadena"><option value="">Todas</option></select>
+        <span id="cumpRegionWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Región:</label>
+        <select id="cumpRegion"><option value="">Todas</option></select></span>
+        <span id="cumpClusterWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Cluster:</label>
+        <select id="cumpCluster"><option value="">Todos</option></select></span>
+        <span id="cumpSupervisorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Supervisor:</label>
+        <select id="cumpSupervisor"><option value="">Todos</option></select></span>
+        <span id="cumpEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Embajador:</label>
+        <select id="cumpEmbajador"><option value="">Todos</option></select></span>
+        <span id="cumpTiendaSingleWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda:</label>
+        <select id="cumpTienda"><option value="">Todas</option></select></span>
+        <span id="cumpTiendaMultiWrap" class="hidden" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda(s):</label>
+        <select id="cumpTiendaMulti" multiple size="4" style="min-width:200px;" onchange="renderCumplimiento()"></select></span>
+        <input type="text" id="cumpPersonaBusca" placeholder="Buscar persona / tienda..." style="padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;">
+        <button class="btn btn-brand" onclick="renderCumplimiento()">Filtrar</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosCumplimiento()">↺ Restablecer filtros</button>
+      </div>
+      <div class="row" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="label">Visitas planeadas</div><div class="value" id="cumpPlaneadas">0</div></div>
+        <div class="card kpi good"><div class="label">Visitas cumplidas</div><div class="value" id="cumpCumplidas">0</div></div>
+        <div class="card kpi warn"><div class="label">% cumplimiento</div><div class="value" id="cumpPct">0%</div></div>
+        <div class="card kpi bad"><div class="label">Visitas no cubiertas (con motivo)</div><div class="value" id="cumpIncidenciasCount">0</div></div>
+      </div>
+      <div id="cumpReconocimientos" style="margin-bottom:16px;"></div>
+      <h2 style="font-size:15px; color:var(--brand-dark); margin:0 0 8px;">💡 Insights de cumplimiento</h2>
+      <div class="card" id="cumpInsights" style="margin-bottom:22px;"></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Cumplimiento por persona</h3>
+        <button class="btn btn-outline" style="font-size:11.5px; padding:4px 10px;" onclick="exportarCumplimientoTabla('persona')">⬇ Excel</button>
+      </div>
+      <div class="table-scroll" style="margin-bottom:22px;">
+        <table>
+          <thead><tr id="cumpPersonaBodyHead"><th>Persona</th><th>Rol</th><th>Supervisor</th><th>Planeadas</th><th>Cumplidas</th><th>%</th></tr></thead>
+          <tbody id="cumpPersonaBody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Cumplimiento por cadena</h3>
+        <button class="btn btn-outline" style="font-size:11.5px; padding:4px 10px;" onclick="exportarCumplimientoTabla('cadena')">⬇ Excel</button>
+      </div>
+      <div class="table-scroll" style="margin-bottom:22px;">
+        <table>
+          <thead><tr id="cumpCadenaBodyHead"><th>Cadena</th><th>Planeadas</th><th>Cumplidas</th><th>%</th></tr></thead>
+          <tbody id="cumpCadenaBody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">Cumplimiento por cluster</h3>
+        <button class="btn btn-outline" style="font-size:11.5px; padding:4px 10px;" onclick="exportarCumplimientoTabla('cluster')">⬇ Excel</button>
+      </div>
+      <div class="table-scroll" style="margin-bottom:22px;">
+        <table>
+          <thead><tr id="cumpClusterBodyHead"><th>Cluster</th><th>Planeadas</th><th>Cumplidas</th><th>%</th></tr></thead>
+          <tbody id="cumpClusterBody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:0 0 8px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0;">🚩 Incumplimiento de ruta — qué no se cubrió y por qué</h3>
+        <button class="btn btn-outline" style="font-size:11.5px; padding:4px 10px;" onclick="exportarCumplimientoTabla('incumplimiento')">⬇ Excel</button>
+      </div>
+      <div class="table-scroll" style="margin-bottom:22px;">
+        <table>
+          <thead><tr id="cumpIncumplimientoBodyHead"><th>Persona</th><th>Fecha</th><th>Tienda</th><th>Cadena</th><th>Motivo probable</th></tr></thead>
+          <tbody id="cumpIncumplimientoBody"></tbody>
+        </table>
+      </div>
+      <p id="cumpHistoricoNota" style="font-size:11px; color:var(--ink-soft); margin-top:14px;"></p>
+    </section>
+
+    <!-- ---------- INFORMACIÓN PARA TIENDA (solo lectura, no confidencial) ---------- -->
+    <section class="view" id="view-kpis">
+      <div class="bloque-tag bloque-retro">Retroalimentación · resumen hoy/semana</div>
+      <h2 class="section-title">Kardex</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Concentrador de una sola tienda: cuota, cubrimiento de visitas, objetivo de distribución y alertas. Selecciona cadena y tienda para verlo.</p>
+      <div class="controls-bar">
+        <label>Cadena:</label>
+        <select id="kpiCadena"><option value="">Selecciona...</option></select>
+        <label>Tienda:</label>
+        <select id="kpiTienda"><option value="">Selecciona...</option></select>
+        <label>Desde:</label>
+        <input type="date" id="kpiDesde">
+        <label>Hasta:</label>
+        <input type="date" id="kpiHasta">
+        <label>Mes(es) completos:</label>
+        <div class="tienda-dd" id="kdxMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('kdxMesDd')" id="kdxMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="kdxMesDdPanel"></div>
+        </div>
+        <button class="btn btn-brand" onclick="renderKpis()">Ver</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosKpis()">↺ Restablecer</button>
+        <button class="btn btn-outline" onclick="exportarKpisTienda()">⬇ Excel</button>
+      </div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 10px;">El rango de fechas aplica al plan de visita vs. real y a los reportes hechos en tienda (abajo). La cuota semanal de arriba y el objetivo de distribución no traen corte por fecha en el origen y siguen mostrando mes a la fecha / la foto más reciente del Pipeline.</p>
+      <div id="kpiContenido"></div>
+    </section>
+
+    <!-- ---------- PRE-PLAN SUGERIDO ---------- -->
+    <section class="view" id="view-preplan">
+      <div class="bloque-tag bloque-planeacion">Planeación</div>
+      <h2 class="section-title">Preasignación de rutas</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Antes de armar la ruta de la semana en "Asignación de rutas", revisa aquí lo que cerró la semana anterior — para ahorrarte el cruce manual. <b>Nota:</b> inventario en tránsito no está disponible todavía (falta conectar el archivo correspondiente); días de inventario, excedentes y venta cero ya se calculan con lo que sí tenemos.</p>
+      <div class="controls-bar">
+        <label>Semana de referencia (la que ya cerró):</label>
+        <input type="date" id="preplanRefWeek" onchange="renderPreplan()">
+        <button class="btn btn-brand" onclick="renderPreplan()">Calcular pre-plan</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosPreplan()">↺ Restablecer filtros</button>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Cadena(s):</label>
+        <div class="tienda-dd" id="ppCadenaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppCadenaDd')" id="ppCadenaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="ppCadenaDdPanel"></div>
+        </div>
+      </div>
+      <div class="controls-bar" id="ppSupervisorFiltroWrap" style="align-items:center;">
+        <label>Supervisor(a):</label>
+        <div class="tienda-dd" id="ppSupervisorDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppSupervisorDd')" id="ppSupervisorDdBtn">Todos</button>
+          <div class="tienda-dd-panel hidden" id="ppSupervisorDdPanel"></div>
+        </div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Familia(s):</label>
+        <div class="tienda-dd" id="ppFamiliaDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppFamiliaDd')" id="ppFamiliaDdBtn">Todas</button>
+          <div class="tienda-dd-panel hidden" id="ppFamiliaDdPanel"></div>
+        </div>
+      </div>
+      <div class="controls-bar" style="align-items:center;">
+        <label>Código(s):</label>
+        <div class="tienda-dd" id="ppCodigoDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('ppCodigoDd')" id="ppCodigoDdBtn">Todos</button>
+          <div class="tienda-dd-panel hidden" id="ppCodigoDdPanel"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:8px;">
+        <div class="card kpi bad"><div class="label">Tiendas con venta cero (algún SKU)</div><div class="value" id="ppVentaCeroCount">0</div></div>
+        <div class="card kpi warn"><div class="label">Tiendas con excedente de inventario</div><div class="value" id="ppExcedenteCount">0</div></div>
+        <div class="card kpi bad"><div class="label">Tiendas con riesgo de caducidad</div><div class="value" id="ppCaducidadCount">0</div></div>
+        <div class="card kpi warn"><div class="label">Tiendas por debajo de su frecuencia sugerida</div><div class="value" id="ppBajaCoberturaCount">0</div></div>
+        <div class="card kpi warn"><div class="label">Tiendas sin cubrir su cuota del mes</div><div class="value" id="ppSinCubrirCuotaCount">0</div></div>
+      </div>
+      <div id="ppAlertaCapacidad" style="margin-bottom:14px;"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Sugerencia de visitas para la próxima semana, por tienda</h3>
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPreplanExcel()">⬇ Excel</button>
+      </div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:-4px 0 8px;">Cubrimiento = % de la cuota del mes (a la fecha) ya vendido. Días de inventario y excedentes son el máximo/los SKU con mayor riesgo por tienda. Inventario en tránsito: pendiente de conectar.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="ppBodyHead"><th>Cadena</th><th>Tienda</th><th>Supervisor(a)</th><th>Frecuencia sugerida (estrategia)</th><th>Visitas reales semana pasada</th><th>Cubrimiento cuota (mes)</th><th>Días inventario (máx.)</th><th>Excedentes (SKU)</th><th>Inv. en tránsito</th><th>Venta cero (SKU)</th><th>Tareas/prioridades abiertas</th><th>Riesgo caducidad</th><th>Sugerencia esta semana</th><th>Por qué</th></tr></thead>
+          <tbody id="ppBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- CALENDARIO (bloque azul) ---------- -->
+    <section class="view" id="view-calendario">
+      <div class="bloque-tag bloque-planeacion">Planeación</div>
+      <h2 class="section-title">Calendario</h2>
+      <p id="calLeyenda" style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;"></p>
+      <div class="controls-bar">
+        <label>Inicio de vista:</label>
+        <input type="date" id="calWeekPicker" oninput="onCalWeekPickerChange(this.value)">
+        <button class="btn btn-ghost" onclick="shiftCalDay(-1)">◀ Día</button>
+        <button class="btn btn-ghost" onclick="shiftCalDay(1)">Día ▶</button>
+        <button class="btn btn-ghost" onclick="shiftCalWeek(-1)">◀◀ Semana</button>
+        <button class="btn btn-ghost" onclick="shiftCalWeek(1)">Semana ▶▶</button>
+        <button class="btn btn-brand" onclick="calIrHoy()">Hoy</button>
+        <span id="calWeekLabel" style="font-weight:700; color:var(--brand-dark);"></span>
+      </div>
+      <div id="calSyncEstado" style="font-size:11.5px; color:var(--ink-soft); margin:-4px 0 8px;"></div>
+      <div class="controls-bar">
+        <label>Cadena:</label>
+        <select id="calFiltroCadena" onchange="renderCalendario()"><option value="">Todas</option></select>
+        <span id="calFiltroSupervisorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Supervisor:</label>
+        <select id="calFiltroSupervisor" onchange="renderCalendario()"><option value="">Todos</option></select></span>
+        <span id="calFiltroClusterWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Cluster:</label>
+        <select id="calFiltroCluster" onchange="renderCalendario()"><option value="">Todos</option></select></span>
+      </div>
+      <div class="cal-board" id="calBoard"></div>
+      <h2 class="section-title" style="margin-top:20px;">Participación por visita, por cadena</h2>
+      <div class="card" id="calParticipacionCadena"></div>
+    </section>
+
+    <!-- ---------- SOLICITUD DE CARTAS/MATERIALES (bloque verde) ---------- -->
+    <section class="view" id="view-cartas">
+      <div class="bloque-tag bloque-planeacion">Planeación</div>
+      <h2 class="section-title">Solicitud de cartas</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Selecciona la tienda y la fecha en la que la necesitas. Los comentarios son opcionales. Le llega a tu jefe inmediato para autorizar (y a Admin como respaldo).</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="field full" style="margin-bottom:10px;">
+          <label>Tienda</label>
+          <select id="cartaTiendaSelect"><option value="">Selecciona tienda...</option></select>
+        </div>
+        <div class="form-grid">
+          <div class="field full"><label>Comentarios (opcional)</label><textarea id="cartaComentarios" rows="3" placeholder="Escribe aquí tu solicitud si quieres agregar detalle..."></textarea></div>
+          <div class="field"><label>Fecha deseada de entrega</label><input type="date" id="cartaFechaDeseada"></div>
+        </div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="solicitarCarta()">Enviar solicitud</button>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Solicitudes de cartas</h3>
+      <div class="table-scroll" style="margin-bottom:26px;">
+        <table><thead><tr id="cartasBodyHead"><th>Persona</th><th>Tienda</th><th>Comentarios</th><th>Entrega deseada</th><th>Fecha solicitud</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="cartasBody"></tbody></table>
+      </div>
+
+      <h2 class="section-title">Solicitud de materiales</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Selecciona uno o varios. Comentarios opcionales. Le llega a tu jefe inmediato y siempre al equipo de Marketing (control de inventario de materiales).</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="icon-grid" id="materialIconGrid"></div>
+        <div class="field full hidden" id="materialOtroWrap" style="margin-top:8px;"><label>Especifica "Otro"</label><input type="text" id="materialOtroTexto" placeholder="Escribe aquí..."></div>
+        <div class="field full" style="margin-top:8px;"><label>Comentarios (opcional)</label><textarea id="materialComentarios" rows="2"></textarea></div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="solicitarMaterial()">Enviar solicitud</button>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Solicitudes de materiales</h3>
+      <div class="table-scroll" style="margin-bottom:26px;">
+        <table><thead><tr id="materialesBodyHead"><th>Persona</th><th>Ítems</th><th>Comentarios</th><th>Fecha</th><th>Estado</th><th>Entrega</th><th>Acción</th></tr></thead><tbody id="materialesBody"></tbody></table>
+      </div>
+
+      <h2 class="section-title">Solicitud de uniformes / equipo</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Selecciona uno o varios. Comentarios opcionales.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="icon-grid" id="uniformeIconGrid"></div>
+        <div class="field full hidden" id="uniformeOtroWrap" style="margin-top:8px;"><label>Especifica "Otro"</label><input type="text" id="uniformeOtroTexto" placeholder="Escribe aquí..."></div>
+        <div class="field full" style="margin-top:8px;"><label>Comentarios (opcional)</label><textarea id="uniformeComentarios" rows="2"></textarea></div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="solicitarUniforme()">Enviar solicitud</button>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Solicitudes de uniformes / equipo</h3>
+      <div class="table-scroll">
+        <table><thead><tr id="uniformesBodyHead"><th>Persona</th><th>Ítems</th><th>Comentarios</th><th>Fecha</th><th>Estado</th><th>Entrega</th><th>Acción</th></tr></thead><tbody id="uniformesBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ---------- INVENTARIO DE MATERIALES (Admin) ---------- -->
+    <section class="view" id="view-inventario">
+      <div class="bloque-tag bloque-planeacion">Planeación</div>
+      <h2 class="section-title">Inventario de materiales</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Captura tu existencia actual y el mínimo deseado por ítem — te alerta en rojo cuando ya no alcanza.</p>
+      <div id="invAlertas" style="margin-bottom:14px;"></div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Materiales</h3>
+      <div class="table-scroll" style="margin-bottom:22px;">
+        <table><thead><tr id="invMaterialesBodyHead"><th>Ítem</th><th>Existencia actual</th><th>Mínimo deseado</th><th>Estatus</th></tr></thead><tbody id="invMaterialesBody"></tbody></table>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Uniformes / equipo</h3>
+      <div class="table-scroll">
+        <table><thead><tr id="invUniformesBodyHead"><th>Ítem</th><th>Existencia actual</th><th>Mínimo deseado</th><th>Estatus</th></tr></thead><tbody id="invUniformesBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ---------- CATÁLOGO DE PRODUCTOS ---------- -->
+    <section class="view" id="view-catalogo">
+      <div class="bloque-tag bloque-planeacion">Planeación</div>
+      <h2 class="section-title">Catálogo de productos</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Código de barras, fotografía y cadenas en las que está activo cada producto — fuente: "Catálogo activo por cadena" (Marketing).</p>
+      <div class="controls-bar">
+        <label>Cadena:</label>
+        <select id="catCadena" onchange="renderCatalogo()"><option value="">Todas</option></select>
+        <label>Familia:</label>
+        <select id="catFamilia" onchange="renderCatalogo()"><option value="">Todas</option></select>
+        <input type="text" id="catBusca" placeholder="Buscar producto, clave o código de barras..." oninput="renderCatalogo()">
+        <button class="btn btn-ghost" onclick="document.getElementById('catCadena').value='';document.getElementById('catFamilia').value='';document.getElementById('catBusca').value='';renderCatalogo();">↺ Restablecer filtros</button>
+        <button class="btn btn-outline" onclick="exportarCatalogoCSV()">⬇ Excel</button>
+      </div>
+      <div id="catalogoGrid" class="viz-root" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:14px;"></div>
+    </section>
+
+    <!-- ---------- MONITOREO TIEMPO REAL (deshabilitado — 2a fase) ---------- -->
+    <section class="view" id="view-monitoreo">
+      <div class="bloque-tag bloque-ejecucion">Ejecución</div>
+      <h2 class="section-title">Monitoreo en tiempo real</h2>
+      <div class="card" style="text-align:center; padding:40px 20px;">
+        <div style="font-size:40px; margin-bottom:10px;">📍🔒</div>
+        <div style="font-weight:700; color:var(--brand-dark); font-size:15px; margin-bottom:6px;">Módulo deshabilitado — segunda fase</div>
+        <p style="font-size:12.5px; color:var(--ink-soft); max-width:520px; margin:0 auto;">Este apartado mostrará la ubicación en tiempo real del equipo en campo (GPS). Queda reservado en el menú, pero deshabilitado hasta resolver la parte de ubicación en tiempo real (permisos, batería, precisión y el proveedor de mapas/GPS a usar).</p>
+      </div>
+    </section>
+
+    <!-- ---------- CUBRIMIENTO DE CUOTA (bloque lila) ---------- -->
+    <!-- ---------- CUBRIMIENTO DE DISTRIBUCIÓN ---------- -->
+    <section class="view" id="view-distribucion">
+      <div class="bloque-tag bloque-retro">Retroalimentación · Pipeline ODV</div>
+      <h2 class="section-title">Cumplimiento de distribución</h2>
+      <div class="controls-bar">
+        <label>Cadena:</label>
+        <select id="distCadena"><option value="">Todas</option></select>
+        <span id="distRegionWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Región:</label>
+        <select id="distRegion"><option value="">Todas</option></select></span>
+        <span id="distClusterWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Cluster:</label>
+        <select id="distCluster"><option value="">Todos</option></select></span>
+        <span id="distSupervisorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Supervisor:</label>
+        <select id="distSupervisor"><option value="">Todos</option></select></span>
+        <span id="distEmbajadorWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Embajador:</label>
+        <select id="distEmbajador"><option value="">Todos</option></select></span>
+        <span id="distTiendaSingleWrap" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda:</label>
+        <select id="distTienda"><option value="">Todas</option></select></span>
+        <span id="distTiendaMultiWrap" class="hidden" style="display:inline-flex; gap:8px; align-items:center;"><label>Tienda(s):</label>
+        <select id="distTiendaMulti" multiple size="4" style="min-width:200px;" onchange="renderDistribucion()"></select></span>
+        <label>Mes(es):</label>
+        <div class="tienda-dd" id="distMesDdRoot">
+          <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('distMesDd')" id="distMesDdBtn">Selecciona...</button>
+          <div class="tienda-dd-panel hidden" id="distMesDdPanel"></div>
+        </div>
+        <button class="btn btn-brand" onclick="renderDistribucion()">Filtrar</button>
+        <button class="btn btn-ghost" onclick="restablecerFiltrosDistribucion()">↺ Restablecer filtros</button>
+        <button class="btn btn-outline" onclick="exportarDistribucionCSV()">⬇ Excel</button>
+      </div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 10px;">Nota: el Pipeline ODV que da origen a los números de arriba (KPIs, insights y mix por familia) es una sola foto semanal — no trae fecha por fila, así que el mes elegido <b>no</b> afecta esa parte. El mes sí filtra la sección de abajo, "Distribución reportada en campo", que viene del checklist de Mercadeo capturado en tienda (con fecha real), incluyendo el desglose por semana.</p>
+      <div id="distribucionBox"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:22px;"><h2 class="section-title" style="margin:0;">Distribución reportada en campo (checklist Mercadeo)</h2><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarDistribucionCampoCSV()">⬇ Excel</button></div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:4px 0 10px;">Requerido vs. Real capturado en campo (Captura MEDI › Mercadeo › Distribución), con fecha real de captura. Este Desde/Hasta aplica solo a esta sección (la de arriba es una sola foto del Pipeline, sin fecha por fila).</p>
+      <div class="controls-bar" style="margin-bottom:10px;">
+        <label>Desde:</label>
+        <input type="date" id="distCampoDesde" onchange="renderDistribucionCampo(window._distribucionExport ? window._distribucionExport.storesScope : storesScopeParaMi())">
+        <label>Hasta:</label>
+        <input type="date" id="distCampoHasta" onchange="renderDistribucionCampo(window._distribucionExport ? window._distribucionExport.storesScope : storesScopeParaMi())">
+      </div>
+      <div id="distribucionCampoBox"></div>
+
+      <div class="controls-bar" style="align-items:center; margin-top:14px;">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0; flex:1;">Por semana — a nivel código de tienda</h3>
+        <label>Semana:</label>
+        <select id="distSemanaPick" onchange="renderDistPorSemanaTienda()"></select>
+        <button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarDistSemanaTiendaCSV()">⬇ Exportar a Excel</button>
+      </div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:4px 0 10px;">Qué código de tienda está cumpliendo el checklist de Distribución en esa semana específica (según lo capturado en campo).</p>
+      <div class="table-scroll" id="distTablaSemanaTienda" style="margin-bottom:12px;"></div>
+    </section>
+
+    <!-- ---------- VACACIONES ---------- -->
+    <section class="view" id="view-vacaciones">
+      <div class="bloque-tag bloque-retro">Retroalimentación · completo</div>
+      <h2 class="section-title">Vacaciones</h2>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:-6px 0 14px;">Saldo de ejemplo: 12 días para todos (dato provisional — pendiente de conectar el archivo real de saldos).</p>
+      <div class="row" style="margin-bottom:16px;">
+        <div class="card kpi"><div class="label">Mi saldo total</div><div class="value" id="vacSaldoTotal">12</div></div>
+        <div class="card kpi warn"><div class="label">Tomados (aprobados)</div><div class="value" id="vacTomados">0</div></div>
+        <div class="card kpi good"><div class="label">Disponibles</div><div class="value" id="vacDisponibles">12</div></div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="lbl" style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin-bottom:8px;">Solicitar vacaciones</div>
+        <div class="form-grid">
+          <div class="field"><label>Desde</label><input type="date" id="vacDesde"></div>
+          <div class="field"><label>Hasta</label><input type="date" id="vacHasta"></div>
+        </div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="solicitarVacaciones()">Enviar solicitud</button>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="lbl" style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin-bottom:8px;">Solicitar onomástico</div>
+        <div class="form-grid">
+          <div class="field"><label>Día</label><input type="date" id="onoDia"></div>
+        </div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="solicitarOnomastico()">Enviar solicitud</button>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Mis solicitudes</h3>
+      <div class="table-scroll" style="margin-bottom:22px;">
+        <table><thead><tr id="vacMisSolicitudesBodyHead"><th>Tipo</th><th>Periodo</th><th>Días</th><th>Estado</th><th>Aprobó</th></tr></thead><tbody id="vacMisSolicitudesBody"></tbody></table>
+      </div>
+      <div id="vacPorAprobarWrap" class="hidden">
+        <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Solicitudes por aprobar</h3>
+        <div class="table-scroll" style="margin-bottom:22px;">
+          <table><thead><tr id="vacPorAprobarBodyHead"><th>Persona</th><th>Rol</th><th>Periodo</th><th>Días</th><th>Acción</th></tr></thead><tbody id="vacPorAprobarBody"></tbody></table>
+        </div>
+      </div>
+      <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Quién está de vacaciones (aprobadas)</h3>
+      <div class="table-scroll">
+        <table><thead><tr id="vacReporteBodyHead"><th>Persona</th><th>Rol</th><th>Periodo</th></tr></thead><tbody id="vacReporteBody"></tbody></table>
+      </div>
+
+      <h2 class="section-title" style="margin-top:18px;">💡 Insights</h2>
+      <div id="vacInsights"></div>
+    </section>
+
+    <!-- ---------- DAILY NEWS ---------- -->
+    <section class="view" id="view-noticias">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">📰 Daily News</h2>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="form-grid">
+          <div class="field full"><label>¿Qué quieres compartir con el equipo?</label><textarea id="newsTexto" rows="3" placeholder="Escribe tu noticia, tip o aviso..."></textarea></div>
+          <div class="field"><label>Foto (opcional)</label><input type="file" id="newsFoto" accept="image/*" capture="environment" onchange="previewNewsFoto()"><img id="newsFotoPrev" class="thumb hidden"></div>
+        </div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="publicarNoticia()">Publicar</button>
+      </div>
+      <div id="noticiasInsights" style="margin-bottom:14px;"></div>
+      <div id="noticiasGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px;"></div>
+
+      <div id="reinicioZonaNoticias" class="hidden" style="margin-top:24px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todas las publicaciones de Daily News (con sus fotos), de todo el equipo.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorrarNoticias()">🗑️ Borrar todo Daily News</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-escucha">
+      <div class="bloque-tag bloque-retro">Retroalimentación</div>
+      <h2 class="section-title">👂 Délico te escucha</h2>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Espacio libre para comentar lo que quieras — dudas, ideas, algo que te gustaría platicar. Puedes adjuntar una o varias fotos.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="form-grid">
+          <div class="field full"><label>Tu comentario</label><textarea id="escuchaTexto" rows="3" placeholder="Escribe aquí lo que quieras compartir..."></textarea></div>
+          <div class="field full"><label>Foto(s) — opcional, puedes subir varias</label>
+            <input type="file" id="f_escucha" accept="image/*" capture="environment" multiple onchange="previewFileMulti('escucha')">
+            <div id="prev_escucha" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+          </div>
+        </div>
+        <button class="btn btn-brand" style="margin-top:10px;" onclick="publicarEscucha()">Enviar</button>
+      </div>
+      <div id="escuchaInsights" style="margin-bottom:14px;"></div>
+      <div id="escuchaLista" style="display:flex; flex-direction:column; gap:12px;"></div>
+
+      <div id="reinicioZonaEscucha" class="hidden" style="margin-top:24px;">
+        <h2 class="section-title" style="color:var(--bad);">⚠️ Zona de reinicio</h2>
+        <div class="card" style="border:1px solid var(--bad);">
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;">Borra todos los comentarios de Délico te escucha (con sus fotos), de todo el equipo.</p>
+          <button class="btn btn-ghost" style="border-color:var(--bad); color:var(--bad);" onclick="abrirBorrarEscucha()">🗑️ Borrar todo Délico te escucha</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="appfoot">DELICO . ODV · #modoMEDI · datos guardados en este dispositivo</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ---------- MODALES DE CAPTURA ---------- -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+/* ============ DATA (0. IA DELICO / 11. ODV) — se carga por separado desde app_data.json ============ */
+let APP_DATA = null;
+
+const STORAGE_KEY = 'delico_odv_capturas_v1';
+const PRIORIDAD_KEY = 'delico_odv_prioridades_v2';
+/* Única persona que puede ver y usar los botones de "Borrar todo" (reinicio de capturas / Daily News). */
+const RESET_TOTAL_USUARIO = 'KNAC01';
+let currentUser = null;
+
+/* ---------- Utilidades ---------- */
+function fmtNum(n){ return Math.round(n).toLocaleString('es-MX'); }
+function fmtMoney(n){ return '$' + Math.round(n).toLocaleString('es-MX'); }
+function todayISO(){ return new Date().toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // fecha de HOY en hora de México, no UTC
+function horaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Mexico_City'}); }
+function fechaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // 'sv-SE' da formato AAAA-MM-DD
+function fechaHoraLocal(iso){ if(!iso) return '—'; return fechaLocal(iso) + ' ' + horaLocal(iso); } // fecha+hora ya convertidas a hora de México (antes se mostraba el UTC crudo del ISO guardado)
+// Igual que fechaLocal, pero segura para usarse en campos que a veces guardan solo 'AAAA-MM-DD' (de un <input type=date>,
+// donde NO hay que restar horas) y a veces un timestamp completo con hora ('...T...Z', UTC, donde SÍ hay que convertir
+// a hora de México). Un valor sin 'T' se deja tal cual; uno con 'T' se convierte con fechaLocal().
+function fechaSoloDia(valor){ if(!valor) return ''; return String(valor).includes('T') ? fechaLocal(valor) : String(valor).slice(0,10); }
+function uid(){ return 'c' + Date.now() + Math.random().toString(16).slice(2,8); }
+/* Nuestros nombres vienen "APELLIDO1 APELLIDO2 NOMBRE(S)" — para mostrar queremos "Nombre Apellido1" */
+function nombreCorto(nombreCompleto){
+  const partes = (nombreCompleto||'').trim().split(/\s+/);
+  if(partes.length<2) return nombreCompleto||'';
+  return partes[partes.length-1] + ' ' + partes[0];
+}
+function toast(msg, duracionMs){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duracionMs || 2200);
+}
+/* Carga bajo demanda de las librerías pesadas de exportar (html2canvas, jsPDF, XLSX — ~1.2MB entre
+   las tres). Antes se cargaban SIEMPRE al abrir la app, aunque esa sesión nunca fuera a exportar nada
+   — esto hacía la app más lenta para abrir para todo el mundo, todo el tiempo. Ahora solo se piden a
+   la red la primera vez que alguien de verdad aprieta un botón de "Exportar Excel/PDF/imágenes" en
+   esa sesión (y se quedan ya cargadas para los siguientes exportes de esa misma sesión). */
+window._libsExportCache = {};
+function cargarLibreriaExport(checkFn, url){
+  if(checkFn()) return Promise.resolve(true);
+  if(window._libsExportCache[url]) return window._libsExportCache[url];
+  const promesa = new Promise((resolve)=>{
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = () => resolve(checkFn());
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+  window._libsExportCache[url] = promesa;
+  return promesa;
+}
+function cargarXLSX(){ return cargarLibreriaExport(()=>typeof XLSX!=='undefined', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); }
+function cargarJsPDF(){ return cargarLibreriaExport(()=>typeof window.jspdf!=='undefined', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'); }
+function cargarHtml2Canvas(){ return cargarLibreriaExport(()=>typeof html2canvas!=='undefined', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'); }
+/* Red de seguridad: si algo truena en el código (por ejemplo al guardar una captura) nunca debe
+   quedarse "sin hacer nada" en silencio — siempre debe avisar con un mensaje, para poder diagnosticarlo.
+   Antes de esto, un error de JavaScript en medio de un guardado simplemente no hacía nada visible. */
+window.addEventListener('error', (ev)=>{
+  try{ toast('⚠️ Algo falló: ' + (ev && ev.message ? ev.message : 'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
+});
+window.addEventListener('unhandledrejection', (ev)=>{
+  try{ toast('⚠️ Algo falló: ' + (ev && ev.reason ? (ev.reason.message||ev.reason) : 'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
+});
+/* Confirmación personalizada — evita usar window.confirm(), que en varios celulares con la app
+   instalada como app (modo standalone/PWA) NO funciona: la llamada no hace nada visible y el código
+   simplemente se detiene ahí sin guardar ni avisar nada. Esta versión usa una tarjeta propia. */
+function confirmarPersonalizado(mensaje, onAceptar, onCancelar){
+  const existente = document.getElementById('confirmOverlay');
+  if(existente) existente.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'confirmOverlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(20,20,10,.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;';
+  overlay.innerHTML = `<div style="background:#fff; border-radius:14px; padding:18px 20px; max-width:360px; width:100%; box-shadow:0 8px 30px rgba(0,0,0,.25);">
+    <div style="font-size:13.5px; line-height:1.5; white-space:pre-line; margin-bottom:16px;">${mensaje}</div>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" class="btn btn-ghost" id="confirmBtnCancelar">Cancelar</button>
+      <button type="button" class="btn btn-brand" id="confirmBtnAceptar">Aceptar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  const cerrar = () => { overlay.remove(); };
+  document.getElementById('confirmBtnAceptar').onclick = () => { cerrar(); if(onAceptar) onAceptar(); };
+  document.getElementById('confirmBtnCancelar').onclick = () => { cerrar(); if(onCancelar) onCancelar(); };
+}
+/* Aviso informativo (reemplaza window.alert(), con el mismo problema que window.confirm() en apps
+   instaladas como standalone/PWA) — solo un botón "Entendido", no bloquea nada si algo sale mal. */
+function avisoPersonalizado(mensaje){
+  try{
+    const existente = document.getElementById('confirmOverlay');
+    if(existente) existente.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'confirmOverlay';
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(20,20,10,.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;';
+    overlay.innerHTML = `<div style="background:#fff; border-radius:14px; padding:18px 20px; max-width:360px; width:100%; box-shadow:0 8px 30px rgba(0,0,0,.25);">
+      <div style="font-size:13.5px; line-height:1.5; white-space:pre-line; margin-bottom:16px;">${mensaje}</div>
+      <div style="display:flex; justify-content:flex-end;">
+        <button type="button" class="btn btn-brand" id="avisoBtnOk">Entendido</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('avisoBtnOk').onclick = () => overlay.remove();
+  }catch(e){}
+}
+function esErrorDeCupoStorage(e){ return !!(e && (e.name==='QuotaExceededError' || e.code===22 || /quota/i.test(e.message||''))); }
+function aligerarRegistro(d){
+  if(!d || typeof d !== 'object') return d;
+  const liviano = {...d};
+  let aligerado = false;
+  Object.keys(liviano).forEach(k=>{
+    const v = liviano[k];
+    if(typeof v === 'string' && v.startsWith('data:') && v.length>500){ liviano[k]=''; aligerado=true; }
+    else if(Array.isArray(v) && v.length && typeof v[0]==='string' && v[0].startsWith('data:')){ liviano[k]=[]; aligerado=true; }
+  });
+  if(aligerado) liviano._fotos_solo_en_la_nube = true;
+  return liviano;
+}
+/* Guarda en localStorage protegido contra "el celular ya no tiene espacio" (QuotaExceededError).
+   Antes de esto, cuando el espacio local se llenaba (algo común después de acumular muchas fotos),
+   el guardado local truena en silencio y "Guardar" se quedaba sin hacer nada — este era el motivo
+   real detrás del bug de "no me deja capturar nada". Ahora, si no cabe, vamos aligerando (quitando
+   fotos que de todas formas ya están completas en la nube) empezando por lo más viejo hasta que quepa
+   — el guardado nunca se pierde por esto, y siempre se avisa si hubo que aligerar algo. */
+function guardarLocalStorageSeguro(key, valor){
+  const intentar = (v) => {
+    try{ localStorage.setItem(key, JSON.stringify(v)); return true; }
+    catch(e){ if(!esErrorDeCupoStorage(e)) throw e; return false; }
+  };
+  if(intentar(valor)) return true;
+  if(!Array.isArray(valor)){
+    if(intentar(aligerarRegistro(valor))) return true;
+    toast('⚠️ Tu celular no tiene espacio para guardar copia local de esto — ya se subió a la nube.', 6500);
+    return false;
+  }
+  const porFecha = (d) => (d && (d.fecha_registro || d.fecha || d.fecha_creacion)) || '';
+  const nivelesCorte = [14, 3, 0]; // días de antigüedad a partir de los cuales se les quitan las fotos
+  for(const dias of nivelesCorte){
+    const limite = new Date(Date.now()-dias*86400000).toISOString();
+    const candidato = valor.map(d=>{ const f = porFecha(d); return (f && f<limite) ? aligerarRegistro(d) : d; });
+    if(intentar(candidato)) return true;
+  }
+  const recientes = [...valor].sort((a,b)=> String(porFecha(b)).localeCompare(String(porFecha(a)))).slice(0,300).map(aligerarRegistro);
+  if(intentar(recientes)) return true;
+  toast('⚠️ Tu celular se quedó sin espacio para guardar el historial completo aquí — ya se subió todo a la nube, pero libera espacio en tu celular para verlo completo sin internet.', 7000);
+  return false;
+}
+/* ANTES esto hacía JSON.parse(JSON.stringify(_capturasCache)) — una copia PROFUNDA de todo el arreglo,
+   incluyendo cada foto en base64 de cada captura de todo el historial que trae ese celular (que para
+   Supervisor/Coordinador/Admin puede ser el historial de TODO el equipo). Esta función se llama desde
+   ~25 lugares distintos (cada pestaña que muestra o cuenta capturas la llama), así que cada cambio de
+   pestaña volvía a serializar y re-parsear esos megabytes de fotos una y otra vez — eso era gran parte
+   de la lentitud real al entrar a "Captura MEDI" o a Reportes. Un copiado NO profundo (solo el arreglo,
+   no cada objeto de adentro) es muchísimo más rápido y es seguro aquí: nadie modifica un campo de una
+   captura ya existente sin inmediatamente guardar el resultado con saveCapturas(arr) (ver
+   guardarRetroShopper como único caso que lo hace, y sí llama saveCapturas justo después). */
+function getCapturas(){ return [..._capturasCache]; }
+
+/* ---------- Subida de capturas a la nube — confiable, con reintento y avisos ----------
+   ANTES: saveCapturas() subía cada captura nueva UNA sola vez, y si fallaba (sin señal, permisos, o porque
+   el documento con fotos pasaba el límite de ~1 MB de Firestore) solo escribía un aviso en la consola que
+   nadie ve — la captura se quedaba para siempre solo en ese celular y Supervisor/Admin jamás la veían.
+   AHORA: cada captura lleva la marca _en_nube cuando la nube confirmó que la recibió; lo que no tenga la
+   marca se reintenta solo (al entrar, al volver el internet, y cada 2 min), las fotos se recomprimen si el
+   documento es demasiado grande, y la persona recibe un aviso claro si no se pudo subir. */
+const LIMITE_DOC_NUBE = 900000; // Firestore rechaza documentos de más de 1 MiB (dejamos margen)
+function tamanoAprox(d){ try{ return JSON.stringify(d).length; }catch(e){ return 0; } }
+async function reducirFotosParaNube(d){
+  const copia = {...d};
+  const niveles = [[1000,0.6],[800,0.5],[640,0.45]];
+  for(const [dim,cal] of niveles){
+    if(tamanoAprox(copia) <= LIMITE_DOC_NUBE) break;
+    for(const k of Object.keys(copia)){
+      const v = copia[k];
+      try{
+        if(typeof v==='string' && v.startsWith('data:image') && v.length>20000){ copia[k] = await comprimirImagen(v, dim, cal); }
+        else if(Array.isArray(v) && v.length && typeof v[0]==='string' && v[0].startsWith('data:image')){
+          copia[k] = await Promise.all(v.map(x=> (typeof x==='string' && x.startsWith('data:image') && x.length>20000) ? comprimirImagen(x,dim,cal) : x));
+        }
+      }catch(e){}
+    }
+  }
+  return copia;
+}
+let _guardarMarcasTimer = null;
+function marcarCapturaEnNube(id){
+  const c = _capturasCache.find(x=>x && x.id===id);
+  if(!c || c._en_nube) return;
+  c._en_nube = true;
+  clearTimeout(_guardarMarcasTimer);
+  _guardarMarcasTimer = setTimeout(()=>{ try{ guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache); }catch(e){} try{ pintarEstadoNube(); }catch(e){} }, 1500);
+}
+function conTiempoMax(promesa, ms){
+  return Promise.race([promesa, new Promise(res=>setTimeout(()=>res({ok:false, error:'tiempo agotado (sin señal o conexión lenta)'}), ms))]);
+}
+async function subirCapturaNube(d){
+  if(!db || !d || !d.id) return {ok:false, error:'la nube no está disponible en este dispositivo'};
+  let listo = {...d}; delete listo._en_nube;
+  if(tamanoAprox(listo) > LIMITE_DOC_NUBE) listo = await reducirFotosParaNube(listo);
+  if(tamanoAprox(listo) > LIMITE_DOC_NUBE){
+    // Último recurso: subir el registro SIN fotos antes que perder el registro completo.
+    listo = aligerarRegistro(listo); delete listo._fotos_solo_en_la_nube; listo._fotos_omitidas_por_tamano = true;
+  }
+  const r = await conTiempoMax(subirAColeccion('capturas_medi', listo), 25000);
+  if(r && r.ok) marcarCapturaEnNube(d.id);
+  return r || {ok:false, error:'sin respuesta'};
+}
+let _ultimoAvisoSubida = 0;
+function avisarSubidaFallida(error){
+  const ahora = Date.now();
+  if(ahora - _ultimoAvisoSubida < 30000) return;
+  _ultimoAvisoSubida = ahora;
+  toast('☁️ Tu captura quedó guardada en tu celular, pero todavía NO se pudo subir a la nube ('+String(error||'sin conexión').slice(0,60)+'). Se reintenta sola — no la repitas.', 7000);
+}
+function contarCapturasPendientesNube(){
+  if(!currentUser) return 0;
+  return _capturasCache.filter(d=> d && d.id && d.usuario===currentUser.usuario && !d._en_nube && !d._fotos_solo_en_la_nube).length;
+}
+let _reintentandoNube = false;
+async function reintentarSubidasPendientes(manual){
+  if(_reintentandoNube || !db || !currentUser) return;
+  _reintentandoNube = true;
+  let subidas = 0, fallidas = 0, ultimoError = null;
+  try{
+    const pendientes = _capturasCache.filter(d=> d && d.id && d.usuario===currentUser.usuario && !d._en_nube && !d._fotos_solo_en_la_nube);
+    for(const d of pendientes){
+      const r = await subirCapturaNube(d);
+      if(r && r.ok) subidas++; else { fallidas++; ultimoError = r && r.error; if(fallidas>=3) break; }
+    }
+  }catch(e){ console.warn('Reintento de subida a la nube falló:', e); ultimoError = (e && e.message) || String(e); fallidas++; }
+  finally{ _reintentandoNube = false; }
+  try{ pintarEstadoNube(); }catch(e){}
+  if(manual){
+    if(fallidas) toast('☁️ No se pudo subir todo ('+String(ultimoError||'').slice(0,80)+'). Subidas: '+subidas+'.', 7000);
+    else toast(subidas ? '☁️ Listo: '+subidas+' captura(s) subidas a la nube ✓' : '☁️ No había nada pendiente — todo está en la nube ✓');
+  }else if(fallidas){
+    avisarSubidaFallida(ultimoError);
+  }
+}
+window.addEventListener('online', ()=>{ try{ reintentarSubidasPendientes(); }catch(e){} });
+setInterval(()=>{ try{ if(currentUser && contarCapturasPendientesNube()>0) reintentarSubidasPendientes(); }catch(e){} }, 120000);
+
+/* Indicador visible del estado de la nube en "Reportes del equipo" (y aviso de pendientes en Mis capturas). */
+function pintarEstadoNube(){
+  const box = document.getElementById('nubeEstadoBox');
+  const est = SYNC_ESTADO['capturas_medi'] || {ok:null, recibidos:0};
+  const pend = contarCapturasPendientesNube();
+  const locales = _capturasCache.length;
+  if(box){
+    let html;
+    if(est.ok === false){
+      const denegado = /permission|denied|insufficient/i.test(String(est.error||''));
+      html = `<b style="color:#a33;">⚠️ La nube NO está entregando las capturas del equipo.</b> Motivo: <code>${String(est.error||'desconocido')}</code>.`
+        + (denegado ? ' Esto significa que las <b>reglas de seguridad de Firestore</b> no te dejan leer las capturas de otras personas — hay que ajustarlas en la consola de Firebase (no es un problema de la app ni de tu internet).' : ' Revisa tu internet y vuelve a entrar.');
+    }else if(est.ok === null){
+      html = '☁️ Conectando con la nube…';
+    }else{
+      html = `☁️ Nube conectada · <b>${est.recibidos}</b> captura(s) recibidas de la nube · ${locales} guardadas en este equipo.`
+        + (est.recibidos===0 ? ' <span style="color:#a60;">La nube respondió vacía: si el equipo ya capturó, sus celulares NO están subiendo (que abran la app con internet para que se reintente la subida).</span>' : '');
+    }
+    if(pend>0) html += ` · <b style="color:#a60;">${pend} tuya(s) pendiente(s) de subir</b> <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button>`;
+    box.innerHTML = html;
+  }
+  const avisoMis = document.getElementById('nubePendientesMis');
+  if(avisoMis){
+    avisoMis.innerHTML = pend>0
+      ? `<span style="color:#a60;">☁️ ${pend} captura(s) tuyas todavía no se han subido a la nube — se reintenta sola con internet.</span> <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button>`
+      : (db ? '<span style="color:var(--ink-soft);">☁️ Todo lo tuyo está en la nube ✓</span>' : '');
+  }
+}
+function saveCapturas(arr){
+  // Guardado local PRIMERO, siempre — así una captura nunca se pierde aunque la nube (Firestore)
+  // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
+  const idsPrevios = new Set(_capturasCache.map(d=>d.id));
+  _capturasCache = arr;
+  guardarLocalStorageSeguro(STORAGE_KEY, arr);
+  arr.forEach(d=>{
+    if(d && d.id && !idsPrevios.has(d.id)){
+      try{
+        subirCapturaNube(d).then(r=>{ if(!(r && r.ok)) avisarSubidaFallida(r && r.error); try{ pintarEstadoNube(); }catch(e){} })
+          .catch(e=>avisarSubidaFallida((e&&e.message)||e));
+      }catch(e){ console.warn('Fallo al subir captura a la nube (ya quedó guardada local):', e); }
+    }
+  });
+}
+function getPrioridades(){ return _prioridadesSync.get(); }
+function savePrioridades(arr){ _prioridadesSync.save(arr); }
+
+/* ---------- LOGIN (Firebase Authentication real — cada persona tiene su propia cuenta) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCdt0mdxaaOIrnFuoNSoDhXUN4aWgZHkAE",
+  authDomain: "cbcdeli.firebaseapp.com",
+  projectId: "cbcdeli",
+  storageBucket: "cbcdeli.firebasestorage.app",
+  messagingSenderId: "31634686442",
+  appId: "1:31634686442:web:8300ba092585524bfc3293"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+/* Firebase Authentication exige un correo. Como el equipo usa "usuario" (ej. DCDM01), le agregamos
+   un dominio ficticio propio (@delico-odv.app) solo para que Firebase tenga un correo válido único
+   por persona — nunca se manda ningún correo real a esa dirección. */
+function emailSinteticoDe(usuario){ return usuario.trim().toLowerCase() + '@delico-odv.app'; }
+/* Firebase exige contraseñas de mínimo 6 caracteres, y varias del equipo son más cortas (ej. "#Pob").
+   Para que cada persona siga tecleando exactamente su misma contraseña de siempre, "alargamos" por
+   dentro lo que le mandamos a Firebase con un sufijo fijo — invisible para el usuario, nunca cambia. */
+function passwordFirebaseDe(passwordOriginal){ return passwordOriginal + '_odvDelico26'; }
+
+/* ---------- Sincronización en la nube (Firestore) — comparte la información entre los ~30 celulares del equipo.
+   Si Firestore no está disponible (sin internet, o el proyecto todavía no lo tiene activado), la app sigue
+   funcionando exactamente igual que antes, guardando solo en este dispositivo. ---------- */
+let db = null;
+try{
+  db = firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+}catch(e){ console.warn('Firestore no disponible — se sigue guardando solo en este dispositivo.', e); db = null; }
+
+const SYNC_LISTENERS = {};
+const SYNC_DESUSCRIPCIONES = {};
+/* Estado visible de cada escucha a la nube (para diagnosticar "no veo lo del equipo" sin abrir la consola):
+   { ok:true/false/null, recibidos:N, error:'permission-denied...' , ultima:ISO } */
+const SYNC_ESTADO = {};
+
+function iniciarSincronizacion(coleccion, onCambio, onBorrado, queryPersonalizada){
+  SYNC_LISTENERS[coleccion] = onCambio;
+  if(!db){ SYNC_ESTADO[coleccion] = {ok:false, recibidos:0, error:'Firestore no disponible en este dispositivo (sin conexión al servicio de nube)'}; return; }
+  if(SYNC_DESUSCRIPCIONES[coleccion]) return;
+  SYNC_ESTADO[coleccion] = {ok:null, recibidos:0, error:null};
+  // queryPersonalizada (opcional): permite escuchar solo un subconjunto de la colección (ej. "capturas_medi"
+  // filtrado a un solo usuario) en vez de TODA la colección — ver comentario junto a iniciarSincronizacionCapturas.
+  const ref = queryPersonalizada || db.collection(coleccion);
+  SYNC_DESUSCRIPCIONES[coleccion] = ref.onSnapshot(snap=>{
+    const est = SYNC_ESTADO[coleccion];
+    est.ok = true; est.error = null; est.ultima = new Date().toISOString();
+    snap.docChanges().forEach(change=>{
+      if(change.type==='removed'){ if(onBorrado) onBorrado(change.doc.id); return; }
+      est.recibidos++;
+      onCambio({...change.doc.data(), id: change.doc.id});
+    });
+    try{ if(coleccion==='capturas_medi') pintarEstadoNube(); }catch(e){}
+  }, err=>{
+    console.warn('Firestore: no se pudo escuchar la colección "'+coleccion+'".', err);
+    SYNC_ESTADO[coleccion] = {...(SYNC_ESTADO[coleccion]||{recibidos:0}), ok:false, error:(err && (err.code||err.message)) || String(err)};
+    try{ if(coleccion==='capturas_medi') pintarEstadoNube(); }catch(e){}
+  });
+}
+/* IMPORTANTE: estas dos funciones NUNCA deben "tragarse" un error silenciosamente y fingir éxito —
+   eso fue justo la causa de que "Borrar todo" pareciera funcionar pero los registros regresaran solos:
+   si Firestore rechazaba un borrado (permisos, red, etc.), antes se atrapaba el error con .catch() y
+   la promesa se resolvía igual "bien", el cache local se limpiaba, y en cuanto volvía a sincronizar
+   la nube regresaba el documento que en realidad nunca se borró. Ahora devuelven siempre {ok, error}
+   para que quien llame sepa exactamente qué sí y qué no se logró, y pueda reflejarlo en pantalla. */
+/* IMPORTANTE (bug real detectado en campo, sept-2026): el SDK de Firestore a veces entra en un
+   estado corrupto en el dispositivo (típicamente por falta de espacio o una instalación de la app
+   con caché/IndexedDB dañado) y avienta "FIRESTORE INTERNAL ASSERTION FAILED" como una excepción
+   SÍNCRONA al llamar .set()/.delete() — es decir, truena ANTES de devolver la promesa, saltándose
+   por completo el .catch() de abajo. Cuando eso pasaba, el error se escapaba hacia quien llamó a esta
+   función (por ejemplo saveCapturas / crearColeccionSincronizada) ANTES de que se alcanzara a guardar
+   nada en el celular — la app se sentía "trabada" y la persona perdía la captura que estaba llenando,
+   aunque no tuviera nada que ver con internet. Por eso todo el intento va envuelto en try/catch: pase
+   lo que pase con la nube, esta función NUNCA debe tronar hacia afuera — el guardado local (que es
+   el que de verdad le importa a la persona en el momento) tiene que poder seguir siempre. */
+function subirAColeccion(coleccion, documento){
+  if(!db || !documento || !documento.id) return Promise.resolve({ok:true});
+  const data = {...documento};
+  try{
+    return db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
+      .then(()=>({ok:true}))
+      .catch(err=>{ console.warn('No se pudo subir a la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
+  }catch(err){
+    console.warn('Firestore truena internamente al subir a la nube ('+coleccion+') — se sigue guardando local:', err);
+    return Promise.resolve({ok:false, error:(err&&err.message)||String(err)});
+  }
+}
+function borrarDeColeccion(coleccion, id){
+  if(!db || !id) return Promise.resolve({ok:true});
+  try{
+    return db.collection(coleccion).doc(String(id)).delete()
+      .then(()=>({ok:true}))
+      .catch(err=>{ console.warn('No se pudo borrar en la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
+  }catch(err){
+    console.warn('Firestore truena internamente al borrar en la nube ('+coleccion+'):', err);
+    return Promise.resolve({ok:false, error:(err&&err.message)||String(err)});
+  }
+}
+
+function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
+  const estado = { cache: JSON.parse(localStorage.getItem(storageKey) || '[]'), iniciado:false };
+  function get(){ return JSON.parse(JSON.stringify(estado.cache)); }
+  function save(arrNuevo){
+    // Devuelve una promesa que se resuelve cuando TODAS las subidas/borrados a la nube terminaron —
+    // importante para flujos como "Borrar todo", que necesitan esperar a que Firestore realmente
+    // termine de borrar antes de recargar la página (si no, un reload cancela las peticiones en
+    // curso y algunos documentos "sobreviven" sin querer).
+    // Además: si algún borrado de verdad falla en Firestore (permisos, red, etc.), ese documento
+    // NO se saca del cache local — se regresa a la pantalla apenas se sabe que falló, en vez de
+    // desaparecer un momento y reaparecer solo — y se reporta en el resumen que devuelve la promesa.
+    const previoPorId = new Map(estado.cache.map(d=>[d.id, JSON.stringify(d)]));
+    const idsNuevos = new Set(arrNuevo.filter(d=>d && d.id).map(d=>d.id));
+    const cacheAnterior = estado.cache;
+    // Guardado local PRIMERO, siempre — así lo capturado nunca se pierde aunque la nube (Firestore)
+    // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
+    estado.cache = arrNuevo;
+    guardarLocalStorageSeguro(storageKey, arrNuevo);
+    const operaciones = [];
+    arrNuevo.forEach(d=>{
+      if(!d || !d.id) return;
+      if(previoPorId.get(d.id) !== JSON.stringify(d)) operaciones.push({tipo:'subir', doc:d, promesa: subirAColeccion(nombreColeccion, d)});
+    });
+    const aBorrar = cacheAnterior.filter(d=> d && d.id && !idsNuevos.has(d.id));
+    aBorrar.forEach(d=> operaciones.push({tipo:'borrar', doc:d, promesa: borrarDeColeccion(nombreColeccion, d.id)}));
+    if(!operaciones.length) return Promise.resolve({ok:true, total:0, fallidos:0});
+    return Promise.all(operaciones.map(o=>o.promesa)).then(resultados=>{
+      const fallidosBorrar = [];
+      operaciones.forEach((o,i)=>{ if(o.tipo==='borrar' && !(resultados[i] && resultados[i].ok)) fallidosBorrar.push(o.doc); });
+      if(fallidosBorrar.length){
+        fallidosBorrar.forEach(d=>{ if(!estado.cache.some(x=>x.id===d.id)) estado.cache.push(d); });
+        guardarLocalStorageSeguro(storageKey, estado.cache);
+        if(alRefrescar) alRefrescar();
+      }
+      const totalFallidos = resultados.filter(r=>!(r && r.ok)).length;
+      return { ok: totalFallidos===0, total: operaciones.length, fallidos: totalFallidos };
+    });
+  }
+  function iniciarSync(){
+    if(estado.iniciado) return;
+    estado.iniciado = true;
+    iniciarSincronizacion(nombreColeccion,
+      (doc)=>{
+        const idx = estado.cache.findIndex(d=>d.id===doc.id);
+        const firmaLocal = idx>=0 ? JSON.stringify(estado.cache[idx]) : null;
+        if(firmaLocal === JSON.stringify(doc)) return;
+        estado.cache = idx>=0 ? estado.cache.map((d,i)=> i===idx?doc:d) : [...estado.cache, doc];
+        guardarLocalStorageSeguro(storageKey, estado.cache);
+        if(alRefrescar) alRefrescar();
+      },
+      (idBorrado)=>{
+        if(!estado.cache.some(d=>d.id===idBorrado)) return;
+        estado.cache = estado.cache.filter(d=>d.id!==idBorrado);
+        guardarLocalStorageSeguro(storageKey, estado.cache);
+        if(alRefrescar) alRefrescar();
+      }
+    );
+  }
+  return {get, save, iniciarSync};
+}
+
+function crearDocumentoSincronizado(nombreColeccion, idDocumento, storageKey, valorInicial, alRefrescar){
+  const estado = { valor: JSON.parse(localStorage.getItem(storageKey) || 'null') || valorInicial, iniciado:false };
+  function get(){ return JSON.parse(JSON.stringify(estado.valor)); }
+  function save(obj){
+    const cambio = JSON.stringify(estado.valor) !== JSON.stringify(obj);
+    estado.valor = obj;
+    guardarLocalStorageSeguro(storageKey, obj);
+    if(!cambio) return Promise.resolve({ok:true, total:0, fallidos:0});
+    return subirAColeccion(nombreColeccion, {...obj, id: idDocumento}).then(r=>({ok: !!(r&&r.ok), total:1, fallidos: (r&&r.ok)?0:1}));
+  }
+  function iniciarSync(){
+    if(estado.iniciado) return;
+    estado.iniciado = true;
+    iniciarSincronizacion(nombreColeccion, (doc)=>{
+      if(doc.id !== idDocumento) return;
+      const data = {...doc}; delete data.id;
+      if(JSON.stringify(estado.valor) === JSON.stringify(data)) return;
+      estado.valor = data;
+      guardarLocalStorageSeguro(storageKey, data);
+      if(alRefrescar) alRefrescar();
+    });
+  }
+  return {get, save, iniciarSync};
+}
+
+/* Capturas MEDI: caso especial — solo se crean (nunca se editan/borran), basta con detectar altas nuevas.
+   BUG REAL detectado en campo (sept-2026): esto escuchaba TODA la colección "capturas_medi" sin filtro,
+   es decir, cada uno de los ~30 celulares del equipo se guardaba localmente TODAS las fotos de TODAS las
+   personas, para siempre — no solo las suyas. Eso crece sin límite (cada captura con foto son varios cientos
+   de KB) y con el tiempo tronaba la memoria del celular al querer procesar otra foto más ("se cierra la app
+   al subir fotos"), afectando a todo el equipo poco a poco conforme se acumulaban más capturas en total.
+   Una Embajadora nunca necesita en su celular las fotos de sus compañeras — "Mis capturas" siempre filtra
+   a currentUser.usuario (ver renderMisCapturas) — así que para ese perfil escuchamos solo SUS documentos.
+   Supervisor/Coordinador/Admin sí necesitan ver a todo su equipo (Reportes del equipo), así que para ellos
+   se mantiene la colección completa — son muchos menos celulares, y ahí aplica el recorte por fecha de abajo. */
+let _capturasCache = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+/* Limpieza de lo que YA se había acumulado en este celular ANTES de este arreglo (el filtro de arriba
+   solo evita que seguir creciendo hacia adelante — los celulares que ya llevaban meses juntando fotos
+   de todo el equipo necesitan que esto se les quite una sola vez para que la memoria se libere de verdad). */
+const DIAS_FOTOS_EN_MEMORIA = 3;   // fotos completas en memoria (equipo completo)
+const DIAS_VENTANA_CAPTURAS_EQUIPO = 14; // cuántos días de capturas del equipo se escuchan en vivo desde la nube
+function limpiarCacheCapturasAntiguo(){
+  let cambio = false;
+  if(currentUser && currentUser.perfil === 'Embajador'){
+    const propias = _capturasCache.filter(d=> d && d.usuario === currentUser.usuario);
+    if(propias.length !== _capturasCache.length){ _capturasCache = propias; cambio = true; }
+  }
+  // Además, sin importar el perfil: a las fotos de capturas de hace más de 45 días ya no vale la pena
+  // seguirlas cargando en memoria en este celular — ya están a salvo en la nube (Firestore), y aquí solo
+  // hacen falta para consulta reciente. Esto evita que, con el tiempo, hasta el cache "propio" de una
+  // sola persona (o el de un Supervisor/Admin viendo a todo su equipo) vuelva a crecer sin límite.
+  const limite = new Date(Date.now() - 45*86400000).toISOString();
+  // Supervisor/Coordinador/Admin cargan las capturas de TODO el equipo: con 2 fotos obligatorias por persona al día,
+  // guardar todas completas en memoria tumba la pestaña ("Out of Memory"). Aquí solo se conservan completas las de
+  // los últimos días; las más viejas se aligeran (la foto sigue en la nube y se baja al darle clic en Reportes).
+  const limiteCorto = new Date(Date.now() - DIAS_FOTOS_EN_MEMORIA*86400000).toISOString();
+  const verTodoElEquipo = !!(currentUser && currentUser.perfil !== 'Embajador');
+  const aligerado = _capturasCache.map(d=>{
+    const f = d && (d.fecha_registro || d.fecha);
+    if(f && f < limite && !d._fotos_solo_en_la_nube){ cambio = true; return aligerarRegistro(d); }
+    if(verTodoElEquipo && f && f < limiteCorto && !d._fotos_solo_en_la_nube && d._en_nube===true){ cambio = true; return aligerarRegistro(d); }
+    return d;
+  });
+  _capturasCache = aligerado;
+  if(cambio) guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache);
+}
+function iniciarSincronizacionCapturas(){
+  limpiarCacheCapturasAntiguo();
+  const soloMias = currentUser && currentUser.perfil === 'Embajador';
+  // Embajador: solo sus documentos. Resto de perfiles: solo los últimos DIAS_VENTANA_CAPTURAS_EQUIPO días del equipo
+  // (antes se bajaba TODA la historia con todas sus fotos y el navegador se quedaba sin memoria).
+  const desdeVentana = new Date(Date.now() - DIAS_VENTANA_CAPTURAS_EQUIPO*86400000).toISOString();
+  const query = !db ? null : (soloMias ? db.collection('capturas_medi').where('usuario','==', currentUser.usuario)
+                                        : db.collection('capturas_medi').where('fecha_registro','>=', desdeVentana));
+  // La primera vez que se conecta (o tras varios días sin abrir la app), Firestore puede entregar de
+  // golpe cientos de documentos "nuevos" en el mismo instante — antes cada uno disparaba POR SEPARADO
+  // un guardado completo a localStorage (serializando cada vez TODO el arreglo, fotos incluidas) más
+  // un refresco de pantalla, lo que hacía sentir la app trabada justo al entrar. Ahora se juntan todas
+  // las llegadas de ese mismo instante y se guarda/refresca UNA sola vez al final.
+  let _idsConocidos = new Set(_capturasCache.map(d=>d.id));
+  let _pendientes = [];
+  let _flushProgramado = false;
+  const programarFlush = () => {
+    if(_flushProgramado) return;
+    _flushProgramado = true;
+    Promise.resolve().then(()=>{
+      _flushProgramado = false;
+      if(!_pendientes.length) return;
+      _capturasCache = [..._capturasCache, ..._pendientes];
+      _pendientes = [];
+      guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache);
+      try{ renderMisCapturas(); }catch(e){}
+      try{ renderReportes(); }catch(e){}
+      try{ renderCheckinBar(); }catch(e){}
+      try{ pintarEstadoNube(); }catch(e){}
+    });
+  };
+  iniciarSincronizacion('capturas_medi', (doc)=>{
+    if(_idsConocidos.has(doc.id)){
+      // Ya la teníamos local: si llegó de vuelta desde la nube, quedó confirmada como subida.
+      try{ marcarCapturaEnNube(doc.id); }catch(e){}
+      return;
+    }
+    _idsConocidos.add(doc.id);
+    doc._en_nube = true; // vino de la nube, así que ya está allá
+    if(!soloMias){
+      const fd = doc.fecha_registro || doc.fecha;
+      if(fd && fd < new Date(Date.now() - DIAS_FOTOS_EN_MEMORIA*86400000).toISOString()) doc = aligerarRegistro(doc);
+    }
+    _pendientes.push(doc);
+    programarFlush();
+  }, null, query);
+  // Sube lo que haya quedado atorado en este celular (capturas hechas sin señal, con error, o antes de este arreglo).
+  setTimeout(()=>{ try{ reintentarSubidasPendientes(); }catch(e){} }, 4000);
+  setTimeout(()=>{ try{ pintarEstadoNube(); }catch(e){} }, 1500);
+}
+
+/* Un objeto de sincronización por cada tipo de información compartida. Las funciones get/save de cada
+   una (definidas junto a su código original más abajo) solo llaman a estos objetos. */
+const _prioridadesSync = crearColeccionSincronizada('prioridades', 'delico_odv_prioridades_v2', ()=>{ if(currentUser){ renderPrioridades(); updatePrioridadesBadge(); } });
+const _tareasSync = crearColeccionSincronizada('tareas', 'delico_odv_tareas_v1', ()=>{ if(currentUser) renderTareas(); });
+const _vacacionesSync = crearColeccionSincronizada('vacaciones', 'delico_odv_vacaciones_v1', ()=>{ if(currentUser) renderVacaciones(); });
+const _extraTiendasSync = crearColeccionSincronizada('extra_tiendas', 'delico_odv_extra_tiendas_v1', ()=>{ if(currentUser){ renderExtraTiendaBox(); renderPlaneacion(); } });
+const _cumpPrioridadSync = crearColeccionSincronizada('cumplimiento_prioridades', 'delico_odv_cumplimiento_prioridades_v1', ()=>{ if(currentUser) renderPrioridades(); });
+const _leySillaSync = crearColeccionSincronizada('ley_silla', 'delico_odv_leysilla_v1', ()=>{
+  if(currentUser){
+    try{
+      // Solo refrescar el contenido si el modal de Ley Silla YA está abierto (por ejemplo, otra persona
+      // registró su descanso y hay que actualizar la tabla en vivo). Nunca abrir el modal solo.
+      const bg = document.getElementById('modalBg');
+      const body = document.getElementById('modalBody');
+      if(bg && bg.classList.contains('open') && body && body.innerHTML.includes('🪑 Ley Silla')){
+        renderLeySillaModal();
+      }
+    }catch(e){}
+  }
+});
+const _cartasSync = crearColeccionSincronizada('cartas', 'delico_odv_cartas_v1', ()=>{ if(currentUser) renderCartas(); });
+const _materialesSync = crearColeccionSincronizada('materiales', 'delico_odv_materiales_v1', ()=>{ if(currentUser) renderCartas(); });
+const _uniformesSync = crearColeccionSincronizada('uniformes', 'delico_odv_uniformes_v1', ()=>{ if(currentUser) renderCartas(); });
+const _inventarioSync = crearDocumentoSincronizado('inventario', 'global', 'delico_odv_inventario_materiales_v1', {materiales:{}, uniformes:{}}, ()=>{ if(currentUser){ try{ renderInventario(); }catch(e){} } });
+const _auditoriasSync = crearColeccionSincronizada('auditorias', 'delico_odv_auditoria_v1', ()=>{ if(currentUser) renderAuditoria(); });
+const _notificacionesSync = crearColeccionSincronizada('notificaciones', 'delico_odv_notificaciones_v1', ()=>{ if(currentUser) renderInicio(); });
+const _eval360Sync = crearColeccionSincronizada('eval360', 'delico_odv_eval360_v1', ()=>{ if(currentUser) renderEval360(); });
+const _noticiasSync = crearColeccionSincronizada('noticias', 'delico_odv_noticias_v1', ()=>{ if(currentUser) renderNoticias(); });
+const _rutasSync = crearColeccionSincronizada('rutas', 'delico_odv_rutas_v1', ()=>{ if(currentUser){ renderRuta(); renderPreplan(); renderCalendario(); } });
+const _escuchaSync = crearColeccionSincronizada('delico_escucha', 'delico_odv_escucha_v1', ()=>{ if(currentUser) renderEscucha(); });
+const _pipelineAjustesSync = crearColeccionSincronizada('pipeline_ajustes', 'delico_odv_pipeline_ajustes_v1', ()=>{ if(currentUser){ try{ renderPipelineTabla(); }catch(e){} } });
+
+let _syncIniciado = false;
+function iniciarTodaLaSincronizacion(){
+  if(_syncIniciado) return;
+  _syncIniciado = true;
+  iniciarSincronizacionCapturas();
+  iniciarSincronizacionAccesos();
+  [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
+   _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
+   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync, _pipelineAjustesSync].forEach(s=>s.iniciarSync());
+}
+
+/* ---------- Instalación del equipo: ¿de verdad "Agregaron a inicio" la app, o solo abren la liga en el navegador? ----------
+   No hay forma de saber esto en retrospectiva (nunca se guardó) — pero desde que alguien entra con esta
+   versión, cada login deja un registro en la nube: usuario, cuándo, si estaba instalada (modo standalone/PWA)
+   y en qué tipo de dispositivo. Así se puede ver, sin sentarse celular por celular, quién de verdad instaló
+   la app y a quién hay que ayudarle todavía. */
+function estaInstaladaComoApp(){
+  try{
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if(window.navigator.standalone === true) return true; // iPhone/iPad (Safari) cuando se hizo "Agregar a inicio"
+  }catch(e){}
+  return false;
+}
+function plataformaDispositivo(){
+  const ua = (navigator.userAgent || '');
+  if(/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+  if(/Android/i.test(ua)) return 'Android';
+  if(/Windows|Macintosh|Linux/i.test(ua)) return 'Computadora';
+  return 'Otro';
+}
+let _accesosCache = JSON.parse(localStorage.getItem('delico_odv_accesos_v1') || '[]');
+function _guardarAccesoLocal(doc){
+  const idx = _accesosCache.findIndex(d=>d.id===doc.id);
+  if(idx>=0) _accesosCache[idx] = doc; else _accesosCache = [..._accesosCache, doc];
+  guardarLocalStorageSeguro('delico_odv_accesos_v1', _accesosCache);
+}
+function iniciarSincronizacionAccesos(){
+  iniciarSincronizacion('accesos_equipo', (doc)=>{
+    _guardarAccesoLocal(doc);
+    try{ renderInstalacionEquipo(); }catch(e){}
+  });
+}
+function registrarAcceso(){
+  if(!currentUser) return;
+  const doc = {
+    id: currentUser.usuario,
+    usuario: currentUser.usuario,
+    nombre: currentUser.nombre,
+    ultimo_acceso: new Date().toISOString(),
+    instalada: estaInstaladaComoApp(),
+    plataforma: plataformaDispositivo(),
+  };
+  _guardarAccesoLocal(doc);
+  subirAColeccion('accesos_equipo', doc);
+}
+function renderInstalacionEquipo(){
+  const body = document.getElementById('instalacionBody');
+  if(!body) return;
+  const porUsuario = new Map(_accesosCache.map(a=>[a.usuario, a]));
+  let ok=0, nav=0, nunca=0;
+  const filas = [...APP_DATA.equipo].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>{
+    const a = porUsuario.get(u.usuario);
+    let estadoHtml, orden;
+    if(!a){ estadoHtml = '<span style="color:var(--bad); font-weight:600;">❌ Nunca ha entrado</span>'; nunca++; orden=0; }
+    else if(a.instalada){ estadoHtml = '<span style="color:var(--good); font-weight:600;">✅ Instalada</span>'; ok++; orden=2; }
+    else { estadoHtml = '<span style="color:var(--warn); font-weight:600;">⚠️ Solo navegador</span>'; nav++; orden=1; }
+    const ultimo = a ? fechaHoraLocal(a.ultimo_acceso) : '—';
+    const plataforma = a ? a.plataforma : '—';
+    return {orden, html: `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${ultimo}</td><td>${estadoHtml}</td><td>${plataforma}</td></tr>`};
+  });
+  filas.sort((x,y)=>x.orden-y.orden);
+  body.innerHTML = filas.map(f=>f.html).join('');
+  document.getElementById('instKpiOk').textContent = ok;
+  document.getElementById('instKpiNav').textContent = nav;
+  document.getElementById('instKpiNunca').textContent = nunca;
+}
+
+function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const errBox = document.getElementById('loginError');
+  if(!u || !p){ errBox.textContent = 'Escribe tu usuario y tu contraseña.'; return; }
+  errBox.textContent = 'Entrando…';
+  auth.signInWithEmailAndPassword(emailSinteticoDe(u), passwordFirebaseDe(p))
+    .then(() => {
+      const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === u.toLowerCase());
+      if(!found){ errBox.textContent = 'Tu cuenta existe pero ya no está en el equipo activo. Contacta a tu coordinador(a).'; auth.signOut(); return; }
+      currentUser = found;
+      errBox.textContent = '';
+      registrarAcceso();
+      boot();
+    })
+    .catch(() => { errBox.textContent = 'Usuario o contraseña incorrectos.'; });
+}
+function doLogout(){
+  auth.signOut();
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+/* ---------- Migración: crea la cuenta real de Firebase para cada persona del equipo (Admin, una sola vez) ----------
+   Usa una instancia SECUNDARIA de Firebase para no cerrar la sesión del Admin mientras se crean las demás cuentas
+   (Firebase inicia sesión automáticamente como el usuario recién creado si se usa la instancia principal). */
+async function migrarCuentasFirebase(){
+  if(!confirm('Esto crea (si no existe ya) la cuenta real de acceso de cada persona del equipo, usando su usuario y contraseña actuales. Se puede correr varias veces sin duplicar a nadie. ¿Continuar?')) return;
+  const btn = document.getElementById('btnMigrarFirebase');
+  if(btn){ btn.disabled = true; btn.textContent = '🔐 Migrando…'; }
+  const secApp = firebase.initializeApp(firebaseConfig, 'migracion_' + Date.now());
+  const secAuth = secApp.auth();
+  let creadas = 0, yaExistian = 0, sinPassword = 0;
+  const errores = [];
+  for(const u of APP_DATA.equipo){
+    // Las contraseñas ya no viven en app_data.json una vez migrada la persona (por seguridad) — si
+    // alguien nuevo aún no tiene su cuenta en Firebase Y tampoco trae "password" en este archivo,
+    // se salta con aviso (significa que hace falta pedir que se le agregue temporalmente esa vez).
+    if(!u.password){ sinPassword++; continue; }
+    const email = emailSinteticoDe(u.usuario);
+    try {
+      await secAuth.createUserWithEmailAndPassword(email, passwordFirebaseDe(u.password));
+      await secAuth.signOut();
+      creadas++;
+    } catch(err){
+      if(err.code === 'auth/email-already-in-use'){ yaExistian++; }
+      else { errores.push(u.usuario + ': ' + err.message); }
+    }
+  }
+  await secApp.delete();
+  if(btn){ btn.disabled = false; btn.textContent = '🔐 Migrar cuentas'; }
+  let msg = `Migración terminada.\nCuentas creadas ahora: ${creadas}\nYa existían (o sin password en este archivo): ${yaExistian + sinPassword}`;
+  if(errores.length) msg += `\n\nCon error (revisar):\n` + errores.join('\n');
+  alert(msg);
+}
+
+/* ---------- Cambiar contraseña de cualquier persona del equipo (solo RESET_TOTAL_USUARIO) ----------
+   Usa una instancia SECUNDARIA de Firebase (mismo truco que migrarCuentasFirebase) para no cerrar
+   la sesión de quien está haciendo el cambio: entra como la persona objetivo con SU contraseña
+   actual (hay que conocerla) y desde ahí llama updatePassword — nunca se toca la sesión de Admin. */
+function poblarPwZonaUsuarios(){
+  const sel = document.getElementById('pwZonaUsuario');
+  if(!sel || sel.options.length) return;
+  sel.innerHTML = '';
+  [...APP_DATA.equipo].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    const o = document.createElement('option');
+    o.value = u.usuario;
+    o.textContent = `${u.nombre} (${u.usuario})`;
+    sel.appendChild(o);
+  });
+}
+async function cambiarPasswordEquipo(){
+  const usuario = document.getElementById('pwZonaUsuario').value;
+  const actual = document.getElementById('pwZonaActual').value;
+  const nueva = document.getElementById('pwZonaNueva').value;
+  const nueva2 = document.getElementById('pwZonaNueva2').value;
+  const msgEl = document.getElementById('pwZonaMsg');
+  msgEl.style.color = 'var(--bad)';
+  if(!usuario){ msgEl.textContent = 'Elige a la persona.'; return; }
+  if(!actual || !nueva || !nueva2){ msgEl.textContent = 'Llena los tres campos de contraseña.'; return; }
+  if(nueva.length < 4){ msgEl.textContent = 'La contraseña nueva debe tener al menos 4 caracteres.'; return; }
+  if(nueva !== nueva2){ msgEl.textContent = 'La contraseña nueva no coincide en ambos campos.'; return; }
+  const btn = document.getElementById('btnCambiarPasswordZona');
+  btn.disabled = true; btn.textContent = 'Cambiando…';
+  msgEl.textContent = '';
+  const secApp = firebase.initializeApp(firebaseConfig, 'cambiopw_' + Date.now());
+  const secAuth = secApp.auth();
+  try {
+    const email = emailSinteticoDe(usuario);
+    await secAuth.signInWithEmailAndPassword(email, passwordFirebaseDe(actual));
+    await secAuth.currentUser.updatePassword(passwordFirebaseDe(nueva));
+    await secAuth.signOut();
+    msgEl.style.color = 'var(--good)';
+    msgEl.textContent = 'Listo — contraseña actualizada ✓. Avísale a esa persona su nueva contraseña por el medio que uses tú (no queda visible aquí).';
+    document.getElementById('pwZonaActual').value = '';
+    document.getElementById('pwZonaNueva').value = '';
+    document.getElementById('pwZonaNueva2').value = '';
+  } catch(err){
+    if(err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found'){
+      msgEl.textContent = 'La contraseña actual que escribiste no es correcta para esa persona (o su cuenta aún no existe en Firebase — usa "Migrar cuentas" primero).';
+    } else if(err.code === 'auth/requires-recent-login'){
+      msgEl.textContent = 'Por seguridad Firebase pide iniciar sesión de nuevo para este cambio. Intenta otra vez en un momento.';
+    } else {
+      msgEl.textContent = 'No se pudo cambiar: ' + (err.message || err.code || 'error desconocido');
+    }
+  } finally {
+    try{ await secApp.delete(); }catch(e){}
+    btn.disabled = false; btn.textContent = 'Cambiar contraseña';
+  }
+}
+
+/* ---------- Reinicio de capturas del equipo (Admin, fin de la fase de construcción) ----------
+   Borra TODO lo que el equipo capturó en la app (con fotos) en cada módulo, para que arranquen
+   a capturar información real desde cero. Nunca toca lo que viene de app_data.json (el archivo
+   que Ale sube: equipo, tiendas, catálogo, cuotas, Pipeline/combinaciones, distribución, etc.) —
+   eso se recarga siempre desde ese archivo, no vive en estas colecciones. Tampoco toca "Noticias"
+   (avisos publicados por el equipo, no una captura de campo). */
+/* ---------- Helper genérico de "Borrar todo" (solo RESET_TOTAL_USUARIO) ----------
+   opts: {titulo, descripcionHtml, textoBoton, alConfirmar: async()=>{...}, alTerminar?: ()=>{...}}
+   alConfirmar debe devolver/ser una promesa que se resuelve cuando YA terminó de borrar en Firestore
+   (no solo de mandar la petición) — si no, un reload podría cancelar borrados todavía en curso. */
+function abrirConfirmarBorrado(opts){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
+  window._confirmarBorradoActual = opts;
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🗑️ ${opts.titulo}</h3>
+    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:12px 14px; margin:8px 0 14px;">
+      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 4px;">⚠️ Esta acción no se puede deshacer.</p>
+      ${opts.descripcionHtml}
+    </div>
+    <div class="form-grid">
+      <div class="field full">
+        <label>Para confirmar, escribe <b>BORRAR TODO</b>:</label>
+        <input type="text" id="confirmaBorradoTexto" placeholder="BORRAR TODO" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" id="btnConfirmarBorrado" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarConfirmarBorrado()">${opts.textoBoton || 'Borrar todo'}</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function ejecutarConfirmarBorrado(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este reinicio.'); return; }
+  const opts = window._confirmarBorradoActual;
+  if(!opts) return;
+  const texto = ((document.getElementById('confirmaBorradoTexto')||{}).value || '').trim().toUpperCase();
+  if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
+  const btn = document.getElementById('btnConfirmarBorrado');
+  const textoOriginal = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  try{
+    const resumen = await opts.alConfirmar();
+    closeModal();
+    if(resumen && resumen.fallidos > 0){
+      // No todo se pudo borrar de verdad en la nube (ej. permisos de Firestore, o se perdió la
+      // conexión a medio camino) — se lo decimos claro en vez de fingir que "ya quedó", que es
+      // justo lo que causaba que los registros parecieran regresar solos.
+      toast(`⚠️ Se borraron ${resumen.total - resumen.fallidos} de ${resumen.total} — ${resumen.fallidos} NO se pudieron borrar en la nube (probablemente permisos de Firestore o falta de conexión). Vuelve a intentar el borrado; si sigue fallando, puede ser una regla de seguridad de Firestore que hay que ajustar.`, 9000);
+      if(opts.alTerminar) opts.alTerminar(resumen);
+    } else {
+      if(opts.alTerminar) opts.alTerminar(resumen);
+    }
+  }catch(e){
+    toast('⚠️ Hubo un problema al borrar: ' + e.message, 6500);
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
+  }
+}
+/* Borra todas las capturas de la colección 'capturas_medi' (no usa crearColeccionSincronizada,
+   se maneja aparte) y espera a que Firestore confirme cada borrado antes de continuar.
+   Si algún borrado falla de verdad en la nube (permisos, red...), ese registro se queda en el
+   cache local en vez de desaparecer — así la pantalla no miente, y se reporta cuántos fallaron. */
+async function borrarTodasLasCapturasMedi(){
+  const objetivo = getCapturas().filter(c=>c && c.id);
+  if(!objetivo.length) return {ok:true, total:0, fallidos:0};
+  const resultados = await Promise.all(objetivo.map(c=>borrarDeColeccion('capturas_medi', c.id).then(r=>({r, c}))));
+  const sobrevivientes = resultados.filter(x=>!(x.r && x.r.ok)).map(x=>x.c);
+  _capturasCache = sobrevivientes;
+  guardarLocalStorageSeguro(STORAGE_KEY, sobrevivientes);
+  return { ok: sobrevivientes.length===0, total: objetivo.length, fallidos: sobrevivientes.length };
+}
+/* Combina varios resúmenes {ok,total,fallidos} (de distintas colecciones) en uno solo. */
+function combinarResumenesBorrado(resumenes){
+  const limpios = resumenes.filter(r=>r && typeof r==='object' && 'total' in r);
+  const total = limpios.reduce((a,r)=>a+(r.total||0), 0);
+  const fallidos = limpios.reduce((a,r)=>a+(r.fallidos||0), 0);
+  return { ok: fallidos===0, total, fallidos };
+}
+
+/* ---------- Reinicio TOTAL de capturas del equipo (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirReinicioCapturas(){
+  abrirConfirmarBorrado({
+    titulo: 'Reiniciar capturas del equipo',
+    textoBoton: 'Borrar todo y reiniciar',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borra de la nube (Firestore) y de todos los celulares — de las ~30 personas del equipo, en todos los módulos — incluyendo las fotos.</p>
+      </div>
+      <div class="form-grid">
+        <div class="field full">
+          <label style="font-weight:700;">Se va a borrar:</label>
+          <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Capturas de Ejecución MEDI — Mercadeo, Caducidades, Incidencias, Incidencia (Incapacidad/Inasistencia), Degustación, Precio Delico, Precio competencia, Foto de categoría, Factores ambiente, Gasto (ticket), Carga de anaquel, Check-in/Check-out, Onboarding — todas con sus fotos. Además: Asignación de rutas, Vacaciones, Prioridades y Tareas (con sus respuestas), Ley Silla (descansos), Cartas a tienda / Materiales / Uniformes / Inventario, Auditorías, Evaluación 360°, y Délico te escucha.</p>
+          <label style="font-weight:700; margin-top:10px; display:block;">NO se toca:</label>
+          <p style="font-size:12px; color:var(--ink-soft); margin:2px 0;">Equipo, tiendas, catálogo de productos, cuotas, Pipeline/combinaciones, distribución, alertas de venta cero, cumplimiento semanal, asignación de rutas de septiembre — todo lo que viene del archivo que subes (la "PP"). Tampoco se toca Daily News (tiene su propio botón de borrado en su pestaña).</p>`,
+    alConfirmar: async () => {
+      const resultados = await Promise.all([
+        borrarTodasLasCapturasMedi(),
+        _prioridadesSync.save([]),
+        _tareasSync.save([]),
+        _vacacionesSync.save([]),
+        _extraTiendasSync.save([]),
+        _cumpPrioridadSync.save([]),
+        _leySillaSync.save([]),
+        _cartasSync.save([]),
+        _materialesSync.save([]),
+        _uniformesSync.save([]),
+        _inventarioSync.save({materiales:{}, uniformes:{}}),
+        _auditoriasSync.save([]),
+        _notificacionesSync.save([]),
+        _eval360Sync.save([]),
+        _rutasSync.save([]),
+        _escuchaSync.save([]),
+      ]);
+      const resumen = combinarResumenesBorrado(resultados);
+      if(resumen.ok){
+        setCheckin(null);
+        localStorage.removeItem('delico_odv_semanas_publicadas');
+        Object.keys(localStorage).filter(k=>k.startsWith('delico_odv_ruta_snap_')).forEach(k=>localStorage.removeItem(k));
+      }
+      return resumen;
+    },
+    alTerminar: (resumen) => {
+      if(!resumen || resumen.fallidos===0){
+        toast('Listo — se borró todo lo capturado por el equipo (con fotos). Catálogo, cuotas, tiendas y Pipeline siguen igual.', 7000);
+        setTimeout(()=>location.reload(), 1200);
+      } else {
+        // No recargamos automático: así puedes ver en Reportes qué quedó y volver a intentar el borrado.
+        renderMisCapturas(); renderReportes();
+      }
+    },
+  });
+}
+
+/* ---------- Borrado POR USUARIO (solo RESET_TOTAL_USUARIO) ----------
+   Ale elige una o varias personas, qué módulos limpiar de esas personas y (opcional) un rango de fechas.
+   Antes de borrar se ve cuántos registros caen en cada módulo, así no hay sorpresas. */
+const BORRADO_USUARIO_MODULOS = [
+  {key:'capturas_medi', label:'Capturas de Ejecución MEDI (con fotos)', detalle:'Mercadeo, caducidades, degustación, precios, check-in/out, incidencias, etc.', especial:true},
+  {key:'rutas', label:'Rutas / calendario asignado', get:()=>_rutasSync.get(), sync:()=>_rutasSync},
+  {key:'vacaciones', label:'Vacaciones y onomásticos', get:()=>_vacacionesSync.get(), sync:()=>_vacacionesSync},
+  {key:'extra_tiendas', label:'Tiendas extra de ruta', get:()=>_extraTiendasSync.get(), sync:()=>_extraTiendasSync},
+  {key:'cumplimiento_prioridades', label:'Cumplimiento de prioridades', get:()=>_cumpPrioridadSync.get(), sync:()=>_cumpPrioridadSync},
+  {key:'tareas', label:'Tareas', get:()=>_tareasSync.get(), sync:()=>_tareasSync},
+  {key:'cartas', label:'Solicitudes de cartas', get:()=>_cartasSync.get(), sync:()=>_cartasSync},
+  {key:'materiales', label:'Solicitudes de materiales', get:()=>_materialesSync.get(), sync:()=>_materialesSync},
+  {key:'uniformes', label:'Solicitudes de uniformes', get:()=>_uniformesSync.get(), sync:()=>_uniformesSync},
+  {key:'ley_silla', label:'Ley de la silla', get:()=>_leySillaSync.get(), sync:()=>_leySillaSync},
+  {key:'noticias', label:'Daily News (publicaciones)', get:()=>_noticiasSync.get(), sync:()=>_noticiasSync},
+  {key:'escucha', label:'Délico te escucha', get:()=>_escuchaSync.get(), sync:()=>_escuchaSync},
+  {key:'eval360', label:'Evaluaciones 360° (de esa persona)', get:()=>_eval360Sync.get(), sync:()=>_eval360Sync},
+  {key:'auditorias', label:'Auditorías (de esa persona)', get:()=>_auditoriasSync.get(), sync:()=>_auditoriasSync},
 ];
+/* ¿Este registro es de esta persona? Primero por código de usuario; si el registro no trae código, por nombre. */
+function registroEsDeUsuario(rec, u){
+  if(!rec || !u) return false;
+  let hayCodigo = false;
+  for(const f of ['usuario','persona_usuario','embajador_usuario']){
+    if(rec[f]!=null && rec[f]!==''){ hayCodigo = true; if(String(rec[f])===u.usuario) return true; }
+  }
+  if(hayCodigo) return false;
+  for(const f of ['persona','nombre','persona_nombre']){
+    if(rec[f] && mismaPersona(String(rec[f]), u.nombre)) return true;
+  }
+  return false;
+}
+function registroEnRangoFechas(rec, desde, hasta){
+  if(!desde && !hasta) return true;
+  const f = String(rec.fecha_registro || rec.fecha || rec.fecha_solicitud || rec.desde || '').slice(0,10);
+  if(!f) return false;
+  if(desde && f < desde) return false;
+  if(hasta && f > hasta) return false;
+  return true;
+}
+function _bpuSeleccion(){
+  const usuarios = [...document.querySelectorAll('.bpu-user:checked')].map(x=>x.value);
+  const modulos = [...document.querySelectorAll('.bpu-mod:checked')].map(x=>x.value);
+  const desde = (document.getElementById('bpuDesde')||{}).value || '';
+  const hasta = (document.getElementById('bpuHasta')||{}).value || '';
+  return {usuarios, modulos, desde, hasta};
+}
+/* Registros que se borrarían: {modulo: [registros]} */
+function _bpuCoincidencias(sel){
+  const us = APP_DATA.equipo.filter(u=>sel.usuarios.includes(u.usuario));
+  const out = {};
+  sel.modulos.forEach(k=>{
+    const m = BORRADO_USUARIO_MODULOS.find(x=>x.key===k); if(!m) return;
+    const base = m.especial ? getCapturas() : m.get();
+    out[k] = (base||[]).filter(r=> r && r.id && us.some(u=>registroEsDeUsuario(r,u)) && registroEnRangoFechas(r, sel.desde, sel.hasta));
+  });
+  return out;
+}
+function actualizarPreviewBorradoUsuario(){
+  const box = document.getElementById('bpuPreview'); if(!box) return;
+  const sel = _bpuSeleccion();
+  if(!sel.usuarios.length || !sel.modulos.length){
+    box.innerHTML = '<span style="color:var(--ink-soft);">Elige al menos una persona y un módulo para ver qué se borraría.</span>'; return;
+  }
+  const co = _bpuCoincidencias(sel);
+  const total = Object.values(co).reduce((a,l)=>a+l.length,0);
+  box.innerHTML = `<b>${total}</b> registro(s) se borrarían:` + '<ul style="margin:4px 0 0 18px; padding:0;">' + sel.modulos.map(k=>{
+    const m = BORRADO_USUARIO_MODULOS.find(x=>x.key===k);
+    return `<li>${m.label}: <b>${co[k].length}</b></li>`;
+  }).join('') + '</ul>';
+}
+function bpuMarcar(clase, valor){ document.querySelectorAll('.'+clase).forEach(x=>{ if(x.closest('label') && x.closest('label').style.display==='none') return; x.checked = valor; }); actualizarPreviewBorradoUsuario(); }
+function bpuFiltrarUsuarios(){
+  const q = ((document.getElementById('bpuBuscar')||{}).value||'').toLowerCase().trim();
+  document.querySelectorAll('.bpu-fila').forEach(l=>{ l.style.display = (!q || l.dataset.txt.includes(q)) ? '' : 'none'; });
+}
+function abrirBorradoPorUsuario(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const caps = getCapturas();
+  const gente = APP_DATA.equipo.filter(u=>u.usuario!==RESET_TOTAL_USUARIO).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>👤 Borrar información por usuario</h3>
+    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:10px 14px; margin:8px 0 12px;">
+      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 2px;">⚠️ Esta acción no se puede deshacer.</p>
+      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Solo se borra lo que corresponde a las personas que marques. Todo lo demás se queda igual.</p>
+    </div>
+    <div class="form-grid">
+      <div class="field full">
+        <label style="font-weight:700;">1. ¿De quién?</label>
+        <input type="text" id="bpuBuscar" placeholder="Buscar por nombre o usuario…" oninput="bpuFiltrarUsuarios()" autocomplete="off">
+        <div style="margin:4px 0; font-size:12px;"><a href="#" onclick="bpuMarcar('bpu-user',true); return false;">Marcar visibles</a> · <a href="#" onclick="bpuMarcar('bpu-user',false); return false;">Quitar todos</a></div>
+        <div style="max-height:190px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px 8px;">
+          ${gente.map(u=>{ const n = caps.filter(c=>registroEsDeUsuario(c,u)).length;
+            return `<label class="bpu-fila" data-txt="${(u.nombre+' '+u.usuario).toLowerCase()}" style="display:flex; align-items:center; gap:8px; font-size:12.5px; padding:2px 0;"><input type="checkbox" class="bpu-user" value="${u.usuario}" style="width:auto;" onchange="actualizarPreviewBorradoUsuario()"> <span>${u.nombre} <small style="color:var(--ink-soft);">· ${u.usuario} · ${u.perfil} · ${n} captura(s) MEDI</small></span></label>`; }).join('')}
+        </div>
+      </div>
+      <div class="field full">
+        <label style="font-weight:700;">2. ¿Qué borrar?</label>
+        <div style="margin:4px 0; font-size:12px;"><a href="#" onclick="bpuMarcar('bpu-mod',true); return false;">Marcar todo</a> · <a href="#" onclick="bpuMarcar('bpu-mod',false); return false;">Quitar todo</a></div>
+        ${BORRADO_USUARIO_MODULOS.map(m=>`<label style="display:flex; align-items:flex-start; gap:8px; font-size:12.5px; padding:2px 0;"><input type="checkbox" class="bpu-mod" value="${m.key}" ${m.key==='capturas_medi'?'checked':''} style="width:auto; margin-top:3px;" onchange="actualizarPreviewBorradoUsuario()"> <span>${m.label}${m.detalle?`<br><small style="color:var(--ink-soft);">${m.detalle}</small>`:''}</span></label>`).join('')}
+      </div>
+      <div class="field">
+        <label style="font-weight:700;">3. Desde (opcional)</label>
+        <input type="date" id="bpuDesde" onchange="actualizarPreviewBorradoUsuario()">
+      </div>
+      <div class="field">
+        <label style="font-weight:700;">Hasta (opcional)</label>
+        <input type="date" id="bpuHasta" onchange="actualizarPreviewBorradoUsuario()">
+      </div>
+      <div class="field full" id="bpuPreview" style="font-size:12.5px; background:#f7f8ee; border:1px solid var(--line); border-radius:8px; padding:8px 10px;"></div>
+      <div class="field full">
+        <label>Para confirmar, escribe <b>BORRAR</b>:</label>
+        <input type="text" id="bpuConfirma" placeholder="BORRAR" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" id="btnBorradoUsuario" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarBorradoPorUsuario()">Borrar lo seleccionado</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+  actualizarPreviewBorradoUsuario();
+}
+async function ejecutarBorradoPorUsuario(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const sel = _bpuSeleccion();
+  if(!sel.usuarios.length){ toast('Marca al menos una persona.'); return; }
+  if(!sel.modulos.length){ toast('Marca al menos un módulo.'); return; }
+  if(((document.getElementById('bpuConfirma')||{}).value||'').trim().toUpperCase() !== 'BORRAR'){ toast('Escribe exactamente "BORRAR" para confirmar.'); return; }
+  const co = _bpuCoincidencias(sel);
+  const total = Object.values(co).reduce((a,l)=>a+l.length,0);
+  if(!total){ toast('No hay registros que coincidan con lo seleccionado.'); return; }
+  const btn = document.getElementById('btnBorradoUsuario'); const txt0 = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  try{
+    const resultados = [];
+    for(const k of sel.modulos){
+      const lista = co[k]; if(!lista || !lista.length) continue;
+      const ids = new Set(lista.map(r=>r.id));
+      if(k==='capturas_medi'){
+        const rs = await Promise.all(lista.map(c=>borrarDeColeccion('capturas_medi', c.id).then(r=>({r,c}))));
+        const okIds = new Set(rs.filter(x=>x.r && x.r.ok).map(x=>x.c.id));
+        const quedan = getCapturas().filter(c=>!okIds.has(c.id));
+        _capturasCache = quedan; guardarLocalStorageSeguro(STORAGE_KEY, quedan);
+        resultados.push({ok: okIds.size===lista.length, total: lista.length, fallidos: lista.length-okIds.size});
+      } else {
+        const m = BORRADO_USUARIO_MODULOS.find(x=>x.key===k);
+        resultados.push(await m.sync().save(m.get().filter(r=>!ids.has(r.id))));
+      }
+    }
+    if(sel.modulos.includes('rutas') && sel.usuarios.includes(currentUser.usuario)) setCheckin(null);
+    const resumen = combinarResumenesBorrado(resultados);
+    closeModal();
+    toast(resumen.fallidos>0
+      ? `⚠️ Se borraron ${resumen.total-resumen.fallidos} de ${resumen.total}; ${resumen.fallidos} NO se pudieron borrar en la nube (permisos o conexión). Vuelve a intentar.`
+      : `Listo — se borraron ${resumen.total} registro(s) de ${sel.usuarios.length} persona(s).`, 8000);
+    try{ renderMisCapturas(); }catch(e){}
+    try{ renderReportes(); }catch(e){}
+    try{ renderRuta(); renderPreplan(); renderCalendario(); }catch(e){}
+  }catch(e){
+    toast('⚠️ Hubo un problema al borrar: ' + e.message, 6500);
+    if(btn){ btn.disabled = false; btn.textContent = txt0; }
+  }
+}
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(ASSETS).then(() =>
-        // Uno por uno y en modo no-cors: si alguno falla (ej. instalando el service worker sin
-        // internet), NO debe tumbar la instalación completa — lo esencial (ASSETS de arriba) ya quedó guardado.
-        Promise.all(ASSETS_EXTERNOS.map((url) =>
-          cache.add(new Request(url, {mode:'no-cors'})).catch(() => {})
-        ))
-      )
-    ).then(() => self.skipWaiting())
-  );
+/* ---------- Reinicio de solo las capturas de Ejecución MEDI (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirReinicioMedi(){
+  abrirConfirmarBorrado({
+    titulo: 'Borrar registros de MEDI',
+    textoBoton: 'Borrar todo MEDI',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran TODAS las capturas de Ejecución MEDI de todo el equipo (con sus fotos): Mercadeo, Caducidades, Incidencias, Incapacidad/Inasistencia, Degustación, Precios, Foto de categoría, Factores ambiente, Gasto (ticket), Carga de anaquel, Check-in/Check-out, Onboarding. No toca rutas, vacaciones, tareas, ni el resto de las pestañas de Retroalimentación.</p>`,
+    alConfirmar: async () => borrarTodasLasCapturasMedi(),
+    alTerminar: (resumen) => {
+      if(!resumen || resumen.fallidos===0) toast('Listo — se borraron los registros de MEDI. El resto de la app sigue igual.', 6000);
+      renderMisCapturas();
+      if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+    },
+  });
+}
+
+/* ---------- Borrado selectivo de datos de prueba (solo RESET_TOTAL_USUARIO) ----------
+   A diferencia de los botones de "Borrar todo" de arriba (que borran un módulo completo),
+   aquí Ale puede marcar exactamente qué quiere limpiar mientras seguimos probando la app,
+   sin tener que borrar todo MEDI de un jalón. */
+const BORRADO_SELECTIVO_OPCIONES = [
+  {
+    key: 'capturas_medi',
+    label: 'Capturas de Ejecución MEDI de prueba',
+    detalle: 'Todas las capturas de Mercadeo, Caducidades, Degustación, Precios, Categoría, Gasto, Carga de anaquel, Check-in/out, Incidencias y Onboarding — de todo el equipo, con sus fotos.',
+  },
+  {
+    key: 'checkin_rutas',
+    label: 'Check-in activo (este dispositivo) y rutas asignadas de prueba',
+    detalle: 'Cierra el check-in activo en este celular/computadora y borra las rutas asignadas (asignación del mes) de todo el equipo en la nube.',
+  },
+  {
+    key: 'pipeline_ajustes',
+    label: 'Ajustes de Pipeline de prueba',
+    detalle: 'Lo capturado en las tarjetas de Pipeline: inventario real, comentarios y estatus de las alertas (venta cero / inventario negativo / excedente) — de todo el equipo.',
+  },
+];
+function abrirBorradoSelectivoPruebas(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🗑️ Borrar información de pruebas</h3>
+    <div style="background:#f7e2df; border:2px solid var(--bad); border-radius:10px; padding:12px 14px; margin:8px 0 14px;">
+      <p style="font-size:13px; font-weight:800; color:#8a2c22; margin:0 0 4px;">⚠️ Esta acción no se puede deshacer.</p>
+      <p style="font-size:12.5px; color:#8a2c22; margin:0;">Marca solo lo que quieres borrar. Lo que no marques se queda tal cual.</p>
+    </div>
+    <div class="form-grid">
+      ${BORRADO_SELECTIVO_OPCIONES.map(o=>`<div class="field full" style="border:1px solid var(--line); border-radius:8px; padding:8px 10px;">
+        <label style="font-weight:700; font-size:13px; display:flex; align-items:center; gap:8px;"><input type="checkbox" id="bs_${o.key}" style="width:auto; margin-right:6px;"> ${o.label}</label>
+        <p style="font-size:11.5px; color:var(--ink-soft); margin:3px 0 0 22px;">${o.detalle}</p>
+      </div>`).join('')}
+      <div class="field full">
+        <label>Para confirmar, escribe <b>BORRAR TODO</b>:</label>
+        <input type="text" id="bsConfirmaTexto" placeholder="BORRAR TODO" autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" id="btnBorradoSelectivo" style="background:var(--bad); border-color:var(--bad);" onclick="ejecutarBorradoSelectivoPruebas()">Borrar lo seleccionado</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+async function ejecutarBorradoSelectivoPruebas(){
+  if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
+  const seleccion = BORRADO_SELECTIVO_OPCIONES.filter(o=>(document.getElementById('bs_'+o.key)||{}).checked).map(o=>o.key);
+  if(!seleccion.length){ toast('Marca al menos una opción para borrar.'); return; }
+  const texto = ((document.getElementById('bsConfirmaTexto')||{}).value || '').trim().toUpperCase();
+  if(texto !== 'BORRAR TODO'){ toast('Escribe exactamente "BORRAR TODO" para confirmar.'); return; }
+  const btn = document.getElementById('btnBorradoSelectivo');
+  const textoOriginal = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Borrando…'; }
+  try{
+    const promesas = [];
+    if(seleccion.includes('capturas_medi')) promesas.push(borrarTodasLasCapturasMedi());
+    if(seleccion.includes('checkin_rutas')) promesas.push(_rutasSync.save([]));
+    if(seleccion.includes('pipeline_ajustes')) promesas.push(_pipelineAjustesSync.save([]));
+    const resultados = await Promise.all(promesas);
+    if(seleccion.includes('checkin_rutas')) setCheckin(null);
+    const resumen = combinarResumenesBorrado(resultados);
+    closeModal();
+    if(resumen.fallidos > 0){
+      toast(`⚠️ Se borraron ${resumen.total - resumen.fallidos} de ${resumen.total} — ${resumen.fallidos} NO se pudieron borrar en la nube (permisos o falta de conexión). Vuelve a intentar.`, 9000);
+    } else {
+      toast('Listo — se borró la información de prueba seleccionada.', 6000);
+    }
+    renderMisCapturas();
+    if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+    try{ renderRuta(); renderPreplan(); renderCalendario(); }catch(e){}
+    try{ renderPipelineTabla(); }catch(e){}
+  }catch(e){
+    toast('⚠️ Hubo un problema al borrar: ' + e.message, 6500);
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
+  }
+}
+
+/* ---------- Reinicio de Daily News (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirBorrarNoticias(){
+  abrirConfirmarBorrado({
+    titulo: 'Borrar todo Daily News',
+    textoBoton: 'Borrar todo Daily News',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las publicaciones de Daily News (con sus fotos), de todo el equipo.</p>`,
+    alConfirmar: async () => _noticiasSync.save([]),
+    alTerminar: (resumen) => { if(!resumen || resumen.fallidos===0) toast('Listo — se borraron todas las publicaciones de Daily News.', 5000); renderNoticias(); },
+  });
+}
+
+/* ---------- Reinicio de Délico te escucha (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirBorrarEscucha(){
+  abrirConfirmarBorrado({
+    titulo: 'Borrar todo Délico te escucha',
+    textoBoton: 'Borrar todo',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todos los comentarios de Délico te escucha (con sus fotos), de todo el equipo.</p>`,
+    alConfirmar: async () => _escuchaSync.save([]),
+    alTerminar: (resumen) => { if(!resumen || resumen.fallidos===0) toast('Listo — se borró Délico te escucha.', 5000); renderEscucha(); },
+  });
+}
+
+/* ---------- Reinicio de Evaluaciones: Eval 360° + Auditorías (solo RESET_TOTAL_USUARIO) ---------- */
+function abrirBorrarEvaluaciones(){
+  abrirConfirmarBorrado({
+    titulo: 'Borrar todo Evaluaciones',
+    textoBoton: 'Borrar todo',
+    descripcionHtml: `<p style="font-size:12.5px; color:#8a2c22; margin:0;">Se borran todas las Evaluaciones 360° y Auditorías/supervisión de todo el equipo. No borra Onboarding (vive junto con las demás capturas de MEDI).</p>`,
+    alConfirmar: async () => combinarResumenesBorrado(await Promise.all([_eval360Sync.save([]), _auditoriasSync.save([])])),
+    alTerminar: (resumen) => { if(!resumen || resumen.fallidos===0) toast('Listo — se borraron Evaluación 360° y Auditorías.', 5000); renderEvaluaciones(); },
+  });
+}
+
+/* ---------- Bono: NO tiene botón de "Borrar todo" ----------
+   La pestaña de Bono no guarda capturas de los usuarios: es 100% un cálculo en vivo
+   a partir de cuotas, ventas y el "Escalón Bono" del Pipeline (o sea, es parte de "la PP").
+   No hay ningún registro capturado por el equipo que borrar aquí; por eso no existe
+   abrirBorrarBono() ni un botón asociado — se le explica esto a Ale en la entrega. */
+
+/* ---------- BOOT / NAV ---------- */
+/* ---------- ESTRUCTURA DE TABS: bloques funcionales x perfil x vista (escritorio/celular) ---------- */
+const TODOS_PERFILES = ['Embajador','Supervisor','Coordinador','Admin'];
+const NO_EMBAJADOR = ['Supervisor','Coordinador','Admin'];
+const ALL_TABS = [
+  {key:'inicio',        label:'Inicio',                          perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:null},
+  {key:'planeacion',    label:'Objetivos',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'planeacion'},
+  {key:'preplan',       label:'Preasignación de rutas',           perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'planeacion'},
+  {key:'ruta',          label:'Asignación de rutas',              perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'planeacion'},
+  {key:'calendario',    label:'Calendario',                       perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'planeacion'},
+  {key:'cartas',        label:'Cartas / materiales',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'planeacion'},
+  {key:'inventario',    label:'Inventario de materiales',         perfiles:['Admin'],      vista:{escritorio:true, celular:true}, bloque:'planeacion'},
+  {key:'catalogo',      label:'Catálogo de productos',            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'planeacion'},
+  {key:'captura',       label:'Captura MEDI',                     perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'ejecucion'},
+  {key:'monitoreo',     label:'Monitoreo tiempo real',             perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'ejecucion', disabled:true},
+  {key:'cumpventa',     label:'Cumplimiento de venta',             perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'distribucion',  label:'Cumplimiento de distribución',      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'cumpprioridades', label:'Prioridades y tareas',            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'bono',          label:'Bono',                              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'kpis',          label:'Kardex',                            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'reportes',      label:'Reportes del equipo',               perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
+  {key:'proxcaducar',  label:'Próximos a caducar',                perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:false}, bloque:'retro'},
+  {key:'vacaciones',    label:'Vacaciones',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'evaluaciones',  label:'Evaluaciones',                      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'noticias',      label:'Daily News',                        perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+  {key:'escucha',       label:'Délico te escucha',                 perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
+];
+const BLOQUE_LABEL = {planeacion:'Planeación', ejecucion:'Ejecución', retro:'Retroalimentación'};
+
+const VISTA_KEY = 'delico_odv_vista';
+function getVista(){
+  return localStorage.getItem(VISTA_KEY) || (window.innerWidth <= 820 ? 'celular' : 'escritorio');
+}
+function setVista(v){
+  localStorage.setItem(VISTA_KEY, v);
+  if(currentUser) boot(true);
+}
+function tabsVisiblesParaMi(){
+  const vista = getVista();
+  return ALL_TABS.filter(t => t.perfiles.includes(currentUser.perfil) && t.vista[vista]);
+}
+
+function boot(keepView){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('whoName').textContent = currentUser.nombre;
+  const badge = document.getElementById('whoPerfil');
+  badge.textContent = currentUser.perfil + ' · ' + currentUser.rol;
+  badge.className = 'perfil-badge badge-' + currentUser.perfil;
+  const btnMigrar = document.getElementById('btnMigrarFirebase');
+  if(btnMigrar) btnMigrar.classList.toggle('hidden', currentUser.perfil !== 'Admin');
+
+  const vista = getVista();
+  document.getElementById('vistaBtnEscritorio').classList.toggle('active', vista==='escritorio');
+  document.getElementById('vistaBtnCelular').classList.toggle('active', vista==='celular');
+
+  // secciones administrativas de Objetivos: ocultas para el perfil Embajador
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const esSupervisorObj = currentUser.perfil === 'Supervisor';
+  const supWrap = document.getElementById('filtroSupervisorWrap');
+  if(supWrap) supWrap.style.display = (esEmbajador || esSupervisorObj) ? 'none' : '';
+  const tareaAsignar = document.getElementById('tareaAsignarSeccion');
+  if(tareaAsignar) tareaAsignar.style.display = esEmbajador ? 'none' : '';
+  const tareasMisTitulo = document.getElementById('tareasMisTitulo');
+  if(tareasMisTitulo) tareasMisTitulo.style.display = esEmbajador ? '' : 'none';
+
+  // Objetivos: para Embajador, ya tiene sus tiendas asignadas — no tiene sentido filtrar por cadena
+  // ni por embajador(a), y "buscar tienda" se reemplaza por una lista desplegable de sus tiendas.
+  const objCadenaWrap = document.getElementById('objCadenaFiltroWrap');
+  if(objCadenaWrap) objCadenaWrap.style.display = esEmbajador ? 'none' : '';
+  const objEmbWrap = document.getElementById('objEmbajadorWrap');
+  if(objEmbWrap) objEmbWrap.style.display = esEmbajador ? 'none' : '';
+  const tiendaTextWrap = document.getElementById('tiendaSearchTextWrap');
+  if(tiendaTextWrap) tiendaTextWrap.style.display = esEmbajador ? 'none' : '';
+  const tiendaMultiWrap = document.getElementById('tiendaMultiWrap');
+  if(tiendaMultiWrap){ tiendaMultiWrap.classList.toggle('hidden', !esEmbajador); if(esEmbajador) poblarObjTiendaMulti(); }
+
+  // Cumplimiento y Distribución: para Embajador, ocultar filtros que no le aplican (ya solo ve su propia info).
+  ['cumpRegionWrap','cumpClusterWrap','cumpSupervisorWrap','cumpEmbajadorWrap','cumpTiendaSingleWrap','distRegionWrap','distClusterWrap','distSupervisorWrap','distEmbajadorWrap','distTiendaSingleWrap'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = esEmbajador ? 'none' : '';
+  });
+  ['cumpTiendaMultiWrap','distTiendaMultiWrap'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('hidden', !esEmbajador);
+  });
+  if(esEmbajador){ poblarCumpTiendaMulti(); poblarDistTiendaMulti(); }
+
+  // Calendario: para Embajador, solo tiene un supervisor (quien le asigna rutas) — ese filtro no aplica,
+  // únicamente le sirve filtrar por cadena.
+  const calSupWrap = document.getElementById('calFiltroSupervisorWrap');
+  if(calSupWrap) calSupWrap.style.display = (esEmbajador || currentUser.perfil==='Supervisor') ? 'none' : '';
+  const calClusterWrap = document.getElementById('calFiltroClusterWrap');
+  if(calClusterWrap) calClusterWrap.style.display = esEmbajador ? 'none' : '';
+
+  const nav = document.getElementById('tabsNav');
+  nav.innerHTML = '';
+  const tabs = tabsVisiblesParaMi();
+  let ultimoBloque = undefined;
+  const activePrev = keepView ? document.querySelector('.view.active') : null;
+  const prevKey = activePrev ? activePrev.id.replace('view-','') : null;
+  tabs.forEach(({key,label,bloque,disabled}, i) => {
+    if(bloque && bloque !== ultimoBloque){
+      const sep = document.createElement('span');
+      sep.className = 'bloque-sep bloque-' + bloque;
+      sep.textContent = BLOQUE_LABEL[bloque];
+      nav.appendChild(sep);
+    }
+    ultimoBloque = bloque;
+    const b = document.createElement('button');
+    b.textContent = label + (disabled ? ' 🔒' : '');
+    b.onclick = () => showView(key, b);
+    if(disabled) b.style.opacity = '0.6';
+    if(!keepView && i===0) b.classList.add('active');
+    nav.appendChild(b);
+  });
+  const targetKey = (prevKey && tabs.some(t=>t.key===prevKey)) ? prevKey : tabs[0].key;
+  showView(targetKey);
+
+  renderObjMesChips();
+  renderObjMetaTipoChips();
+  renderPlaneacion();
+  renderTareas();
+  renderMisCapturas();
+  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+
+  iniciarTodaLaSincronizacion();
+  /* Alerta automática de "ya llevas 14 minutos de descanso" — desactivada: confundía a las personas
+     porque podía dispararse minutos después de iniciar sesión si había un registro de entrada
+     abierto de antes. El módulo de Ley Silla se sigue usando normal (registrar entrada/salida
+     manual), solo ya no manda ese aviso automático. */
+}
+
+function toggleMobileNav(force){
+  const nav = document.getElementById('tabsNav');
+  const overlay = document.getElementById('navOverlay');
+  if(!nav || !overlay) return;
+  const open = typeof force === 'boolean' ? force : !nav.classList.contains('open');
+  nav.classList.toggle('open', open);
+  overlay.classList.toggle('open', open);
+}
+function showView(key, btnEl){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+key).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  if(btnEl) btnEl.classList.add('active');
+  else { const tabs = tabsVisiblesParaMi(); const idx = tabs.findIndex(t=>t.key===key); const btns = [...document.querySelectorAll('nav.tabs button')]; if(idx>=0 && btns[idx]) btns[idx].classList.add('active'); }
+  toggleMobileNav(false); // si el menú móvil estaba abierto, se cierra al elegir una sección
+  if(key==='reportes') renderReportes();
+  if(key==='proxcaducar') renderProxCaducar();
+  if(key==='captura'){ renderCheckinBar(); renderMisCapturas(); renderExtraTiendaBox(); }
+  if(key==='planeacion'){ renderPlaneacion(); renderTareas(); }
+  if(key==='ruta') renderRuta();
+  if(key==='noticias') renderNoticias();
+  if(key==='cumplimiento') renderCumplimiento();
+  if(key==='cumpventa') renderCumpVenta();
+  if(key==='cumpprioridades') renderCumpPrioridades();
+  if(key==='bono') renderBonoTab();
+  if(key==='preplan') renderPreplan();
+  if(key==='vacaciones') renderVacaciones();
+  if(key==='inicio') renderInicio();
+  if(key==='calendario') renderCalendario();
+  if(key==='cartas') renderCartas();
+  if(key==='inventario') renderInventario();
+  if(key==='kpis') renderKpis();
+  if(key==='distribucion') renderDistribucion();
+  if(key==='auditoria') renderAuditoria();
+  if(key==='eval360') renderEval360();
+  if(key==='catalogo') renderCatalogo();
+  if(key==='escucha') renderEscucha();
+  if(key==='evaluaciones') renderEvaluaciones();
+}
+
+/* ---------- PLANEACIÓN ---------- */
+/* ---------- Filtro de MES en Objetivos: selección múltiple (chips) con Todo/Ninguno ---------- */
+let objFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
+function mesesDisponiblesObj(){ return APP_DATA.meses_disponibles || []; }
+function asegurarObjFiltroMesesInicial(){
+  if(objFiltroMeses === null) objFiltroMeses = new Set(mesesConDatoReal());
+}
+function objMesTodo(){ objFiltroMeses = new Set(mesesDisponiblesObj()); renderObjMesChips(); renderPlaneacion(); }
+function objMesNinguno(){ objFiltroMeses = new Set(); renderObjMesChips(); renderPlaneacion(); }
+function toggleObjFiltroMes(m){
+  asegurarObjFiltroMesesInicial();
+  if(objFiltroMeses.has(m)) objFiltroMeses.delete(m); else objFiltroMeses.add(m);
+  renderObjMesChips(); renderPlaneacion();
+}
+/* Mes(es) ahora es una lista desplegable (checklist) — misma lógica de datos de antes, solo cambia la UI. */
+function renderObjMesChips(){
+  const panel = document.getElementById('objMesDdPanel');
+  const btn = document.getElementById('objMesDdBtn');
+  if(!panel || !btn) return;
+  asegurarObjFiltroMesesInicial();
+  const meses = mesesDisponiblesObj();
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objMesTodo()">Todo</button><button type="button" onclick="objMesNinguno()">Ninguno</button></div>`
+    + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${objFiltroMeses.has(m)?'checked':''} onchange="toggleObjFiltroMes('${m}')"> ${m}</label>`).join('');
+  const sel = meses.filter(m=>objFiltroMeses.has(m));
+  btn.textContent = sel.length===0 ? 'Ninguno seleccionado' : sel.length===meses.length ? 'Todos los meses' : sel.join(', ');
+}
+/* ---------- Dropdown genérico (Mes(es) / Tienda(s) en Objetivos) — abrir/cerrar + clic afuera cierra ---------- */
+function toggleObjDropdown(cual){
+  const ids = ['objMesDd','objTiendaDd','objCadenaDd','objFamiliaDd','objCodigoDd','cvMesDd','cvTiendaDd','cvCadenaDd','cpMesDd','cpTiendaDd','distMesDd','ppCadenaDd','ppSupervisorDd','ppFamiliaDd','ppCodigoDd','cumpMesDd','kdxMesDd','repMesDd','evaMesDd','pcCadenaDd','pcRegionDd','pcSupervisorDd','pcFamiliaDd','pcCodigoDd','pcMesDd'];
+  ids.forEach(id=>{
+    const p = document.getElementById(id+'Panel');
+    if(!p) return;
+    if(id===cual) p.classList.toggle('hidden');
+    else p.classList.add('hidden');
+  });
+}
+document.addEventListener('click', (e)=>{
+  ['objMesDdRoot','objTiendaDdRoot','objCadenaDdRoot','objFamiliaDdRoot','objCodigoDdRoot','cvMesDdRoot','cvTiendaDdRoot','cvCadenaDdRoot','cpMesDdRoot','cpTiendaDdRoot','distMesDdRoot','ppCadenaDdRoot','ppSupervisorDdRoot','ppFamiliaDdRoot','ppCodigoDdRoot','cumpMesDdRoot','kdxMesDdRoot','repMesDdRoot','evaMesDdRoot','pcCadenaDdRoot','pcRegionDdRoot','pcSupervisorDdRoot','pcFamiliaDdRoot','pcCodigoDdRoot','pcMesDdRoot'].forEach(rootId=>{
+    const root = document.getElementById(rootId);
+    if(root && !root.contains(e.target)){
+      const panel = root.querySelector('.tienda-dd-panel');
+      if(panel) panel.classList.add('hidden');
+    }
+  });
 });
+/* Tienda(s) — dropdown checklist sobre el <select multiple> oculto que ya usa storesScopeObjetivos() */
+function renderObjTiendaDropdown(){
+  const panel = document.getElementById('objTiendaDdPanel');
+  const btn = document.getElementById('objTiendaDdBtn');
+  const sel = document.getElementById('objTiendaMulti');
+  if(!panel || !btn || !sel) return;
+  const opciones = [...sel.options];
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objTiendaTodasDD(true)">Todo</button><button type="button" onclick="objTiendaTodasDD(false)">Ninguno</button></div>`
+    + (opciones.map(o=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${o.value.replace(/"/g,'&quot;')}" ${o.selected?'checked':''} onchange="onObjTiendaDdCheck(this)"> ${o.textContent}</label>`).join('') || `<div style="padding:8px; font-size:12px; color:var(--ink-soft);">Sin tiendas.</div>`);
+  const marcadas = opciones.filter(o=>o.selected);
+  btn.textContent = (marcadas.length===0 || marcadas.length===opciones.length) ? 'Todas' : (marcadas.length + ' seleccionada' + (marcadas.length>1?'s':''));
+}
+function onObjTiendaDdCheck(chk){
+  const sel = document.getElementById('objTiendaMulti');
+  const val = chk.getAttribute('data-val');
+  const opt = [...sel.options].find(o=>o.value===val);
+  if(opt) opt.selected = chk.checked;
+  onObjTiendaMultiChange();
+  renderObjTiendaDropdown();
+}
+function objTiendaTodasDD(marcar){
+  const sel = document.getElementById('objTiendaMulti');
+  [...sel.options].forEach(o=>o.selected=marcar);
+  onObjTiendaMultiChange();
+  renderObjTiendaDropdown();
+}
+/* semanas (numero ISO) que pertenecen a los meses actualmente elegidos, segun bi_meta.semanas_cuota_<mes>_2026 */
+function semanasDeMesesSeleccionados(){
+  asegurarObjFiltroMesesInicial();
+  const set = new Set();
+  [...objFiltroMeses].forEach(m => semanasCuotaMes(m).forEach(s=>set.add(s)));
+  return set;
+}
+/* ---------- Toggle de META en Objetivos: Cuota (para sueldo) vs Escalón Bono ---------- */
+let objMetaTipo = 'cuota'; // 'cuota' | 'escalon'
+function metaUni(row){ return objMetaTipo==='escalon' ? (row.escalon_uni ?? null) : (row.cuota_uni ?? 0); }
+function metaPesos(row){ return objMetaTipo==='escalon' ? (row.escalon_pesos ?? null) : (row.cuota_pesos ?? 0); }
+/* SKU (ventas_cuota_sku) trae la meta mensual con otros nombres de campo que las filas de cumplimiento_semanal */
+/* Meta / real por SKU (ventas_cuota_sku) según el mes: Agosto = cuota_uni/real_uni, Septiembre = *_sep_*, Octubre = *_oct_* (real de oct aún no cargado) */
+function skuMetaMes(r, mes, tipo){
+  if(mes==='Octubre') return tipo==='escalon' ? (r.escalon_oct_uni ?? r.cuota_oct_uni ?? 0) : (r.cuota_oct_uni ?? 0);
+  if(mes==='Septiembre') return tipo==='escalon' ? (r.escalon_sep_uni ?? r.cuota_sep_uni ?? 0) : (r.cuota_sep_uni ?? 0);
+  return r.cuota_uni ?? 0;
+}
+function skuRealMes(r, mes){
+  if(mes==='Octubre') return r.real_oct_uni ?? 0;
+  if(mes==='Septiembre') return r.real_sep_uni ?? 0;
+  return r.real_uni ?? 0;
+}
+/* Meses con venta real cargada (por defecto los filtros de mes arrancan con estos; los demás se pueden activar a mano) */
+function mesesConDatoReal(){
+  const todos = mesesDisponiblesObj();
+  const conDato = new Set();
+  (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{ if((r.real_pesos||0)>0 || (r.real_uni||0)>0) conDato.add(r.semana); });
+  const out = todos.filter(m=>semanasCuotaMes(m).some(sm=>conDato.has(sm)));
+  return out.length ? out : todos;
+}
+function metaUniSku(row){ asegurarObjFiltroMesesInicial(); return [...objFiltroMeses].reduce((a,m)=>a+skuMetaMes(row,m,objMetaTipo),0); }
+function sumMetaUni(rows){ return rows.reduce((a,r)=>a+(metaUni(r)||0),0); }
+function sumMetaPesos(rows){ return rows.reduce((a,r)=>a+(metaPesos(r)||0),0); }
+function setObjMetaTipo(t){ objMetaTipo = t; renderObjMetaTipoChips(); renderPlaneacion(); }
+function renderObjMetaTipoChips(){
+  const el = document.getElementById('objMetaTipoWrap');
+  if(!el) return;
+  const chip = (label, val, activo) => `<button type="button" onclick="setObjMetaTipo('${val}')" style="padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  el.innerHTML = chip('Cuota (para sueldo)', 'cuota', objMetaTipo==='cuota') + chip('Escalón Bono', 'escalon', objMetaTipo==='escalon');
+  const nota = document.getElementById('objMetaTipoNota');
+  if(nota) nota.textContent = objMetaTipo==='escalon'
+    ? 'Comparando contra la meta más alta que activa el Bono "Valor al Esfuerzo". Solo existe para los meses/semanas donde ya se cargó el escalón (por ahora, septiembre).'
+    : 'Comparando contra la cuota base (la que el equipo necesita cubrir para que sea rentable/sueldo).';
+}
+function populateCadenaSelect(){
+  const sel = document.getElementById('cadenaSelect');
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
+  cadenas.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  sel.onchange = renderPlaneacion;
+  document.getElementById('tiendaSearch').oninput = renderPlaneacion;
+}
+/* ---------- Filtro de cadena en Objetivos: lista desplegable de selección múltiple, auto-aplica (sin botón Filtrar) ---------- */
+let objFiltroCadenas = new Set(); // vacío = todas
+function renderObjCadenaChips(){
+  const btn = document.getElementById('objCadenaDdBtn'), panel = document.getElementById('objCadenaDdPanel');
+  if(!btn || !panel) return;
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
+  btn.textContent = objFiltroCadenas.has('__ninguno__') ? 'Ninguna' : (objFiltroCadenas.size===0 ? 'Todas' : `${objFiltroCadenas.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objCadenaTodasDD(true)">Todo</button><button type="button" onclick="objCadenaTodasDD(false)">Ninguno</button></div>`
+    + cadenas.map(c=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${c.replace(/"/g,'&quot;')}" ${objFiltroCadenas.size===0 || objFiltroCadenas.has(c) ? 'checked':''} onchange="onObjCadenaDdCheck(this)"> ${c}</label>`).join('');
+}
+function objCadenaTodasDD(marcar){
+  objFiltroCadenas = marcar ? new Set() : new Set(['__ninguno__']);
+  renderObjCadenaChips();
+  renderPlaneacion();
+}
+function onObjCadenaDdCheck(chk){
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))];
+  if(objFiltroCadenas.size===0){ objFiltroCadenas = new Set(cadenas); }
+  objFiltroCadenas.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) objFiltroCadenas.add(val); else objFiltroCadenas.delete(val);
+  if(objFiltroCadenas.size===cadenas.length) objFiltroCadenas = new Set();
+  if(objFiltroCadenas.size===0 && !chk.checked) objFiltroCadenas = new Set(['__ninguno__']);
+  renderObjCadenaChips();
+  renderPlaneacion();
+}
+/* ---------- Filtro de familia en Objetivos: lista desplegable de selección múltiple, auto-aplica ---------- */
+let objFiltroFamilias = new Set(); // vacío = todas
+function renderObjFamiliaChips(){
+  const btn = document.getElementById('objFamiliaDdBtn'), panel = document.getElementById('objFamiliaDdPanel');
+  if(!btn || !panel) return;
+  const familias = familiasProducto().sort();
+  btn.textContent = objFiltroFamilias.has('__ninguno__') ? 'Ninguna' : (objFiltroFamilias.size===0 ? 'Todas' : `${objFiltroFamilias.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objFamiliaTodasDD(true)">Todo</button><button type="button" onclick="objFamiliaTodasDD(false)">Ninguno</button></div>`
+    + familias.map(f=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${f.replace(/"/g,'&quot;')}" ${objFiltroFamilias.size===0 || objFiltroFamilias.has(f) ? 'checked':''} onchange="onObjFamiliaDdCheck(this)"> ${f}</label>`).join('');
+}
+function objFamiliaTodasDD(marcar){
+  objFiltroFamilias = marcar ? new Set() : new Set(['__ninguno__']);
+  renderObjFamiliaChips();
+  renderPlaneacion();
+}
+function onObjFamiliaDdCheck(chk){
+  const familias = familiasProducto();
+  if(objFiltroFamilias.size===0){ objFiltroFamilias = new Set(familias); }
+  objFiltroFamilias.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) objFiltroFamilias.add(val); else objFiltroFamilias.delete(val);
+  if(objFiltroFamilias.size===familias.length) objFiltroFamilias = new Set();
+  if(objFiltroFamilias.size===0 && !chk.checked) objFiltroFamilias = new Set(['__ninguno__']);
+  renderObjFamiliaChips();
+  renderPlaneacion();
+}
+/* ---------- Filtro de código (SKU/producto Délico) en Objetivos: checklist desplegable, mismo patrón que Tienda(s) ---------- */
+let objFiltroCodigos = new Set(); // vacío = todos
+function renderObjCodigoDropdown(){
+  const panel = document.getElementById('objCodigoDdPanel');
+  const btn = document.getElementById('objCodigoDdBtn');
+  if(!panel || !btn) return;
+  const productos = [...APP_DATA.catalogo_productos].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="objCodigoTodasDD(true)">Todo</button><button type="button" onclick="objCodigoTodasDD(false)">Ninguno</button></div>`
+    + productos.map(p=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${p.clave}" ${objFiltroCodigos.size===0 || objFiltroCodigos.has(p.clave) ? 'checked':''} onchange="onObjCodigoDdCheck(this)"> ${p.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${p.clave})</span></label>`).join('');
+  btn.textContent = (objFiltroCodigos.size===0 || objFiltroCodigos.size===productos.length) ? 'Todos' : (objFiltroCodigos.size + ' seleccionado' + (objFiltroCodigos.size>1?'s':''));
+}
+function onObjCodigoDdCheck(chk){
+  const val = chk.getAttribute('data-val');
+  const productos = APP_DATA.catalogo_productos;
+  if(objFiltroCodigos.size===0){
+    // venía en "todos marcados" implícito — al desmarcar uno, se vuelve selección explícita del resto
+    objFiltroCodigos = new Set(productos.map(p=>p.clave));
+  }
+  if(chk.checked) objFiltroCodigos.add(val); else objFiltroCodigos.delete(val);
+  if(objFiltroCodigos.size===productos.length) objFiltroCodigos.clear(); // todos marcados = sin filtro
+  renderObjCodigoDropdown();
+  renderPlaneacion();
+}
+function objCodigoTodasDD(marcar){
+  objFiltroCodigos = marcar ? new Set() : new Set(['__ninguno__']); // set imposible = no matchea nada = "Ninguno"
+  renderObjCodigoDropdown();
+  renderPlaneacion();
+}
+/* ---------- Filtro de semana en Objetivos: selección múltiple (chips) ---------- */
+let objFiltroSemanas = new Set(); // vacío = todas (mes a la fecha)
+function getObjSemanasSeleccionadas(){ return []; } // Objetivos ya no filtra por semana individual — siempre usa el/los mes(es) completo(s)
+function renderObjSemanaChips(){
+  const el = document.getElementById('objSemanaWrap');
+  if(!el) return;
+  const semanasMes = semanasDeMesesSeleccionados();
+  const semanas = [...new Set((APP_DATA.cumplimiento_semanal||[]).map(c=>c.semana))].filter(s=>semanasMes.has(s)).sort((a,b)=>a-b);
+  // si el mes seleccionado cambio y una semana marcada ya no aplica, se destilra sola
+  [...objFiltroSemanas].forEach(s=>{ if(!semanasMes.has(s)) objFiltroSemanas.delete(s); });
+  const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  let html = chip('Todas (mes a la fecha)', objFiltroSemanas.size===0, 'toggleObjFiltroSemana(null)');
+  html += semanas.map(s=> chip('Sem '+s, objFiltroSemanas.has(s), `toggleObjFiltroSemana(${s})`)).join('');
+  el.innerHTML = html;
+}
+function toggleObjFiltroSemana(semana){
+  if(semana===null){ objFiltroSemanas.clear(); }
+  else if(objFiltroSemanas.has(semana)){ objFiltroSemanas.delete(semana); }
+  else{ objFiltroSemanas.add(semana); }
+  renderObjSemanaChips();
+  renderPlaneacion();
+}
+/* ---------- Filtro de tienda en Objetivos: autocompletar + selección de una o varias ---------- */
+let objFiltroTiendas = new Set(); // vacío = sin selección puntual (usa el texto escrito como filtro libre)
+function poblarTiendaSearchList(){
+  const dl = document.getElementById('tiendaSearchList');
+  if(!dl) return;
+  const nombres = [...new Set(storesScopeParaMi().map(s=>s.tienda))].sort();
+  dl.innerHTML = nombres.map(n=>`<option value="${n}"></option>`).join('');
+}
+function agregarTiendaFiltro(){
+  const input = document.getElementById('tiendaSearch');
+  if(!input) return;
+  const val = input.value.trim();
+  if(!val) return;
+  const match = storesScopeParaMi().find(s=> s.tienda.toLowerCase()===val.toLowerCase());
+  if(!match){ toast('Elige una tienda de la lista de sugerencias'); return; }
+  objFiltroTiendas.add(match.tienda);
+  input.value = '';
+  renderTiendaFiltroChips();
+  renderPlaneacion();
+}
+function quitarTiendaFiltro(nombre){
+  objFiltroTiendas.delete(nombre);
+  renderTiendaFiltroChips();
+  renderPlaneacion();
+}
+function renderTiendaFiltroChips(){
+  const el = document.getElementById('tiendaFiltroChips');
+  if(!el) return;
+  el.innerHTML = [...objFiltroTiendas].map(n=>`<span style="display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; background:var(--brand-dark); color:#fff;">${n}<button type="button" onclick="quitarTiendaFiltro('${n.replace(/'/g,"\\'")}')" style="background:none; border:none; color:#fff; cursor:pointer; font-size:13px; line-height:1; padding:2px;">✕</button></span>`).join('');
+}
+function restablecerFiltrosObjetivos(){
+  document.getElementById('objSupervisor').value = '';
+  document.getElementById('objEmbajador').value = '';
+  const objTiendaMultiSel = document.getElementById('objTiendaMulti');
+  if(objTiendaMultiSel) [...objTiendaMultiSel.options].forEach(o=>o.selected=false);
+  objFiltroTiendas.clear();
+  objFiltroCadenas.clear();
+  objFiltroFamilias.clear();
+  objFiltroCodigos.clear();
+  objFiltroMeses = new Set(mesesConDatoReal());
+  renderObjMesChips();
+  renderObjTiendaDropdown();
+  renderObjCadenaChips();
+  renderObjFamiliaChips();
+  renderObjCodigoDropdown();
+  objMetaTipo = 'cuota';
+  renderObjMetaTipoChips();
+  toast('Filtros de Objetivos restablecidos');
+  renderPlaneacion();
+}
+function renderPlaneacion(){
+  poblarFiltrosObjetivos();
+  const note = document.getElementById('planeacionScopeNote');
+  if(currentUser.perfil === 'Embajador'){
+    const extra = tiendasExtraAprobadasParaMi();
+    if(note) note.textContent = extra.length
+      ? `Mostrando solo tus tiendas asignadas + ${extra.length} tienda(s) adicional(es) aprobada(s) temporalmente.`
+      : 'Mostrando solo las tiendas asignadas a tu usuario.';
+  } else if(note) note.textContent = '';
+  const semanasEfectivas = [...semanasDeMesesSeleccionados()].map(String);
+  const metaLabel = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const etiquetaSem = semanasEfectivas.length ? (objFiltroMeses && objFiltroMeses.size ? [...objFiltroMeses].join(', ') : 'mes(es) elegido(s)') : 'sin semanas en el periodo elegido';
+  document.getElementById('kpiUdsLabel').textContent = `${metaLabel} ${etiquetaSem} (piezas)`;
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
+  renderPrioridades();
+  renderExtraTiendaBox();
+  // kpiUds y kpiTiendas se calculan dentro de renderAnalisisObjetivos (a nivel SKU en scope),
+  // así sí respetan los filtros de cadena, familia y código — antes se calculaban aquí desde
+  // cumplimiento_semanal, que no tiene columna de código/familia, por eso esos filtros no
+  // se reflejaban en los cuadros de resumen aunque sí afectaban las tablas de abajo.
+  renderAnalisisObjetivos();
+}
+
+/* ---------- OTRA TIENDA (excepción temporal, ej. vacaciones/cobertura) ---------- */
+const EXTRA_TIENDAS_KEY = 'delico_odv_extra_tiendas_v1';
+function getExtraTiendas(){ return _extraTiendasSync.get(); }
+function saveExtraTiendas(arr){ _extraTiendasSync.save(arr); }
+function tiendasExtraAprobadasParaMi(){
+  return getExtraTiendas().filter(e => e.usuario===currentUser.usuario && e.estado==='aprobada').map(e=>e.tienda);
+}
+/* El acceso a otra tienda ya no se pide manualmente: se detecta solo cuando alguien hace check-in
+   (ver hacerCheckinOtraTienda/confirmarCheckinFueraRuta en Captura MEDI) y queda aprobado al instante,
+   con una incidencia automática — este bloque es nada más el registro de esas incidencias para que
+   Supervisor/Coordinador/Admin las vean. */
+function renderExtraTiendaBox(){
+  const box = document.getElementById('extraTiendaBox');
+  if(!box) return;
+  if(!['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)){ box.innerHTML=''; return; }
+  const all = getExtraTiendas().filter(e=>e.auto);
+  const propias = all.filter(e => currentUser.perfil!=='Supervisor' || mismaPersona(supervisorDePersona(e.persona), currentUser.nombre));
+  const ordenadas = [...propias].sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
+  box.innerHTML = ordenadas.length ? `<div class="card" style="margin-bottom:14px;">
+    <div class="lbl" style="font-weight:700; margin-bottom:8px;">⚠️ Visitas fuera de ruta (check-in automático, con motivo)</div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      ${ordenadas.slice(0,20).map(e=>`<div style="font-size:12.5px; border-bottom:1px solid #d8dba0; padding:6px 0;"><b>${e.persona}</b> → ${e.tienda}${e.cadena?' ('+e.cadena+')':''}${e.motivo?' · '+e.motivo:''} <small style="color:var(--ink-soft);">${e.fecha}</small></div>`).join('')}
+    </div>
+  </div>` : '';
+}
+function renderVisitasPorCadena(){
+  const box = document.getElementById('visitasPorCadenaCard');
+  if(!box) return;
+  const storesScope = storesScopeObjetivos();
+  const visitas = visitasPorTienda(storesScope);
+  const porCadena = {};
+  storesScope.forEach(s=>{
+    const v = visitas.get(s.cadena+'|'+s.num_tienda) || {objetivo:0, reales:0};
+    (porCadena[s.cadena] = porCadena[s.cadena] || {objetivo:0, reales:0});
+    porCadena[s.cadena].objetivo += v.objetivo;
+    porCadena[s.cadena].reales += v.reales;
+  });
+  const cadenas = Object.keys(porCadena).sort((a,b)=> (porCadena[b].objetivo) - (porCadena[a].objetivo));
+  const totObj = cadenas.reduce((a,c)=>a+porCadena[c].objetivo,0);
+  const totReal = cadenas.reduce((a,c)=>a+porCadena[c].reales,0);
+  const pctGlobal = totObj ? Math.round(totReal/totObj*100) : null;
+  window._visitasCadenaExport = cadenas.map(c=>({cadena:c, objetivo:porCadena[c].objetivo, reales:porCadena[c].reales, pct: porCadena[c].objetivo?Math.round(porCadena[c].reales/porCadena[c].objetivo*100):null}));
+
+  if(!totObj){
+    box.innerHTML = `<div style="font-size:12px; color:var(--ink-soft); margin-bottom:8px;">Sin visitas objetivo calculadas para este filtro todavía.</div>
+      <p style="font-size:13px; color:var(--ink-soft); margin:0;">Esto depende de que las tiendas tengan "visitas requeridas por semana" y de que haya ruta armada en "Asignación de Ruta".</p>
+      <div style="text-align:right; margin-top:8px;"><button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarVisitasCadena()">⬇ Excel</button></div>`;
+    return;
+  }
+  const colores = ['var(--v-s1)','var(--v-s2)','var(--v-s3)','var(--v-s4)'];
+  const desviaciones = window._visitasCadenaExport.filter(c=>c.pct!==null && c.pct<80).sort((a,b)=>a.pct-b.pct);
+  box.innerHTML = `<div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;"><b>Resumen:</b> ${fmtNum(totReal)} de ${fmtNum(totObj)} visitas objetivo cumplidas — ${pctGlobal!==null?pctGlobal+'%':'—'} de participación global.</div>
+    <div class="viz-root">
+    ${cadenas.map((c,i)=>{
+      const o = porCadena[c];
+      const pct = o.objetivo ? Math.round(o.reales/o.objetivo*100) : 0;
+      const width = Math.min(100, pct);
+      return `<div class="viz-bar-row">
+        <div class="viz-bar-label">${c}</div>
+        <div class="viz-bar-track"><div class="viz-bar-fill" style="width:${width}%; background:${pct<80?'var(--bad)':pct<100?'var(--warn)':colores[i%4]};"></div></div>
+        <div class="viz-bar-value">${o.reales}/${o.objetivo} · ${pct}%</div>
+      </div>`;
+    }).join('')}
+    </div>
+    ${desviaciones.length ? `<div style="margin-top:12px; background:var(--bad-soft); border-radius:8px; padding:8px 10px; font-size:12px;"><b>🚩 Principales desviaciones:</b> ${desviaciones.slice(0,3).map(d=>`${d.cadena} (${d.pct}%)`).join(', ')}.</div>` : ''}
+    <div style="text-align:right; margin-top:10px;"><button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarVisitasCadena()">⬇ Excel</button></div>`;
+}
+function exportarVisitasCadena(){
+  const d = window._visitasCadenaExport || [];
+  exportarCSV(`visitas_objetivo_vs_cumplidas_${todayISO()}.csv`, ['Cadena','Visitas objetivo','Visitas cumplidas','% Participación'], d.map(c=>[c.cadena, c.objetivo, c.reales, c.pct]));
+}
+let prioridadFiltroCadenas = new Set(); // vacío = todas
+function renderPrioridadCadenaPick(){
+  const el = document.getElementById('prioridadCadenaPick');
+  if(!el) return;
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
+  const chip = (label, activo, onclick) => `<button type="button" onclick="${onclick}" style="padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  let html = chip('Todas', prioridadFiltroCadenas.size===0, 'toggleFiltroPrioridadCadena(null)');
+  html += cadenas.map(c=> chip(c, prioridadFiltroCadenas.has(c), `toggleFiltroPrioridadCadena('${c}')`)).join('');
+  el.innerHTML = html;
+}
+function toggleFiltroPrioridadCadena(cadena){
+  if(cadena===null){ prioridadFiltroCadenas.clear(); }
+  else if(prioridadFiltroCadenas.has(cadena)){ prioridadFiltroCadenas.delete(cadena); }
+  else{ prioridadFiltroCadenas.add(cadena); }
+  renderPrioridadCadenaPick();
+  renderPrioridades();
+}
+function poblarPrioridadUsuariosPick(){
+  const sel = document.getElementById('prioridadUsuariosPick');
+  if(!sel || sel.options.length) return;
+  APP_DATA.equipo.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    const o = document.createElement('option'); o.value = u.usuario; o.textContent = nombreCorto(u.nombre)+' · '+u.rol; sel.appendChild(o);
+  });
+}
+function agregarPrioridad(){
+  const input = document.getElementById('prioridadNueva');
+  const val = input.value.trim();
+  if(!val) return;
+  const marcador = (document.getElementById('prioridadMarcador')||{}).value?.trim() || '';
+  const requiereFoto = document.getElementById('prioridadReqFoto').checked;
+  const requiereConfirm = document.getElementById('prioridadReqConfirm').checked;
+  const desde = document.getElementById('prioridadDesde').value || todayISO();
+  const hasta = document.getElementById('prioridadHasta').value || '';
+  const cadenas = [...prioridadFiltroCadenas]; // vacío = aplica a todas las cadenas
+  const usuariosSel = document.getElementById('prioridadUsuariosPick');
+  const usuarios = usuariosSel ? [...usuariosSel.selectedOptions].map(o=>o.value) : []; // vacío = para todo el equipo que aplique por cadena
+  const arr = getPrioridades();
+  arr.unshift({id: uid(), texto: val, marcador, fecha: todayISO(), autor: currentUser.nombre, requiere_foto: requiereFoto, requiere_confirmacion: requiereConfirm, desde, hasta, cadenas, usuarios});
+  savePrioridades(arr);
+  input.value = '';
+  document.getElementById('prioridadMarcador').value = '';
+  document.getElementById('prioridadDesde').value = '';
+  document.getElementById('prioridadHasta').value = '';
+  document.getElementById('prioridadReqFoto').checked = false;
+  document.getElementById('prioridadReqConfirm').checked = false;
+  if(usuariosSel) [...usuariosSel.options].forEach(o=>o.selected=false);
+  toast('Prioridad agregada' + (cadenas.length ? ` para ${cadenas.join(', ')}` : ' para todas las cadenas') + (usuarios.length ? `, para ${usuarios.length} persona(s) específica(s)` : ''));
+  renderPrioridades();
+}
+function quitarPrioridad(id){
+  savePrioridades(getPrioridades().filter(p=>p.id!==id));
+  renderPrioridades();
+}
+function visitasEnVentanaParaPrioridad(p){
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const desde = p.desde || '0000-01-01';
+  const hasta = p.hasta || '9999-12-31';
+  const entradas = getCapturas().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
+    && fechaLocal(c.fecha_registro)>=desde && fechaLocal(c.fecha_registro)<=hasta
+    && (!p.cadenas || !p.cadenas.length || p.cadenas.includes(c.cadena)));
+  return new Set(entradas.map(c=>c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda)).size;
+}
+function renderPrioridades(){
+  const box = document.getElementById('prioridadView');
+  const editWrap = document.getElementById('prioridadEditWrap');
+  if(!box) return;
+  renderPrioridadCadenaPick();
+  const canEdit = ['Admin','Coordinador'].includes(currentUser.perfil);
+  if(editWrap) editWrap.classList.toggle('hidden', !canEdit);
+  if(canEdit) poblarPrioridadUsuariosPick();
+  let arr = getPrioridades();
+  if(prioridadFiltroCadenas.size){
+    arr = arr.filter(p => !p.cadenas || !p.cadenas.length || p.cadenas.some(c=>prioridadFiltroCadenas.has(c)));
+  }
+  if(currentUser.perfil === 'Embajador'){
+    // Solo prioridades para todo el equipo (sin persona específica) o asignadas puntualmente a esta persona.
+    arr = arr.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
+  }
+  const registros = getCumplimientosPrioridad();
+  const conRequisito = arr.filter(p=>p.requiere_foto||p.requiere_confirmacion);
+  const conComentarios = [];
+  window._prioridadesExport = arr.map(p=>{
+    const ejecs = registros.filter(r=>r.prioridad_id===p.id);
+    const visitasVentana = (p.requiere_foto||p.requiere_confirmacion) ? visitasEnVentanaParaPrioridad(p) : 0;
+    const pctCobertura = visitasVentana ? Math.round(ejecs.length/visitasVentana*100) : null;
+    ejecs.forEach(e=>{ if(e.comentario) conComentarios.push({prioridad:p.texto, persona:e.persona, tienda:e.tienda, comentario:e.comentario}); });
+    return {...p, ejecuciones: ejecs.length, visitasVentana, pctCobertura};
+  });
+  const resumenBreve = document.getElementById('prioridadResumenBreve');
+  if(resumenBreve){
+    resumenBreve.textContent = `${arr.length} prioridad(es) vigente(s) en este filtro · ${conRequisito.length} con seguimiento (foto/confirmación) · ${conComentarios.length} comentario(s) registrado(s) en campo.`;
+  }
+  box.innerHTML = window._prioridadesExport.length
+    ? window._prioridadesExport.map(p => `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid #d8dba0;">
+        <span style="font-size:13.5px;"><b>${p.texto}</b><br><small style="color:var(--ink-soft);">${p.fecha}${p.autor ? ' · ' + p.autor : ''}${p.desde?` · vigente ${p.desde}${p.hasta?' al '+p.hasta:''}`:''}${p.cadenas&&p.cadenas.length?' · '+p.cadenas.join(', '):' · todas las cadenas'}</small><br>
+        ${p.marcador?`<span style="background:var(--v-s2); color:#3a3a1c; border-radius:6px; padding:1px 6px; font-size:10px; font-weight:700; margin-top:3px; display:inline-block;">🏷 ${p.marcador}</span> `:''}
+        ${p.requiere_foto?' <span style="background:var(--lilac-soft); color:var(--lilac-dark); border-radius:6px; padding:1px 6px; font-size:10px; font-weight:700;">📷 foto</span>':''}
+        ${p.requiere_confirmacion?' <span style="background:var(--brand-soft); color:var(--brand-dark); border-radius:6px; padding:1px 6px; font-size:10px; font-weight:700;">✔ confirmación</span>':''}
+        ${(p.requiere_foto||p.requiere_confirmacion)?`<div style="margin-top:5px; font-size:11px; color:var(--ink-soft);">Ejecutada ${p.ejecuciones} vez${p.ejecuciones===1?'':'es'}${p.pctCobertura!==null?` · % cobertura vs. visitas en su ventana: <b style="color:${p.pctCobertura<50?'var(--bad)':p.pctCobertura<80?'var(--warn)':'var(--good)'};">${p.pctCobertura}%</b>`:''}</div>`:''}
+        </span>
+        ${canEdit ? `<button onclick="quitarPrioridad('${p.id}')" style="background:none; border:none; color:var(--bad); font-weight:700; cursor:pointer; font-size:14px; line-height:1; padding:0 4px; flex-shrink:0;">✕</button>` : ''}
+      </div>`).join('')
+    : `<p style="font-size:13px; color:var(--ink-soft); margin:0;">Aún no se han definido prioridades para este filtro.${canEdit ? ' Agrega la primera abajo.' : ''}</p>`;
+  if(conComentarios.length){
+    box.innerHTML += `<div style="margin-top:12px; background:var(--brand-soft); border-radius:8px; padding:10px 12px;">
+      <div style="font-weight:700; font-size:12px; color:var(--brand-dark); margin-bottom:6px;">💬 Insights — comentarios de campo</div>
+      ${conComentarios.slice(0,6).map(c=>`<div style="font-size:12px; margin-bottom:4px;"><b>${c.prioridad}</b> — ${c.comentario} <span style="color:var(--ink-soft);">(${nombreCorto(c.persona)}${c.tienda?', '+c.tienda:''})</span></div>`).join('')}
+    </div>`;
+  }
+}
+function exportarPrioridades(){
+  const d = window._prioridadesExport || [];
+  exportarCSV(`prioridades_${todayISO()}.csv`, ['Texto','Marcador','Cadenas','Vigente desde','Vigente hasta','Requiere foto','Requiere confirmación','Ejecuciones','% Cobertura'],
+    d.map(p=>[p.texto, p.marcador||'', (p.cadenas&&p.cadenas.length)?p.cadenas.join('; '):'Todas', p.desde||'', p.hasta||'', p.requiere_foto?'Sí':'No', p.requiere_confirmacion?'Sí':'No', p.ejecuciones, p.pctCobertura??'']));
+}
+/* ---------- Cumplimiento de prioridades (para embajadores en campo) ---------- */
+const CUMP_PRIORIDAD_KEY = 'delico_odv_cumplimiento_prioridades_v1';
+function getCumplimientosPrioridad(){ return _cumpPrioridadSync.get(); }
+function saveCumplimientosPrioridad(arr){ _cumpPrioridadSync.save(arr); }
+function abrirPrioridadesCaptura(){
+  const checkinTmp = getCheckin();
+  let arr = getPrioridades();
+  if(checkinTmp && checkinTmp.cadena){
+    arr = arr.filter(p => !p.cadenas || !p.cadenas.length || p.cadenas.includes(checkinTmp.cadena));
+  }
+  if(currentUser.perfil === 'Embajador'){
+    arr = arr.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
+  }
+  const accionables = arr.filter(p=>p.requiere_foto || p.requiere_confirmacion);
+  const body = document.getElementById('modalBody');
+  const checkin = getCheckin();
+  const misTareas = getTareas().filter(t=>t.asignado_a===currentUser.usuario && t.estado==='abierta');
+  let html = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🎯 Prioridades</h3>
+    <p class="d">${checkin? 'Tienda: '+checkin.tienda : 'Ábrelo con check-in activo para registrar sobre una tienda específica.'}</p>`;
+  if(misTareas.length){
+    html += `<div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:6px 0 4px;">Tareas asignadas a ti — respóndelas aquí mismo</div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+        ${misTareas.map(t=>`<div style="border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12.5px;">
+          ${PRIORIDAD_TAREA_LABEL[t.prioridad]} — <b>${t.texto}</b><br><span style="color:var(--ink-soft);">de ${nombreCorto(t.asignado_por)}</span>
+          ${t.retroalimentaciones.length ? `<div style="margin-top:6px; border-top:1px solid var(--line); padding-top:6px; display:flex; flex-direction:column; gap:4px;">
+            ${t.retroalimentaciones.map(r=>`<div style="font-size:11.5px;"><b>${nombreCorto(r.autor)}:</b> ${r.texto}</div>`).join('')}
+          </div>` : ''}
+          <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+            <input type="text" id="mretro_${t.id}" placeholder="Responder..." style="flex:1; min-width:140px; padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:12px;">
+            <button type="button" class="btn btn-ghost" style="padding:4px 8px; font-size:11px;" onclick="agregarRetroModal('${t.id}')">Responder</button>
+            <button type="button" class="btn btn-brand" style="padding:4px 8px; font-size:11px;" onclick="mostrarFinalizarModal('${t.id}')">Finalizar</button>
+          </div>
+          <div id="mfin_${t.id}" class="hidden" style="margin-top:6px; border-top:1px dashed var(--line); padding-top:6px;">
+            <textarea id="mconclusion_${t.id}" rows="2" placeholder="Conclusión..." style="width:100%; padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:12px;"></textarea>
+            <button type="button" class="btn btn-brand" style="margin-top:5px; padding:4px 8px; font-size:11px;" onclick="finalizarTareaModal('${t.id}')">Confirmar conclusión</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+  }
+  if(!accionables.length){
+    html += `<p style="font-size:13px; color:var(--ink-soft);">Por ahora ninguna prioridad pide foto o confirmación — solo son informativas.</p>`;
+  } else {
+    html += `<div class="form-grid">` + accionables.map(p=>`
+      <div class="field full" style="border:1px solid var(--line); border-radius:10px; padding:10px;">
+        <label style="margin-bottom:6px;">${p.texto}</label>
+        ${p.requiere_confirmacion?`<select id="pconf_${p.id}"><option value="">¿Está activa?...</option><option value="si">Sí, está activa</option><option value="no">No, no está activa</option></select>`:''}
+        ${p.requiere_foto?`<input type="file" id="pfoto_${p.id}" accept="image/*" capture="environment" style="margin-top:6px;" onchange="previewFile('pfoto_${p.id}')"><img id="prev_pfoto_${p.id}" class="thumb hidden">`:''}
+        <input type="text" id="pcoment_${p.id}" placeholder="Comentario (opcional)" style="margin-top:6px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;">
+      </div>`).join('') + `</div>`;
+  }
+  html += `<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>${accionables.length?`<button class="btn btn-brand" onclick="submitPrioridadesCaptura()">Guardar</button>`:''}</div>`;
+  body.innerHTML = html;
+  document.getElementById('modalBg').classList.add('open');
+}
+function submitPrioridadesCaptura(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+  const checkin = getCheckin();
+  const arr = getPrioridades().filter(p=>p.requiere_foto || p.requiere_confirmacion);
+  const registros = getCumplimientosPrioridad();
+  let guardadas = 0;
+  arr.forEach(p=>{
+    const confSel = document.getElementById('pconf_'+p.id);
+    const fotoInput = document.getElementById('pfoto_'+p.id);
+    const comentInput = document.getElementById('pcoment_'+p.id);
+    const activa = confSel ? confSel.value : '';
+    const foto = fotoInput ? (fotoInput.dataset.b64 || '') : '';
+    const comentario = comentInput ? comentInput.value.trim() : '';
+    if(!activa && !foto && !comentario) return;
+    registros.push({id:uid(), prioridad_id:p.id, prioridad_texto:p.texto, usuario:currentUser.usuario, persona:currentUser.nombre, tienda: checkin?checkin.tienda:'', cadena: checkin?checkin.cadena:'', activa, foto, comentario, fecha_registro:new Date().toISOString()});
+    guardadas++;
+  });
+  if(!guardadas){ toast('No capturaste nada — llena al menos una prioridad.'); return; }
+  saveCumplimientosPrioridad(registros);
+  closeModal();
+  toast(`Se guardó el seguimiento de ${guardadas} prioridad(es) ✓`);
+}
+
+/* ---------- CHECK-IN ---------- */
+const CHECKIN_KEY = 'delico_odv_checkin';
+function getCheckin(){ return JSON.parse(localStorage.getItem(CHECKIN_KEY) || 'null'); }
+function setCheckin(v){ v ? localStorage.setItem(CHECKIN_KEY, JSON.stringify(v)) : localStorage.removeItem(CHECKIN_KEY); }
+function misTiendasHoy(){
+  const hoy = todayISO();
+  return getRutas().filter(a => a.usuario===currentUser.usuario && a.tipo==='visita' && a.tienda && a.fecha>=hoy).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,10);
+}
+function updatePrioridadesBadge(){
+  const badge = document.getElementById('prioridadesBadge');
+  const tile = document.getElementById('tilePrioridades');
+  const obligBadge = document.getElementById('prioridadesObligBadge');
+  if(!badge || !tile) return;
+  let accionables = getPrioridades().filter(p=>p.requiere_foto || p.requiere_confirmacion);
+  if(currentUser.perfil === 'Embajador'){
+    accionables = accionables.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
+  }
+  const misTareas = getTareas().filter(t=>t.asignado_a===currentUser.usuario && t.estado==='abierta');
+  const count = accionables.length + misTareas.length;
+  badge.classList.toggle('hidden', count===0);
+  tile.classList.toggle('mdi-tile-alert', count>0);
+  /* Obligatoria solo cuando aplica: hay prioridades/tareas pendientes que exigen acción */
+  tile.classList.toggle('mdi-oblig', count>0);
+  if(obligBadge) obligBadge.classList.toggle('hidden', count===0);
+}
+function updatePipelineAccionablesBadge(){
+  const badge = document.getElementById('pipelineAccionablesBadge');
+  if(!badge) return;
+  const checkin = getCheckin();
+  if(!checkin){ badge.classList.add('hidden'); return; }
+  const store = APP_DATA.stores.find(s=>s.tienda===checkin.tienda && (!checkin.cadena || s.cadena===checkin.cadena));
+  const filas = (APP_DATA.combinaciones||[]).filter(c=> c.tienda===checkin.tienda && (!store || (c.cadena===store.cadena && c.num_tienda===store.num_tienda)));
+  const count = filas.filter(f=>!f.con_venta).length + filas.filter(f=>f.inv_negativo).length + filas.filter(f=>f.excedente).length;
+  badge.textContent = count;
+  badge.classList.toggle('hidden', count===0);
+}
+function renderCheckinBar(){
+  const box = document.getElementById('checkinBar');
+  if(!box) return;
+  updatePrioridadesBadge();
+  updatePipelineAccionablesBadge();
+  actualizarTilesMEDI();
+  const activo = getCheckin();
+  if(activo){
+    box.innerHTML = `<div class="checkin-active">
+      <div class="checkin-store">📍 ${activo.tienda} <small>${activo.cadena} · ${activo.rol||''} · check-in ${activo.hora}</small></div>
+      <button class="btn btn-ghost" onclick="salirCheckin()">Salir de la tienda</button>
+    </div>`;
+    return;
+  }
+  const opciones = misTiendasHoy();
+  let html = '';
+  if(opciones.length){
+    html += `<div class="checkin-empty">
+      <span style="font-size:13px; font-weight:700; color:var(--brand-dark);">Haz check-in en tu tienda de hoy:</span>
+      <select id="checkinSelect" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
+        <option value="">Selecciona tu tienda...</option>
+        ${opciones.map((o,i)=>`<option value="${i}">${o.fecha} — ${o.tienda} (${o.cadena||''} · ${o.rol||''})</option>`).join('')}
+      </select>
+      <button class="btn btn-brand" onclick="hacerCheckin()">Check-in</button>
+    </div>`;
+  } else {
+    html += `<div class="checkin-empty"><span style="font-size:13px; color:var(--ink-soft);">No tienes tiendas asignadas para hoy en tu ruta.</span></div>`;
+  }
+  html += `<div class="checkin-empty" style="margin-top:8px; border-top:1px dashed var(--line); padding-top:10px;">
+    <span style="font-size:12.5px; color:var(--ink-soft);">¿Vas a una tienda fuera de tu ruta de hoy (cambio, cobertura, vacaciones de alguien más, etc.)?</span>
+    <input type="text" id="checkinOtraSelect" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
+    <button class="btn btn-outline" onclick="hacerCheckinOtraTienda()">Check-in aquí</button>
+    <button class="btn btn-ghost" onclick="abrirIncidenciaPersonal()">Otro (inasistencia / incapacidad)</button>
+  </div>`;
+  box.innerHTML = html;
+  poblarDatalistTiendas();
+}
+/* Check-in / check-out: TODOS los caminos (el cuadro "Registro — Check-in/out", el botón Check-in de la barra,
+   "Check-in aquí" y "Salir de la tienda") abren el MISMO formulario, que exige foto de cómo encontraste / dejaste la tienda. */
+function abrirCheckinConFoto(tienda, cadena, rol, fueraRuta){
+  window._prefillCheckin = {tienda, cadena, rol: rol||'', fueraRuta: fueraRuta||null};
+  openForm('entrada_tienda');
+}
+function hacerCheckin(){
+  const idx = document.getElementById('checkinSelect').value;
+  if(idx==='') { toast('Elige una tienda'); return; }
+  const o = misTiendasHoy()[idx];
+  abrirCheckinConFoto(o.tienda, o.cadena, o.rol);
+}
+function salirCheckin(){ window._prefillCheckin = null; openForm('salida_tienda'); }
+/* Check-in en una tienda que no está en la ruta de hoy: si de verdad no está en la ruta, pide un motivo
+   breve y genera la incidencia automáticamente (ya no hay que pedir permiso antes ni esperar aprobación). */
+function hacerCheckinOtraTienda(){
+  const match = resolverTiendaEscrita('checkinOtraSelect');
+  if(!match){ toast('Escribe el nombre de tu tienda y elígela de la lista que aparece.'); return; }
+  const tienda = match.tienda, cadena = match.cadena;
+  const enRuta = misTiendasHoy().some(o=>o.tienda===tienda);
+  if(enRuta){
+    const o = misTiendasHoy().find(x=>x.tienda===tienda);
+    abrirCheckinConFoto(tienda, cadena, o ? o.rol : '');
+    return;
+  }
+  abrirMotivoFueraRuta(tienda, cadena);
+}
+function abrirMotivoFueraRuta(tienda, cadena){
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>⚠️ Tienda fuera de tu ruta</h3>
+    <p class="d"><b>${tienda}</b>${cadena?' ('+cadena+')':''} no está en tu ruta asignada de hoy. Se va a registrar una incidencia automática con un motivo breve — no necesitas pedir permiso antes, pero tu jefe la va a ver.</p>
+    <div class="field full"><label>Motivo (breve) *</label><textarea id="motivoFueraRuta" rows="2" placeholder="Ej. cubro vacaciones de..., cambio de última hora..."></textarea></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" onclick="confirmarCheckinFueraRuta('${tienda.replace(/'/g,"\\'")}','${(cadena||'').replace(/'/g,"\\'")}')">Confirmar check-in</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function confirmarCheckinFueraRuta(tienda, cadena){
+  const motivoInput = document.getElementById('motivoFueraRuta');
+  const motivo = motivoInput ? motivoInput.value.trim() : '';
+  if(!motivo){ toast('Escribe un motivo breve'); return; }
+  closeModal();
+  // la incidencia de ruta se registra al GUARDAR el check-in (con su foto), no antes
+  abrirCheckinConFoto(tienda, cadena, '', {motivo});
+}
+/* Se llama al guardar un check-in que venía de una tienda fuera de ruta: registra la incidencia automática y la tienda extra. */
+function registrarIncidenciaFueraRuta(tienda, cadena, motivo){
+  const recIncidencia = { id: uid(), tipo:'incidencia', usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), tienda, cadena, tipo_incidencia:'Visita fuera de ruta asignada', descripcion: motivo, foto:'' };
+  const capturasArr = getCapturas();
+  capturasArr.push(recIncidencia);
+  saveCapturas(capturasArr);
+  const extraArr = getExtraTiendas();
+  extraArr.unshift({id:uid(), persona:currentUser.nombre, usuario:currentUser.usuario, tienda, cadena, motivo, fecha:todayISO(), estado:'aprobada', auto:true});
+  saveExtraTiendas(extraArr);
+  renderExtraTiendaBox();
+}
+
+/* ---------- Catálogo de productos (familia > producto) ---------- */
+function familiasProducto(){ return [...new Set(APP_DATA.catalogo_productos.map(p=>p.familia))]; }
+function productosDeFamilia(fam){ return APP_DATA.catalogo_productos.filter(p=>p.familia===fam); }
+function claveAProducto(clave){ return APP_DATA.catalogo_productos.find(p=>p.clave===clave); }
+function onFamiliaChange(key){
+  const fam = document.getElementById('f_'+key+'_familia').value;
+  const prodSel = document.getElementById('f_'+key);
+  const productos = fam ? productosDeFamilia(fam) : [];
+  prodSel.innerHTML = `<option value="">Producto...</option>` + productos.map(p=>`<option value="${p.clave}">${p.nombre}</option>`).join('');
+  actualizarPreviewProducto(key, '');
+  renderTarjetasProducto(key);
+}
+function actualizarPreviewProducto(key, clave){
+  const img = document.getElementById('prevprod_'+key);
+  if(!img) return;
+  const p = claveAProducto(clave);
+  if(p && p.imagen){ img.src = p.imagen; img.classList.remove('hidden'); }
+  else { img.classList.add('hidden'); img.removeAttribute('src'); }
+}
+function onProductoSelChange(key){
+  const clave = document.getElementById('f_'+key).value;
+  actualizarPreviewProducto(key, clave);
+  renderTarjetasProducto(key);
+}
+function renderTarjetasProducto(key){
+  const wrap = document.getElementById('cardsprod_'+key);
+  if(!wrap) return;
+  const famSel = document.getElementById('f_'+key+'_familia');
+  const fam = famSel ? famSel.value : '';
+  const productos = fam ? productosDeFamilia(fam) : APP_DATA.catalogo_productos;
+  const conImagen = productos.filter(p=>p.imagen);
+  if(!conImagen.length){ wrap.innerHTML=''; return; }
+  const claveActual = document.getElementById('f_'+key).value;
+  wrap.innerHTML = `<div style="font-size:10.5px; color:var(--ink-soft); margin-bottom:5px;">O elige por foto:</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    ${conImagen.map(p=>`<button type="button" onclick="seleccionarProductoTarjeta('${key}','${p.clave}')" style="border:2px solid ${p.clave===claveActual?'var(--brand)':'var(--line)'}; border-radius:10px; padding:4px; background:#fff; cursor:pointer; width:76px; text-align:center;">
+      <img src="${p.imagen}" style="width:100%; height:54px; object-fit:contain;"><div style="font-size:9px; margin-top:2px; line-height:1.15; color:var(--ink-soft);">${p.nombre.split(' ').slice(0,3).join(' ')}</div>
+    </button>`).join('')}
+    </div>`;
+}
+function seleccionarProductoTarjeta(key, clave){
+  const p = claveAProducto(clave);
+  if(!p) return;
+  document.getElementById('f_'+key+'_familia').value = p.familia;
+  onFamiliaChange(key);
+  document.getElementById('f_'+key).value = clave;
+  onProductoSelChange(key);
+}
+let scannerStream = null;
+async function toggleScanner(key){
+  const wrap = document.getElementById('scan_'+key);
+  if(wrap.classList.contains('hidden')){
+    if(!('BarcodeDetector' in window)){ toast('Tu navegador no soporta escaneo de código de barras aquí — usa el listado de producto.'); return; }
+    wrap.classList.remove('hidden');
+    try{
+      scannerStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      const video = document.getElementById('vid_'+key);
+      video.srcObject = scannerStream;
+      await video.play();
+      const detector = new BarcodeDetector({formats:['ean_13','upc_a','code_128']});
+      const tick = async () => {
+        if(wrap.classList.contains('hidden')) return;
+        try{
+          const codes = await detector.detect(video);
+          if(codes.length){
+            const val = codes[0].rawValue;
+            const prod = APP_DATA.catalogo_productos.find(p=>p.barcode===val);
+            if(prod){
+              document.getElementById('f_'+key+'_familia').value = prod.familia;
+              onFamiliaChange(key);
+              document.getElementById('f_'+key).value = prod.clave;
+              onProductoSelChange(key);
+              toast('Producto detectado: ' + prod.nombre);
+              closeScanner(key);
+              return;
+            }
+          }
+        }catch(e){}
+        requestAnimationFrame(tick);
+      };
+      tick();
+    }catch(e){ toast('No se pudo acceder a la cámara.'); wrap.classList.add('hidden'); }
+  } else {
+    closeScanner(key);
+  }
+}
+function closeScanner(key){
+  const wrap = document.getElementById('scan_'+key);
+  wrap.classList.add('hidden');
+  if(scannerStream){ scannerStream.getTracks().forEach(t=>t.stop()); scannerStream = null; }
+}
+/* Escanear código de barras (UPC/EAN) directo en el Catálogo, para buscar el producto sin escribir nada. */
+/* Genera el código de barras real (las líneas), no solo el número, para que se pueda escanear
+   directo de la pantalla — usa el formato según la longitud del código (EAN-13/UPC-A/CODE128). */
+function pintarBarcodeEn(svgEl, valor){
+  if(!svgEl || !valor) return;
+  if(typeof JsBarcode === 'undefined'){ return; } // sin internet la primera vez: se queda solo el texto del código
+  const limpio = String(valor).trim();
+  const formato = /^\d{13}$/.test(limpio) ? 'EAN13' : /^\d{12}$/.test(limpio) ? 'UPC' : 'CODE128';
+  try{
+    JsBarcode(svgEl, limpio, {format:formato, width:1.4, height:38, fontSize:11, margin:2, displayValue:true});
+  }catch(e){
+    try{ JsBarcode(svgEl, limpio, {format:'CODE128', width:1.4, height:38, fontSize:11, margin:2, displayValue:true}); }catch(e2){}
+  }
+}
+function pintarBarcodesCatalogoVisibles(){
+  document.querySelectorAll('#catalogoGrid svg[data-barcode]').forEach(svg=>{
+    pintarBarcodeEn(svg, svg.getAttribute('data-barcode'));
+  });
+}
+
+/* ---------- CAPTURA MEDI ---------- */
+const FORM_DEFS = {
+  entrada_tienda: {
+    title:'Registro — Check-in', icon:'🚪',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['foto','file_multi','Foto(s) de cómo encontraste la tienda — puedes subir varias',true],
+      ['notas','textarea','Notas (opcional)',false],
+    ]
+  },
+  mercadeo:{
+    title:'Mercadeo (checklist)', icon:'🧹',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['catalogo_disponible','checkbox','Catálogo disponible (revisar cuota)',false],
+      ['precio_visible','checkbox','Precio visible y actualizado',false],
+      ['ofertas_senaladas','checkbox','Ofertas señaladas',false],
+      ['limpieza','checkbox','Limpieza',false],
+      ['rotacion','checkbox','Rotación',false],
+      ['acomodo_seguro','checkbox','Acomodo seguro',false],
+      ['exhibicion_impecable','checkbox','Exhibición impecable',false],
+      ['gestion_inventarios','checkbox','Gestión de inventarios',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
+      ['comentarios','textarea','Comentarios (opcional)',false],
+    ]
+  },
+  caducidad: {
+    title: 'Caducidades', icon:'⏳',
+    fields: [
+      ['tienda','tienda_select','Tienda',true],
+      ['clave','producto','Producto',true],
+      ['fechas_caducidad','caducidad_multi','Fecha(s) de caducidad y piezas en riesgo',true],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
+    ]
+  },
+  incidencia: {
+    title:'Incidencias', icon:'⚠️',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['tipo_incidencia','select','Tipo de incidencia',true,['Inventario (ajuste/no coincide)','Maltrato de producto','Calidad (olor/consistencia/objeto ajeno)','Tienda / instalaciones (remodelación, accesos)','Refrigeración (gotea, no enfría)','Visita fuera de ruta asignada','Otro']],
+      ['descripcion','textarea','Describe la incidencia',true],
+      ['lote','text','Número de lote (obligatorio si es Calidad)',false],
+      ['foto','file_multi','Foto(s) — obligatoria si es Calidad, si no opcional, puedes subir varias',false],
+    ]
+  },
+  degustacion:{
+    title:'Degustación', icon:'🥄',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['clave','producto','Producto degustado',true],
+      ['clave2','producto','Producto degustado #2 (opcional — si en la charola van varios)',false],
+      ['clave3','producto','Producto degustado #3 (opcional)',false],
+      ['con_que','icon_multi','¿Con qué se degustó?',false,['Baguette/Bolillo','Galletas','Pan artesanal Delico','En vaso','Bastones de verdura','Fruta dulce','Palitos de pan','Espagueti','Cebollín','Aceite de oliva','Totopos','Papas','Otro']],
+      ['reacciones','textarea','Reacciones / comentarios del shopper (puedes agregarlas después)',false],
+      ['foto','file_multi','Foto de la charola — obligatoria, puedes subir varias',true],
+    ]
+  },
+  precio_delico:{
+    title:'Precio Delico', icon:'💲',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['clave','producto','Producto Delico',true],
+      ['precio_delico','decimal','Precio en piso ($)',true],
+      ['notas','textarea','Notas (opcional)',false],
+    ]
+  },
+  precio_competencia:{
+    title:'Precio competencia', icon:'🏷️',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['marca_competencia','text','Marca / producto de competencia',true],
+      ['precio_competencia','decimal','Precio competencia ($)',true],
+      ['promo_competencia','textarea','Promoción o degustación de competencia vista',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
+      ['activacion_comentario','textarea','¿Viste alguna activación de otra marca? Comentarios',false],
+      ['activacion_foto','file_multi','Foto(s) de la activación — opcional, puedes subir varias',false],
+      ['activacion_video','file_video','Video de la activación (opcional)',false],
+    ]
+  },
+  foto:{
+    title:'Categoría', icon:'📷',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['seccion','select','Tipo de exhibición',true,['Refri','Barco','Búnker','Otro']],
+      ['foto','file_multi','Foto(s) de la categoría — puedes subir varias',true],
+      ['notas','textarea','Notas (competencia alrededor, participación de espacio, etc.)',false],
+    ]
+  },
+  factores_ambiente:{
+    title:'Factores ambiente', icon:'🌦️',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['clima','icon_single','Clima',false,['Soleado','Nublado','Lluvia','Frío','Calor extremo']],
+      ['afluencia','icon_single','Afluencia de gente',false,['Muy baja','Baja','Normal','Alta','Muy alta']],
+      ['tendencia','textarea','¿Qué viste? (tendencias, temporada, comentarios de shoppers, etc.)',false],
+      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
+      ['comentarios','textarea','Comentarios generales (opcional)',false],
+    ]
+  },
+  salida_tienda:{
+    title:'Registro — Check-out', icon:'🚶',
+    fields:[
+      ['tienda','tienda_select','Tienda',true],
+      ['foto','file_multi','Foto(s) de cómo dejaste la tienda — puedes subir varias',true],
+      ['notas','textarea','Notas (opcional)',false],
+    ]
+  },
+};
+
+function tiendasParaSelect(){
+  const checkin = getCheckin();
+  if(checkin) return [{cadena:checkin.cadena, tienda:checkin.tienda}];
+  return [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda));
+}
+/* Resuelve el texto escrito en un buscador de tienda (formato "TIENDA — CADENA", tal como lo
+   deja mostrarSugerenciasTienda() al elegir de la lista) contra el catálogo real de tiendas —
+   así el buscador por palabra clave guarda exactamente {tienda,cadena}, igual que antes con el <select>. */
+function resolverTiendaEscrita(inputId){
+  const el = document.getElementById(inputId);
+  const val = el ? el.value.trim() : '';
+  if(!val) return null;
+  const partes = val.split(' — ');
+  if(partes.length >= 2){
+    const cadena = partes[partes.length-1];
+    const tienda = partes.slice(0,-1).join(' — ');
+    const m = APP_DATA.stores.find(s=>s.tienda===tienda && s.cadena===cadena);
+    if(m) return m;
+  }
+  // por si pegaron/escribieron solo el nombre de la tienda, sin "— CADENA"
+  return APP_DATA.stores.find(s=>s.tienda.toLowerCase()===val.toLowerCase()) || null;
+}
+/* ---------- Buscador de tiendas con lista desplegable PROPIA ----------
+   Antes usábamos <input list="..."> (datalist nativo): en varios celulares eso se ve como una
+   simple sugerencia de teclado, no como una lista clara para elegir con el dedo — de ahí la queja.
+   Esta versión dibuja su propia lista (un <div> flotante) debajo del campo, filtrada mientras
+   escribes, para que SIEMPRE se vea igual sin depender del navegador/teclado de cada celular. */
+let _buscadorTiendaEl = null;
+function _buscadorTiendaDiv(){
+  if(!_buscadorTiendaEl){
+    _buscadorTiendaEl = document.createElement('div');
+    _buscadorTiendaEl.className = 'buscador-tienda-lista hidden';
+    document.body.appendChild(_buscadorTiendaEl);
+  }
+  return _buscadorTiendaEl;
+}
+function mostrarSugerenciasTienda(input){
+  const dd = _buscadorTiendaDiv();
+  const q = (input.value||'').trim().toLowerCase();
+  const terminos = q.split(/\s+/).filter(Boolean);
+  const todas = [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda));
+  // cada palabra escrita debe aparecer en algún lado (tienda o cadena), sin importar el orden —
+  // así "walmart narvarte" encuentra "WE NARVARTE (WALMART)" aunque el nombre no las traiga en ese orden.
+  const filtradas = terminos.length ? todas.filter(s => { const hay = (s.tienda+' '+s.cadena).toLowerCase(); return terminos.every(t=>hay.includes(t)); }) : todas;
+  const LIMITE = 60;
+  const mostrar = filtradas.slice(0, LIMITE);
+  dd.innerHTML = mostrar.length
+    ? mostrar.map(s=>`<div class="bt-opt" data-tienda="${s.tienda.replace(/"/g,'&quot;')}" data-cadena="${s.cadena.replace(/"/g,'&quot;')}"><b>${s.tienda}</b> <span style="color:var(--ink-soft); font-size:11.5px;">(${s.cadena})</span></div>`).join('')
+      + (filtradas.length>LIMITE ? `<div class="bt-vacio">Sigue escribiendo para acotar — hay ${filtradas.length} tiendas que coinciden.</div>` : '')
+    : `<div class="bt-vacio">Sin resultados para "${input.value}".</div>`;
+  const r = input.getBoundingClientRect();
+  dd.style.left = Math.max(4, r.left) + 'px';
+  dd.style.top = (r.bottom + 3) + 'px';
+  dd.style.width = r.width + 'px';
+  dd.classList.remove('hidden');
+  // mousedown (no click) para que se seleccione ANTES de que el blur del input cierre la lista
+  dd.onmousedown = (e) => {
+    const opt = e.target.closest('.bt-opt');
+    if(!opt) return;
+    e.preventDefault();
+    input.value = `${opt.getAttribute('data-tienda')} — ${opt.getAttribute('data-cadena')}`;
+    dd.classList.add('hidden');
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    input.focus();
+  };
+}
+function ocultarSugerenciasTienda(){
+  if(_buscadorTiendaEl) _buscadorTiendaEl.classList.add('hidden');
+}
+const ICONOS_CON_QUE = {'Baguette/Bolillo':'🥖','Galletas':'🍪','Pan artesanal Delico':'🍞','En vaso':'🥤','Bastones de verdura':'🥕','Fruta dulce':'🍓','Palitos de pan':'🥨','Espagueti':'🍝','Cebollín':'🌿','Aceite de oliva':'🫒','Totopos':'🌽','Papas':'🥔','Otro':'➕'};
+const ICONOS_CLIMA = {'Soleado':'☀️','Nublado':'☁️','Lluvia':'🌧️','Frío':'🥶','Calor extremo':'🔥'};
+const ICONOS_AFLUENCIA = {'Muy baja':'🏜️','Baja':'🌵','Normal':'🚶','Alta':'🚶‍♀️🚶','Muy alta':'👥👥'};
+function iconosPara(key){ return key==='con_que'?ICONOS_CON_QUE : key==='clima'?ICONOS_CLIMA : key==='afluencia'?ICONOS_AFLUENCIA : {}; }
+function toggleIconMulti(key, opt){
+  const wrap = document.getElementById('ficons_'+key);
+  const hidden = document.getElementById('f_'+key);
+  const btn = wrap.querySelector(`[data-opt="${CSS.escape(opt)}"]`);
+  const seleccionados = new Set((hidden.value||'').split('|').filter(Boolean));
+  if(seleccionados.has(opt)){ seleccionados.delete(opt); btn.classList.remove('active'); }
+  else { seleccionados.add(opt); btn.classList.add('active'); }
+  hidden.value = [...seleccionados].join('|');
+  const otroWrap = document.getElementById('fotrowrap_'+key);
+  if(otroWrap) otroWrap.classList.toggle('hidden', !seleccionados.has('Otro'));
+}
+function pickIconSingle(key, opt){
+  const wrap = document.getElementById('ficons_'+key);
+  document.getElementById('f_'+key).value = opt;
+  wrap.querySelectorAll('.icon-pick').forEach(b=>b.classList.toggle('active', b.dataset.opt===opt));
+}
+function abrirCheckInOut(){
+  window._prefillCheckin = null;
+  const checkin = getCheckin();
+  openForm(checkin ? 'salida_tienda' : 'entrada_tienda');
+}
+function fechaCorteLegible(iso){
+  if(!iso) return '—';
+  const d = new Date(iso+'Z');
+  return d.toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric', timeZone:'America/Mexico_City'});
+}
+function abrirPipeline(){
+  const checkin = getCheckin();
+  const body = document.getElementById('modalBody');
+  body.classList.add('modal-wide');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>📦 Pipeline — Inventario de tu tienda</h3>
+    <p class="d">Datos del Pipeline ODV (inventario, distribución y venta) para la tienda a la que diste entrada. Aquí también puedes capturar tu conteo real y dar seguimiento a las alertas.</p>
+    ${checkin ? `<p style="font-size:13px; font-weight:700; color:var(--brand-dark); margin:-4px 0 10px;">📍 ${checkin.tienda}${checkin.cadena?' · '+checkin.cadena:''}</p>` : `<div class="form-grid"><div class="field full"><label>Tienda</label>
+      <select id="pipeTiendaSel" onchange="renderPipelineTabla()">
+        <option value="">Selecciona tienda...</option>
+        ${tiendasParaSelect().map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}">${s.tienda} (${s.cadena})</option>`).join('')}
+      </select>
+    </div></div>`}
+    <div id="pipelineModalBody"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+  renderPipelineTabla();
+}
+function pipelineAjusteId(cadena, numTienda, clave){
+  return [cadena||'', numTienda||'', clave||''].join('__').replace(/[^a-z0-9_]/gi,'_');
+}
+function getPipelineAjuste(cadena, numTienda, clave){
+  const id = pipelineAjusteId(cadena, numTienda, clave);
+  return (_pipelineAjustesSync.get()||[]).find(a=>a.id===id) || null;
+}
+function guardarPipelineAjuste(cadena, numTienda, clave, tienda, cambios){
+  const id = pipelineAjusteId(cadena, numTienda, clave);
+  const arr = _pipelineAjustesSync.get() || [];
+  const idx = arr.findIndex(a=>a.id===id);
+  const base = idx>=0 ? arr[idx] : { id, cadena, num_tienda:numTienda, clave, tienda, estado_alerta:'pendiente', comentario_alerta:'', inv_real:null, comentario:'' };
+  const actualizado = { ...base, ...cambios, id, cadena, num_tienda:numTienda, clave, tienda,
+    actualizado: new Date().toISOString(), actualizado_por: currentUser ? currentUser.usuario : '' };
+  const nuevoArr = idx>=0 ? arr.map((a,i)=> i===idx?actualizado:a) : [...arr, actualizado];
+  _pipelineAjustesSync.save(nuevoArr);
+  return actualizado;
+}
+function guardarInventarioRealPipeline(inputEl, cadena, numTienda, clave, tienda){
+  const val = inputEl.value === '' ? null : Number(inputEl.value);
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {inv_real: val});
+  toast('Inventario real guardado.');
+}
+function guardarComentarioPipeline(inputEl, cadena, numTienda, clave, tienda){
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {comentario: inputEl.value});
+}
+function guardarEstadoAlertaPipeline(selectEl, cadena, numTienda, clave, tienda){
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {estado_alerta: selectEl.value});
+}
+function guardarComentarioAlertaPipeline(textareaEl, cadena, numTienda, clave, tienda){
+  guardarPipelineAjuste(cadena, numTienda, clave, tienda, {comentario_alerta: textareaEl.value});
+}
+function pintarBarcodesPipelineVisibles(){
+  document.querySelectorAll('#pipelineGrid svg[data-barcode]').forEach(svg=>{
+    pintarBarcodeEn(svg, svg.getAttribute('data-barcode'));
+  });
+}
+function renderPipelineTabla(){
+  const box = document.getElementById('pipelineModalBody');
+  if(!box) return;
+  const checkin = getCheckin();
+  let tienda, cadena;
+  if(checkin){ tienda = checkin.tienda; cadena = checkin.cadena; }
+  else {
+    const sel = document.getElementById('pipeTiendaSel');
+    tienda = sel ? sel.value : '';
+    cadena = sel && sel.selectedOptions[0] ? sel.selectedOptions[0].dataset.cadena : '';
+  }
+  if(!tienda){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">Selecciona una tienda para ver su inventario.</p>`; return; }
+  const store = APP_DATA.stores.find(s=>s.tienda===tienda && (!cadena || s.cadena===cadena));
+  const filas = (APP_DATA.combinaciones||[]).filter(c=> c.tienda===tienda && (!store || (c.cadena===store.cadena && c.num_tienda===store.num_tienda)));
+  window._pipelineExport = {tienda, cadena, filas};
+  const corte = fechaCorteLegible((APP_DATA.bi_meta||{}).pipeline_actualizado_utc);
+  const ventaCeroCount = filas.filter(f=>!f.con_venta).length;
+  const negCount = filas.filter(f=>f.inv_negativo).length;
+  const excCount = filas.filter(f=>f.excedente).length;
+  const ESTADOS_ALERTA = [['pendiente','Pendiente'],['en_revision','En revisión'],['solucionado','Solucionado']];
+  box.innerHTML = `
+    <div style="font-size:11px; color:var(--ink-soft); margin:8px 0 4px;">📅 Corte del Pipeline: <b>${corte}</b>. Es una sola foto — puede no coincidir exactamente con la fecha de otros datos (cuotas/sell out). Esto va en el radar para alinear todos los cortes.</div>
+    ${!filas.length ? `<div class="card" style="margin-top:8px;"><p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin datos de Pipeline para esta tienda.</p></div>` : `
+    <div class="row" style="margin:10px 0;">
+      <div class="card kpi ${ventaCeroCount?'bad':'good'}"><div class="label">Venta cero</div><div class="value">${ventaCeroCount}</div></div>
+      <div class="card kpi ${negCount?'bad':'good'}"><div class="label">Inventario negativo</div><div class="value">${negCount}</div></div>
+      <div class="card kpi ${excCount?'warn':'good'}"><div class="label">Excedente</div><div class="value">${excCount}</div></div>
+      <div class="card kpi"><div class="label">Códigos activos</div><div class="value">${filas.filter(f=>f.comb_activa).length}</div></div>
+    </div>
+    <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:10.5px; color:var(--ink-soft); margin-bottom:10px;">
+      <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#f7e2df; border:1px solid var(--bad); vertical-align:-1px;"></span> Inventario fantasma (negativo)</span>
+      <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#faf0dd; border:1px solid var(--warn); vertical-align:-1px;"></span> Venta cero</span>
+      <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#efe6f7; border:1px solid #8a5cb5; vertical-align:-1px;"></span> Excedente</span>
+    </div>
+    <div id="pipelineGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:14px;">
+      ${filas.slice().sort((a,b)=>a.clave.localeCompare(b.clave)).map(f=>{
+        const prod = claveAProducto(f.clave);
+        const tieneAlerta = f.inv_negativo || !f.con_venta || f.excedente;
+        // prioridad cuando un renglón cae en más de una alerta: fantasma > venta cero > excedente
+        const alertLabel = f.inv_negativo ? 'Inventario fantasma (negativo)' : !f.con_venta ? 'Venta cero' : f.excedente ? 'Excedente' : '';
+        const alertColor = f.inv_negativo ? 'var(--bad)' : !f.con_venta ? 'var(--warn)' : '#8a5cb5';
+        const alertBg = f.inv_negativo ? '#f7e2df' : !f.con_venta ? '#faf0dd' : '#efe6f7';
+        const ajuste = getPipelineAjuste(f.cadena, f.num_tienda, f.clave) || {};
+        const numTienda = f.num_tienda, cad = f.cadena, clv = f.clave, tda = f.tienda;
+        return `<div class="card" style="padding:12px; ${tieneAlerta?`border:1.5px solid ${alertColor};`:''}">
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            ${prod && prod.imagen ? `<img src="${prod.imagen}" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid var(--line); flex-shrink:0;">` : `<div style="width:56px; height:56px; border-radius:8px; background:#f1f2e6; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:9.5px; text-align:center; flex-shrink:0;">Sin foto</div>`}
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:700; font-size:12.5px; line-height:1.3;">${f.item_desc || (prod&&prod.nombre) || f.clave}</div>
+              <div style="font-size:10.5px; color:var(--ink-soft); margin-top:1px;">Clave: ${f.clave}</div>
+            </div>
+            ${f.clave ? `<div style="width:96px; flex-shrink:0; background:#fff; border-radius:5px; padding:2px 0;"><svg data-barcode="${f.clave}" style="width:100%;"></svg></div>` : ''}
+          </div>
+          ${tieneAlerta ? `<div style="margin-top:8px; background:${alertBg}; border-radius:8px; padding:6px 8px; font-size:11px; font-weight:700; color:${alertColor};">⚠️ ${alertLabel}</div>` : ''}
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px 10px; margin-top:10px; font-size:11px;">
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv actual</div><div style="font-weight:700;">${fmtNum(f.inv_actual)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv tránsito</div><div style="font-weight:700;">${fmtNum(f.inv_transito)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv ordenado</div><div style="font-weight:700;">${fmtNum(f.inv_ordenados)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Días inv.</div><div style="font-weight:700;">${f.dias_inventario!=null?Math.round(f.dias_inventario):'—'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Obj. distrib.</div><div style="font-weight:700;">${f.objetivo?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Comb. activa</div><div style="font-weight:700;">${f.comb_activa?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Prom. vta diario</div><div style="font-weight:700;">${(f.prom_venta_diario||0).toFixed(2)}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Venta cero</div><div style="font-weight:700; ${!f.con_venta?'color:var(--warn);':''}">${!f.con_venta?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Inv negativo</div><div style="font-weight:700; ${f.inv_negativo?'color:var(--bad);':''}">${f.inv_negativo?'Sí':'No'}</div></div>
+            <div><div style="color:var(--ink-soft); font-size:9.5px;">Excedente</div><div style="font-weight:700; ${f.excedente?'color:#8a5cb5;':''}">${f.excedente?'Sí':'No'}</div></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
+            <div class="field"><label style="font-size:10px;">Captura inventario real</label>
+              <input type="number" value="${ajuste.inv_real!=null?ajuste.inv_real:''}" placeholder="Piezas contadas" style="font-size:12px; padding:6px 8px;"
+                onchange="guardarInventarioRealPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">
+            </div>
+            <div class="field"><label style="font-size:10px;">Comentarios</label>
+              <input type="text" value="${(ajuste.comentario||'').replace(/"/g,'&quot;')}" placeholder="Ej. ajuste, merma..." style="font-size:12px; padding:6px 8px;"
+                onchange="guardarComentarioPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">
+            </div>
+          </div>
+          ${tieneAlerta ? `<div style="margin-top:10px; border-top:1px dashed var(--line); padding-top:8px;">
+            <label style="font-size:10px; font-weight:700; color:${alertColor};">¿Qué está pasando? — obligatorio</label>
+            <select style="font-size:12px; padding:6px 8px; margin-top:3px;" onchange="guardarEstadoAlertaPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">
+              ${ESTADOS_ALERTA.map(([v,l])=>`<option value="${v}" ${((ajuste.estado_alerta||'pendiente')===v)?'selected':''}>${l}</option>`).join('')}
+            </select>
+            <textarea rows="2" placeholder="Explica por qué se marcó esta alerta (obligatorio)" style="font-size:12px; padding:6px 8px; margin-top:6px; width:100%; resize:vertical;"
+              onchange="guardarComentarioAlertaPipeline(this,'${cad}','${numTienda}','${clv}','${tda.replace(/'/g,"\\'")}')">${ajuste.comentario_alerta||''}</textarea>
+            ${!ajuste.comentario_alerta ? `<div style="font-size:10px; color:var(--bad); margin-top:3px;">⚠️ Falta explicar el motivo de esta alerta.</div>` : ''}
+          </div>` : ''}
+        </div>`;}).join('')}
+    </div>
+    <div style="text-align:right; margin-top:10px;"><button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportarPipelineCSV()">⬇ Excel</button></div>`}`;
+  pintarBarcodesPipelineVisibles();
+}
+function exportarPipelineCSV(){
+  const d = window._pipelineExport;
+  if(!d || !d.filas.length){ toast('Sin datos de Pipeline para exportar.'); return; }
+  exportarCSV(`pipeline_${(d.tienda||'').replace(/[^a-z0-9]/gi,'_')}_${todayISO()}.csv`,
+    ['SKU','Descripción','Inv actual','Inv tránsito','Inv ordenados','Días de inventario','Objetivo distribución','Comb. activa','Promedio venta diario','Venta cero','Inv negativo','Excedente','Inv real capturado','Comentario','Estado alerta','Comentario alerta'],
+    d.filas.map(f=>{
+      const a = getPipelineAjuste(f.cadena, f.num_tienda, f.clave) || {};
+      return [f.clave, f.item_desc||'', f.inv_actual, f.inv_transito, f.inv_ordenados, f.dias_inventario, f.objetivo?1:0, f.comb_activa?1:0, f.prom_venta_diario, f.con_venta?0:1, f.inv_negativo?1:0, f.excedente?1:0, a.inv_real!=null?a.inv_real:'', a.comentario||'', a.estado_alerta||'', a.comentario_alerta||''];
+    }));
+}
+/* ---------- MERCADEO / ONBOARDING — basados en los PDFs de Reporte de Promotoría, Hoja de Supervisión y Check List Onboarding ---------- */
+const PREP_ITEMS_BASE = ['Herramientas / Uniforme','Revisar cuotas','Revisar tareas / prioridades','Relación en tienda'];
+const PREP_ITEMS_SUP_EXTRA = ['Puntualidad','Ubicación','RRPP'];
+const CAMARA_ITEMS_BASE = ['PEPS'];
+const CAMARA_ITEMS_SUP_EXTRA = ['Estibación de cajas'];
+const DEGUSTACION_ITEMS = ['Higiene','Productos indicados','Complementos permitidos','Insumos','Presentación','Speach'];
+const MERCADEO_ITEMS = ['Precio correcto (etiqueta vigente, del mes)','Señalizar promociones','Rotación (caducidades)','Exhibición adicional','Seguridad (exhibición segura para el consumidor)','Ubicación adecuada / planograma','Resurtido correcto','Frentes adicionales'];
+
+/* ---------- CATÁLOGO DE PRODUCTOS (código de barras, foto, cadenas) ---------- */
+function renderCatalogo(){
+  const cadenaSel = document.getElementById('catCadena');
+  if(cadenaSel && cadenaSel.options.length<=1){
+    const cadenas = [...new Set(APP_DATA.catalogo_productos.flatMap(p=>p.cadenas||[]))].sort();
+    cadenas.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
+  }
+  const famSel = document.getElementById('catFamilia');
+  if(famSel && famSel.options.length<=1){
+    familiasProducto().sort().forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; famSel.appendChild(o); });
+  }
+  const fCadena = (document.getElementById('catCadena')||{}).value;
+  const fFamilia = (document.getElementById('catFamilia')||{}).value;
+  const q = ((document.getElementById('catBusca')||{}).value||'').trim().toLowerCase();
+  let productos = APP_DATA.catalogo_productos.slice();
+  if(fCadena) productos = productos.filter(p=> (p.cadenas||[]).includes(fCadena));
+  if(fFamilia) productos = productos.filter(p=> p.familia===fFamilia);
+  if(q) productos = productos.filter(p=> p.nombre.toLowerCase().includes(q) || p.clave.toLowerCase().includes(q) || (p.barcode||'').includes(q));
+  productos = productos.slice().sort((a,b)=> a.familia.localeCompare(b.familia) || a.nombre.localeCompare(b.nombre));
+  window._catalogoExport = productos;
+  const grid = document.getElementById('catalogoGrid');
+  if(!grid) return;
+  grid.innerHTML = productos.map(p=>{
+    const cadenasBadges = (p.cadenas||[]).length
+      ? (p.cadenas||[]).map(c=>`<span class="pill" style="background:var(--brand-soft); color:var(--brand-dark); font-size:10px;">${c}</span>`).join(' ')
+      : `<span style="font-size:10.5px; color:var(--ink-soft);">Sin cadena confirmada</span>`;
+    return `<div class="card" style="padding:10px; text-align:center;">
+      ${p.imagen ? `<img src="${p.imagen}" style="width:100%; height:120px; object-fit:contain; border-radius:8px; background:#fff;">` : `<div style="width:100%; height:120px; border-radius:8px; background:#f1f2e6; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:11px;">Sin foto</div>`}
+      <div style="font-weight:700; font-size:12px; margin-top:8px; line-height:1.3;">${p.nombre}</div>
+      <div style="font-size:10.5px; color:var(--ink-soft); margin:2px 0 6px;">${p.familia} · ${p.clave}</div>
+      ${p.barcode
+        ? `<div style="background:#fff; border-radius:6px; padding:4px 0; margin-bottom:6px;"><svg data-barcode="${p.barcode}" style="width:100%; max-width:180px;"></svg></div>`
+        : `<div style="font-size:10.5px; color:var(--ink-soft); margin-bottom:6px;">Sin código de barras</div>`}
+      <div style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;">${cadenasBadges}</div>
+    </div>`;
+  }).join('') || `<div class="empty-state" style="grid-column:1/-1;">Sin productos para este filtro.</div>`;
+  pintarBarcodesCatalogoVisibles();
+}
+function exportarCatalogoCSV(){
+  const productos = window._catalogoExport || APP_DATA.catalogo_productos;
+  exportarCSV(`catalogo_productos_${todayISO()}.csv`, ['Clave','Nombre','Familia','Código de barras','Cadenas'],
+    productos.map(p=>[p.clave, p.nombre, p.familia, p.barcode||'', (p.cadenas||[]).join(' / ')]));
+}
+function familiasParaDistribucion(){
+  const grupos = {};
+  APP_DATA.catalogo_productos.forEach(p=>{ (grupos[p.familia]=grupos[p.familia]||[]).push(p); });
+  return grupos;
+}
+function renderChecklistRows(prefix, items){
+  return `<div style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;">
+    ${items.map((it,i)=>`<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border:1px solid var(--line); border-radius:8px; padding:6px 10px;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; min-width:220px; flex:1;"><input type="checkbox" id="${prefix}_${i}_cumple"> ${it}</label>
+      <input type="text" id="${prefix}_${i}_com" placeholder="Comentario (opcional)" style="flex:1; min-width:140px; padding:5px 8px; border:1px solid var(--line); border-radius:6px; font-size:12px;">
+    </div>`).join('')}
+  </div>`;
+}
+function leerChecklistRows(prefix, items){
+  return items.map((it,i)=>{
+    const chk = document.getElementById(`${prefix}_${i}_cumple`);
+    const com = document.getElementById(`${prefix}_${i}_com`);
+    return {item:it, cumple: chk ? chk.checked : false, comentario: com ? com.value.trim() : ''};
+  });
+}
+function renderSkuNumTable(prefix, grupos, cols){
+  return Object.keys(grupos).sort().map(fam=>`
+    <div style="margin-bottom:10px;">
+      <div style="font-weight:700; font-size:12px; color:var(--brand-dark); margin-bottom:4px;">${fam}</div>
+      <div class="table-scroll"><table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+        <thead><tr><th style="text-align:left;">SKU</th>${cols.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead>
+        <tbody>${grupos[fam].map(p=>`<tr><td>${p.clave}</td>${cols.map(c=>`<td><input type="number" min="0" id="${prefix}_${p.clave}_${c.key}" style="width:64px;"></td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+    </div>`).join('');
+}
+function leerSkuNumTable(prefix, grupos, cols){
+  const out = [];
+  Object.values(grupos).flat().forEach(p=>{
+    const rec = {sku:p.clave, familia:p.familia};
+    let any=false;
+    cols.forEach(c=>{ const el=document.getElementById(`${prefix}_${p.clave}_${c.key}`); const v = el?parseInt(el.value)||0:0; rec[c.key]=v; if(v) any=true; });
+    if(any) out.push(rec);
+  });
+  return out;
+}
+/* Igual que renderSkuNumTable/leerSkuNumTable pero con selects de 1/0 (Sí/No) en vez de campos numéricos —
+   se usa donde el dato es presencia/ausencia (ej. Distribución Requerido vs. Real), no una cantidad. */
+function renderSkuBinaryTable(prefix, grupos, cols){
+  return Object.keys(grupos).sort().map(fam=>`
+    <div style="margin-bottom:10px;">
+      <div style="font-weight:700; font-size:12px; color:var(--brand-dark); margin-bottom:4px;">${fam}</div>
+      <div class="table-scroll"><table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+        <thead><tr><th style="text-align:left;">SKU</th>${cols.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead>
+        <tbody>${grupos[fam].map(p=>`<tr><td>${p.clave}</td>${cols.map(c=>`<td><select id="${prefix}_${p.clave}_${c.key}" style="width:64px;"><option value="0">0</option><option value="1">1</option></select></td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+    </div>`).join('');
+}
+function leerSkuBinaryTable(prefix, grupos, cols){
+  const out = [];
+  Object.values(grupos).flat().forEach(p=>{
+    const rec = {sku:p.clave, familia:p.familia};
+    let any=false;
+    cols.forEach(c=>{ const el=document.getElementById(`${prefix}_${p.clave}_${c.key}`); const v = el?parseInt(el.value)||0:0; rec[c.key]=v; if(v) any=true; });
+    if(any) out.push(rec);
+  });
+  return out;
+}
+function abrirMercadeo(){
+  const esSup = currentUser.perfil !== 'Embajador';
+  const checkin = getCheckin();
+  const prepItems = [...PREP_ITEMS_BASE, ...(esSup?PREP_ITEMS_SUP_EXTRA:[])];
+  const camItems = [...CAMARA_ITEMS_BASE, ...(esSup?CAMARA_ITEMS_SUP_EXTRA:[])];
+  const grupos = familiasParaDistribucion();
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🧹 Mercadeo — ${esSup?'Supervisor':'Embajador / Promotor'}</h3>
+    <p class="d">Checklist completo de la visita, según tu perfil. Los comentarios son opcionales, los checks de cumplimiento no.</p>
+    <div class="form-grid">
+      <div class="field full"><label>Tienda *</label>
+        <select id="merc_tienda" ${checkin?'disabled':''}>
+          <option value="">Selecciona tienda...</option>
+          ${tiendasParaSelect().map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}" ${checkin && checkin.tienda===s.tienda?'selected':''}>${s.tienda} (${s.cadena})</option>`).join('')}
+        </select>
+        ${checkin?`<div class="file-note">Bloqueada por tu check-in.</div>`:''}
+      </div>
+    </div>
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Preparación de la visita</h4>
+    ${renderChecklistRows('prep', prepItems)}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Cámara</h4>
+    ${renderChecklistRows('cam', camItems)}
+    ${esSup ? `<h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Degustación</h4>${renderChecklistRows('deg', DEGUSTACION_ITEMS)}` : ''}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Distribución — Requerido vs. Real</h4>
+    <p style="font-size:11px; color:var(--ink-soft); margin:-4px 0 6px;">1 = sí (requerido / tiene presencia en anaquel), 0 = no.</p>
+    ${renderSkuBinaryTable('dist', grupos, [{key:'req',label:'Requerido'},{key:'real',label:'Real'}])}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Mercadeo</h4>
+    ${renderChecklistRows('merc', MERCADEO_ITEMS)}
+    <div class="field full" style="margin-top:10px;"><label>Comentarios generales</label><textarea id="mercComentariosGenerales" rows="3"></textarea></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" onclick="submitMercadeo()">Guardar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function submitMercadeo(){
+  try{
+    const checkin = getCheckin();
+    const tiendaSel = document.getElementById('merc_tienda');
+    const tienda = checkin ? checkin.tienda : (tiendaSel ? tiendaSel.value : '');
+    const cadena = checkin ? checkin.cadena : (tiendaSel && tiendaSel.selectedOptions[0]?.dataset.cadena || '');
+    if(!tienda){ toast('Selecciona la tienda'); return; }
+    const esSup = currentUser.perfil !== 'Embajador';
+    const prepItems = [...PREP_ITEMS_BASE, ...(esSup?PREP_ITEMS_SUP_EXTRA:[])];
+    const camItems = [...CAMARA_ITEMS_BASE, ...(esSup?CAMARA_ITEMS_SUP_EXTRA:[])];
+    const grupos = familiasParaDistribucion();
+    const comentariosEl = document.getElementById('mercComentariosGenerales');
+    const rec = {
+      id:uid(), tipo:'mercadeo', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:new Date().toISOString(), tienda, cadena,
+      perfil_forma: esSup?'supervisor':'embajador',
+      preparacion: leerChecklistRows('prep', prepItems),
+      camara: leerChecklistRows('cam', camItems),
+      degustacion_checklist: esSup ? leerChecklistRows('deg', DEGUSTACION_ITEMS) : [],
+      distribucion: leerSkuBinaryTable('dist', grupos, [{key:'req',label:'Requerido'},{key:'real',label:'Real'}]),
+      mercadeo: leerChecklistRows('merc', MERCADEO_ITEMS),
+      comentarios_generales: comentariosEl ? comentariosEl.value.trim() : '',
+    };
+    const arr = getCapturas();
+    arr.push(rec);
+    saveCapturas(arr);
+    closeModal();
+    toast('Mercadeo guardado ✓');
+    renderMisCapturas();
+    if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+  }catch(e){ toast('⚠️ No se pudo guardar Mercadeo: ' + e.message, 6500); }
+}
+
+function abrirOnboarding(){
+  const checkin = getCheckin();
+  const prepItems = [...PREP_ITEMS_BASE, ...PREP_ITEMS_SUP_EXTRA];
+  const camItems = [...CAMARA_ITEMS_BASE, ...CAMARA_ITEMS_SUP_EXTRA];
+  const grupos = familiasParaDistribucion();
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🧭 Onboarding — MEDI Punto de venta</h3>
+    <p class="d">Lo llenan juntas la persona Supervisora y la persona nueva — es obligación del Supervisor completarlo.</p>
+    <div class="form-grid">
+      <div class="field"><label>Tienda *</label>
+        <select id="onb_tienda" ${checkin?'disabled':''}>
+          <option value="">Selecciona tienda...</option>
+          ${tiendasParaSelect().map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}" ${checkin && checkin.tienda===s.tienda?'selected':''}>${s.tienda} (${s.cadena})</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Persona en capacitación</label><input type="text" id="onb_persona_nueva" placeholder="Nombre de la persona nueva"></div>
+    </div>
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Preparación de la visita</h4>
+    ${renderChecklistRows('onbprep', prepItems)}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Cámara</h4>
+    ${renderChecklistRows('onbcam', camItems)}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Degustación</h4>
+    ${renderChecklistRows('onbdeg', DEGUSTACION_ITEMS)}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Sell Out — revisado en tienda</h4>
+    ${renderSkuNumTable('onbso', grupos, [{key:'prom',label:'Prom. vta'},{key:'real',label:'Real'}])}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Inventarios</h4>
+    ${renderSkuNumTable('onbinv', grupos, [{key:'fisico',label:'Inv. físico'},{key:'sistema',label:'Inv. sistema tienda'}])}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Disponibilidad — Requerido vs. Real</h4>
+    ${renderSkuNumTable('onbdisp', grupos, [{key:'req',label:'Requerido'},{key:'real',label:'Real'}])}
+    <h4 style="margin:14px 0 6px; font-size:13px; color:var(--brand-dark);">Mercadeo</h4>
+    ${renderChecklistRows('onbmerc', MERCADEO_ITEMS)}
+    <div class="field full" style="margin-top:10px;"><label>Comentarios generales</label><textarea id="onbComentariosGenerales" rows="3"></textarea></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" onclick="submitOnboarding()">Guardar onboarding</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function submitOnboarding(){
+  const checkin = getCheckin();
+  const tiendaSel = document.getElementById('onb_tienda');
+  const tienda = checkin ? checkin.tienda : tiendaSel.value;
+  const cadena = checkin ? checkin.cadena : (tiendaSel.selectedOptions[0]?.dataset.cadena || '');
+  if(!tienda){ toast('Selecciona la tienda'); return; }
+  const prepItems = [...PREP_ITEMS_BASE, ...PREP_ITEMS_SUP_EXTRA];
+  const camItems = [...CAMARA_ITEMS_BASE, ...CAMARA_ITEMS_SUP_EXTRA];
+  const grupos = familiasParaDistribucion();
+  const rec = {
+    id:uid(), tipo:'onboarding', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:new Date().toISOString(), tienda, cadena,
+    persona_nueva: document.getElementById('onb_persona_nueva').value.trim(),
+    preparacion: leerChecklistRows('onbprep', prepItems),
+    camara: leerChecklistRows('onbcam', camItems),
+    degustacion_checklist: leerChecklistRows('onbdeg', DEGUSTACION_ITEMS),
+    sell_out: leerSkuNumTable('onbso', grupos, [{key:'prom',label:'Prom. vta'},{key:'real',label:'Real'}]),
+    inventarios: leerSkuNumTable('onbinv', grupos, [{key:'fisico',label:'Inv. físico'},{key:'sistema',label:'Inv. sistema tienda'}]),
+    distribucion: leerSkuNumTable('onbdisp', grupos, [{key:'req',label:'Requerido'},{key:'real',label:'Real'}]),
+    mercadeo: leerChecklistRows('onbmerc', MERCADEO_ITEMS),
+    comentarios_generales: document.getElementById('onbComentariosGenerales').value.trim(),
+  };
+  const arr = getCapturas();
+  arr.push(rec);
+  saveCapturas(arr);
+  closeModal();
+  toast('Onboarding guardado ✓');
+  renderMisCapturas();
+  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+}
+function actualizarTilesMEDI(){
+  const tCheckInOut = document.getElementById('tCheckInOut');
+  const dCheckInOut = document.getElementById('dCheckInOut');
+  if(tCheckInOut){
+    const checkin = getCheckin();
+    tCheckInOut.textContent = checkin ? 'Registro — Check-out' : 'Registro — Check-in';
+    dCheckInOut.textContent = checkin ? `Foto de cómo dejaste "${checkin.tienda}" al salir.` : 'Foto de cómo encontraste la tienda al llegar.';
+  }
+  const tileOnb = document.getElementById('tileOnboarding');
+  if(tileOnb) tileOnb.classList.toggle('hidden', currentUser.perfil==='Embajador');
+  const tileAud = document.getElementById('tileAuditoria');
+  if(tileAud) tileAud.classList.toggle('hidden', currentUser.perfil==='Embajador');
+  const tileEv360 = document.getElementById('tileEval360');
+  if(tileEv360) tileEv360.classList.toggle('hidden', currentUser.perfil==='Embajador');
+  const hint = document.getElementById('mercadeoOnboardingHint');
+  if(hint) hint.textContent = '';
+}
+function openForm(type){
+  const def = FORM_DEFS[type];
+  const body = document.getElementById('modalBody');
+  const checkin = getCheckin();
+  window._fotosMulti = window._fotosMulti || {};
+  def.fields.forEach(([key,type_])=>{ if(type_==='file_multi') window._fotosMulti[key] = []; });
+  if(def.fields.some(f=>f[1]==='file_multi')){ try{ pedirUbicacion(); }catch(e){} } // pide el permiso/ubicación desde ya, para que la foto salga sellada rápido
+  let html = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>${def.icon} ${def.title}</h3>
+    <p class="d">Los campos con * son obligatorios.${checkin?' Tienda precargada por tu check-in.':''}</p>
+    ${type==='degustacion' ? `<div style="background:#fff3cd; border:2px solid #e0a800; border-radius:10px; padding:10px 12px; margin:-4px 0 14px; display:flex; align-items:center; gap:10px;">
+      <span style="font-size:22px;">📸⚠️</span>
+      <span style="font-size:13px; font-weight:800; color:#7a5b00; line-height:1.35;">CAPTURA TODAS LAS CHAROLAS QUE PREPARES EN EL DÍA</span>
+    </div>` : ''}
+    <div class="form-grid">`;
+  def.fields.forEach(([key,type_,label,req,options])=>{
+    const full = (type_==='textarea' || type_==='file' || type_==='file_multi' || type_==='file_video' || type_==='producto' || type_==='checkbox' || type_==='icon_multi' || type_==='icon_single') ? 'full' : '';
+    if(type_==='checkbox'){
+      html += `<div class="field full" style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <input type="checkbox" id="f_${key}" style="width:18px; height:18px;"><label style="margin:0;">${label}</label></div>`;
+      return;
+    }
+    if(type_==='icon_multi' || type_==='icon_single'){
+      const iconos = iconosPara(key);
+      const tieneOtro = (options||[]).includes('Otro');
+      html += `<div class="field full"><label>${label}${req?' *':''}</label>
+        <input type="hidden" id="f_${key}" value="">
+        <div id="ficons_${key}" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+          ${options.map(o=>`<button type="button" class="icon-pick" data-opt="${o}" onclick="${type_==='icon_multi'?`toggleIconMulti('${key}','${o}')`:`pickIconSingle('${key}','${o}')`}">
+            <span class="icon-pick-emoji">${iconos[o]||'•'}</span><span class="icon-pick-label">${o}</span>
+          </button>`).join('')}
+        </div>
+        ${tieneOtro ? `<div id="fotrowrap_${key}" class="hidden" style="margin-top:8px;">
+          <input type="text" id="f_${key}_otro" placeholder="¿Con qué otro?">
+        </div>` : ''}
+      </div>`;
+      return;
+    }
+    html += `<div class="field ${full}"><label>${label}${req?' *':''}</label>`;
+    if(type_==='textarea'){
+      html += `<textarea id="f_${key}" rows="3"></textarea>`;
+    } else if(type_==='select'){
+      html += `<select id="f_${key}"><option value="">Selecciona...</option>${options.map(o=>`<option>${o}</option>`).join('')}</select>`;
+    } else if(type_==='tienda_select'){
+      const locked = !!checkin;
+      html += locked
+        ? `<input type="text" value="${checkin.tienda} (${checkin.cadena})" disabled>
+           <input type="hidden" id="f_${key}_locked" value="${checkin.tienda}">
+           <div class="file-note">Bloqueada por tu check-in. Sal de la tienda en Captura para cambiarla.</div>`
+        : (type==='entrada_tienda' && window._prefillCheckin
+          ? `<input type="text" id="f_${key}" value="${window._prefillCheckin.tienda} — ${window._prefillCheckin.cadena}" readonly>
+             <div class="file-note">Tienda elegida${window._prefillCheckin.fueraRuta?' (fuera de tu ruta — se registrará la incidencia al guardar)':''}. Para cambiarla, cierra y elige otra.</div>`
+          : `<input type="text" id="f_${key}" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off">`);
+    } else if(type_==='caducidad_multi'){
+      html += `<div id="fcadrows_${key}"></div>
+        <button type="button" class="btn btn-ghost" style="margin-top:2px;" onclick="agregarFilaCaducidad('${key}')">+ Agregar otra fecha de caducidad</button>
+        <div class="file-note">Si este código tiene piezas caducando en fechas distintas, agrega una fila por cada fecha — no hace falta repetir tienda, producto ni foto.</div>`;
+    } else if(type_==='entero'){
+      html += `<input type="number" id="f_${key}" step="1" min="0" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">`;
+    } else if(type_==='decimal'){
+      html += `<input type="number" id="f_${key}" step="0.01" min="0" inputmode="decimal">`;
+    } else if(type_==='file'){
+      html += `<input type="file" id="f_${key}" accept="image/*" capture="environment" onchange="previewFile('${key}')"><div class="file-note">Se guarda solo en este dispositivo (demo).</div><img id="prev_${key}" class="thumb hidden">`;
+    } else if(type_==='file_multi'){
+      html += `<input type="file" id="f_${key}" accept="image/*" capture="environment" multiple onchange="previewFileMulti('${key}')"><div class="file-note">Puedes agregar varias fotos, una por una o varias a la vez — no es obligatorio.</div><div id="prev_${key}" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>`;
+    } else if(type_==='file_video'){
+      html += `<input type="file" id="f_${key}" accept="video/*" capture="environment" onchange="notaArchivoVideo('${key}')"><div class="file-note" id="prev_${key}_note">Se guarda solo en este dispositivo (demo).</div>`;
+    } else if(type_==='producto'){
+      html += `<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <img id="prevprod_${key}" class="thumb hidden" style="width:44px; height:44px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid var(--line);">
+          <select id="f_${key}_familia" onchange="onFamiliaChange('${key}')" style="flex:1; min-width:140px;">
+            <option value="">Familia...</option>
+            ${familiasProducto().map(f=>`<option>${f}</option>`).join('')}
+          </select>
+          <select id="f_${key}" onchange="onProductoSelChange('${key}')" style="flex:1; min-width:180px;"><option value="">Elige familia primero</option></select>
+          <button type="button" class="btn btn-ghost" onclick="toggleScanner('${key}')" title="Escanear código de barras">📷 Escanear</button>
+        </div>
+        <div id="scan_${key}" class="hidden" style="margin-top:8px;">
+          <video id="vid_${key}" style="width:100%; border-radius:8px; background:#000;" muted playsinline></video>
+          <button type="button" class="btn btn-ghost" style="margin-top:6px;" onclick="closeScanner('${key}')">Cerrar cámara</button>
+        </div>
+        <div id="cardsprod_${key}" style="margin-top:8px;"></div>`;
+    } else {
+      const prefill = (type_==='date' ? `value="${todayISO()}"` : '');
+      html += `<input type="${type_}" id="f_${key}" ${prefill}>`;
+    }
+    html += `</div>`;
+  });
+  html += `</div><div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" onclick="submitForm('${type}')">Guardar captura</button>
+    </div>`;
+  body.innerHTML = html;
+  document.getElementById('modalBg').classList.add('open');
+  def.fields.forEach(([key,type_])=>{ if(type_==='producto') renderTarjetasProducto(key); });
+  def.fields.forEach(([key,type_])=>{ if(type_==='caducidad_multi'){ window._caducidadFilas = window._caducidadFilas || {}; window._caducidadFilas[key] = []; agregarFilaCaducidad(key); } });
+}
+/* ---------- Caducidades: varias fechas (y piezas) para el mismo código, en una sola captura ---------- */
+window._caducidadFilas = window._caducidadFilas || {};
+function agregarFilaCaducidad(key){
+  window._caducidadFilas[key] = window._caducidadFilas[key] || [];
+  window._caducidadFilas[key].push('cadrow' + Date.now() + Math.random().toString(16).slice(2,6));
+  renderFilasCaducidad(key);
+}
+function quitarFilaCaducidad(key, rowId){
+  window._caducidadFilas[key] = (window._caducidadFilas[key]||[]).filter(id=>id!==rowId);
+  if(!window._caducidadFilas[key].length){ agregarFilaCaducidad(key); return; }
+  renderFilasCaducidad(key);
+}
+function renderFilasCaducidad(key){
+  const box = document.getElementById('fcadrows_'+key);
+  if(!box) return;
+  const filas = window._caducidadFilas[key] || [];
+  // conserva lo ya escrito en las filas que sigan existiendo al volver a dibujar
+  const previos = {};
+  filas.forEach(rowId=>{
+    const f = document.getElementById('cf_'+rowId+'_fecha');
+    const p = document.getElementById('cf_'+rowId+'_piezas');
+    if(f) previos[rowId] = {fecha: f.value, piezas: p ? p.value : ''};
+  });
+  box.innerHTML = filas.map((rowId,i)=>`
+    <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:8px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:130px;">
+        <label style="font-size:11px; color:var(--ink-soft); display:block; margin-bottom:2px;">Fecha${filas.length>1?' #'+(i+1):''}</label>
+        <input type="date" id="cf_${rowId}_fecha" value="${(previos[rowId]&&previos[rowId].fecha)||''}">
+      </div>
+      <div style="flex:1; min-width:110px;">
+        <label style="font-size:11px; color:var(--ink-soft); display:block; margin-bottom:2px;">Piezas en riesgo</label>
+        <input type="number" id="cf_${rowId}_piezas" step="1" min="0" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" value="${(previos[rowId]&&previos[rowId].piezas)||''}">
+      </div>
+      ${filas.length>1 ? `<button type="button" class="btn btn-ghost" style="padding:6px 10px;" onclick="quitarFilaCaducidad('${key}','${rowId}')" title="Quitar esta fecha">✕</button>` : ''}
+    </div>`).join('');
+}
+function closeModal(){
+  document.querySelectorAll('[id^="scan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('scan_',''); closeScanner(key); } });
+  document.querySelectorAll('[id^="tscan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('tscan_',''); closeScannerLinea(key); } });
+  document.getElementById('modalBg').classList.remove('open');
+  document.getElementById('modalBody').classList.remove('modal-wide');
+}
+window._fotosPendientes = new Set(); // fotos que aún se están leyendo/comprimiendo — bloquea "Guardar" hasta que terminen
+function comprimirImagen(dataUrl, maxDim, calidad){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w >= h){ h = Math.round(h * maxDim / w); w = maxDim; } else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', calidad));
+      }catch(e){ resolve(dataUrl); } // si algo falla al comprimir, se usa la foto original
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+function previewFile(key){
+  // el id real del <input> puede venir como "f_"+key (formularios estándar) o ya venir completo (ej. prioridades)
+  const input = document.getElementById('f_'+key) || document.getElementById(key);
+  const img = document.getElementById('prev_'+key);
+  if(!input) return;
+  const file = input.files[0];
+  if(!file) return;
+  window._fotosPendientes.add(key);
+  // Red de seguridad: si por lo que sea el procesamiento de la foto nunca termina (o truena sin avisar),
+  // esto la desbloquea sola después de 12s para que "Guardar" nunca se quede atorado para siempre.
+  const seguro = setTimeout(() => { window._fotosPendientes.delete(key); }, 12000);
+  const note = input.parentElement ? input.parentElement.querySelector('.file-note') : null;
+  const notaOriginal = note ? note.textContent : null;
+  if(note) note.textContent = 'Procesando foto, espera un segundo antes de guardar…';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    comprimirImagen(e.target.result, 1280, 0.72).then((comprimida) => {
+      if(img){ img.src = comprimida; img.classList.remove('hidden'); }
+      input.dataset.b64 = comprimida;
+      clearTimeout(seguro);
+      window._fotosPendientes.delete(key);
+      if(note) note.textContent = notaOriginal || 'Foto lista ✓';
+    }).catch(() => {
+      input.dataset.b64 = e.target.result;
+      clearTimeout(seguro);
+      window._fotosPendientes.delete(key);
+      if(note) note.textContent = notaOriginal || 'Foto lista ✓';
+    });
+  };
+  reader.onerror = () => { clearTimeout(seguro); window._fotosPendientes.delete(key); if(note) note.textContent = 'No se pudo leer la foto, intenta de nuevo.'; };
+  reader.readAsDataURL(file);
+}
+/* ---------- SELLO DE FOTO: fecha, hora, ubicación (GPS) y distancia a la tienda ----------
+   Cada foto que se toma/sube se "sella" con fecha y hora de México, coordenadas y la distancia a la tienda
+   (coordenadas del catálogo de tiendas). Dentro de GEO_RADIO_OK_M metros = OK; más lejos = FUERA DE ZONA.
+   Si no hay permiso/GPS la foto se guarda igual, marcada "sin ubicación" (no se bloquea la captura). */
+const GEO_RADIO_OK_M = 300;
+let _geoUltima = null, _geoPromesa = null;
+function pedirUbicacion(forzar){
+  if(!forzar && _geoUltima && Date.now()-_geoUltima.t < 90000) return Promise.resolve(_geoUltima);
+  if(_geoPromesa) return _geoPromesa;
+  _geoPromesa = new Promise(res=>{
+    if(!navigator.geolocation){ _geoPromesa=null; res({error:'sin_gps'}); return; }
+    let hecho = false;
+    const fin = v => { if(hecho) return; hecho = true; _geoPromesa = null; res(v); };
+    setTimeout(()=>fin({error:'timeout'}), 12000);
+    try{
+      navigator.geolocation.getCurrentPosition(
+        p => { _geoUltima = {lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.round(p.coords.accuracy||0), t:Date.now()}; fin(_geoUltima); },
+        e => fin({error: (e && e.code===1) ? 'permiso' : 'no_disponible'}),
+        {enableHighAccuracy:true, timeout:10000, maximumAge:30000});
+    }catch(e){ fin({error:'no_disponible'}); }
+  });
+  return _geoPromesa;
+}
+function distanciaMetros(lat1, lon1, lat2, lon2){
+  const R = 6371000, rad = x => x*Math.PI/180;
+  const dLat = rad(lat2-lat1), dLon = rad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dLon/2)**2;
+  return Math.round(2*R*Math.asin(Math.min(1, Math.sqrt(a))));
+}
+function fmtDistancia(m){ return m<1000 ? m+' m' : (m/1000).toFixed(1)+' km'; }
+/* tienda contra la que se mide la foto: la del check-in, o la que se está escribiendo/eligiendo en el formulario */
+function tiendaParaSello(){
+  let st = null;
+  const ci = getCheckin();
+  const locked = document.getElementById('f_tienda_locked');
+  if(locked && locked.value && ci) st = storeInfo(ci.cadena, ci.tienda);
+  if(!st && document.getElementById('f_tienda')) st = resolverTiendaEscrita('f_tienda');
+  if(!st && ci) st = storeInfo(ci.cadena, ci.tienda);
+  return st || null;
+}
+function sellarFoto(dataUrl, lineas, colorUltima){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+        const fs = Math.max(12, Math.round(c.width/38)), pad = Math.round(fs*0.55), lh = Math.round(fs*1.3);
+        const h = lineas.length*lh + pad*2;
+        x.fillStyle = 'rgba(0,0,0,0.66)'; x.fillRect(0, c.height-h, c.width, h);
+        x.font = `bold ${fs}px Arial, Helvetica, sans-serif`; x.textBaseline = 'top';
+        lineas.forEach((t,i)=>{ x.fillStyle = (i===lineas.length-1 && colorUltima) ? colorUltima : '#ffffff'; x.fillText(t, pad, c.height-h+pad+i*lh, c.width-pad*2); });
+        res(c.toDataURL('image/jpeg', 0.74));
+      }catch(e){ res(dataUrl); }
+    };
+    img.onerror = () => res(dataUrl);
+    img.src = dataUrl;
+  });
+}
+/* devuelve {b64 sellada, meta} — nunca rechaza: si algo falla, la foto va sin sello pero la captura no se pierde */
+async function sellarConGeo(b64){
+  const ahora = new Date();
+  const store = tiendaParaSello();
+  let g;
+  try{ g = await pedirUbicacion(); }catch(e){ g = {error:'no_disponible'}; }
+  const fecha = ahora.toLocaleDateString('es-MX', {timeZone:'America/Mexico_City', day:'2-digit', month:'2-digit', year:'numeric'});
+  const hora = ahora.toLocaleTimeString('es-MX', {timeZone:'America/Mexico_City', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+  const meta = {ts: ahora.toISOString(), estado:'sin_ubicacion', tienda_ref: store ? store.tienda : ''};
+  const lineas = [`${fecha}  ${hora}`];
+  let color = '#ffd27a';
+  if(g && !g.error){
+    meta.lat = Math.round(g.lat*1e6)/1e6; meta.lon = Math.round(g.lon*1e6)/1e6; meta.acc = g.acc;
+    lineas.push(`GPS ${meta.lat.toFixed(5)}, ${meta.lon.toFixed(5)}  (±${g.acc} m)`);
+    if(store && store.lat && store.lon){
+      meta.dist_m = distanciaMetros(g.lat, g.lon, Number(store.lat), Number(store.lon));
+      meta.estado = meta.dist_m <= GEO_RADIO_OK_M ? 'ok' : 'lejos';
+      color = meta.estado==='ok' ? '#8be28b' : '#ff7b7b';
+      lineas.push(`${store.tienda}: a ${fmtDistancia(meta.dist_m)} de la tienda ${meta.estado==='ok'?'(EN TIENDA)':'(FUERA DE ZONA)'}`);
+    } else {
+      meta.estado = 'sin_referencia';
+      lineas.push(store ? 'Tienda sin coordenadas en el catálogo' : 'Sin tienda de referencia');
+    }
+  } else {
+    meta.error = g && g.error;
+    lineas.push('GPS: sin ubicación (' + (meta.error==='permiso' ? 'permiso negado' : 'no disponible') + ')');
+  }
+  try{ return {b64: await sellarFoto(b64, lineas, color), meta}; }
+  catch(e){ return {b64, meta}; }
+}
+const GEO_ETIQUETA = {ok:'📍 En tienda', lejos:'⚠️ Fuera de zona', sin_ubicacion:'📵 Sin ubicación', sin_referencia:'📍 Sin referencia'};
+function resumenGeo(metas){
+  const arr = (metas||[]).filter(Boolean);
+  if(!arr.length) return null;
+  const orden = ['lejos','sin_ubicacion','sin_referencia','ok'];
+  const estado = orden.find(e=>arr.some(m=>m.estado===e)) || 'ok';
+  const dists = arr.map(m=>m.dist_m).filter(d=>d!=null);
+  return {estado, dist_m: dists.length ? Math.max(...dists) : null};
+}
+
+/* Campo de VARIAS fotos (ej. Degustación): cada vez que se eligen fotos se AGREGAN a lo que ya había
+   (no lo reemplazan), así se puede ir sumando una por una o varias a la vez. Se puede quitar cualquiera. */
+window._fotosMulti = window._fotosMulti || {};
+function previewFileMulti(key){
+  const input = document.getElementById('f_'+key);
+  if(!input) return;
+  const files = [...input.files];
+  if(!files.length) return;
+  window._fotosMulti[key] = window._fotosMulti[key] || [];
+  files.forEach(file=>{
+    const localId = uid();
+    const pendKey = key+'_'+localId;
+    window._fotosPendientes.add(pendKey);
+    const seguro = setTimeout(() => { window._fotosPendientes.delete(pendKey); }, 25000);
+    const reader = new FileReader();
+    const terminar = (b64) => {
+      sellarConGeo(b64).then(r=>r, () => ({b64, meta:null})).then(({b64:b64s, meta})=>{
+        window._fotosMulti[key].push({id:localId, b64:b64s, meta});
+        clearTimeout(seguro);
+        window._fotosPendientes.delete(pendKey);
+        renderFotosMultiPreview(key);
+      });
+    };
+    reader.onload = (e) => {
+      comprimirImagen(e.target.result, 1280, 0.72).then(terminar).catch(() => terminar(e.target.result));
+    };
+    reader.onerror = () => { clearTimeout(seguro); window._fotosPendientes.delete(pendKey); };
+    reader.readAsDataURL(file);
+  });
+  input.value = ''; // limpia el input para poder volver a abrir el selector y seguir agregando
+}
+function renderFotosMultiPreview(key){
+  const box = document.getElementById('prev_'+key);
+  if(!box) return;
+  const fotos = window._fotosMulti[key] || [];
+  box.innerHTML = fotos.map(f=>`<div style="position:relative;"><img src="${f.b64}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:2px solid ${f.meta ? (f.meta.estado==='ok'?'#4caf50':f.meta.estado==='lejos'?'#e53935':'#e0a800') : 'var(--line)'};" title="${f.meta ? (GEO_ETIQUETA[f.meta.estado]||'')+(f.meta.dist_m!=null?' · a '+fmtDistancia(f.meta.dist_m):'') : ''}"><button type="button" onclick="quitarFotoMulti('${key}','${f.id}')" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:var(--bad); color:#fff; border:none; cursor:pointer; font-size:12px; line-height:1;">✕</button></div>`).join('')
+    + (fotos.length ? `<div style="font-size:11px; color:var(--ink-soft); align-self:center;">${fotos.length} foto(s)</div>` : '');
+}
+function quitarFotoMulti(key, id){
+  window._fotosMulti[key] = (window._fotosMulti[key]||[]).filter(f=>f.id!==id);
+  renderFotosMultiPreview(key);
+}
+function notaArchivoVideo(key){
+  const input = document.getElementById('f_'+key);
+  const note = document.getElementById('prev_'+key+'_note');
+  const file = input.files[0];
+  if(!file || !note) return;
+  note.textContent = `Video adjunto: ${file.name} (se guarda solo en este dispositivo, demo).`;
+}
+function mostrarProyeccionCaducidad(rec){
+  const store = APP_DATA.stores.find(s=>s.cadena===rec.cadena && s.tienda===rec.tienda);
+  const piezas = parseInt(rec.piezas)||0;
+  if(!rec.fecha_caducidad || !piezas){ return; }
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const cad = new Date(rec.fecha_caducidad+'T00:00:00');
+  const dias = Math.max(0, Math.round((cad-hoy)/86400000));
+  // AVG real = "prom_venta_diario" de la combinación tienda+SKU en el último corte del Pipeline (no es una estimación por cuota).
+  const comb = (store && rec.clave) ? (APP_DATA.combinaciones||[]).find(c=>c.clave===rec.clave && c.cadena===store.cadena && c.tienda===store.tienda && (store.num_tienda==null || c.num_tienda===store.num_tienda)) : null;
+  const avg = comb ? (comb.prom_venta_diario||0) : null;
+  const corte = fechaCorteLegible((APP_DATA.bi_meta||{}).pipeline_actualizado_utc);
+  const velocidadDiaria = dias>0 ? (piezas/dias) : piezas;
+  const velocidadSemanal = velocidadDiaria*7;
+  let msg = `📊 Se capturaron ${piezas} pieza(s) con caducidad ${rec.fecha_caducidad} (en ${dias} día(s)).\n\n`;
+  if(avg!=null){
+    msg += `📦 AVG del Pipeline (promedio de venta diario real, corte ${corte}): ~${avg.toFixed(2)} pzas/día.\n\n`;
+    const esperadoVenderse = Math.min(piezas, Math.round(avg*dias));
+    const caducarian = Math.max(0, piezas-esperadoVenderse);
+    msg += (caducarian>0
+      ? `⚠️ Al ritmo de venta actual (AVG), quedarían ~${caducarian} pieza(s) sin vender antes de caducar.\n\n`
+      : `✅ Al ritmo de venta actual (AVG), no se esperan piezas caducadas.\n\n`);
+  } else {
+    msg += `No encontré esta combinación (tienda + SKU) en el último corte del Pipeline, así que no tengo un AVG real con qué compararlo.\n\n`;
+  }
+  msg += `🎯 Velocity necesaria para vender las ${piezas} pieza(s) antes de caducar: ~${velocidadDiaria.toFixed(2)} pzas/día (~${Math.ceil(velocidadSemanal)} pzas/semana).`;
+  if(avg!=null){
+    msg += velocidadDiaria > avg
+      ? ` Eso es ${(velocidadDiaria-avg).toFixed(2)} pzas/día MÁS RÁPIDO que el AVG actual — hay que acelerar la venta (impulso, precio, exhibición) o mover el producto.`
+      : ` El AVG actual ya alcanza ese ritmo.`;
+  }
+  avisoPersonalizado(msg);
+}
+/* Igual que mostrarProyeccionCaducidad, pero para cuando un solo código se capturó con varias
+   fechas de caducidad a la vez — junta todo en un solo aviso en vez de mostrar uno por fecha. */
+function mostrarProyeccionCaducidadMultiple(registros){
+  if(!registros || !registros.length) return;
+  if(registros.length===1){ mostrarProyeccionCaducidad(registros[0]); return; }
+  const r0 = registros[0];
+  const store = APP_DATA.stores.find(s=>s.cadena===r0.cadena && s.tienda===r0.tienda);
+  const comb = (store && r0.clave) ? (APP_DATA.combinaciones||[]).find(c=>c.clave===r0.clave && c.cadena===store.cadena && c.tienda===store.tienda && (store.num_tienda==null || c.num_tienda===store.num_tienda)) : null;
+  const avg = comb ? (comb.prom_venta_diario||0) : null;
+  const corte = fechaCorteLegible((APP_DATA.bi_meta||{}).pipeline_actualizado_utc);
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let totalPiezas = 0, totalCaducarian = 0;
+  const detalle = [...registros].sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad)).map(r=>{
+    const piezas = parseInt(r.piezas)||0;
+    totalPiezas += piezas;
+    const cad = new Date(r.fecha_caducidad+'T00:00:00');
+    const dias = Math.max(0, Math.round((cad-hoy)/86400000));
+    let linea = `• ${r.fecha_caducidad} (en ${dias} día(s)): ${piezas} pza(s)`;
+    if(avg!=null){
+      const esperadoVenderse = Math.min(piezas, Math.round(avg*dias));
+      const caducarian = Math.max(0, piezas-esperadoVenderse);
+      totalCaducarian += caducarian;
+      linea += caducarian>0 ? ` — ⚠️ ~${caducarian} sin vender` : ` — ✅ ok`;
+    }
+    return linea;
+  }).join('\n');
+  let msg = `📊 Se capturaron ${totalPiezas} pieza(s) en ${registros.length} fecha(s) de caducidad distintas para este código:\n\n${detalle}\n\n`;
+  if(avg!=null){
+    msg += `📦 AVG del Pipeline (promedio de venta diario real, corte ${corte}): ~${avg.toFixed(2)} pzas/día.\n\n`;
+    msg += totalCaducarian>0
+      ? `⚠️ En total, al ritmo actual, quedarían ~${totalCaducarian} pieza(s) sin vender antes de caducar entre todas las fechas.`
+      : `✅ Al ritmo de venta actual, no se esperan piezas caducadas en ninguna de estas fechas.`;
+  } else {
+    msg += `No encontré esta combinación (tienda + SKU) en el último corte del Pipeline, así que no tengo un AVG real con qué compararlo.`;
+  }
+  avisoPersonalizado(msg);
+}
+function precioSospechoso(clave, precioIngresado){
+  const p = claveAProducto(clave);
+  if(!p || !p.precio_promedio || !precioIngresado) return null;
+  const ratio = precioIngresado / p.precio_promedio;
+  if(ratio > 1.6 || ratio < 0.5){
+    return `El precio $${precioIngresado} para "${p.nombre}" se ve inusual — el precio típico ronda los $${p.precio_promedio}. ¿Seguro que es correcto?`;
+  }
+  return null;
+}
+function submitForm(type){
+  try{
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+    const def = FORM_DEFS[type];
+    const rec = { id: uid(), tipo: type, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString() };
+    let missing = false;
+    let faltantes = [];
+    const geoMetasTodas = [];
+    def.fields.forEach(([key,type_,label,req])=>{
+      if(type_==='file'){
+        const input = document.getElementById('f_'+key) || document.getElementById(key);
+        rec[key] = input ? (input.dataset.b64 || '') : '';
+        if(req && !rec[key]){ missing = true; faltantes.push(label); }
+      } else if(type_==='file_multi'){
+        const fotosObj = ((window._fotosMulti||{})[key]||[]);
+        const fotos = fotosObj.map(f=>f.b64);
+        rec[key] = fotos;
+        const metasGeo = fotosObj.map(f=>f.meta).filter(Boolean);
+        if(metasGeo.length){ rec[key+'_geo'] = metasGeo; geoMetasTodas.push(...metasGeo); }
+        if(req && !fotos.length){ missing = true; faltantes.push(label); }
+      } else if(type_==='file_video'){
+        const input = document.getElementById('f_'+key);
+        rec[key] = (input && input.files[0]) ? input.files[0].name : '';
+        if(req && !rec[key]){ missing = true; faltantes.push(label); }
+      } else if(type_==='checkbox'){
+        const el = document.getElementById('f_'+key);
+        rec[key] = el ? el.checked : false;
+      } else if(type_==='tienda_select'){
+        const lockedInput = document.getElementById('f_'+key+'_locked');
+        if(lockedInput && lockedInput.value){
+          rec[key] = lockedInput.value;
+          rec.cadena = getCheckin()?.cadena || '';
+        } else {
+          const match = resolverTiendaEscrita('f_'+key);
+          if(req && !match){ missing = true; faltantes.push(label); }
+          rec[key] = match ? match.tienda : '';
+          rec.cadena = match ? match.cadena : '';
+        }
+      } else if(type_==='caducidad_multi'){
+        const filas = window._caducidadFilas[key] || [];
+        const pares = [];
+        let filaAMedias = false;
+        filas.forEach(rowId=>{
+          const f = document.getElementById('cf_'+rowId+'_fecha');
+          const p = document.getElementById('cf_'+rowId+'_piezas');
+          const fecha = f ? f.value : '';
+          const piezas = p ? (parseInt(p.value)||0) : 0;
+          if(fecha && piezas>0) pares.push({fecha_caducidad: fecha, piezas});
+          else if(fecha || (p && p.value)) filaAMedias = true; // dejaron una fila con solo fecha o solo piezas
+        });
+        if(!pares.length){ missing = true; faltantes.push(label); }
+        if(filaAMedias){ missing = true; faltantes.push(label + ' (hay una fila incompleta — pon fecha Y piezas, o quítala con ✕)'); }
+        rec._caducidadPares = pares;
+      } else {
+        const el = document.getElementById('f_'+key);
+        let val = el ? el.value.trim() : '';
+        if(req && !val){ missing = true; faltantes.push(label); }
+        const otroEl = document.getElementById('f_'+key+'_otro');
+        if(otroEl && val.split('|').includes('Otro') && otroEl.value.trim()){
+          val = val.split('|').map(v=>v==='Otro' ? `Otro: ${otroEl.value.trim()}` : v).join('|');
+        }
+        rec[key] = val;
+      }
+    });
+    { const rg = resumenGeo(geoMetasTodas); if(rg){ rec.geo_estado = rg.estado; if(rg.dist_m!=null) rec.geo_dist_m = rg.dist_m; } }
+    if(type==='incidencia' && rec.tipo_incidencia==='Calidad (olor/consistencia/objeto ajeno)'){
+      if(!rec.lote){ missing = true; faltantes.push('Número de lote'); }
+      if(!(rec.foto && rec.foto.length)){ missing = true; faltantes.push('Foto del lote'); }
+    }
+    if(missing){ toast('Falta: ' + faltantes.join(', ')); return; }
+    const continuarGuardado = () => {
+      try{
+        const arr = getCapturas();
+        if(type==='caducidad'){
+          // Un solo código, una o varias fechas de caducidad — se guarda UN registro por fecha
+          // (para no tocar reportes/alertas que ya asumen 1 registro = 1 fecha), pero el usuario
+          // solo llena tienda/producto/foto UNA vez.
+          const pares = rec._caducidadPares || [];
+          const base = {...rec}; delete base._caducidadPares; delete base.fechas_caducidad;
+          const registros = pares.map(par => ({...base, id: uid(), fecha_caducidad: par.fecha_caducidad, piezas: par.piezas}));
+          registros.forEach(r=>arr.push(r));
+          saveCapturas(arr);
+          closeModal();
+          toast(`Captura guardada ✓ (${registros.length} fecha${registros.length>1?'s':''} de caducidad)`);
+          mostrarProyeccionCaducidadMultiple(registros);
+        } else {
+          arr.push(rec);
+          saveCapturas(arr);
+          closeModal();
+          toast('Captura guardada ✓');
+          if(type==='entrada_tienda' && rec.tienda){
+            const pre = window._prefillCheckin;
+            setCheckin({tienda:rec.tienda, cadena:rec.cadena, rol: (pre && pre.tienda===rec.tienda) ? pre.rol : '', hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
+            if(pre && pre.fueraRuta && pre.tienda===rec.tienda) registrarIncidenciaFueraRuta(rec.tienda, rec.cadena, pre.fueraRuta.motivo);
+            window._prefillCheckin = null;
+          }
+          if(type==='salida_tienda'){ setCheckin(null); }
+        }
+        renderMisCapturas();
+        renderCheckinBar();
+        if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+      }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
+    };
+    if(rec.clave && (rec.precio_delico || rec.costo)){
+      const advertencia = precioSospechoso(rec.clave, parseFloat(rec.precio_delico || rec.costo));
+      if(advertencia){ confirmarPersonalizado(advertencia + '\n\n¿Guardar de todas formas? "Cancelar" para corregir el precio.', continuarGuardado); return; }
+    }
+    continuarGuardado();
+  }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
+}
+
+/* ---------- Carga de anaquel (frentes y profundidad por SKU) ---------- */
+/* ---------- Incidencia personal (Incapacidad / Inasistencia) ---------- */
+function abrirIncidenciaPersonal(){
+  const body = document.getElementById('modalBody');
+  window._fotosMulti = window._fotosMulti || {};
+  window._fotosMulti.incidenciaPersonal = [];
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🧍 Incidencia</h3>
+    <p class="d">Los campos con * son obligatorios.</p>
+    <div class="form-grid">
+      <div class="field full"><label>Tipo *</label>
+        <select id="incpTipo">
+          <option value="">Selecciona...</option>
+          <option value="incapacidad">Incapacidad</option>
+          <option value="inasistencia">Inasistencia</option>
+        </select>
+      </div>
+      <div class="field full"><label>Comentarios *</label><textarea id="incpComentarios" rows="3" placeholder="Explica el motivo..."></textarea></div>
+      <div class="field full"><label>Foto(s) — opcional, puedes subir varias</label>
+        <input type="file" id="f_incidenciaPersonal" accept="image/*" capture="environment" multiple onchange="previewFileMulti('incidenciaPersonal')">
+        <div id="prev_incidenciaPersonal" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" onclick="submitIncidenciaPersonal()">Guardar captura</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function submitIncidenciaPersonal(){
+  try{
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+    const tipo = document.getElementById('incpTipo').value;
+    const comentarios = document.getElementById('incpComentarios').value.trim();
+    if(!tipo){ toast('Falta: Tipo'); return; }
+    if(!comentarios){ toast('Falta: Comentarios'); return; }
+    const fotos = ((window._fotosMulti||{}).incidenciaPersonal||[]).map(f=>f.b64);
+    const rec = { id: uid(), tipo, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), fecha: todayISO(), comentarios, fotos };
+    const continuarGuardado = () => {
+      const arr = getCapturas();
+      arr.push(rec);
+      saveCapturas(arr);
+      closeModal();
+      toast('Captura guardada ✓');
+      renderMisCapturas();
+      if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+    };
+    continuarGuardado();
+  }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
+}
+const CA_CATEGORIAS_ALEDANAS = ['Frutas y verduras','Vinos','Abarrotes','Perfumería','Farmacia','Salchichonería','Panadería','Gourmet','Congelados','Lácteos','Hogar','Ropa','Juguetería','Deportes','Ferretería','Autos','Bebés','Mascotas','Tecnología','Línea Blanca'];
+function abrirCargaAnaquel(){
+  const body = document.getElementById('modalBody');
+  const checkin = getCheckin();
+  const opts = tiendasParaSelect();
+  const productos = APP_DATA.catalogo_productos;
+  window._fotosMulti = window._fotosMulti || {};
+  window._fotosMulti.cargaAnaquelCtx = [];
+  let html = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>📐 Carga de anaquel</h3>
+    <p class="d">Frentes = cuántas caras del producto se ven de frente en el anaquel. Profundidad = cuántas piezas le caben hacia atrás en esa fila.</p>
+    <div class="field"><label>Tienda *</label>
+      <select id="caTienda" ${checkin?'disabled':''}>
+        <option value="">Selecciona tienda...</option>
+        ${opts.map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}" ${checkin && checkin.tienda===s.tienda?'selected':''}>${s.tienda} (${s.cadena})</option>`).join('')}
+      </select>
+      ${checkin?`<div class="file-note">Bloqueada por tu check-in.</div>`:''}
+    </div>
+    <div class="table-scroll" style="margin-top:10px;">
+      <table>
+        <thead><tr><th>Producto</th><th style="width:90px;">Frentes</th><th style="width:110px;">Profundidad</th></tr></thead>
+        <tbody>
+          ${productos.map(p=>`<tr>
+            <td style="display:flex; align-items:center; gap:8px;">${p.imagen?`<img src="${p.imagen}" style="width:32px; height:32px; object-fit:contain; border-radius:5px; background:#fff; border:1px solid var(--line);">`:''}<span style="font-size:12px;">${p.nombre}</span></td>
+            <td><input type="number" step="1" min="0" id="caf_${p.clave}" style="width:70px;" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></td>
+            <td><input type="number" step="1" min="0" id="cap_${p.clave}" style="width:80px;" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:16px 0 4px;">Contexto de la exhibición (opcional)</div>
+    <div class="form-grid">
+      <div class="field"><label>Foto(s) de la exhibición — puedes subir varias</label>
+        <input type="file" id="f_cargaAnaquelCtx" accept="image/*" capture="environment" multiple onchange="previewFileMulti('cargaAnaquelCtx')">
+        <div id="prev_cargaAnaquelCtx" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+      </div>
+      <div class="field"><label>Categoría de ubicación</label>
+        <select id="caCategoriaUbicacion">
+          <option value="">Selecciona...</option>
+          <option value="Bunker lateral">Bunker lateral</option>
+          <option value="Bunker cabecera">Bunker cabecera</option>
+          <option value="Barco">Barco</option>
+        </select>
+      </div>
+      <div class="field"><label>Tipo de exhibición</label>
+        <select id="caTipoExhibicion">
+          <option value="">Selecciona...</option>
+          <option value="Fija x planograma">Fija x planograma</option>
+          <option value="Móvil de acuerdo a inventario">Móvil de acuerdo a inventario</option>
+          <option value="Jefe Asigna">Jefe Asigna</option>
+        </select>
+      </div>
+      <div class="field"><label>Planograma</label>
+        <select id="caPlanograma">
+          <option value="">Selecciona...</option>
+          <option value="Implementado planograma">Implementado planograma</option>
+          <option value="Sin planograma oficial">Sin planograma oficial</option>
+        </select>
+      </div>
+      <div class="field"><label>Tipo de exhibición de marca</label>
+        <select id="caBloqueMarca">
+          <option value="">Selecciona...</option>
+          <option value="Exhibición bloque de Marca">Exhibición bloque de Marca</option>
+          <option value="Exhibición separada">Exhibición separada</option>
+        </select>
+      </div>
+      <div class="field"><label>Tienda de</label>
+        <select id="caPisos">
+          <option value="">Selecciona...</option>
+          <option value="1 piso">1 piso</option>
+          <option value="2 pisos">2 pisos</option>
+        </select>
+      </div>
+      <div class="field full"><label>Categorías aledañas</label>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:4px 10px; margin-top:4px;">
+          ${CA_CATEGORIAS_ALEDANAS.map(c=>`<label style="font-size:12px; font-weight:400; display:flex; align-items:center; gap:5px;"><input type="checkbox" class="caCatAledana" value="${c}" style="width:auto;"> ${c}</label>`).join('')}
+        </div>
+      </div>
+      <div class="field full" style="display:flex; gap:18px; flex-wrap:wrap; margin-top:4px;">
+        <label style="font-size:12.5px; font-weight:400; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="caMurosInterfieren" style="width:auto;"> Muros interfieren</label>
+        <label style="font-size:12.5px; font-weight:400; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="caMurosCercanos" style="width:auto;"> Muros cercanos</label>
+        <label style="font-size:12.5px; font-weight:400; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="caPlazaComercial" style="width:auto;"> Tienda en plaza comercial</label>
+      </div>
+      <div class="field full"><label>Comentarios</label><textarea id="caComentarios" rows="2" placeholder="Notas adicionales sobre la exhibición..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" onclick="submitCargaAnaquel()">Guardar carga de anaquel</button>
+    </div>`;
+  body.innerHTML = html;
+  document.getElementById('modalBg').classList.add('open');
+}
+function submitCargaAnaquel(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+  const checkin = getCheckin();
+  const tiendaSel = document.getElementById('caTienda');
+  const tienda = checkin ? checkin.tienda : tiendaSel.value;
+  if(!tienda){ toast('Selecciona la tienda'); return; }
+  const cadena = checkin ? checkin.cadena : (tiendaSel.selectedOptions[0]?.dataset.cadena || '');
+  const filas = APP_DATA.catalogo_productos.map(p=>{
+    const f = document.getElementById('caf_'+p.clave).value;
+    const prof = document.getElementById('cap_'+p.clave).value;
+    return (f || prof) ? {clave:p.clave, frentes: f||'0', profundidad: prof||'0'} : null;
+  }).filter(Boolean);
+  if(!filas.length){ toast('Captura frentes/profundidad de al menos un producto.'); return; }
+  const categoriasAledanas = [...document.querySelectorAll('.caCatAledana:checked')].map(el=>el.value);
+  const fotos = ((window._fotosMulti||{}).cargaAnaquelCtx||[]).map(f=>f.b64);
+  const contexto = {
+    categoria_ubicacion: document.getElementById('caCategoriaUbicacion').value,
+    tipo_exhibicion: document.getElementById('caTipoExhibicion').value,
+    planograma: document.getElementById('caPlanograma').value,
+    bloque_marca: document.getElementById('caBloqueMarca').value,
+    pisos: document.getElementById('caPisos').value,
+    categorias_aledanas: categoriasAledanas,
+    muros_interfieren: document.getElementById('caMurosInterfieren').checked,
+    muros_cercanos: document.getElementById('caMurosCercanos').checked,
+    plaza_comercial: document.getElementById('caPlazaComercial').checked,
+    comentarios: document.getElementById('caComentarios').value.trim(),
+  };
+  const rec = { id: uid(), tipo:'carga_anaquel', usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), tienda, cadena, frentes: filas, contexto, fotos };
+  const arr = getCapturas();
+  arr.push(rec);
+  saveCapturas(arr);
+  closeModal();
+  toast(`Carga de anaquel guardada — ${filas.length} SKU(s) ✓`);
+  renderMisCapturas();
+  if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+}
+
+/* ---------- Ley Silla (registro de descansos de 15 min) ---------- */
+const LEYSILLA_KEY = 'delico_odv_leysilla_v1';
+function getLeySilla(){ return _leySillaSync.get(); }
+function saveLeySilla(arr){ _leySillaSync.save(arr); }
+function abrirLeySilla(){
+  renderLeySillaModal();
+}
+function renderLeySillaModal(){
+  const body = document.getElementById('modalBody');
+  const hoy = todayISO();
+  const mios = getLeySilla().filter(r=>r.usuario===currentUser.usuario && fechaLocal(r.fecha_registro)===hoy).sort((a,b)=>a.fecha_registro.localeCompare(b.fecha_registro));
+  const abierto = mios.length && mios[mios.length-1].tipo==='entrada';
+  const descansosCompletos = Math.floor(mios.filter(r=>r.tipo==='salida').length);
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🪑 Ley Silla</h3>
+    <p class="d">Registro de tus descansos de 15 minutos (obligación y derecho — Ley Silla en México). Délico da 2 descansos al día.</p>
+    <div style="display:flex; gap:10px; margin:12px 0;">
+      <button class="btn btn-brand" style="flex:1;" ${abierto?'disabled':''} onclick="registrarLeySilla('entrada')">▶️ Registrar entrada de descanso</button>
+      <button class="btn btn-ghost" style="flex:1;" ${!abierto?'disabled':''} onclick="registrarLeySilla('salida')">⏹ Registrar salida de descanso</button>
+    </div>
+    ${descansosCompletos>=2 ? `<p style="font-size:12px; color:var(--good);">✓ Ya registraste tus 2 descansos de hoy.</p>` : ''}
+    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:10px 0 4px;">Hoy</div>
+    <div class="table-scroll">
+      <table><thead><tr><th>Tipo</th><th>Hora</th></tr></thead><tbody>
+        ${mios.map(r=>`<tr><td>${r.tipo==='entrada'?'▶️ Entrada':'⏹ Salida'}</td><td>${horaLocal(r.fecha_registro)}</td></tr>`).join('') || `<tr><td colspan="2" class="empty-state">Aún no registras descansos hoy.</td></tr>`}
+      </tbody></table>
+    </div>
+    <div class="modal-actions">
+      ${['Supervisor','Coordinador','Admin'].includes(currentUser.perfil) ? `<button class="btn btn-ghost" onclick="exportLeySilla()">📊 Exportar registros (todos)</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function registrarLeySilla(tipo){
+  const arr = getLeySilla();
+  arr.push({id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, tipo, fecha_registro:new Date().toISOString()});
+  saveLeySilla(arr);
+  toast(tipo==='entrada' ? 'Entrada de descanso registrada' : 'Salida de descanso registrada');
+  renderLeySillaModal();
+}
+/* ---------- Alerta de Ley Silla: aviso a los 14 minutos de un descanso abierto (falta 1 minuto para los 15) ---------- */
+let _leySillaIntervalId = null;
+let _leySillaAlertados = new Set();
+function iniciarChequeoLeySilla(){
+  if(_leySillaIntervalId) return;
+  _leySillaIntervalId = setInterval(chequearLeySillaAlerta, 15000);
+  chequearLeySillaAlerta();
+}
+function chequearLeySillaAlerta(){
+  if(!currentUser) return;
+  const hoy = todayISO();
+  const mios = getLeySilla().filter(r=>r.usuario===currentUser.usuario && fechaLocal(r.fecha_registro)===hoy).sort((a,b)=>a.fecha_registro.localeCompare(b.fecha_registro));
+  if(!mios.length) return;
+  const ultimo = mios[mios.length-1];
+  if(ultimo.tipo!=='entrada') return;
+  if(_leySillaAlertados.has(ultimo.id)) return;
+  const minutos = (Date.now() - new Date(ultimo.fecha_registro).getTime()) / 60000;
+  if(minutos >= 14){
+    _leySillaAlertados.add(ultimo.id);
+    toast('⏰ Ya llevas 14 minutos de tu descanso — te queda 1 minuto antes de que se cumplan los 15.');
+  }
+}
+function exportLeySilla(){
+  const arr = getLeySilla();
+  if(!arr.length){ toast('Sin registros de Ley Silla todavía.'); return; }
+  let csv = 'persona,usuario,tipo,fecha,hora\n';
+  arr.forEach(r=>{
+    csv += `"${r.persona}",${r.usuario},${r.tipo},${fechaLocal(r.fecha_registro)},${horaLocal(r.fecha_registro)}\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'delico_odv_ley_silla_' + todayISO() + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- Gasto (ticket único, varias líneas) ---------- */
+let ticketLineas = [];
+const MATERIALES = ['Vasitos','Capacillos','Cucharas','Guantes','Cubrebocas','Otro'];
+const INSUMOS = ['Galletas','Pan','Totopos','Palitos','Verdura','Fruta','Otros'];
+function openGastoTicket(){
+  ticketLineas = [{id:uid(), tipo:'producto', clave:'', piezas:'', origen:'Comprado en tienda', costo:'', detalle:''}];
+  window._fotosMulti = window._fotosMulti || {};
+  window._fotosMulti['ticketFoto'] = [];
+  renderGastoTicketModal();
+}
+function renderGastoTicketModal(){
+  const body = document.getElementById('modalBody');
+  const checkin = getCheckin();
+  const opts = tiendasParaSelect();
+  const total = ticketLineas.reduce((s,l)=> s + (parseFloat(l.costo)||0), 0);
+  let html = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🧾 Gasto (ticket)</h3>
+    <p class="d">Un solo ticket puede traer varias líneas (producto Delico, insumos, material) — así no repites tienda/foto por cada cosa que compraste.</p>
+    <div class="form-grid">
+      <div class="field"><label>Tienda *</label>
+        <select id="ticketTienda" ${checkin?'disabled':''}>
+          <option value="">Selecciona tienda...</option>
+          ${opts.map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}" ${checkin && checkin.tienda===s.tienda?'selected':''}>${s.tienda} (${s.cadena})</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Foto(s) del ticket — puedes subir varias (opcional, o de cada producto)</label>
+        <input type="file" id="f_ticketFoto" accept="image/*" capture="environment" multiple onchange="previewFileMulti('ticketFoto')">
+        <div id="prev_ticketFoto" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"></div>
+      </div>
+    </div>
+    <div id="ticketLineasWrap" style="margin-top:14px;"></div>
+    <button type="button" class="btn btn-ghost" style="margin-top:8px;" onclick="agregarLineaTicket()">+ Agregar línea</button>
+    <div style="text-align:right; font-weight:700; margin-top:10px; font-size:14px;">Total del ticket: $${total.toFixed(2)}</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" onclick="submitGastoTicket()">Guardar ticket</button>
+    </div>`;
+  body.innerHTML = html;
+  renderTicketLineas();
+  renderFotosMultiPreview('ticketFoto');
+  document.getElementById('modalBg').classList.add('open');
+}
+function renderTicketLineas(){
+  const wrap = document.getElementById('ticketLineasWrap');
+  wrap.innerHTML = ticketLineas.map((l,i)=>{
+    let camposExtra = '';
+    if(l.tipo === 'producto'){
+      const prodSel = claveAProducto(l.clave);
+      camposExtra = `
+        <div style="width:100%; display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            ${prodSel && prodSel.imagen ? `<img src="${prodSel.imagen}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid var(--line);">` : ''}
+            <span style="font-size:12px; font-weight:600;">${prodSel ? prodSel.nombre : 'Elige el producto abajo (foto o escáner)'}</span>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <select id="tfam_${l.id}" onchange="renderTarjetasProductoLinea('${l.id}')" style="min-width:130px; font-size:11.5px;">
+              <option value="">Todas las familias</option>
+              ${familiasProducto().map(f=>`<option ${prodSel && prodSel.familia===f?'selected':''}>${f}</option>`).join('')}
+            </select>
+            <button type="button" class="btn btn-ghost" style="font-size:11.5px; padding:3px 8px;" onclick="toggleScannerLinea('${l.id}')" title="Escanear código de barras">📷 Escanear</button>
+          </div>
+          <div id="tscan_${l.id}" class="hidden">
+            <video id="tvid_${l.id}" style="width:100%; max-width:260px; border-radius:8px; background:#000;" muted playsinline></video>
+            <button type="button" class="btn btn-ghost" style="margin-top:4px; font-size:11px;" onclick="closeScannerLinea('${l.id}')">Cerrar cámara</button>
+          </div>
+          <div id="tcards_${l.id}"></div>
+        </div>
+        <input type="number" step="1" min="0" placeholder="Piezas" value="${l.piezas}" style="width:80px;" oninput="this.value=this.value.replace(/[^0-9]/g,''); updLineaTicket('${l.id}','piezas',this.value)">
+        <select onchange="updLineaTicket('${l.id}','origen',this.value)" style="min-width:150px;">
+          ${['Comprado en tienda','Sobrante de otro día','Enviado de planta'].map(o=>`<option ${l.origen===o?'selected':''}>${o}</option>`).join('')}
+        </select>`;
+    } else if(l.tipo === 'insumo'){
+      camposExtra = `<select onchange="updLineaTicket('${l.id}','detalle',this.value)" style="min-width:150px;">
+        <option value="">Insumo...</option>
+        ${INSUMOS.map(o=>`<option ${l.detalle===o?'selected':''}>${o}</option>`).join('')}
+      </select>`;
+    } else {
+      camposExtra = `<select onchange="updLineaTicket('${l.id}','detalle',this.value)" style="min-width:150px;">
+        <option value="">Material...</option>
+        ${MATERIALES.map(o=>`<option ${l.detalle===o?'selected':''}>${o}</option>`).join('')}
+      </select>`;
+    }
+    return `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px; background:var(--surface-2);">
+      <select onchange="cambiarTipoLinea('${l.id}',this.value)" style="min-width:110px; font-weight:700;">
+        <option value="producto" ${l.tipo==='producto'?'selected':''}>Producto Delico</option>
+        <option value="insumo" ${l.tipo==='insumo'?'selected':''}>Insumo</option>
+        <option value="material" ${l.tipo==='material'?'selected':''}>Material</option>
+      </select>
+      ${camposExtra}
+      <input type="number" step="0.01" min="0" placeholder="Costo $" value="${l.costo}" style="width:90px;" oninput="updLineaTicket('${l.id}','costo',this.value)">
+      ${ticketLineas.length>1 ? `<button type="button" class="rc-del" onclick="quitarLineaTicket('${l.id}')" title="Quitar línea">✕</button>` : ''}
+    </div>`;
+  }).join('');
+  ticketLineas.forEach(l=>{ if(l.tipo==='producto') renderTarjetasProductoLinea(l.id); });
+}
+function renderTarjetasProductoLinea(lineId){
+  const wrap = document.getElementById('tcards_'+lineId);
+  if(!wrap) return;
+  const l = ticketLineas.find(x=>x.id===lineId);
+  if(!l) return;
+  const famSel = document.getElementById('tfam_'+lineId);
+  const fam = famSel ? famSel.value : '';
+  const productos = fam ? productosDeFamilia(fam) : APP_DATA.catalogo_productos;
+  wrap.innerHTML = `<div style="font-size:10px; color:var(--ink-soft); margin-bottom:3px;">Elige por foto:</div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; max-height:150px; overflow-y:auto; padding:2px 0;">
+    ${productos.map(p=>`<button type="button" onclick="seleccionarProductoLineaTarjeta('${lineId}','${p.clave}')" style="border:2px solid ${p.clave===l.clave?'var(--brand)':'var(--line)'}; border-radius:9px; padding:3px; background:#fff; cursor:pointer; width:62px; text-align:center; flex-shrink:0;">
+      ${p.imagen ? `<img src="${p.imagen}" style="width:100%; height:42px; object-fit:contain;">` : `<div style="width:100%; height:42px; display:flex; align-items:center; justify-content:center; font-size:18px;">📦</div>`}
+      <div style="font-size:8px; margin-top:2px; line-height:1.1; color:var(--ink-soft);">${p.nombre.split(' ').slice(0,2).join(' ')}</div>
+    </button>`).join('')}
+    </div>`;
+}
+function seleccionarProductoLineaTarjeta(lineId, clave){
+  updLineaTicket(lineId, 'clave', clave);
+}
+let ticketScanStream = null;
+async function toggleScannerLinea(lineId){
+  const wrap = document.getElementById('tscan_'+lineId);
+  if(!wrap) return;
+  if(wrap.classList.contains('hidden')){
+    if(!('BarcodeDetector' in window)){ toast('Tu navegador no soporta escaneo de código de barras aquí — usa las tarjetas de producto.'); return; }
+    wrap.classList.remove('hidden');
+    try{
+      ticketScanStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      const video = document.getElementById('tvid_'+lineId);
+      video.srcObject = ticketScanStream;
+      await video.play();
+      const detector = new BarcodeDetector({formats:['ean_13','upc_a','code_128']});
+      const tick = async () => {
+        if(wrap.classList.contains('hidden')) return;
+        try{
+          const codes = await detector.detect(video);
+          if(codes.length){
+            const val = codes[0].rawValue;
+            const prod = APP_DATA.catalogo_productos.find(p=>p.barcode===val);
+            if(prod){
+              toast('Producto detectado: ' + prod.nombre);
+              closeScannerLinea(lineId);
+              updLineaTicket(lineId, 'clave', prod.clave);
+              return;
+            }
+          }
+        }catch(e){}
+        requestAnimationFrame(tick);
+      };
+      tick();
+    }catch(e){ toast('No se pudo acceder a la cámara.'); wrap.classList.add('hidden'); }
+  } else {
+    closeScannerLinea(lineId);
+  }
+}
+function closeScannerLinea(lineId){
+  const wrap = document.getElementById('tscan_'+lineId);
+  if(wrap) wrap.classList.add('hidden');
+  if(ticketScanStream){ ticketScanStream.getTracks().forEach(t=>t.stop()); ticketScanStream = null; }
+}
+function agregarLineaTicket(){ ticketLineas.push({id:uid(), tipo:'producto', clave:'', piezas:'', origen:'Comprado en tienda', costo:'', detalle:''}); renderTicketLineas(); actualizarTotalTicket(); }
+function quitarLineaTicket(id){ closeScannerLinea(id); ticketLineas = ticketLineas.filter(l=>l.id!==id); renderTicketLineas(); actualizarTotalTicket(); }
+function cambiarTipoLinea(id, tipo){ closeScannerLinea(id); const l = ticketLineas.find(x=>x.id===id); if(l){ l.tipo=tipo; l.clave=''; l.detalle=''; } renderTicketLineas(); }
+function updLineaTicket(id, field, value){
+  const l = ticketLineas.find(x=>x.id===id); if(l) l[field]=value;
+  if(field==='clave'){ renderTicketLineas(); actualizarTotalTicket(); } // recarga para mostrar/ocultar la foto del producto
+  else actualizarTotalTicket();
+}
+function actualizarTotalTicket(){
+  const total = ticketLineas.reduce((s,l)=> s + (parseFloat(l.costo)||0), 0);
+  const el = document.querySelector('#modalBody div[style*="text-align:right"]');
+  if(el) el.textContent = `Total del ticket: $${total.toFixed(2)}`;
+}
+function submitGastoTicket(){
+  try{
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+    const checkin = getCheckin();
+    const tiendaSel = document.getElementById('ticketTienda');
+    const tienda = checkin ? checkin.tienda : (tiendaSel ? tiendaSel.value : '');
+    if(!tienda){ toast('Selecciona la tienda'); return; }
+    const cadena = checkin ? checkin.cadena : (tiendaSel && tiendaSel.selectedOptions[0]?.dataset.cadena || '');
+    const lineasValidas = ticketLineas.filter(l=> l.costo!=='' && ((l.tipo==='producto' && l.clave) || (l.tipo!=='producto' && l.detalle)));
+    if(!lineasValidas.length){ toast('Agrega al menos una línea completa (producto/insumo/material + costo)'); return; }
+    const fotos = ((window._fotosMulti||{})['ticketFoto']||[]).map(f=>f.b64);
+    const total = lineasValidas.reduce((s,l)=> s + (parseFloat(l.costo)||0), 0);
+    const resumenLineas = lineasValidas.map(l=>{
+      const nombreLinea = l.tipo==='producto' ? nombreProducto(l.clave) : l.detalle;
+      return `• ${nombreLinea} — $${(parseFloat(l.costo)||0).toFixed(2)}`;
+    }).join('\n');
+    const confirmMsg = `¿Confirmas guardar este ticket?\n\n${resumenLineas}\n\nTotal: $${total.toFixed(2)}`;
+    confirmarPersonalizado(confirmMsg, () => {
+      try{
+        const rec = {
+          id: uid(), tipo:'gasto_ticket', usuario: currentUser.usuario, persona: currentUser.nombre,
+          fecha_registro: new Date().toISOString(), tienda, cadena, foto: fotos, total: total.toFixed(2),
+          lineas: lineasValidas.map(l=> l.tipo==='producto'
+            ? {tipo:'Producto Delico', detalle: nombreProducto(l.clave), piezas:l.piezas, origen:l.origen, costo:l.costo}
+            : {tipo: l.tipo==='insumo'?'Insumo':'Material', detalle:l.detalle, costo:l.costo})
+        };
+        const arr = getCapturas();
+        arr.push(rec);
+        saveCapturas(arr);
+        closeModal();
+        toast('Ticket guardado ✓');
+        renderMisCapturas();
+        if(['Supervisor','Coordinador','Admin'].includes(currentUser.perfil)) renderReportes();
+      }catch(e){ toast('⚠️ No se pudo guardar el ticket: ' + e.message, 6500); }
+    });
+  }catch(e){ toast('⚠️ No se pudo guardar el ticket: ' + e.message, 6500); }
+}
+
+function nombreProducto(clave){ const p = claveAProducto(clave); return p ? p.nombre : (clave||''); }
+function nombreProductosDegustacion(c){ return [c.clave, c.clave2, c.clave3].filter(Boolean).map(nombreProducto).join(' + '); }
+function detalleCaptura(c){
+  switch(c.tipo){
+    case 'entrada_tienda': return `Entrada · ${c.notas||''}`;
+    case 'salida_tienda': return `Salida · ${c.notas||''}`;
+    case 'mercadeo': {
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      return `${ok}/${all.length} cumplidos (${c.perfil_forma||''})`;
+    }
+    case 'onboarding': {
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      return `${c.persona_nueva?'Con '+c.persona_nueva+' · ':''}${ok}/${all.length} cumplidos`;
+    }
+    case 'caducidad': return `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
+    case 'incidencia': return `${c.tipo_incidencia}: ${c.descripcion}${c.lote?' · Lote: '+c.lote:''}`;
+    case 'incapacidad': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
+    case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
+    case 'degustacion': return `${nombreProductosDegustacion(c)} — ${c.reacciones}`;
+    case 'precio_delico': return `${nombreProducto(c.clave)} — $${c.precio_delico}`;
+    case 'precio_competencia': return `${c.marca_competencia} — $${c.precio_competencia}${c.promo_competencia? ' · '+c.promo_competencia:''}`;
+    case 'foto': return `${c.seccion} — ${c.notas||''}`;
+    case 'factores_ambiente': return `${c.clima||''} · afluencia ${c.afluencia||'—'} — ${c.tendencia||''}`;
+    case 'gasto_ticket': return `${(c.lineas||[]).length} línea(s) — total $${c.total}`;
+    case 'carga_anaquel': return `${(c.frentes||[]).length} SKU(s) capturados${c.contexto && c.contexto.tipo_exhibicion ? ' · '+c.contexto.tipo_exhibicion : ''}${(c.fotos||[]).length ? ' · '+c.fotos.length+' foto(s)' : ''}`;
+    default: return '';
+  }
+}
+const TIPO_LABEL = {entrada_tienda:'Registro — Check-in',salida_tienda:'Registro — Check-out',mercadeo:'Mercadeo',caducidad:'Caducidad',incidencia:'Incidencia',incapacidad:'Incapacidad',inasistencia:'Inasistencia',degustacion:'Degustación',precio_delico:'Precio Delico',precio_competencia:'Precio competencia',foto:'Categoría',factores_ambiente:'Factores ambiente',gasto_ticket:'Gasto (ticket)',carga_anaquel:'Carga de anaquel',onboarding:'Onboarding'};
+
+function renderMisCapturas(){
+  const arr = getCapturas().filter(c=>c.usuario===currentUser.usuario).sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,30)
+    .map(c=>({...c, tipo_label: TIPO_LABEL[c.tipo], detalle: detalleCaptura(c)}));
+  window._misCapturasBodyRows = arr;
+  window.render_misCapturasBody = function(){
+    const rows2 = window._misCapturasBodyRows || [];
+    const head = document.getElementById('misCapturasBodyHead');
+    if(head) head.innerHTML = `${colHead('misCapturasBody','tipo_label','Tipo',false)}${colHead('misCapturasBody','fecha_registro','Fecha',false)}${colHead('misCapturasBody','tienda','Tienda',false)}${colHead('misCapturasBody','detalle','Detalle',false)}`;
+    const filas = ordenarFilas('misCapturasBody', rows2, 'fecha_registro');
+    const tbody = document.getElementById('misCapturasBody');
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}${badgeGeo(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
+  };
+  window.render_misCapturasBody();
+  try{ pintarEstadoNube(); }catch(e){}
+  renderDegustacionesRecientes();
+  const zonaMedi = document.getElementById('reinicioZonaMedi');
+  if(zonaMedi) zonaMedi.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
+}
+/* ---------- Comentarios del shopper agregados DESPUÉS, sin tocar el registro original de Degustación ---------- */
+function renderDegustacionesRecientes(){
+  const box = document.getElementById('degustacionesRecientesBox');
+  if(!box) return;
+  const mias = getCapturas().filter(c=>c.tipo==='degustacion' && c.usuario===currentUser.usuario)
+    .sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,8);
+  if(!mias.length){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Aún no tienes degustaciones registradas.</p>`; return; }
+  box.innerHTML = mias.map(c=>{
+    const nombreProds = nombreProductosDegustacion(c) || 'Producto';
+    const retros = c.retro_shopper || [];
+    return `<div class="card" style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700; font-size:13px;">${nombreProds}</div>
+          <div style="font-size:11.5px; color:var(--ink-soft);">${c.tienda||''} · ${fechaHoraLocal(c.fecha_registro)}</div>
+          ${c.reacciones ? `<div style="font-size:12.5px; margin-top:6px;"><b>Al momento:</b> ${c.reacciones}</div>` : ''}
+        </div>
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; white-space:nowrap;" onclick="abrirRetroShopper('${c.id}')">+ Agregar comentario</button>
+      </div>
+      ${retros.length ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:5px;">
+        ${retros.map(r=>`<div style="font-size:12px;">${r.texto} <span style="color:var(--ink-soft);">(${fechaHoraLocal(r.fecha)})</span></div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+function abrirRetroShopper(capturaId){
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>🥄 Comentario del shopper</h3>
+    <p class="d">Se agrega como un comentario nuevo — no cambia lo que ya guardaste al momento de la degustación.</p>
+    <div class="field full"><label>Comentario</label><textarea id="retroShopperTexto" rows="3" placeholder="Reacción del shopper..."></textarea></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" onclick="guardarRetroShopper('${capturaId}')">Guardar comentario</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function guardarRetroShopper(capturaId){
+  const input = document.getElementById('retroShopperTexto');
+  const texto = input ? input.value.trim() : '';
+  if(!texto){ toast('Escribe el comentario'); return; }
+  const arr = getCapturas();
+  const c = arr.find(x=>x.id===capturaId);
+  if(!c){ toast('No se encontró la captura original'); return; }
+  c.retro_shopper = c.retro_shopper || [];
+  c.retro_shopper.push({texto, autor:currentUser.nombre, fecha:new Date().toISOString()});
+  saveCapturas(arr);
+  // saveCapturas solo sube capturas NUEVAS; este comentario se agrega a una ya existente, así que se sube aparte
+  // (solo el campo retro_shopper, con merge, para no pisar fotos ni nada más de la captura en la nube).
+  try{ subirAColeccion('capturas_medi', {id:c.id, retro_shopper:c.retro_shopper}); }catch(e){}
+  closeModal();
+  toast('Comentario del shopper agregado ✓');
+  renderDegustacionesRecientes();
+}
+
+/* ---------- REPORTES (equipo) ---------- */
+function populateRepPersona(){
+  const sel = document.getElementById('repPersona');
+  sel.innerHTML = '<option value="">Todas</option>';
+  APP_DATA.equipo.filter(u=>u.perfil==='Embajador').forEach(u=>{
+    const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre; sel.appendChild(o);
+  });
+}
+function populateRepFiltrosExtra(){
+  const cadenaSel = document.getElementById('repCadena');
+  if(cadenaSel && cadenaSel.options.length<=1){
+    [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
+    cadenaSel.onchange = renderReportes;
+  }
+  const regionSel = document.getElementById('repRegion');
+  if(regionSel && regionSel.options.length<=1){
+    [...new Set(APP_DATA.equipo.map(u=>u.region).filter(Boolean))].sort().forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; regionSel.appendChild(o); });
+    regionSel.onchange = renderReportes;
+  }
+  const supSel = document.getElementById('repSupervisor');
+  if(supSel && supSel.options.length<=1){
+    nombresSupervisorUnicos().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; supSel.appendChild(o); });
+    supSel.onchange = renderReportes;
+  }
+  registrarFiltroMesesCompletos('rep','repMesDdPanel','repMesDdBtn','repDesde','repHasta',renderReportes);
+}
+function capturasFiltradasReporte(){
+  const tipo = document.getElementById('repTipo').value;
+  const persona = document.getElementById('repPersona').value;
+  const cadena = document.getElementById('repCadena').value;
+  const region = document.getElementById('repRegion').value;
+  const supervisor = document.getElementById('repSupervisor').value;
+  const desde = (document.getElementById('repDesde')||{}).value;
+  const hasta = (document.getElementById('repHasta')||{}).value;
+  let arr = getCapturas();
+  if(tipo) arr = arr.filter(c=>c.tipo===tipo);
+  if(persona) arr = arr.filter(c=>c.usuario===persona);
+  if(cadena) arr = arr.filter(c=>c.cadena===cadena);
+  if(region) arr = arr.filter(c=>{ const u = APP_DATA.equipo.find(x=>x.usuario===c.usuario); return u && u.region===region; });
+  if(supervisor) arr = arr.filter(c=> supervisorDePersona(c.persona)===supervisor);
+  if(desde) arr = arr.filter(c=> fechaSoloDia(c.fecha_registro) >= desde);
+  if(hasta) arr = arr.filter(c=> fechaSoloDia(c.fecha_registro) <= hasta);
+  if(window._repFotoFiltro==='con') arr = arr.filter(c=> fotosDeCaptura(c).length || c._fotos_solo_en_la_nube);
+  if(window._repFotoFiltro==='sin') arr = arr.filter(c=> (c.tipo==='entrada_tienda'||c.tipo==='salida_tienda') && !fotosDeCaptura(c).length && !c._fotos_solo_en_la_nube);
+  return arr;
+}
+function setRepFotoFiltro(v){ window._repFotoFiltro = v; window._repLimite = 200; renderReportes(); }
+/* Celda "Fotos" del reporte: miniaturas (clic = verlas grandes con su sello) o el motivo por el que no hay */
+function celdaFotosReporte(c){
+  const f = fotosDeCaptura(c);
+  if(f.length){
+    const col = c.geo_estado==='ok' ? '#2e8b57' : c.geo_estado==='lejos' ? 'var(--bad)' : c.geo_estado ? 'var(--warn)' : 'var(--line)';
+    return `<div style="display:flex; gap:3px; align-items:center; cursor:pointer;" onclick="verFotosCaptura('${c.id}')" title="Ver fotos">${f.slice(0,2).map(src=>`<img src="${src}" loading="lazy" decoding="async" alt="foto" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:2px solid ${col};">`).join('')}${f.length>2?`<b style="font-size:11px;">+${f.length-2}</b>`:''}</div>`;
+  }
+  if(c._fotos_solo_en_la_nube) return `<small style="color:var(--brand-dark); cursor:pointer; text-decoration:underline;" onclick="verFotosCaptura('${c.id}')">☁️ ver foto (se baja de la nube)</small>`;
+  if(c._fotos_omitidas_por_tamano) return '<small style="color:var(--warn);">⚠️ foto omitida (muy pesada)</small>';
+  if(c.tipo==='entrada_tienda' || c.tipo==='salida_tienda') return '<small style="color:var(--bad); font-weight:700;">⚠️ sin foto</small>';
+  return '<span style="color:var(--ink-soft);">—</span>';
+}
+async function verFotosCaptura(id){
+  const c = getCapturas().find(x=>x.id===id); if(!c) return;
+  let f = fotosDeCaptura(c);
+  const body = document.getElementById('modalBody');
+  if(!f.length && c._fotos_solo_en_la_nube){
+    // Foto antigua: no se guarda en memoria; se baja de la nube solo para mostrarla ahora.
+    body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button><h3>📷 ${TIPO_LABEL[c.tipo]||c.tipo} — ${c.tienda||''}</h3><p style="font-size:13px; color:var(--ink-soft);">☁️ Bajando la foto de la nube…</p>`;
+    document.getElementById('modalBg').classList.add('open');
+    try{
+      const snap = await db.collection('capturas_medi').doc(id).get();
+      const dd = snap && snap.exists ? snap.data() : null;
+      f = dd ? fotosDeCaptura(dd) : [];
+    }catch(err){ f = []; }
+    if(!f.length){ body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button><h3>📷 ${TIPO_LABEL[c.tipo]||c.tipo} — ${c.tienda||''}</h3><p style="font-size:13px; color:var(--bad);">No pude bajar la foto de la nube (revisa tu internet o intenta de nuevo).</p>`; return; }
+  }
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>📷 ${TIPO_LABEL[c.tipo]||c.tipo} — ${c.tienda||''}</h3>
+    <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 8px;">${c.persona||''} · ${fechaHoraLocal(c.fecha_registro)}${badgeGeo(c)}</p>
+    ${c.notas?`<p style="font-size:12.5px; margin:0 0 8px;">📝 ${c.notas}</p>`:''}
+    <div style="display:flex; flex-direction:column; gap:10px;">${f.map(src=>`<img src="${src}" alt="foto" style="width:100%; border-radius:8px; border:1px solid var(--line);">`).join('')}</div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function badgeGeo(c){
+  if(!c.geo_estado) return '';
+  const col = c.geo_estado==='ok' ? 'var(--good,#2e8b57)' : c.geo_estado==='lejos' ? 'var(--bad)' : 'var(--warn)';
+  return ` <span style="font-size:11px; font-weight:700; color:${col}; white-space:nowrap;">${GEO_ETIQUETA[c.geo_estado]||''}${c.geo_dist_m!=null?' · a '+fmtDistancia(c.geo_dist_m):''}</span>`;
+}
+function renderReportes(){
+  if(!document.getElementById('repPersona').options.length) populateRepPersona();
+  populateRepFiltrosExtra();
+  document.getElementById('repTipo').onchange = renderReportes;
+  document.getElementById('repPersona').onchange = renderReportes;
+  const zonaAdmin = document.getElementById('reinicioZonaAdmin');
+  if(zonaAdmin) zonaAdmin.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
+  const zonaPw = document.getElementById('passwordsZonaAdmin');
+  if(zonaPw){
+    const esReset = currentUser.usuario === RESET_TOTAL_USUARIO;
+    zonaPw.classList.toggle('hidden', !esReset);
+    if(esReset) poblarPwZonaUsuarios();
+  }
+  const zonaInst = document.getElementById('instalacionZonaAdmin');
+  if(zonaInst){
+    const esReset = currentUser.usuario === RESET_TOTAL_USUARIO;
+    zonaInst.classList.toggle('hidden', !esReset);
+    if(esReset) renderInstalacionEquipo();
+  }
+  try{ pintarEstadoNube(); }catch(e){}
+  let arr = capturasFiltradasReporte();
+
+  document.getElementById('repTotal').textContent = arr.length;
+  document.getElementById('repPersonas').textContent = new Set(arr.map(c=>c.usuario)).size;
+  document.getElementById('repIncidencias').textContent = arr.filter(c=>c.tipo==='incidencia').length;
+  document.getElementById('repCaducidades').textContent = arr.filter(c=>c.tipo==='caducidad').length;
+  const repFuera = document.getElementById('repFueraZona'); if(repFuera) repFuera.textContent = arr.filter(c=>c.geo_estado==='lejos').length;
+
+  if(!window._repLimite) window._repLimite = 200;
+  // Las más RECIENTES primero (antes se cortaba en las primeras 200 guardadas, o sea las más viejas, y lo nuevo no salía)
+  const arrOrdenado = arr.slice().sort((a,b)=> String(b.fecha_registro||'').localeCompare(String(a.fecha_registro||'')));
+  window._repBodyRows = arrOrdenado.slice(0, window._repLimite).map(c=>({...c, tipo_label: TIPO_LABEL[c.tipo], detalle: detalleCaptura(c)}));
+  const sinFotoN = arr.filter(c=> (c.tipo==='entrada_tienda'||c.tipo==='salida_tienda') && !fotosDeCaptura(c).length && !c._fotos_solo_en_la_nube).length;
+  const repSF = document.getElementById('repSinFoto'); if(repSF) repSF.textContent = sinFotoN;
+  const repPie = document.getElementById('repMasWrap');
+  if(repPie) repPie.innerHTML = `<span style="font-size:12px; color:var(--ink-soft);">Mostrando ${Math.min(window._repLimite, arr.length)} de ${arr.length} (las más recientes primero).</span>` + (arr.length>window._repLimite ? ` <button class="btn btn-ghost" style="padding:3px 10px; font-size:12px;" onclick="window._repLimite+=200; renderReportes();">Mostrar 200 más</button>` : '');
+  ['todas','con','sin'].forEach(k=>{ const b=document.getElementById('repFoto_'+k); if(b) b.style.fontWeight = ((window._repFotoFiltro||'todas')===k) ? '800' : '500'; });
+  window.render_repBody = function(){
+    const rows2 = window._repBodyRows || [];
+    const head = document.getElementById('repBodyHead');
+    if(head) head.innerHTML = `${colHead('repBody','tipo_label','Tipo',false)}${colHead('repBody','persona','Persona',false)}${colHead('repBody','fecha_registro','Fecha',false)}${colHead('repBody','tienda','Tienda',false)}${colHead('repBody','detalle','Detalle',false)}<th>Fotos</th>`;
+    const filas = ordenarFilas('repBody', rows2, 'fecha_registro');
+    const tbody = document.getElementById('repBody');
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${c.persona}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}${badgeGeo(c)}</td><td>${celdaFotosReporte(c)}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-state">Sin capturas con este filtro. Revisa el recuadro de arriba (☁️): ahí dice si la nube está entregando las capturas del equipo, y si no, por qué.</td></tr>`;
+  };
+  window.render_repBody();
+
+  renderDegustacionPorHora();
+  renderReportesInsights(arr);
+}
+function renderReportesInsights(arr){
+  const box = document.getElementById('repInsights');
+  if(!box) return;
+  if(!arr.length){ box.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">Sin capturas en este filtro para generar insights.</p>`; return; }
+  const porPersona = {};
+  arr.forEach(c=>{ porPersona[c.persona] = (porPersona[c.persona]||0) + 1; });
+  const personas = Object.entries(porPersona).sort((a,b)=>b[1]-a[1]);
+  const porTipo = {};
+  arr.forEach(c=>{ porTipo[c.tipo] = (porTipo[c.tipo]||0) + 1; });
+  const tipoTop = Object.entries(porTipo).sort((a,b)=>b[1]-a[1])[0];
+  const incidencias = arr.filter(c=>c.tipo==='incidencia');
+  const caducidades = arr.filter(c=>c.tipo==='caducidad');
+  const inasistencias = arr.filter(c=>c.tipo==='inasistencia' || c.tipo==='incapacidad');
+  const porTienda = {};
+  incidencias.forEach(c=>{ if(c.tienda) porTienda[c.tienda] = (porTienda[c.tienda]||0)+1; });
+  const tiendaTop = Object.entries(porTienda).sort((a,b)=>b[1]-a[1])[0];
+  const fechas = arr.map(c=>c.fecha_registro).filter(Boolean).sort();
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  html += `<p style="font-size:12.5px; margin:0 0 6px;">📊 <b>${arr.length}</b> captura(s) de <b>${personas.length}</b> persona(s)${fechas.length?` entre ${fechaSoloDia(fechas[0])} y ${fechaSoloDia(fechas[fechas.length-1])}`:''}.</p>`;
+  if(tipoTop) html += `<p style="font-size:12.5px; margin:0 0 6px;">📌 El tipo de captura más frecuente es <b>${TIPO_LABEL[tipoTop[0]]||tipoTop[0]}</b> (${tipoTop[1]} registro(s)).</p>`;
+  if(personas[0]) html += `<p style="font-size:12.5px; margin:0 0 6px;">🏅 Quien más está capturando: <b>${nombreCorto(personas[0][0])}</b> (${personas[0][1]}); quien menos: <b>${nombreCorto(personas[personas.length-1][0])}</b> (${personas[personas.length-1][1]}) — revisar si es por cobertura de tiendas o por falta de captura.</p>`;
+  if(incidencias.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${incidencias.length} incidencia(s) reportada(s)${tiendaTop?`, la tienda con más es <b>${tiendaTop[0]}</b> (${tiendaTop[1]})`:''} — atender de inmediato lo que siga abierto.</p>`;
+  if(caducidades.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--warn,#c98a1b);">⏰ ${caducidades.length} caducidad(es) capturada(s) — revisa Kardex por tienda para ver el detalle y accionar antes de que se pierda el producto.</p>`;
+  if(inasistencias.length) html += `<p style="font-size:12.5px; margin:0;">🧍 ${inasistencias.length} inasistencia(s)/incapacidad(es) registradas en este filtro.</p>`;
+  const porCadenaRep = {};
+  arr.forEach(c=>{ if(!c.cadena) return; (porCadenaRep[c.cadena] = porCadenaRep[c.cadena] || []).push(c); });
+  const cadenasRep = Object.keys(porCadenaRep).sort();
+  if(cadenasRep.length>1){
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">🔗 <b>Por cadena:</b> ${cadenasRep.map(c=>`${c} (${porCadenaRep[c].length})`).join(' · ')}.</p>`;
+  }
+  const arrTop = arr.filter(c=>{ const st = c.tienda ? storeInfo(c.cadena, c.tienda) : null; return st && esClusterTop(st.cluster); });
+  if(arrTop.length){
+    const incTop = arrTop.filter(c=>c.tipo==='incidencia').length;
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">⭐ <b>Tiendas TOP (cluster Diamante):</b> ${arrTop.length} captura(s)${incTop?`, ${incTop} incidencia(s)`:''} — son las que más representan, priorízalas primero.</p>`;
+  }
+  html += `</div>`;
+  box.innerHTML = html;
+}
+const BLOQUES_HORA = [['Mañana (8-12)',8,12],['Mediodía (12-15)',12,15],['Tarde (15-18)',15,18],['Noche (18-21)',18,21]];
+function renderDegustacionPorHora(){
+  const box = document.getElementById('degustacionPorHoraCard');
+  if(!box) return;
+  const degus = getCapturas().filter(c=>c.tipo==='degustacion');
+  if(!degus.length){ box.innerHTML = `<p style="font-size:13px; color:var(--ink-soft); margin:0;">Aún no hay capturas de degustación en este dispositivo.</p>`; return; }
+  const conteo = BLOQUES_HORA.map(()=>0);
+  degus.forEach(c=>{
+    const h = new Date(c.fecha_registro).getHours();
+    const idx = BLOQUES_HORA.findIndex(([,ini,fin])=> h>=ini && h<fin);
+    if(idx>=0) conteo[idx]++;
+  });
+  const max = Math.max(...conteo, 1);
+  const colores = ['var(--v-s1)','var(--v-s2)','var(--v-s3)','var(--v-s4)'];
+  box.innerHTML = `<div class="viz-root">
+    <div style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;">${degus.length} degustación(es) capturadas — te ayuda a ver quién gasta una charola rápido y quién necesita varias en el día.</div>
+    ${BLOQUES_HORA.map(([label],i)=>`<div class="viz-bar-row"><div class="viz-bar-label" style="width:130px;">${label}</div><div class="viz-bar-track"><div class="viz-bar-fill" style="width:${Math.round(conteo[i]/max*100)}%; background:${colores[i]};"></div></div><div class="viz-bar-value">${conteo[i]}</div></div>`).join('')}
+  </div>`;
+}
+
+/* ---------- CUMPLIMIENTO: PLAN VS. REAL ---------- */
+function normNombre(s){ return (s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); }
+/* Compara nombres sin importar acentos ni el orden de apellidos/nombre (los archivos fuente no son consistentes en el orden) */
+function mismaPersona(a,b){
+  const tok = s => normNombre(s).split(/\s+/).filter(Boolean).sort().join(' ');
+  return !!a && !!b && tok(a)===tok(b);
+}
+/* Los archivos fuente traen el mismo nombre en distinto orden/acentos (ej. "HERNANDEZ ESTEVEZ MARIA DE JESUS" vs
+   "MARÍA DE JESÚS HERNÁNDEZ ESTEVEZ") — esto los vuelve a una sola forma "oficial" (la que esa persona tiene en
+   su propio registro de equipo/plantilla) para que no aparezca duplicada en filtros ni listas. */
+function nombreCanonicoPersona(nombre){
+  if(!nombre) return '';
+  const u = APP_DATA.equipo.find(x=>mismaPersona(x.nombre, nombre));
+  if(u) return u.nombre;
+  const p = APP_DATA.plantilla.find(x=>mismaPersona(x.nombre, nombre));
+  if(p) return p.nombre;
+  return nombre;
+}
+function supervisorDePersona(nombre){
+  const n = normNombre(nombre);
+  const p = APP_DATA.plantilla.find(x=>normNombre(x.nombre)===n);
+  return p ? nombreCanonicoPersona(p.supervisor) : '';
+}
+function usuarioDeNombre(nombre){
+  const u = APP_DATA.equipo.find(x=>mismaPersona(x.nombre, nombre));
+  return u ? u.usuario : null;
+}
+/* Catálogo de tiendas (región/cluster/ciudad/lat-long) cargado de CONSIDERACIONES/CATÁLOGOS */
+function storeInfo(cadena, tiendaNombre){
+  return APP_DATA.stores.find(s => s.cadena===cadena && s.tienda===tiendaNombre);
+}
+/* ===== Filtros y insights genéricos reutilizables en las pestañas de Retroalimentación (Supervisor/Coordinador/Admin):
+   "Mes(es) completo(s)" (atajo que llena Desde/Hasta) y desglose por cadena + gaps en tiendas TOP (cluster Diamante). ===== */
+function cadenasDisponiblesFiltro(){ return [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort(); }
+function capFiltroGenerico(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function esClusterTop(cluster){ return /DIAMANTE/i.test(cluster||''); }
+function rangoFechasDeMesesCompletos(mesesSet){
+  if(!mesesSet || !mesesSet.size) return null;
+  const nums = [...mesesSet].map(m=>MES_NUM_BONO[m]).filter(Boolean).sort((a,b)=>a-b);
+  if(!nums.length) return null;
+  const anio = 2026;
+  const desde = `${anio}-${String(nums[0]).padStart(2,'0')}-01`;
+  const ultimoMes = nums[nums.length-1];
+  const ultimoDia = new Date(anio, ultimoMes, 0).getDate();
+  const hasta = `${anio}-${String(ultimoMes).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+  return {desde, hasta};
+}
+/* Dropdown de "mes(es) completo(s)": es un atajo que, al marcarlo, llena los campos Desde/Hasta existentes con el
+   rango exacto de ese/esos mes(es) y dispara el render de la vista — no reemplaza el filtro de fecha, lo complementa. */
+function registrarFiltroMesesCompletos(prefix, panelId, btnId, desdeId, hastaId, renderFn){
+  const stateKey = prefix+'FiltroMesesCompletos';
+  if(window[stateKey] === undefined) window[stateKey] = new Set();
+  window[prefix+'MesesCompletosTodo'] = function(){
+    window[stateKey] = new Set(mesesDisponiblesObj());
+    _aplicarMesesCompletos(prefix, desdeId, hastaId);
+    _renderMesesCompletosChips(prefix, panelId, btnId);
+    renderFn();
+  };
+  window[prefix+'MesesCompletosNinguno'] = function(){
+    window[stateKey] = new Set();
+    _renderMesesCompletosChips(prefix, panelId, btnId);
+  };
+  window['toggle'+capFiltroGenerico(prefix)+'MesCompleto'] = function(m){
+    const set = window[stateKey];
+    if(set.has(m)) set.delete(m); else set.add(m);
+    _aplicarMesesCompletos(prefix, desdeId, hastaId);
+    _renderMesesCompletosChips(prefix, panelId, btnId);
+    renderFn();
+  };
+  _renderMesesCompletosChips(prefix, panelId, btnId);
+}
+function _aplicarMesesCompletos(prefix, desdeId, hastaId){
+  const rango = rangoFechasDeMesesCompletos(window[prefix+'FiltroMesesCompletos']);
+  if(!rango) return;
+  const dEl = document.getElementById(desdeId), hEl = document.getElementById(hastaId);
+  if(dEl) dEl.value = rango.desde;
+  if(hEl) hEl.value = rango.hasta;
+}
+function _renderMesesCompletosChips(prefix, panelId, btnId){
+  const panel = document.getElementById(panelId);
+  const btn = document.getElementById(btnId);
+  if(!panel && !btn) return;
+  const meses = mesesDisponiblesObj();
+  const set = window[prefix+'FiltroMesesCompletos'] || new Set();
+  if(panel){
+    panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="${prefix}MesesCompletosTodo()">Todo</button><button type="button" onclick="${prefix}MesesCompletosNinguno()">Ninguno</button></div>`
+      + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${set.has(m)?'checked':''} onchange="toggle${capFiltroGenerico(prefix)}MesCompleto('${m}')"> ${m}</label>`).join('');
+  }
+  if(btn){
+    const sel = meses.filter(m=>set.has(m));
+    btn.textContent = sel.length ? sel.join(', ') : 'Mes(es) completo(s)...';
+  }
+}
+/* Insight genérico de "por cadena" + "tiendas TOP (cluster Diamante)" a partir de filas ya en el scope/periodo filtrado.
+   filas: [{cadena, cluster, meta, real, num_tienda}]. Usa piezas (meta/real); si no aplica, usar insightsPorCadenaConteo. */
+function insightsPorCadenaYTop(filas, metaLabel){
+  metaLabel = metaLabel || 'meta';
+  const porCadena = {};
+  filas.forEach(f=>{
+    if(!porCadena[f.cadena]) porCadena[f.cadena] = {meta:0, real:0};
+    porCadena[f.cadena].meta += (f.meta||0);
+    porCadena[f.cadena].real += (f.real||0);
+  });
+  const cadenasArr = Object.entries(porCadena).map(([cad,v])=>({cadena:cad, meta:v.meta, real:v.real, pct: v.meta ? Math.round(v.real/v.meta*1000)/10 : null})).sort((a,b)=>(a.pct??999)-(b.pct??999));
+  const top = filas.filter(f=>esClusterTop(f.cluster));
+  const metaTopTot = top.reduce((a,f)=>a+(f.meta||0),0);
+  const realTopTot = top.reduce((a,f)=>a+(f.real||0),0);
+  const pctTop = metaTopTot ? Math.round(realTopTot/metaTopTot*1000)/10 : null;
+  const lineas = [];
+  if(cadenasArr.length>1){
+    lineas.push(`🔗 <b>Por cadena:</b> ` + cadenasArr.map(c=>`${c.cadena} ${c.pct!=null?c.pct+'%':'sin '+metaLabel}`).join(' · ') + '.');
+    const peor = cadenasArr[0];
+    if(peor && peor.pct!=null && peor.pct<100) lineas.push(`🚩 <b>Cadena con más gap:</b> ${peor.cadena} (${peor.pct}%${peor.meta?`, faltan ${fmtNum(Math.max(0,peor.meta-peor.real))}`:''}).`);
+  }
+  if(top.length){
+    const numTop = new Set(top.map(f=>f.cadena+'|'+f.num_tienda)).size;
+    lineas.push(`⭐ <b>Tiendas TOP (cluster Diamante, ${numTop} tienda${numTop!==1?'s':''}):</b> ${pctTop!=null?pctTop+'%':'sin datos'} de cubrimiento — son las que más representan, priorízalas primero.`);
+  }
+  return lineas;
+}
+function poblarSelectFiltro(id, valores){
+  const sel = document.getElementById(id);
+  if(!sel || sel.options.length>1) return;
+  const vistos = new Set();
+  valores.forEach(v=>{
+    const vv = (typeof v === 'string') ? v.trim() : v;
+    if(vv==null || vv==='' || vistos.has(vv)) return;
+    vistos.add(vv);
+    const o=document.createElement('option'); o.value=vv; o.textContent=vv; sel.appendChild(o);
+  });
+}
+/* ---------- Selects múltiples de "Tienda(s)" para el perfil Embajador (Objetivos, Cumplimiento, Distribución):
+   se llenan solo con las tiendas asignadas a esa persona, no con el catálogo completo. ---------- */
+function poblarSelectMultipleTiendas(selId, storesArr){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  const nombres = [...new Set(storesArr.map(s=>s.tienda))].sort();
+  const actuales = new Set([...sel.options].map(o=>o.value));
+  const nuevos = new Set(nombres);
+  if(actuales.size===nuevos.size && [...actuales].every(v=>nuevos.has(v))) return; // ya está poblado con lo mismo
+  const seleccionPrevia = new Set([...sel.selectedOptions].map(o=>o.value));
+  sel.innerHTML = nombres.map(n=>`<option value="${n}"${seleccionPrevia.has(n)?' selected':''}>${n}</option>`).join('');
+}
+function poblarObjTiendaMulti(){ poblarSelectMultipleTiendas('objTiendaMulti', storesScopeParaMi()); }
+function onObjTiendaMultiChange(){
+  const sel = document.getElementById('objTiendaMulti');
+  if(!sel) return;
+  objFiltroTiendas = new Set([...sel.selectedOptions].map(o=>o.value));
+  renderTiendaFiltroChips();
+  renderPlaneacion();
+}
+function poblarCumpTiendaMulti(){ poblarSelectMultipleTiendas('cumpTiendaMulti', storesScopeParaMi()); }
+function poblarDistTiendaMulti(){ poblarSelectMultipleTiendas('distTiendaMulti', storesScopeParaMi()); }
+function restablecerFiltrosCumplimiento(){
+  ['cumpCadena','cumpRegion','cumpCluster','cumpSupervisor','cumpEmbajador','cumpTienda'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const cumpTiendaMultiSel = document.getElementById('cumpTiendaMulti');
+  if(cumpTiendaMultiSel) [...cumpTiendaMultiSel.options].forEach(o=>o.selected=false);
+  document.getElementById('cumpPersonaBusca').value = '';
+  const hoy = new Date();
+  const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  document.getElementById('cumpDesde').value = isoDate(inicioMes);
+  document.getElementById('cumpHasta').value = isoDate(hoy);
+  window.cumpFiltroMesesCompletos = new Set();
+  _renderMesesCompletosChips('cump','cumpMesDdPanel','cumpMesDdBtn');
+  toast('Filtros de Cumplimiento restablecidos');
+  renderCumplimiento();
+}
+function poblarFiltrosCumplimiento(){
+  const cadenaSel = document.getElementById('cumpCadena');
+  if(cadenaSel && !cadenaSel.options.length){}
+  if(cadenaSel && cadenaSel.options.length<=1){
+    const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
+    cadenas.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
+  }
+  poblarSelectFiltro('cumpRegion', [...new Set(APP_DATA.stores.map(s=>s.region).filter(Boolean))].sort());
+  poblarSelectFiltro('cumpCluster', [...new Set(APP_DATA.stores.map(s=>s.cluster).filter(Boolean))].sort());
+  const supSel = document.getElementById('cumpSupervisor');
+  if(supSel && supSel.options.length<=1){
+    const sups = nombresSupervisorUnicos();
+    sups.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; supSel.appendChild(o); });
+  }
+  const embSel = document.getElementById('cumpEmbajador');
+  if(embSel && embSel.options.length<=1){
+    equipoVisibleParaMi().filter(u=>ROLES_EMBAJADOR.includes(u.rol)).sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
+    });
+  }
+  poblarSelectFiltro('cumpTienda', [...new Set(APP_DATA.stores.map(s=>s.tienda))].sort());
+  if(currentUser.perfil === 'Embajador') poblarCumpTiendaMulti();
+  if(!document.getElementById('cumpDesde').value){
+    const hoy = new Date();
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    document.getElementById('cumpDesde').value = isoDate(inicioMes);
+    document.getElementById('cumpHasta').value = isoDate(hoy);
+  }
+  registrarFiltroMesesCompletos('cump','cumpMesDdPanel','cumpMesDdBtn','cumpDesde','cumpHasta',renderCumplimiento);
+}
+function renderCumplimiento(){
+  poblarFiltrosCumplimiento();
+  const desde = document.getElementById('cumpDesde').value || '0000-01-01';
+  const hasta = document.getElementById('cumpHasta').value || '9999-12-31';
+  const fCadena = document.getElementById('cumpCadena').value;
+  const fRegion = document.getElementById('cumpRegion').value;
+  const fCluster = document.getElementById('cumpCluster').value;
+  const fSupervisor = document.getElementById('cumpSupervisor').value;
+  const fEmbajador = document.getElementById('cumpEmbajador').value;
+  const fTienda = document.getElementById('cumpTienda').value;
+  const cumpTiendaMultiSel = document.getElementById('cumpTiendaMulti');
+  const fTiendasMulti = cumpTiendaMultiSel ? [...cumpTiendaMultiSel.selectedOptions].map(o=>o.value) : [];
+  const q = (document.getElementById('cumpPersonaBusca').value || '').trim().toLowerCase();
+
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  let plan = getRutas().filter(a => a.tipo==='visita' && a.tienda && a.fecha>=desde && a.fecha<=hasta && visibleUsuarios.has(a.usuario));
+  if(fCadena) plan = plan.filter(a=>a.cadena===fCadena);
+  if(fRegion) plan = plan.filter(a=>{ const s=storeInfo(a.cadena,a.tienda); return s && s.region===fRegion; });
+  if(fCluster) plan = plan.filter(a=>{ const s=storeInfo(a.cadena,a.tienda); return s && s.cluster===fCluster; });
+  if(fSupervisor) plan = plan.filter(a=> mismaPersona(supervisorDePersona(a.nombre), fSupervisor));
+  if(fEmbajador) plan = plan.filter(a=> a.usuario===fEmbajador);
+  if(fTiendasMulti.length) plan = plan.filter(a=> fTiendasMulti.includes(a.tienda));
+  else if(fTienda) plan = plan.filter(a=> a.tienda===fTienda);
+  if(q) plan = plan.filter(a=> a.nombre.toLowerCase().includes(q) || (a.tienda||'').toLowerCase().includes(q));
+
+  const capturas = getCapturas();
+  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
+
+  let cumplidas = 0;
+  const porPersona = {}, porCadena = {}, porCluster = {};
+  const noCumplidas = [];
+  plan.forEach(a=>{
+    const key = a.usuario+'|'+a.fecha+'|'+a.tienda;
+    const cumplida = realSet.has(key);
+    if(cumplida) cumplidas++; else noCumplidas.push(a);
+    (porPersona[a.usuario] = porPersona[a.usuario] || {nombre:a.nombre, rol:'', planeadas:0, cumplidas:0});
+    porPersona[a.usuario].planeadas++;
+    if(cumplida) porPersona[a.usuario].cumplidas++;
+    (porCadena[a.cadena] = porCadena[a.cadena] || {planeadas:0, cumplidas:0});
+    porCadena[a.cadena].planeadas++;
+    if(cumplida) porCadena[a.cadena].cumplidas++;
+    const stInfo = storeInfo(a.cadena, a.tienda);
+    const clusterKey = (stInfo && stInfo.cluster) || 'Sin cluster';
+    (porCluster[clusterKey] = porCluster[clusterKey] || {planeadas:0, cumplidas:0});
+    porCluster[clusterKey].planeadas++;
+    if(cumplida) porCluster[clusterKey].cumplidas++;
+  });
+
+  document.getElementById('cumpPlaneadas').textContent = plan.length;
+  document.getElementById('cumpCumplidas').textContent = cumplidas;
+  document.getElementById('cumpPct').textContent = plan.length ? Math.round(cumplidas/plan.length*100)+'%' : '—';
+
+  const filasPersona = Object.values(porPersona).map(p=>({...p, rol: (APP_DATA.equipo.find(u=>u.nombre===p.nombre)||{}).rol || '', supervisor: supervisorDePersona(p.nombre), pct: p.planeadas ? Math.round(p.cumplidas/p.planeadas*100) : 0}));
+  filasPersona.sort((a,b)=> b.pct - a.pct || b.planeadas - a.planeadas);
+  const totPersona = filasPersona.reduce((a,p)=>({planeadas:a.planeadas+p.planeadas, cumplidas:a.cumplidas+p.cumplidas}),{planeadas:0,cumplidas:0});
+  const totPersonaPct = totPersona.planeadas ? Math.round(totPersona.cumplidas/totPersona.planeadas*100) : 0;
+  window._cumpPersonaBodyRows = filasPersona;
+  window.render_cumpPersonaBody = function(){
+    const rows2 = (window._cumpPersonaBodyRows || []).map(p=>({...p, nombre_corto: nombreCorto(p.nombre)}));
+    const head = document.getElementById('cumpPersonaBodyHead');
+    if(head) head.innerHTML = `${colHead('cumpPersonaBody','nombre_corto','Persona',false)}${colHead('cumpPersonaBody','rol','Rol',false)}${colHead('cumpPersonaBody','supervisor','Supervisor',false)}${colHead('cumpPersonaBody','planeadas','Planeadas',true)}${colHead('cumpPersonaBody','cumplidas','Cumplidas',true)}${colHead('cumpPersonaBody','pct','%',true)}`;
+    const filas = ordenarFilas('cumpPersonaBody', rows2, 'pct');
+    document.getElementById('cumpPersonaBody').innerHTML = (filas.map(p=>
+      `<tr><td>${nombreCorto(p.nombre)}</td><td>${p.rol}</td><td>${p.supervisor||'—'}</td><td class="num">${p.planeadas}</td><td class="num">${p.cumplidas}</td><td class="num" style="font-weight:700; color:${p.pct===100?'var(--good)':p.pct<60?'var(--bad)':'var(--warn)'};">${p.pct}%</td></tr>`
+    ).join('') || `<tr><td colspan="6" class="empty-state">Sin visitas planeadas para este filtro.</td></tr>`)
+    + (filas.length ? `<tr style="font-weight:800; background:#f7f5e6;"><td colspan="3">Total</td><td class="num">${totPersona.planeadas}</td><td class="num">${totPersona.cumplidas}</td><td class="num">${totPersonaPct}%</td></tr>` : '');
+  };
+  window.render_cumpPersonaBody();
+
+  const filasCadena = Object.keys(porCadena).sort().map(c=>({cadena:c, ...porCadena[c], pct: porCadena[c].planeadas ? Math.round(porCadena[c].cumplidas/porCadena[c].planeadas*100) : 0}));
+  const totCadena = filasCadena.reduce((a,c)=>({planeadas:a.planeadas+c.planeadas, cumplidas:a.cumplidas+c.cumplidas}),{planeadas:0,cumplidas:0});
+  const totCadenaPct = totCadena.planeadas ? Math.round(totCadena.cumplidas/totCadena.planeadas*100) : 0;
+  window._cumpCadenaBodyRows = filasCadena;
+  window.render_cumpCadenaBody = function(){
+    const rows2 = window._cumpCadenaBodyRows || [];
+    const head = document.getElementById('cumpCadenaBodyHead');
+    if(head) head.innerHTML = `${colHead('cumpCadenaBody','cadena','Cadena',false)}${colHead('cumpCadenaBody','planeadas','Planeadas',true)}${colHead('cumpCadenaBody','cumplidas','Cumplidas',true)}${colHead('cumpCadenaBody','pct','%',true)}`;
+    const filas = ordenarFilas('cumpCadenaBody', rows2, 'cadena');
+    document.getElementById('cumpCadenaBody').innerHTML = (filas.map(c=>
+      `<tr><td>${c.cadena}</td><td class="num">${c.planeadas}</td><td class="num">${c.cumplidas}</td><td class="num" style="font-weight:700; color:${c.pct===100?'var(--good)':c.pct<60?'var(--bad)':'var(--warn)'};">${c.pct}%</td></tr>`
+    ).join('') || `<tr><td colspan="4" class="empty-state">Sin datos para este filtro.</td></tr>`)
+    + (filas.length ? `<tr style="font-weight:800; background:#f7f5e6;"><td>Total</td><td class="num">${totCadena.planeadas}</td><td class="num">${totCadena.cumplidas}</td><td class="num">${totCadenaPct}%</td></tr>` : '');
+  };
+  window.render_cumpCadenaBody();
+
+  const filasCluster = Object.keys(porCluster).sort().map(c=>({cluster:c, ...porCluster[c], pct: porCluster[c].planeadas ? Math.round(porCluster[c].cumplidas/porCluster[c].planeadas*100) : 0}));
+  filasCluster.sort((a,b)=> a.pct - b.pct);
+  const totCluster = filasCluster.reduce((a,c)=>({planeadas:a.planeadas+c.planeadas, cumplidas:a.cumplidas+c.cumplidas}),{planeadas:0,cumplidas:0});
+  const totClusterPct = totCluster.planeadas ? Math.round(totCluster.cumplidas/totCluster.planeadas*100) : 0;
+  window._cumpClusterBodyRows = filasCluster;
+  window.render_cumpClusterBody = function(){
+    const rows2 = window._cumpClusterBodyRows || [];
+    const head = document.getElementById('cumpClusterBodyHead');
+    if(head) head.innerHTML = `${colHead('cumpClusterBody','cluster','Cluster',false)}${colHead('cumpClusterBody','planeadas','Planeadas',true)}${colHead('cumpClusterBody','cumplidas','Cumplidas',true)}${colHead('cumpClusterBody','pct','%',true)}`;
+    const filas = ordenarFilas('cumpClusterBody', rows2, 'pct');
+    document.getElementById('cumpClusterBody').innerHTML = (filas.map(c=>
+      `<tr><td>${c.cluster}</td><td class="num">${c.planeadas}</td><td class="num">${c.cumplidas}</td><td class="num" style="font-weight:700; color:${c.pct===100?'var(--good)':c.pct<60?'var(--bad)':'var(--warn)'};">${c.pct}%</td></tr>`
+    ).join('') || `<tr><td colspan="4" class="empty-state">Sin datos para este filtro.</td></tr>`)
+    + (filas.length ? `<tr style="font-weight:800; background:#f7f5e6;"><td>Total</td><td class="num">${totCluster.planeadas}</td><td class="num">${totCluster.cumplidas}</td><td class="num">${totClusterPct}%</td></tr>` : '');
+  };
+  window.render_cumpClusterBody();
+
+  // Incumplimiento de ruta: visitas planeadas sin captura real en esa tienda, con motivo probable.
+  // Motivo se busca primero en la propia Asignación de Ruta (¿ese día la persona tenía otro tipo de día: descanso, vacación, home office, incapacidad?),
+  // y si no hay nada ahí, en incidencias de campo capturadas ese mismo día/tienda (MEDI > Incidencias).
+  const TIPO_DIA_MAP = Object.fromEntries(TIPO_DIA);
+  const otrosTiposPorPersonaFecha = {};
+  getRutas().forEach(a=>{ if(a.tipo!=='visita') otrosTiposPorPersonaFecha[a.usuario+'|'+a.fecha] = a.tipo; });
+  const incidenciasCampoPorPersonaFechaTienda = {};
+  capturas.filter(c=>c.tipo==='incidencia' && c.fecha_registro).forEach(c=>{
+    incidenciasCampoPorPersonaFechaTienda[c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+(c.tienda||'')] = (c.tipo_incidencia||'Incidencia de campo')+(c.descripcion?' — '+c.descripcion:'');
+  });
+  const hoy0 = todayISO();
+  const incump = noCumplidas.filter(a=> a.fecha <= hoy0).map(a=>{
+    const kDia = a.usuario+'|'+a.fecha;
+    const kCampo = a.usuario+'|'+a.fecha+'|'+a.tienda;
+    let motivo = (otrosTiposPorPersonaFecha[kDia] && TIPO_DIA_MAP[otrosTiposPorPersonaFecha[kDia]])
+      || incidenciasCampoPorPersonaFechaTienda[kCampo]
+      || 'Sin captura registrada — posible falta de visita o registro pendiente';
+    return {...a, motivo};
+  });
+  document.getElementById('cumpIncidenciasCount').textContent = incump.length;
+  window._cumpIncumplimientoBodyRows = incump.map(a=>({...a, nombre_corto: nombreCorto(a.nombre)}));
+  window.render_cumpIncumplimientoBody = function(){
+    const rows2 = window._cumpIncumplimientoBodyRows || [];
+    const head = document.getElementById('cumpIncumplimientoBodyHead');
+    if(head) head.innerHTML = `${colHead('cumpIncumplimientoBody','nombre_corto','Persona',false)}${colHead('cumpIncumplimientoBody','fecha','Fecha',false)}${colHead('cumpIncumplimientoBody','tienda','Tienda',false)}${colHead('cumpIncumplimientoBody','cadena','Cadena',false)}<th>Motivo probable</th>`;
+    const filas = ordenarFilas('cumpIncumplimientoBody', rows2, 'fecha');
+    document.getElementById('cumpIncumplimientoBody').innerHTML = filas.length
+      ? filas.map(a=>`<tr><td>${nombreCorto(a.nombre)}</td><td>${a.fecha}</td><td>${a.tienda}</td><td>${a.cadena||''}</td><td>${a.motivo}</td></tr>`).join('')
+      : `<tr><td colspan="5" class="empty-state">Sin incumplimientos — todo lo planeado y ya vencido se cumplió en este filtro. 🎉</td></tr>`;
+  };
+  window.render_cumpIncumplimientoBody();
+
+  const reconocer = filasPersona.filter(p=>p.pct===100 && p.planeadas>=1);
+  document.getElementById('cumpReconocimientos').innerHTML = reconocer.length
+    ? `<div style="background:var(--good-soft); border:1px solid #c6d9a3; border-radius:10px; padding:10px 14px;">
+        <div style="font-weight:700; font-size:13px; color:var(--good); margin-bottom:6px;">🏆 Reconocimientos — cumplieron 100% de su plan en este periodo</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          ${reconocer.map(p=>`<span style="background:#fff; border:1px solid #c6d9a3; border-radius:999px; padding:4px 12px; font-size:12.5px; font-weight:600;">🌟 ${nombreCorto(p.nombre)} (${p.planeadas}/${p.planeadas})</span>`).join('')}
+        </div>
+      </div>`
+    : `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Nadie ha llegado a 100% de cumplimiento todavía en este periodo con este filtro.</p>`;
+
+  renderInsightsCumplimiento({filasPersona, filasCadena, filasCluster, incump, plan, cumplidas, desde, hasta});
+
+  window._cumplimientoExport = {filasPersona, filasCadena, filasCluster, incump};
+
+  const notaHist = document.getElementById('cumpHistoricoNota');
+  if(notaHist){
+    const meses = Object.keys(APP_DATA.historico_visitas_por_mes_total||{}).sort();
+    notaHist.textContent = meses.length
+      ? `Histórico de visitas disponible (Registro histórico ODV): ${meses[0]} a ${meses[meses.length-1]} — se usa para insights de tendencia, no está incluido en el % de arriba (ese es solo del periodo filtrado).`
+      : '';
+  }
+}
+function renderInsightsCumplimiento(ctx){
+  const box = document.getElementById('cumpInsights');
+  if(!box) return;
+  const {filasPersona, filasCadena, filasCluster, incump, plan, cumplidas, desde, hasta} = ctx;
+  if(!plan.length){
+    box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin visitas planeadas en el periodo/filtro seleccionado — no hay suficiente información para generar insights.</p>`;
+    return;
+  }
+  const pctGlobal = Math.round(cumplidas/plan.length*100);
+  const peoresPersonas = [...filasPersona].filter(p=>p.planeadas>=1).sort((a,b)=>a.pct-b.pct).slice(0,3);
+  const mejoresPersonas = [...filasPersona].filter(p=>p.planeadas>=1).sort((a,b)=>b.pct-a.pct).slice(0,3);
+  const peorCluster = [...filasCluster].filter(c=>c.planeadas>=1).sort((a,b)=>a.pct-b.pct)[0];
+  const peorCadena = [...filasCadena].filter(c=>c.planeadas>=1).sort((a,b)=>a.pct-b.pct)[0];
+  const cadenasConDatos = [...filasCadena].filter(c=>c.planeadas>=1);
+  const clusterTop = [...filasCluster].find(c=>c.planeadas>=1 && esClusterTop(c.cluster));
+  const motivosCount = {};
+  incump.forEach(a=>{ motivosCount[a.motivo] = (motivosCount[a.motivo]||0)+1; });
+  const motivosTop = Object.entries(motivosCount).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+  let html = `<div style="font-size:13px; line-height:1.7;">`;
+  html += `<p><b>¿Qué se cumplió?</b> Del ${desde} al ${hasta} se planearon ${plan.length} visitas y se cumplieron ${cumplidas} (<b style="color:${pctGlobal>=80?'var(--good)':pctGlobal>=60?'var(--warn)':'var(--bad)'}">${pctGlobal}%</b>).`;
+  if(mejoresPersonas.length) html += ` Mejor desempeño: ${mejoresPersonas.map(p=>`${nombreCorto(p.nombre)} (${p.pct}%)`).join(', ')}.`;
+  html += `</p>`;
+  if(peoresPersonas.length && peoresPersonas[0].pct<100){
+    html += `<p><b>🚩 Principales desviaciones por persona:</b> ${peoresPersonas.map(p=>`${nombreCorto(p.nombre)} (${p.cumplidas}/${p.planeadas} = ${p.pct}%)`).join(', ')} — foco rojo para dar seguimiento inmediato.</p>`;
+  }
+  if(peorCluster && peorCluster.pct<100){
+    html += `<p><b>Cluster con más rezago:</b> ${peorCluster.cluster} con ${peorCluster.pct}% de cumplimiento (${peorCluster.cumplidas}/${peorCluster.planeadas}).</p>`;
+  }
+  if(peorCadena && peorCadena.pct<100){
+    html += `<p><b>Cadena con más rezago:</b> ${peorCadena.cadena} con ${peorCadena.pct}% de cumplimiento (${peorCadena.cumplidas}/${peorCadena.planeadas}).</p>`;
+  }
+  if(cadenasConDatos.length>1){
+    html += `<p>🔗 <b>Por cadena:</b> ${cadenasConDatos.map(c=>`${c.cadena} ${c.pct}%`).join(' · ')}.</p>`;
+  }
+  if(clusterTop){
+    html += `<p>⭐ <b>Tiendas TOP (cluster Diamante):</b> ${clusterTop.pct}% de cumplimiento (${clusterTop.cumplidas}/${clusterTop.planeadas}) — son las que más representan, priorízalas primero.</p>`;
+  }
+  if(motivosTop.length){
+    html += `<p><b>Principales motivos de incumplimiento:</b> ${motivosTop.map(([m,n])=>`${m} (${n})`).join(' · ')}.</p>`;
+  } else {
+    html += `<p>No hay incumplimientos registrados en este filtro — buen momento para reforzar el estándar y sostenerlo. ✅</p>`;
+  }
+  html += `</div>`;
+  box.innerHTML = html;
+}
+function exportarCumplimientoTabla(tipo){
+  const d = window._cumplimientoExport;
+  if(!d){ toast('Primero filtra/consulta la vista de cumplimiento.'); return; }
+  if(tipo==='persona'){
+    exportarCSV(`cumplimiento_persona_${todayISO()}.csv`, ['Persona','Rol','Supervisor','Planeadas','Cumplidas','%'],
+      d.filasPersona.map(p=>[nombreCorto(p.nombre), p.rol, p.supervisor||'', p.planeadas, p.cumplidas, p.pct]));
+  } else if(tipo==='cadena'){
+    exportarCSV(`cumplimiento_cadena_${todayISO()}.csv`, ['Cadena','Planeadas','Cumplidas','%'],
+      d.filasCadena.map(c=>[c.cadena, c.planeadas, c.cumplidas, c.pct]));
+  } else if(tipo==='cluster'){
+    exportarCSV(`cumplimiento_cluster_${todayISO()}.csv`, ['Cluster','Planeadas','Cumplidas','%'],
+      d.filasCluster.map(c=>[c.cluster, c.planeadas, c.cumplidas, c.pct]));
+  } else if(tipo==='incumplimiento'){
+    exportarCSV(`incumplimiento_ruta_${todayISO()}.csv`, ['Persona','Fecha','Tienda','Cadena','Motivo'],
+      d.incump.map(a=>[nombreCorto(a.nombre), a.fecha, a.tienda, a.cadena||'', a.motivo]));
+  }
+}
+
+/* ---------- CALENDARIO (pasado real vs. planeado / hoy / futuro) ---------- */
+/* ---------- CALENDARIO: vista semanal tipo Asignación de rutas, pero con lo ya ejecutado ---------- */
+let calWeekStart = inicioSemanaCampo(new Date());
+function shiftCalWeek(delta){ calWeekStart.setDate(calWeekStart.getDate()+delta*7); renderCalendario(); }
+function shiftCalDay(delta){ calWeekStart.setDate(calWeekStart.getDate()+delta); renderCalendario(); }
+function onCalWeekPickerChange(val){ if(!val) return; calWeekStart = new Date(val+'T00:00:00'); renderCalendario(); }
+function calIrHoy(){ calWeekStart = inicioSemanaCampo(new Date()); renderCalendario(); }
+function renderCalendario(){
+  const hoy = todayISO();
+  const start = calWeekStart;
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  document.getElementById('calWeekLabel').textContent = `Vista del ${fmtDateLabel(start)} al ${fmtDateLabel(end)}`;
+  document.getElementById('calWeekPicker').value = isoDate(start);
+  const leyendaBox = document.getElementById('calLeyenda');
+  if(leyendaBox){
+    const leyendaColores = `<b style="color:var(--good);">🟢 verde</b> = realizada, <b style="color:var(--bad);">🔴 rojo</b> = no realizada, <b style="color:#1d4ed8;">🔵 azul</b> = próxima, <b style="color:#946600;">🟡 amarillo</b> = hoy (en curso / pendiente).`;
+    leyendaBox.innerHTML = currentUser.perfil === 'Embajador'
+      ? leyendaColores
+      : `Vista semanal, igual que Asignación de rutas pero con lo ya ejecutado: ${leyendaColores}`;
+  }
+
+  poblarSelectFiltro('calFiltroCadena', [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort());
+  poblarSelectFiltro('calFiltroSupervisor', nombresSupervisorUnicos());
+  poblarSelectFiltro('calFiltroCluster', [...new Set(APP_DATA.stores.map(s=>s.cluster).filter(Boolean))].sort());
+  const fCadena = (document.getElementById('calFiltroCadena')||{}).value;
+  const fSupervisor = (document.getElementById('calFiltroSupervisor')||{}).value;
+  const fCluster = (document.getElementById('calFiltroCluster')||{}).value;
+
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  let plan = getRutas().filter(a=>a.tipo==='visita' && a.tienda && visibleUsuarios.has(a.usuario));
+  if(fCadena) plan = plan.filter(a=>a.cadena===fCadena);
+  if(fSupervisor) plan = plan.filter(a=> mismaPersona(supervisorDePersona(a.nombre), fSupervisor));
+  if(fCluster) plan = plan.filter(a=>{ const s = storeInfo(a.cadena, a.tienda); return s && s.cluster===fCluster; });
+  const capturas = getCapturas();
+  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
+  // Días especiales (descanso, vacaciones, incapacidad...) también se muestran, para que no parezca que "no hay ruta"
+  const especiales = (fCadena||fCluster||fSupervisor) ? [] : getRutas().filter(a=>a.tipo && a.tipo!=='visita' && visibleUsuarios.has(a.usuario));
+  const ICONO_ESPECIAL = {descanso:'😴 Descanso', vacacion:'🏖️ Vacaciones', incidencia:'🩺 Incapacidad', home_office:'🏠 Home office', otra:'📌 Otro'};
+  try{
+    const se = (typeof SYNC_ESTADO!=='undefined' && SYNC_ESTADO['rutas']) || null;
+    const total = getRutas().filter(a=>visibleUsuarios.has(a.usuario)).length;
+    const lb = document.getElementById('calSyncEstado');
+    if(lb){
+      const nube = !se ? '' : se.ok===false ? ` · <span style="color:var(--bad);">☁️ sin conexión con la nube (${pcEsc(se.error||'')})</span>` : se.ok ? ' · ☁️ nube conectada' : ' · ☁️ conectando…';
+      lb.innerHTML = `Rutas en tu app: <b>${total}</b> registro(s)${nube}`;
+    }
+  }catch(e){}
+
+  const board = document.getElementById('calBoard');
+  board.innerHTML = '';
+  for(let i=0;i<7;i++){
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const dateISO = isoDate(d);
+    const esHoy = dateISO === hoy;
+    const col = document.createElement('div');
+    col.className = 'cal-col' + (esHoy ? ' cal-today' : '');
+    const cardsForDay = plan.filter(a=>a.fecha===dateISO);
+    const especialesDia = especiales.filter(a=>a.fecha===dateISO);
+    const cardsHtml = cardsForDay.map(a=>{
+      const cumplida = realSet.has(a.usuario+'|'+dateISO+'|'+a.tienda);
+      let cls, icono, texto;
+      if(dateISO < hoy){
+        cls = cumplida ? 'cal-ok' : 'cal-no';
+        icono = cumplida ? '✅' : '❌';
+        texto = cumplida ? 'Realizada' : 'No realizada';
+      } else if(dateISO === hoy){
+        const entrada = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='entrada_tienda');
+        const salida = capturas.some(c=>c.usuario===a.usuario && c.tienda===a.tienda && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tipo==='salida_tienda');
+        if(cumplida && salida){ cls='cal-ok'; icono='✅'; texto='Realizada hoy'; }
+        else if(entrada){ cls='cal-hoy'; icono='🟡'; texto='En curso'; }
+        else { cls='cal-hoy'; icono='⏳'; texto='Se debe ejecutar hoy'; }
+      } else {
+        cls = 'cal-futuro'; icono = '🔵'; texto = 'Próxima';
+      }
+      return `<div class="cal-card ${cls}"><b>${icono} ${nombreCorto(a.nombre)}</b><br>🏬 ${a.tienda}<br><span style="color:var(--ink-soft);">${a.cadena||''} · ${texto}</span></div>`;
+    }).join('') + especialesDia.map(a=>`<div class="cal-card cal-futuro" style="background:#f3efe2;"><b>${ICONO_ESPECIAL[a.tipo]||a.tipo}</b><br><span style="color:var(--ink-soft);">${nombreCorto(a.nombre)}</span></div>`).join('') || `<div style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:16px;">Sin ruta este día</div>`;
+    col.innerHTML = `<div class="day-head">${DAY_NAMES[i]}</div><div class="day-date">${fmtDateLabel(d)}</div>` + cardsHtml;
+    board.appendChild(col);
+  }
+  renderCalParticipacionCadena(plan);
+}
+function renderCalParticipacionCadena(plan){
+  const box = document.getElementById('calParticipacionCadena');
+  if(!box) return;
+  if(!plan.length){
+    box.innerHTML = `<p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin visitas programadas para los filtros/semana seleccionados.</p>`;
+    return;
+  }
+  const porCadena = {};
+  plan.forEach(a=>{ const c = a.cadena||'Sin cadena'; porCadena[c] = (porCadena[c]||0)+1; });
+  const total = plan.length;
+  const cadenas = Object.keys(porCadena).sort((a,b)=>porCadena[b]-porCadena[a]);
+  const colores = ['var(--v-s1)','var(--v-s2)','var(--v-s3)','var(--v-s4)'];
+  const max = Math.max(...cadenas.map(c=>porCadena[c]));
+  box.innerHTML = `<div class="viz-root">
+    <div style="font-size:12px; color:var(--ink-soft); margin-bottom:12px;">${total} visita${total===1?'':'s'} en la semana visible (según filtros aplicados)</div>
+    ${cadenas.map((c,i)=>{
+      const val = porCadena[c];
+      const pct = Math.round(val/total*100);
+      const width = Math.round(val/max*100);
+      return `<div class="viz-bar-row">
+        <div class="viz-bar-label">${c}</div>
+        <div class="viz-bar-track"><div class="viz-bar-fill" style="width:${width}%; background:${colores[i%4]};"></div></div>
+        <div class="viz-bar-value">${val} visitas · ${pct}%</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ---------- SOLICITUD DE CARTAS / MATERIALES ---------- */
+const CARTAS_KEY = 'delico_odv_cartas_v1';
+function getCartas(){ return _cartasSync.get(); }
+function saveCartas(arr){ _cartasSync.save(arr); }
+function renderCartaTiendaList(){
+  const sel = document.getElementById('cartaTiendaSelect');
+  if(!sel || sel.options.length>1) return;
+  [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).forEach(s=>{
+    const o=document.createElement('option'); o.value=s.tienda; o.textContent=`${s.tienda} (${s.cadena})`; sel.appendChild(o);
+  });
+}
+function solicitarCarta(){
+  const tienda = document.getElementById('cartaTiendaSelect').value;
+  const comentarios = document.getElementById('cartaComentarios').value.trim();
+  const fechaDeseada = document.getElementById('cartaFechaDeseada').value;
+  if(!tienda){ toast('Selecciona la tienda'); return; }
+  const arr = getCartas();
+  arr.unshift({id:uid(), persona:currentUser.nombre, usuario:currentUser.usuario, tienda, comentarios, fecha_deseada:fechaDeseada, fecha:todayISO(), estado:'pendiente'});
+  saveCartas(arr);
+  document.getElementById('cartaComentarios').value = '';
+  document.getElementById('cartaFechaDeseada').value = '';
+  document.getElementById('cartaTiendaSelect').value = '';
+  toast('Solicitud de carta enviada — tu jefe inmediato la verá para autorizar.');
+  renderCartas();
+}
+function resolverCarta(id, estado){
+  const arr = getCartas();
+  const c = arr.find(x=>x.id===id);
+  if(c){ c.estado = estado; c.resolvio = currentUser.nombre; saveCartas(arr); renderCartas(); }
+}
+
+const MATERIAL_ITEMS = [['Servilletas','🧻'],['Capacillos','🧁'],['Vaso cristal','🥃'],['Vaso cristal con tapa','🥤'],['Cubrebocas','😷'],['Cofias','🧢'],['Guantes','🧤'],['Cucharitas','🥄'],['Otro','➕']];
+const UNIFORME_ITEMS = [['Camisa','👔'],['Mandil','🥼'],['Playera','🎽'],['Charola','🍽️'],['Hielera','🧊'],['Filipina','🧥'],['Cuchillo','🔪'],['Tabla','🪵'],['Otro','➕']];
+const MATERIALES_KEY = 'delico_odv_materiales_v1';
+const UNIFORMES_KEY = 'delico_odv_uniformes_v1';
+function getMateriales(){ return _materialesSync.get(); }
+function saveMateriales(arr){ _materialesSync.save(arr); }
+function getUniformes(){ return _uniformesSync.get(); }
+function saveUniformes(arr){ _uniformesSync.save(arr); }
+
+/* Visibilidad jerárquica: le llega a tu jefe inmediato (+ Coordinador/Admin como respaldo, incluyendo a Marketing que en tu equipo es perfil Admin) */
+function esMarketing(u){ return !!(u && u.rol && u.rol.toUpperCase().includes('MARKETING')); }
+function puedeVerSolicitud(sol, viewer, esMaterialOUniforme){
+  if(sol.usuario === viewer.usuario) return true;
+  if(viewer.perfil==='Admin') return true;
+  if(viewer.perfil==='Coordinador') return true;
+  if(viewer.perfil==='Supervisor') return mismaPersona(supervisorDePersona(sol.persona), viewer.nombre);
+  return false;
+}
+function puedeResolverSolicitud(sol, viewer, esMaterialOUniforme){
+  return viewer.perfil!=='Embajador' && puedeVerSolicitud(sol, viewer, esMaterialOUniforme);
+}
+
+function renderIconPickGrid(containerId, key, items){
+  const el = document.getElementById(containerId);
+  if(!el || el.dataset.built) return;
+  el.dataset.built = '1';
+  el.innerHTML = `<input type="hidden" id="f_${key}" value="">
+    <div id="ficons_${key}" style="display:flex; gap:8px; flex-wrap:wrap;">
+      ${items.map(([o,i])=>`<button type="button" class="icon-pick" data-opt="${o}" onclick="toggleIconMulti('${key}','${o}'); onIconMultiChange_${key}();">
+        <span class="icon-pick-emoji">${i}</span><span class="icon-pick-label">${o}</span>
+      </button>`).join('')}
+    </div>`;
+}
+function onIconMultiChange_materiales(){
+  const val = (document.getElementById('f_materiales').value || '').split('|');
+  document.getElementById('materialOtroWrap').classList.toggle('hidden', !val.includes('Otro'));
+}
+function onIconMultiChange_uniformes(){
+  const val = (document.getElementById('f_uniformes').value || '').split('|');
+  document.getElementById('uniformeOtroWrap').classList.toggle('hidden', !val.includes('Otro'));
+}
+function alertarStockSiInsuficiente(grupo, items){
+  const inv = getInventario();
+  const cortos = items.filter(it => it!=='Otro').filter(it => {
+    const rec = (inv[grupo] && inv[grupo][it]) || {existencia:0, minimo:0};
+    return rec.existencia <= 0 || (rec.minimo>0 && rec.existencia < rec.minimo);
+  });
+  if(!cortos.length) return;
+  const texto = `⚠️ Stock bajo/insuficiente para atender solicitud de ${currentUser.nombre}: ${cortos.join(', ')}.`;
+  const supUsuario = usuarioDeNombre(supervisorDePersona(currentUser.nombre));
+  if(supUsuario) crearNotificacion(supUsuario, texto, 'alerta');
+  const mkt = APP_DATA.equipo.find(esMarketing);
+  if(mkt) crearNotificacion(mkt.usuario, texto, 'alerta');
+}
+function solicitarMaterial(){
+  const items = (document.getElementById('f_materiales').value || '').split('|').filter(Boolean);
+  const otroTexto = document.getElementById('materialOtroTexto').value.trim();
+  const comentarios = document.getElementById('materialComentarios').value.trim();
+  if(!items.length){ toast('Selecciona al menos un material'); return; }
+  const arr = getMateriales();
+  arr.unshift({id:uid(), persona:currentUser.nombre, usuario:currentUser.usuario, items, otro_texto: items.includes('Otro')?otroTexto:'', comentarios, fecha:todayISO(), estado:'pendiente', entrega:null});
+  saveMateriales(arr);
+  alertarStockSiInsuficiente('materiales', items);
+  document.getElementById('f_materiales').value = '';
+  document.getElementById('materialOtroTexto').value = '';
+  document.getElementById('materialComentarios').value = '';
+  document.getElementById('materialOtroWrap').classList.add('hidden');
+  document.querySelectorAll('#ficons_materiales .icon-pick').forEach(b=>b.classList.remove('active'));
+  toast('Solicitud de materiales enviada.');
+  renderCartas();
+}
+function solicitarUniforme(){
+  const items = (document.getElementById('f_uniformes').value || '').split('|').filter(Boolean);
+  const otroTexto = document.getElementById('uniformeOtroTexto').value.trim();
+  const comentarios = document.getElementById('uniformeComentarios').value.trim();
+  if(!items.length){ toast('Selecciona al menos un ítem'); return; }
+  const arr = getUniformes();
+  arr.unshift({id:uid(), persona:currentUser.nombre, usuario:currentUser.usuario, items, otro_texto: items.includes('Otro')?otroTexto:'', comentarios, fecha:todayISO(), estado:'pendiente', entrega:null});
+  saveUniformes(arr);
+  alertarStockSiInsuficiente('uniformes', items);
+  document.getElementById('f_uniformes').value = '';
+  document.getElementById('uniformeOtroTexto').value = '';
+  document.getElementById('uniformeComentarios').value = '';
+  document.getElementById('uniformeOtroWrap').classList.add('hidden');
+  document.querySelectorAll('#ficons_uniformes .icon-pick').forEach(b=>b.classList.remove('active'));
+  toast('Solicitud de uniformes/equipo enviada.');
+  renderCartas();
+}
+function resolverMaterial(id, estado){ const arr=getMateriales(); const c=arr.find(x=>x.id===id); if(c){ c.estado=estado; c.resolvio=currentUser.nombre; saveMateriales(arr); renderCartas(); } }
+function resolverUniforme(id, estado){ const arr=getUniformes(); const c=arr.find(x=>x.id===id); if(c){ c.estado=estado; c.resolvio=currentUser.nombre; saveUniformes(arr); renderCartas(); } }
+function registrarEntregaMaterial(id){
+  const cantidad = prompt('¿Cuánto se entregó? (ej. "10 servilletas, 2 cofias")');
+  if(cantidad===null || !cantidad.trim()) return;
+  const arr = getMateriales(); const c = arr.find(x=>x.id===id);
+  if(c){ c.entrega = {cantidad: cantidad.trim(), fecha: todayISO(), entrego: currentUser.nombre}; saveMateriales(arr); toast('Entrega registrada.'); renderCartas(); }
+}
+function registrarEntregaUniforme(id){
+  const cantidad = prompt('¿Cuánto se entregó? (ej. "1 mandil, 2 charolas")');
+  if(cantidad===null || !cantidad.trim()) return;
+  const arr = getUniformes(); const c = arr.find(x=>x.id===id);
+  if(c){ c.entrega = {cantidad: cantidad.trim(), fecha: todayISO(), entrego: currentUser.nombre}; saveUniformes(arr); toast('Entrega registrada.'); renderCartas(); }
+}
+function pillEstado(estado){
+  return estado==='pendiente' ? `<span style="color:var(--warn); font-weight:700;">⏳ Pendiente</span>` : estado==='aprobada' ? `<span style="color:var(--good); font-weight:700;">✅ Aprobada</span>` : `<span style="color:var(--bad); font-weight:700;">❌ Rechazada</span>`;
+}
+function celdaEntrega(c, registrarFn){
+  if(c.entrega) return `${c.entrega.cantidad}<br><span style="color:var(--ink-soft); font-size:10.5px;">${c.entrega.fecha} · ${nombreCorto(c.entrega.entrego)}</span>`;
+  if(c.estado==='aprobada' && currentUser.perfil!=='Embajador') return `<button class="btn btn-ghost" style="padding:2px 8px; font-size:10.5px;" onclick="${registrarFn}('${c.id}')">Registrar entrega</button>`;
+  return '—';
+}
+function renderCartas(){
+  renderCartaTiendaList();
+  renderIconPickGrid('materialIconGrid', 'materiales', MATERIAL_ITEMS);
+  renderIconPickGrid('uniformeIconGrid', 'uniformes', UNIFORME_ITEMS);
+  renderExtraTiendaBox();
+
+  const cartas = getCartas().filter(c=>puedeVerSolicitud(c, currentUser, false));
+  window._cartasBodyRows = cartas;
+  window.render_cartasBody = function(){
+    const rows2 = window._cartasBodyRows || [];
+    const head = document.getElementById('cartasBodyHead');
+    if(head) head.innerHTML = `${colHead('cartasBody','persona','Persona',false)}${colHead('cartasBody','tienda','Tienda',false)}<th>Comentarios</th>${colHead('cartasBody','fecha_deseada','Entrega deseada',false)}${colHead('cartasBody','fecha','Fecha solicitud',false)}${colHead('cartasBody','estado','Estado',false)}<th>Acción</th>`;
+    const filas = ordenarFilas('cartasBody', rows2, 'fecha');
+    document.getElementById('cartasBody').innerHTML = filas.map(c=>{
+      const accion = (puedeResolverSolicitud(c, currentUser, false) && c.estado==='pendiente' && c.usuario!==currentUser.usuario)
+        ? `<button class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="resolverCarta('${c.id}','aprobada')">Aprobar</button> <button class="btn btn-ghost" style="padding:3px 9px; font-size:11px; color:var(--bad);" onclick="resolverCarta('${c.id}','rechazada')">Rechazar</button>`
+        : '—';
+      return `<tr><td>${nombreCorto(c.persona)}</td><td>${c.tienda}</td><td>${c.comentarios||'—'}</td><td>${c.fecha_deseada||'—'}</td><td>${c.fecha}</td><td>${pillEstado(c.estado)}</td><td>${accion}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty-state">Sin solicitudes de cartas todavía.</td></tr>`;
+  };
+  window.render_cartasBody();
+
+  const materiales = getMateriales().filter(c=>puedeVerSolicitud(c, currentUser, true));
+  window._materialesBodyRows = materiales.map(c=>({...c, items_text: c.items.map(i=> i==='Otro' && c.otro_texto ? `Otro (${c.otro_texto})` : i).join(', ')}));
+  window.render_materialesBody = function(){
+    const rows2 = window._materialesBodyRows || [];
+    const head = document.getElementById('materialesBodyHead');
+    if(head) head.innerHTML = `${colHead('materialesBody','persona','Persona',false)}${colHead('materialesBody','items_text','Ítems',false)}<th>Comentarios</th>${colHead('materialesBody','fecha','Fecha',false)}${colHead('materialesBody','estado','Estado',false)}<th>Entrega</th><th>Acción</th>`;
+    const filas = ordenarFilas('materialesBody', rows2, 'fecha');
+    document.getElementById('materialesBody').innerHTML = filas.map(c=>{
+      const accion = (puedeResolverSolicitud(c, currentUser, true) && c.estado==='pendiente' && c.usuario!==currentUser.usuario)
+        ? `<button class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="resolverMaterial('${c.id}','aprobada')">Aprobar</button> <button class="btn btn-ghost" style="padding:3px 9px; font-size:11px; color:var(--bad);" onclick="resolverMaterial('${c.id}','rechazada')">Rechazar</button>`
+        : '—';
+      const items = c.items.map(i=> i==='Otro' && c.otro_texto ? `Otro (${c.otro_texto})` : i).join(', ');
+      return `<tr><td>${nombreCorto(c.persona)}</td><td>${items}</td><td>${c.comentarios||'—'}</td><td>${c.fecha}</td><td>${pillEstado(c.estado)}</td><td>${celdaEntrega(c,'registrarEntregaMaterial')}</td><td>${accion}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty-state">Sin solicitudes de materiales todavía.</td></tr>`;
+  };
+  window.render_materialesBody();
+
+  const uniformes = getUniformes().filter(c=>puedeVerSolicitud(c, currentUser, true));
+  window._uniformesBodyRows = uniformes.map(c=>({...c, items_text: c.items.map(i=> i==='Otro' && c.otro_texto ? `Otro (${c.otro_texto})` : i).join(', ')}));
+  window.render_uniformesBody = function(){
+    const rows2 = window._uniformesBodyRows || [];
+    const head = document.getElementById('uniformesBodyHead');
+    if(head) head.innerHTML = `${colHead('uniformesBody','persona','Persona',false)}${colHead('uniformesBody','items_text','Ítems',false)}<th>Comentarios</th>${colHead('uniformesBody','fecha','Fecha',false)}${colHead('uniformesBody','estado','Estado',false)}<th>Entrega</th><th>Acción</th>`;
+    const filas = ordenarFilas('uniformesBody', rows2, 'fecha');
+    document.getElementById('uniformesBody').innerHTML = filas.map(c=>{
+      const accion = (puedeResolverSolicitud(c, currentUser, true) && c.estado==='pendiente' && c.usuario!==currentUser.usuario)
+        ? `<button class="btn btn-ghost" style="padding:3px 9px; font-size:11px;" onclick="resolverUniforme('${c.id}','aprobada')">Aprobar</button> <button class="btn btn-ghost" style="padding:3px 9px; font-size:11px; color:var(--bad);" onclick="resolverUniforme('${c.id}','rechazada')">Rechazar</button>`
+        : '—';
+      const items = c.items.map(i=> i==='Otro' && c.otro_texto ? `Otro (${c.otro_texto})` : i).join(', ');
+      return `<tr><td>${nombreCorto(c.persona)}</td><td>${items}</td><td>${c.comentarios||'—'}</td><td>${c.fecha}</td><td>${pillEstado(c.estado)}</td><td>${celdaEntrega(c,'registrarEntregaUniforme')}</td><td>${accion}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty-state">Sin solicitudes de uniformes/equipo todavía.</td></tr>`;
+  };
+  window.render_uniformesBody();
+}
+
+/* ---------- INVENTARIO DE MATERIALES (Admin) ---------- */
+const INVENTARIO_KEY = 'delico_odv_inventario_materiales_v1';
+/* Existencias reales cargadas de "Inventario de uniformes.xlsx" (playera/filipina sumadas por talla) */
+const INVENTARIO_SEED = {
+  materiales: { 'Cubrebocas':30, 'Servilletas':40, 'Vaso cristal':30, 'Capacillos':30, 'Guantes':30, 'Cofias':30, 'Cucharitas':1000 },
+  uniformes: { 'Playera':210, 'Mandil':30, 'Filipina':210, 'Charola':30, 'Cuchillo':4, 'Tabla':4, 'Hielera':4 }
+};
+function getInventario(){
+  let inv = _inventarioSync.get();
+  if(!inv || (!Object.keys(inv.materiales||{}).length && !Object.keys(inv.uniformes||{}).length)){
+    inv = {materiales:{}, uniformes:{}};
+    Object.entries(INVENTARIO_SEED.materiales).forEach(([k,v])=>{ inv.materiales[k] = {existencia:v, minimo: Math.max(5, Math.round(v*0.2))}; });
+    Object.entries(INVENTARIO_SEED.uniformes).forEach(([k,v])=>{ inv.uniformes[k] = {existencia:v, minimo: Math.max(2, Math.round(v*0.2))}; });
+    saveInventario(inv);
+  }
+  return inv;
+}
+function saveInventario(obj){ _inventarioSync.save(obj); }
+function actualizarInventarioItem(grupo, item, campo, valor){
+  const inv = getInventario();
+  inv[grupo] = inv[grupo] || {};
+  inv[grupo][item] = inv[grupo][item] || {existencia:0, minimo:0};
+  inv[grupo][item][campo] = Math.max(0, parseInt(valor)||0);
+  saveInventario(inv);
+  renderInventario();
+}
+function renderInventarioTabla(bodyId, grupo, items){
+  const inv = getInventario();
+  const alertas = [];
+  const rows = items.filter(([o])=>o!=='Otro').map(([o,i])=>{
+    const rec = (inv[grupo] && inv[grupo][o]) || {existencia:0, minimo:0};
+    const bajo = rec.minimo>0 && rec.existencia < rec.minimo;
+    if(bajo) alertas.push(`${i} ${o}: quedan ${rec.existencia} (mínimo ${rec.minimo})`);
+    return {o, i, existencia:rec.existencia, minimo:rec.minimo, bajo};
+  });
+  window['_'+bodyId+'Rows'] = rows;
+  window['_'+bodyId+'Meta'] = {grupo};
+  window['render_'+bodyId] = function(){
+    const rows2 = window['_'+bodyId+'Rows'] || [];
+    const head = document.getElementById(bodyId+'Head');
+    if(head) head.innerHTML = `${colHead(bodyId,'o','Ítem',false)}${colHead(bodyId,'existencia','Existencia actual',true)}${colHead(bodyId,'minimo','Mínimo deseado',true)}${colHead(bodyId,'bajo','Estatus',true)}`;
+    const filas = ordenarFilas(bodyId, rows2, 'o');
+    document.getElementById(bodyId).innerHTML = filas.map(({o,i,existencia,minimo,bajo})=> `<tr><td>${i} ${o}</td>
+      <td><input type="number" min="0" style="width:80px;" value="${existencia}" onchange="actualizarInventarioItem('${grupo}','${o}','existencia',this.value)"></td>
+      <td><input type="number" min="0" style="width:80px;" value="${minimo}" onchange="actualizarInventarioItem('${grupo}','${o}','minimo',this.value)"></td>
+      <td style="font-weight:700; color:${bajo?'var(--bad)':'var(--good)'};">${bajo?'🔴 Reponer':'🟢 OK'}</td></tr>`).join('');
+  };
+  window['render_'+bodyId]();
+  return alertas;
+}
+function renderInventario(){
+  const alertasMat = renderInventarioTabla('invMaterialesBody','materiales', MATERIAL_ITEMS);
+  const alertasUni = renderInventarioTabla('invUniformesBody','uniformes', UNIFORME_ITEMS);
+  const alertas = [...alertasMat, ...alertasUni];
+  document.getElementById('invAlertas').innerHTML = alertas.length
+    ? `<div class="card" style="border-left:4px solid var(--bad);"><div class="lbl" style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--bad); margin-bottom:8px;">⚠️ Ya no alcanza</div>${alertas.map(a=>`<div style="padding:5px 0; font-size:13px;">${a}</div>`).join('')}</div>`
+    : `<div class="card"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Todo por arriba del mínimo. ✓</p></div>`;
+}
+
+/* ---------- CUBRIMIENTO DE CUOTA (resumen hoy/semana) ---------- */
+/* ---------- PRE-PLAN SUGERIDO (versión parcial — sin Sell Out/Inventarios todavía) ---------- */
+/* ---------- Filtros de Preasignación (cadena/supervisor/familia/código) — se auto-aplican, sin botón "Filtrar" ---------- */
+let ppFiltroCadenas = new Set();
+let ppFiltroSupervisores = new Set();
+let ppFiltroFamilias = new Set();
+let ppFiltroCodigos = new Set();
+const CAPACIDAD_VISITAS_SEMANA = { DEGUSTADORA:6, HIBRIDO:16, PROMOTORIA:24 }; // estimado: 1 tienda/día (demostradoras) vs 4-5/día (promotoría), ~6 días de campo/semana
+function capacidadSemanaUsuario(u){
+  const rol = (u && u.rol) || '';
+  if(/H[ÍI]BRIDO/.test(rol)) return CAPACIDAD_VISITAS_SEMANA.HIBRIDO;
+  if(/DEGUST/.test(rol)) return CAPACIDAD_VISITAS_SEMANA.DEGUSTADORA;
+  return CAPACIDAD_VISITAS_SEMANA.PROMOTORIA;
+}
+function productoPorNombre(nombre){ return APP_DATA.catalogo_productos.find(p=>p.nombre===nombre); }
+function storesScopePreplan(){
+  let scope = storesScopeParaMi();
+  if(currentUser.perfil === 'Supervisor') scope = scope.filter(s => mismaPersona(supervisorDeTienda(s), currentUser.nombre));
+  if(ppFiltroCadenas.size) scope = scope.filter(s=>ppFiltroCadenas.has(s.cadena));
+  if(ppFiltroSupervisores.size) scope = scope.filter(s=>ppFiltroSupervisores.has(supervisorDeTienda(s) || 'Sin supervisor(a)'));
+  return scope;
+}
+function renderPpCadenaChips(){
+  const btn = document.getElementById('ppCadenaDdBtn'), panel = document.getElementById('ppCadenaDdPanel');
+  if(!btn || !panel) return;
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
+  btn.textContent = ppFiltroCadenas.has('__ninguno__') ? 'Ninguna' : (ppFiltroCadenas.size===0 ? 'Todas' : `${ppFiltroCadenas.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppCadenaTodasDD(true)">Todo</button><button type="button" onclick="ppCadenaTodasDD(false)">Ninguno</button></div>`
+    + cadenas.map(c=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${c.replace(/"/g,'&quot;')}" ${ppFiltroCadenas.size===0 || ppFiltroCadenas.has(c) ? 'checked':''} onchange="onPpCadenaDdCheck(this)"> ${c}</label>`).join('');
+}
+function ppCadenaTodasDD(marcar){
+  ppFiltroCadenas = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpCadenaChips();
+  renderPreplan();
+}
+function onPpCadenaDdCheck(chk){
+  const cadenas = [...new Set(APP_DATA.stores.map(s=>s.cadena))];
+  if(ppFiltroCadenas.size===0){ ppFiltroCadenas = new Set(cadenas); }
+  ppFiltroCadenas.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroCadenas.add(val); else ppFiltroCadenas.delete(val);
+  if(ppFiltroCadenas.size===cadenas.length) ppFiltroCadenas = new Set();
+  if(ppFiltroCadenas.size===0 && !chk.checked) ppFiltroCadenas = new Set(['__ninguno__']);
+  renderPpCadenaChips();
+  renderPreplan();
+}
+function renderPpSupervisorChips(){
+  const btn = document.getElementById('ppSupervisorDdBtn'), panel = document.getElementById('ppSupervisorDdPanel');
+  const wrapRoot = document.getElementById('ppSupervisorFiltroWrap');
+  if(wrapRoot) wrapRoot.style.display = currentUser.perfil==='Supervisor' ? 'none' : '';
+  if(!btn || !panel) return;
+  const sups = nombresSupervisorUnicos();
+  btn.textContent = ppFiltroSupervisores.has('__ninguno__') ? 'Ninguno' : (ppFiltroSupervisores.size===0 ? 'Todos' : `${ppFiltroSupervisores.size} seleccionado(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppSupervisorTodasDD(true)">Todo</button><button type="button" onclick="ppSupervisorTodasDD(false)">Ninguno</button></div>`
+    + sups.map(s=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${s.replace(/"/g,'&quot;')}" ${ppFiltroSupervisores.size===0 || ppFiltroSupervisores.has(s) ? 'checked':''} onchange="onPpSupervisorDdCheck(this)"> ${nombreCorto(s)}</label>`).join('');
+}
+function ppSupervisorTodasDD(marcar){
+  ppFiltroSupervisores = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpSupervisorChips();
+  renderPreplan();
+}
+function onPpSupervisorDdCheck(chk){
+  const sups = nombresSupervisorUnicos();
+  if(ppFiltroSupervisores.size===0){ ppFiltroSupervisores = new Set(sups); }
+  ppFiltroSupervisores.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroSupervisores.add(val); else ppFiltroSupervisores.delete(val);
+  if(ppFiltroSupervisores.size===sups.length) ppFiltroSupervisores = new Set();
+  if(ppFiltroSupervisores.size===0 && !chk.checked) ppFiltroSupervisores = new Set(['__ninguno__']);
+  renderPpSupervisorChips();
+  renderPreplan();
+}
+function renderPpFamiliaChips(){
+  const btn = document.getElementById('ppFamiliaDdBtn'), panel = document.getElementById('ppFamiliaDdPanel');
+  if(!btn || !panel) return;
+  const familias = familiasProducto().sort();
+  btn.textContent = ppFiltroFamilias.has('__ninguno__') ? 'Ninguna' : (ppFiltroFamilias.size===0 ? 'Todas' : `${ppFiltroFamilias.size} seleccionada(s)`);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppFamiliaTodasDD(true)">Todo</button><button type="button" onclick="ppFamiliaTodasDD(false)">Ninguno</button></div>`
+    + familias.map(f=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${f.replace(/"/g,'&quot;')}" ${ppFiltroFamilias.size===0 || ppFiltroFamilias.has(f) ? 'checked':''} onchange="onPpFamiliaDdCheck(this)"> ${f}</label>`).join('');
+}
+function ppFamiliaTodasDD(marcar){
+  ppFiltroFamilias = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpFamiliaChips();
+  renderPreplan();
+}
+function onPpFamiliaDdCheck(chk){
+  const familias = familiasProducto();
+  if(ppFiltroFamilias.size===0){ ppFiltroFamilias = new Set(familias); }
+  ppFiltroFamilias.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroFamilias.add(val); else ppFiltroFamilias.delete(val);
+  if(ppFiltroFamilias.size===familias.length) ppFiltroFamilias = new Set();
+  if(ppFiltroFamilias.size===0 && !chk.checked) ppFiltroFamilias = new Set(['__ninguno__']);
+  renderPpFamiliaChips();
+  renderPreplan();
+}
+function renderPpCodigoDropdown(){
+  const btn = document.getElementById('ppCodigoDdBtn'), panel = document.getElementById('ppCodigoDdPanel');
+  if(!btn || !panel) return;
+  const productos = [...APP_DATA.catalogo_productos].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  btn.textContent = (ppFiltroCodigos.size===0 || ppFiltroCodigos.has('__ninguno__')) ? (ppFiltroCodigos.has('__ninguno__')?'Ninguno':'Todos') : `${ppFiltroCodigos.size} seleccionado(s)`;
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="ppCodigoTodasDD(true)">Todo</button><button type="button" onclick="ppCodigoTodasDD(false)">Ninguno</button></div>`
+    + productos.map(p=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${p.clave}" ${ppFiltroCodigos.size===0 || ppFiltroCodigos.has(p.clave) ? 'checked':''} onchange="onPpCodigoDdCheck(this)"> ${p.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${p.clave})</span></label>`).join('');
+}
+function ppCodigoTodasDD(marcar){
+  ppFiltroCodigos = marcar ? new Set() : new Set(['__ninguno__']);
+  renderPpCodigoDropdown();
+  renderPreplan();
+}
+function onPpCodigoDdCheck(chk){
+  const todos = APP_DATA.catalogo_productos.map(p=>p.clave);
+  if(ppFiltroCodigos.size===0){ ppFiltroCodigos = new Set(todos); }
+  ppFiltroCodigos.delete('__ninguno__');
+  const val = chk.dataset.val;
+  if(chk.checked) ppFiltroCodigos.add(val); else ppFiltroCodigos.delete(val);
+  if(ppFiltroCodigos.size === todos.length) ppFiltroCodigos = new Set();
+  if(ppFiltroCodigos.size === 0 && !chk.checked) ppFiltroCodigos = new Set(['__ninguno__']);
+  renderPpCodigoDropdown();
+  renderPreplan();
+}
+function ppClaveEnFiltro(clave){
+  if(ppFiltroFamilias.size){ const prod = claveAProducto(clave); if(!prod || !ppFiltroFamilias.has(prod.familia)) return false; }
+  if(ppFiltroCodigos.size){ if(ppFiltroCodigos.has('__ninguno__')) return false; if(!ppFiltroCodigos.has(clave)) return false; }
+  return true;
+}
+function poblarFiltrosPreplan(){
+  renderPpCadenaChips();
+  renderPpSupervisorChips();
+  renderPpFamiliaChips();
+  renderPpCodigoDropdown();
+}
+function restablecerFiltrosPreplan(){
+  ppFiltroCadenas.clear(); ppFiltroSupervisores.clear(); ppFiltroFamilias.clear(); ppFiltroCodigos.clear();
+  poblarFiltrosPreplan();
+  renderPreplan();
+}
+function calcularPreplan(refStartISO, refEndISO){
+  const embajadorUsuarios = new Set(APP_DATA.equipo.filter(u=>u.perfil==='Embajador').map(u=>u.usuario));
+  const planRef = getRutas().filter(a=>a.tipo==='visita' && a.tienda && a.fecha>=refStartISO && a.fecha<=refEndISO && embajadorUsuarios.has(a.usuario));
+  const visitasPorTienda = {};
+  planRef.forEach(a=>{ const k=a.cadena+'|'+a.tienda; visitasPorTienda[k]=(visitasPorTienda[k]||0)+1; });
+
+  const caducidadesRecientes = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_registro && fechaLocal(c.fecha_registro)>=refStartISO);
+  const riesgoPorTienda = {};
+  caducidadesRecientes.forEach(c=>{ const k=c.cadena+'|'+c.tienda; riesgoPorTienda[k]=(riesgoPorTienda[k]||0)+(parseInt(c.piezas)||0); });
+
+  // Inventario (días de inventario / excedente) — por SKU dentro de "alertas_venta_cero" (a pesar del nombre trae dias_inventario por tienda-SKU)
+  const invPorTienda = {}; // 'cadena|num_tienda' -> {maxDias, excedentes}
+  (APP_DATA.alertas_venta_cero||[]).forEach(r=>{
+    if(!ppClaveEnFiltro(r.clave)) return;
+    const k = r.cadena+'|'+r.num_tienda;
+    if(!invPorTienda[k]) invPorTienda[k] = {maxDias:0, excedentes:0};
+    const dias = r.dias_inventario||0;
+    if(dias > invPorTienda[k].maxDias) invPorTienda[k].maxDias = dias;
+    if(dias > 45) invPorTienda[k].excedentes++;
+  });
+
+  // Venta cero por tienda (distribucion_por_tienda.venta_cero_items son nombres de producto)
+  const ventaCeroPorTienda = {}; // 'cadena|num_tienda' -> count filtrado
+  (APP_DATA.distribucion_por_tienda||[]).forEach(r=>{
+    const items = (r.venta_cero_items||[]).filter(nombre=>{
+      const prod = productoPorNombre(nombre);
+      return prod ? ppClaveEnFiltro(prod.clave) : true;
+    });
+    if(items.length) ventaCeroPorTienda[r.cadena+'|'+r.num_tienda] = items.length;
+  });
+
+  // Cubrimiento de cuota del mes a la fecha (suma de semanas ya registradas en cumplimiento_semanal)
+  const cubrimientoPorTienda = {}; // 'cadena|num_tienda' -> {realUni, cuotaUni, pct}
+  (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{
+    const k = r.cadena+'|'+r.num_tienda;
+    if(!cubrimientoPorTienda[k]) cubrimientoPorTienda[k] = {realUni:0, cuotaUni:0};
+    cubrimientoPorTienda[k].realUni += r.real_uni||0;
+    cubrimientoPorTienda[k].cuotaUni += r.cuota_uni||0;
+  });
+
+  // Tareas/prioridades abiertas de las personas asignadas a cada tienda
+  const tareasAbiertas = (getTareas()||[]).filter(t=>t.estado!=='finalizada' && t.estado!=='cerrada');
+
+  let caducidadCount=0, bajaCoberturaCount=0, ventaCeroCount=0, excedenteCount=0, sinCubrirCuotaCount=0;
+  const filas = storesScopePreplan().sort((a,b)=> b.cuota_pesos - a.cuota_pesos).map(s=>{
+    const k = s.cadena+'|'+s.tienda;
+    const kNum = s.cadena+'|'+s.num_tienda;
+    const visitasReales = visitasPorTienda[k] || 0;
+    const riesgoPiezas = riesgoPorTienda[k] || 0;
+    const sugeridaBase = s.visitas_requeridas_semana || 0;
+    const bajaCobertura = sugeridaBase>0 && visitasReales < sugeridaBase;
+    const hayRiesgo = riesgoPiezas > 0;
+    const inv = invPorTienda[kNum] || {maxDias:0, excedentes:0};
+    const ventaCero = ventaCeroPorTienda[kNum] || 0;
+    const cub = cubrimientoPorTienda[kNum] || {realUni:0, cuotaUni:0};
+    const pctCubrimiento = cub.cuotaUni>0 ? (cub.realUni/cub.cuotaUni*100) : null;
+    const sinCubrirCuota = pctCubrimiento!==null && pctCubrimiento < 100;
+    const personas = personasDeTienda(s.cadena, s.num_tienda);
+    let tareasCount = 0;
+    personas.forEach(p=>{
+      tareasCount += tareasAbiertas.filter(t=>t.asignado_a===p.usuario).length;
+    });
+    if(hayRiesgo) caducidadCount++;
+    if(bajaCobertura) bajaCoberturaCount++;
+    if(ventaCero>0) ventaCeroCount++;
+    if(inv.excedentes>0) excedenteCount++;
+    if(sinCubrirCuota) sinCubrirCuotaCount++;
+    let sugerenciaSemana = sugeridaBase;
+    const motivos = [];
+    if(bajaCobertura){ sugerenciaSemana = Math.max(sugerenciaSemana, visitasReales+1); motivos.push(`solo tuvo ${visitasReales}/${sugeridaBase} visitas la semana pasada`); }
+    if(hayRiesgo){ sugerenciaSemana = Math.max(sugerenciaSemana, sugeridaBase+1); motivos.push(`${riesgoPiezas} pza(s) en riesgo de caducar reportadas`); }
+    if(sinCubrirCuota){ sugerenciaSemana = Math.max(sugerenciaSemana, sugeridaBase+1); motivos.push(`solo va en ${pctCubrimiento.toFixed(0)}% de su cuota del mes`); }
+    if(ventaCero>0){ sugerenciaSemana = Math.max(sugerenciaSemana, sugeridaBase+1); motivos.push(`${ventaCero} SKU con venta cero`); }
+    if(inv.excedentes>0){ motivos.push(`${inv.excedentes} SKU con exceso de inventario (posible sobre-stock)`); }
+    if(tareasCount>0){ motivos.push(`${tareasCount} tarea(s) abiertas pendientes en esta tienda`); }
+    if(!motivos.length && sugeridaBase>0) motivos.push('mantener frecuencia de estrategia');
+    return {s, visitasReales, riesgoPiezas, sugeridaBase, sugerenciaSemana, motivos, invMaxDias: inv.maxDias, invExcedentes: inv.excedentes, ventaCero, tareasCount, pctCubrimiento,
+      prioridad: (bajaCobertura?2:0)+(hayRiesgo?1:0)+(sinCubrirCuota?2:0)+(ventaCero>0?1:0)};
+  }).filter(f=>f.sugeridaBase>0 || f.riesgoPiezas>0 || f.ventaCero>0 || f.invExcedentes>0 || (f.pctCubrimiento!==null && f.pctCubrimiento<100))
+    .sort((a,b)=> b.prioridad - a.prioridad || b.s.cuota_pesos - a.s.cuota_pesos);
+  return {filas, caducidadCount, bajaCoberturaCount, ventaCeroCount, excedenteCount, sinCubrirCuotaCount};
+}
+function calcularAlertaCapacidad(filas){
+  // Compara la demanda de visitas sugeridas de esta semana contra la capacidad semanal de cada persona
+  // (estimado: demostradoras 1 tienda/día, promotoría 4-5 tiendas/día, ~6 días de campo/semana).
+  const demandaPorUsuario = {}; // usuario -> {nombre, demanda, capacidad, tiendas:[]}
+  filas.forEach(f=>{
+    personasDeTienda(f.s.cadena, f.s.num_tienda).forEach(p=>{
+      const u = APP_DATA.equipo.find(x=>x.usuario===p.usuario);
+      if(!u || u.perfil!=='Embajador') return;
+      if(!demandaPorUsuario[p.usuario]) demandaPorUsuario[p.usuario] = {nombre:u.nombre, demanda:0, capacidad:capacidadSemanaUsuario(u), tiendas:[]};
+      demandaPorUsuario[p.usuario].demanda += f.sugerenciaSemana;
+      demandaPorUsuario[p.usuario].tiendas.push(`${f.s.tienda} (${f.sugerenciaSemana}x)`);
+    });
+  });
+  const sobrecargados = Object.values(demandaPorUsuario).filter(d=>d.demanda > d.capacidad);
+  const cont = document.getElementById('ppAlertaCapacidad');
+  if(!cont) return;
+  if(!sobrecargados.length){ cont.innerHTML = ''; return; }
+  cont.innerHTML = `<div class="card" style="border-left:4px solid var(--bad);">
+    <div style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--bad); margin-bottom:8px;">⚠️ Riesgo de tiendas sin visita — la demanda sugerida supera la capacidad semanal de la persona</div>
+    ${sobrecargados.map(d=>`<div style="padding:4px 0; font-size:12.5px;"><b>${nombreCorto(d.nombre)}</b>: se sugieren ${d.demanda} visitas esta semana, pero su capacidad estimada es de ${d.capacidad} (${d.tiendas.length} tienda(s): ${d.tiendas.join(', ')})</div>`).join('')}
+  </div>`;
+}
+function renderPreplan(){
+  const input = document.getElementById('preplanRefWeek');
+  if(!input.value){
+    const lunesActual = inicioSemanaCampo(new Date());
+    const lunesPasado = new Date(lunesActual); lunesPasado.setDate(lunesPasado.getDate()-7);
+    input.value = isoDate(lunesPasado);
+  }
+  poblarFiltrosPreplan();
+  const refStart = new Date(input.value+'T00:00:00');
+  const refEnd = new Date(refStart); refEnd.setDate(refEnd.getDate()+6);
+  const refStartISO = isoDate(refStart), refEndISO = isoDate(refEnd);
+  const {filas, caducidadCount, bajaCoberturaCount, ventaCeroCount, excedenteCount, sinCubrirCuotaCount} = calcularPreplan(refStartISO, refEndISO);
+  document.getElementById('ppCaducidadCount').textContent = caducidadCount;
+  document.getElementById('ppBajaCoberturaCount').textContent = bajaCoberturaCount;
+  document.getElementById('ppVentaCeroCount').textContent = ventaCeroCount;
+  document.getElementById('ppExcedenteCount').textContent = excedenteCount;
+  document.getElementById('ppSinCubrirCuotaCount').textContent = sinCubrirCuotaCount;
+  calcularAlertaCapacidad(filas);
+  window._ppBodyRows = filas.map(f=>({...f, cadena: f.s.cadena, tienda: f.s.tienda, supervisor: supervisorDeTienda(f.s)||'—'}));
+  window.render_ppBody = function(){
+    const rows2 = window._ppBodyRows || [];
+    const head = document.getElementById('ppBodyHead');
+    if(head) head.innerHTML = `${colHead('ppBody','cadena','Cadena',false)}${colHead('ppBody','tienda','Tienda',false)}${colHead('ppBody','supervisor','Supervisor(a)',false)}<th>Frecuencia sugerida (estrategia)</th>${colHead('ppBody','visitasReales','Visitas reales semana pasada',true)}${colHead('ppBody','pctCubrimiento','Cubrimiento cuota (mes)',true)}${colHead('ppBody','invMaxDias','Días inventario (máx.)',true)}${colHead('ppBody','invExcedentes','Excedentes (SKU)',true)}<th>Inv. en tránsito</th>${colHead('ppBody','ventaCero','Venta cero (SKU)',true)}${colHead('ppBody','tareasCount','Tareas/prioridades abiertas',true)}${colHead('ppBody','riesgoPiezas','Riesgo caducidad',true)}${colHead('ppBody','sugerenciaSemana','Sugerencia esta semana',true)}<th>Por qué</th>`;
+    const filas2 = ordenarFilas('ppBody', rows2, 'sugerenciaSemana');
+    document.getElementById('ppBody').innerHTML = filas2.map(f=>`<tr>
+        <td>${f.s.cadena}</td><td>${f.s.tienda}</td><td>${nombreCorto(f.supervisor)}</td>
+        <td>${f.s.sugerencia_visita || (f.sugeridaBase? f.sugeridaBase+'x/semana':'—')}</td>
+        <td class="num" style="color:${f.visitasReales<f.sugeridaBase?'var(--bad)':'var(--good)'};">${f.visitasReales}</td>
+        <td class="num" style="color:${f.pctCubrimiento!==null && f.pctCubrimiento<100?'var(--bad)':'var(--good)'};">${f.pctCubrimiento!==null? f.pctCubrimiento.toFixed(0)+'%':'—'}</td>
+        <td class="num" style="color:${f.invMaxDias>45?'var(--bad)':'var(--ink-soft)'};">${f.invMaxDias||'—'}</td>
+        <td class="num" style="color:${f.invExcedentes>0?'var(--bad)':'var(--ink-soft)'};">${f.invExcedentes||'—'}</td>
+        <td class="num" style="color:var(--ink-soft); font-size:10.5px;">N/D</td>
+        <td class="num" style="color:${f.ventaCero>0?'var(--bad)':'var(--ink-soft)'};">${f.ventaCero||'—'}</td>
+        <td class="num" style="color:${f.tareasCount>0?'var(--warn)':'var(--ink-soft)'};">${f.tareasCount||'—'}</td>
+        <td class="num" style="color:${f.riesgoPiezas>0?'var(--bad)':'var(--ink-soft)'};">${f.riesgoPiezas>0? f.riesgoPiezas+' pzas':'—'}</td>
+        <td class="num" style="font-weight:700;">${f.sugerenciaSemana}x</td>
+        <td style="font-size:11.5px; color:var(--ink-soft);">${f.motivos.join(' · ')}</td>
+      </tr>`).join('') || `<tr><td colspan="13" class="empty-state">Sin datos de referencia para esa semana todavía.</td></tr>`;
+  };
+  window.render_ppBody();
+}
+function exportarPreplanExcel(){
+  const rows = window._ppBodyRows || [];
+  if(!rows.length){ toast('No hay datos para exportar.'); return; }
+  exportarCSV(`preasignacion_rutas_${todayISO()}.csv`,
+    ['Cadena','Tienda','Supervisor(a)','Frecuencia sugerida','Visitas reales sem. pasada','Cubrimiento cuota mes %','Días inventario máx','Excedentes SKU','Inv. en tránsito','Venta cero SKU','Tareas/prioridades abiertas','Riesgo caducidad (pzas)','Sugerencia esta semana','Por qué'],
+    rows.map(f=>[
+      f.s.cadena, f.s.tienda, nombreCorto(f.supervisor), f.s.sugerencia_visita||f.sugeridaBase, f.visitasReales,
+      f.pctCubrimiento!==null?f.pctCubrimiento.toFixed(0):'', f.invMaxDias||0, f.invExcedentes||0, 'N/D', f.ventaCero||0, f.tareasCount||0,
+      f.riesgoPiezas||0, f.sugerenciaSemana, f.motivos.join(' · ')
+    ]));
+}
+
+/* ---------- PRÓXIMOS A CADUCAR (Supervisor / Coordinador / Admin) ----------
+   Fuente: capturas tipo 'caducidad' (un registro = tienda + código + fecha de caducidad + piezas).
+   "Última captura" = por tienda+código se queda SOLO con la visita más reciente (día) y, dentro de ese día,
+   con el último registro por fecha de caducidad -> así lunes/miércoles/viernes no se suman 3 veces.
+   Riesgo = simulación FIFO: se vende primero lo que caduca primero, a la velocidad (pzas/día) de ese código en esa tienda. */
+const PC_DD = {
+  pcCadenaDd:    {sel:null, opts:[], todos:'Todas',  btn:'pcCadenaDdBtn',    panel:'pcCadenaDdPanel',    lista:()=>cadenasDisponiblesFiltro().map(v=>({v,l:v}))},
+  pcRegionDd:    {sel:null, opts:[], todos:'Todas',  btn:'pcRegionDdBtn',    panel:'pcRegionDdPanel',    lista:()=>[...new Set(APP_DATA.stores.map(s=>s.region).filter(Boolean))].sort().map(v=>({v,l:v}))},
+  pcSupervisorDd:{sel:null, opts:[], todos:'Todos',  btn:'pcSupervisorDdBtn',panel:'pcSupervisorDdPanel',lista:()=>nombresSupervisorUnicos().map(v=>({v,l:v}))},
+  pcFamiliaDd:   {sel:null, opts:[], todos:'Todas',  btn:'pcFamiliaDdBtn',   panel:'pcFamiliaDdPanel',   lista:()=>familiasProducto().filter(Boolean).sort().map(v=>({v,l:v}))},
+  pcCodigoDd:    {sel:null, opts:[], todos:'Todos',  btn:'pcCodigoDdBtn',    panel:'pcCodigoDdPanel',    lista:()=>APP_DATA.catalogo_productos.map(p=>({v:p.clave,l:p.clave+' · '+p.nombre})).sort((a,b)=>a.l.localeCompare(b.l))},
+};
+function pcDdRender(id){
+  const d = PC_DD[id]; const panel = document.getElementById(d.panel), btn = document.getElementById(d.btn);
+  if(!panel || !btn) return;
+  d.opts = d.lista();
+  const marcado = v => d.sel===null || d.sel.has(v);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="pcDdTodo('${id}')">Todo</button><button type="button" onclick="pcDdNinguno('${id}')">Ninguno</button></div>`
+    + d.opts.map((o,i)=>`<label class="tienda-dd-item"><input type="checkbox" ${marcado(o.v)?'checked':''} onchange="pcDdToggle('${id}',${i})"> ${pcEsc(o.l)}</label>`).join('');
+  btn.textContent = d.sel===null ? d.todos : d.sel.size===0 ? 'Ninguno' : (d.sel.size===1 ? d.opts.find(o=>d.sel.has(o.v))?.l.slice(0,28)||'1 seleccionado' : d.sel.size+' seleccionados');
+}
+function pcDdTodo(id){ PC_DD[id].sel = null; pcDdRender(id); renderProxCaducar(); }
+function pcDdNinguno(id){ PC_DD[id].sel = new Set(); pcDdRender(id); renderProxCaducar(); }
+function pcDdToggle(id, i){
+  const d = PC_DD[id]; const v = d.opts[i].v;
+  if(d.sel===null) d.sel = new Set(d.opts.map(o=>o.v));
+  if(d.sel.has(v)) d.sel.delete(v); else d.sel.add(v);
+  if(d.sel.size===d.opts.length) d.sel = null;
+  pcDdRender(id); renderProxCaducar();
+}
+function pcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const pcN = (n,d=0)=> (n==null||isNaN(n)) ? '—' : Number(n).toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pcMoney = n => (n==null||isNaN(n)) ? '—' : '$'+Math.round(n).toLocaleString('es-MX');
+function pcDiasEntre(aISO, bISO){ return Math.round((new Date(bISO+'T00:00:00') - new Date(aISO+'T00:00:00'))/86400000); }
+
+/* ---------- velocidad (item velocity) = promedio de venta diario en piezas ---------- */
+let _pcVelCache = null;
+function pcVelocidades(){
+  if(_pcVelCache && _pcVelCache.n === (APP_DATA.combinaciones||[]).length) return _pcVelCache;
+  const tienda = new Map(), cadena = {}, global = {};
+  (APP_DATA.combinaciones||[]).forEach(c=>{
+    const v = Number(c.prom_venta_diario); if(!isFinite(v)) return;
+    tienda.set(c.cadena+'|'+c.tienda+'|'+c.clave, v);
+    if(v>0){
+      const kc = c.cadena+'|'+c.clave;
+      (cadena[kc] = cadena[kc] || []).push(v);
+      (global[c.clave] = global[c.clave] || []).push(v);
+    }
+  });
+  const prom = a => a.reduce((x,y)=>x+y,0)/a.length;
+  const cad = {}, glo = {};
+  Object.keys(cadena).forEach(k=>cad[k]=prom(cadena[k]));
+  Object.keys(global).forEach(k=>glo[k]=prom(global[k]));
+  _pcVelCache = {n:(APP_DATA.combinaciones||[]).length, tienda, cad, glo};
+  return _pcVelCache;
+}
+/* devuelve {vel, fuente}: 'tienda' (dato real de esa tienda), 'cadena' (promedio del código en la cadena), 'global', 'sin dato' */
+function pcVelocidadDe(cadena, tienda, clave){
+  const V = pcVelocidades();
+  const k = cadena+'|'+tienda+'|'+clave;
+  if(V.tienda.has(k)){
+    const v = V.tienda.get(k);
+    if(v>0) return {vel:v, fuente:'Tienda'};
+    // venta 0 en esa tienda: es dato real (no se mueve), no se sustituye
+    return {vel:0, fuente:'Tienda (sin venta)'};
+  }
+  if(V.cad[cadena+'|'+clave]!=null) return {vel:V.cad[cadena+'|'+clave], fuente:'Prom. cadena'};
+  if(V.glo[clave]!=null) return {vel:V.glo[clave], fuente:'Prom. general'};
+  return {vel:0, fuente:'Sin dato'};
+}
+
+/* ---------- filtros ---------- */
+function pcLeerControles(){
+  const g = id => (document.getElementById(id)||{}).value || '';
+  return {
+    modo: g('pcModo') || 'ultima', mostrar: g('pcMostrar'), colchon: Math.max(0, parseInt(g('pcColchon'))||0),
+    persona: g('pcPersona'), desde: g('pcDesde'), hasta: g('pcHasta'),
+    cadena: PC_DD.pcCadenaDd.sel, region: PC_DD.pcRegionDd.sel, supervisor: PC_DD.pcSupervisorDd.sel,
+    familia: PC_DD.pcFamiliaDd.sel, codigo: PC_DD.pcCodigoDd.sel,
+  };
+}
+/* Capturas de caducidad ya enriquecidas y filtradas (sin deduplicar todavía). */
+function pcFilasBase(f){
+  const hoy = todayISO();
+  const prods = {};
+  APP_DATA.catalogo_productos.forEach(p=>prods[p.clave]=p);
+  const out = [];
+  getCapturas().forEach(c=>{
+    if(c.tipo!=='caducidad' || !c.fecha_caducidad || !c.clave) return;
+    const st = storeInfo(c.cadena, c.tienda) || {};
+    const prod = prods[c.clave] || {};
+    const persona = c.persona || '';
+    const sup = (supervisorDePersona(persona) || supervisorDeTienda(st) || '');
+    const reg = st.region || ((APP_DATA.equipo.find(u=>u.usuario===c.usuario)||{}).region) || '';
+    const diaCap = fechaSoloDia(c.fecha_registro);
+    const fam = prod.familia || '';
+    if(f.cadena && !f.cadena.has(c.cadena)) return;
+    if(f.region && !f.region.has(reg)) return;
+    if(f.supervisor && !(sup && [...f.supervisor].some(s=>mismaPersona(s, sup)))) return;
+    if(f.familia && !f.familia.has(fam)) return;
+    if(f.codigo && !f.codigo.has(c.clave)) return;
+    if(f.persona && c.usuario!==f.persona) return;
+    if(f.desde && diaCap < f.desde) return;
+    if(f.hasta && diaCap > f.hasta) return;
+    out.push({
+      id:c.id, cadena:c.cadena||'', tienda:c.tienda||'', num_tienda: st.num_tienda!=null ? Math.round(st.num_tienda) : '',
+      region:reg, supervisor:sup, usuario:c.usuario||'', persona, fecha_registro:c.fecha_registro||'', diaCap,
+      clave:c.clave, producto: prod.nombre || c.clave, familia:fam, precio: Number(prod.precio_promedio)||0,
+      fecha_caducidad: String(c.fecha_caducidad).slice(0,10), piezas: parseInt(c.piezas)||0,
+    });
+  });
+  return out;
+}
+/* modo 'ultima': por tienda+código solo la visita más reciente; dentro de ella, un registro por fecha de caducidad (el último). */
+function pcAplicarModo(filas, modo){
+  if(modo==='todo') return filas.slice();
+  const ultimoDia = new Map();
+  filas.forEach(r=>{ const k=r.cadena+'|'+r.tienda+'|'+r.clave; if(!ultimoDia.has(k) || r.diaCap>ultimoDia.get(k)) ultimoDia.set(k, r.diaCap); });
+  const porLote = new Map();
+  filas.forEach(r=>{
+    const k = r.cadena+'|'+r.tienda+'|'+r.clave;
+    if(r.diaCap !== ultimoDia.get(k)) return;
+    const kl = k+'|'+r.fecha_caducidad;
+    const prev = porLote.get(kl);
+    if(!prev || String(r.fecha_registro) >= String(prev.fecha_registro)) porLote.set(kl, r);
+  });
+  return [...porLote.values()];
+}
+/* Riesgo por FIFO dentro de cada (tienda, código, día de captura). Agrega r.vel, r.fuente, r.dias (desde HOY), r.riesgo, r.valor, etc. */
+function pcCalcularRiesgo(filas, colchon){
+  const hoy = todayISO();
+  const grupos = new Map();
+  filas.forEach(r=>{ const k = r.cadena+'|'+r.tienda+'|'+r.clave+'|'+r.diaCap; (grupos.get(k) || grupos.set(k,[]).get(k)).push(r); });
+  grupos.forEach(lotes=>{
+    lotes.sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad));
+    const v = pcVelocidadDe(lotes[0].cadena, lotes[0].tienda, lotes[0].clave);
+    let vendido = 0;
+    lotes.forEach(r=>{
+      r.vel = v.vel; r.fuente = v.fuente;
+      const diasDesdeCaptura = pcDiasEntre(r.diaCap, r.fecha_caducidad) - colchon;
+      const capacidad = v.vel * Math.max(0, diasDesdeCaptura);
+      const disponible = Math.max(0, capacidad - vendido);
+      const vende = Math.min(r.piezas, disponible);
+      vendido += vende;
+      r.riesgo = Math.max(0, Math.round((r.piezas - vende)*10)/10);
+    });
+  });
+  filas.forEach(r=>{
+    r.dias = pcDiasEntre(hoy, r.fecha_caducidad);
+    r.valor = r.riesgo * r.precio;
+    r.diasCubre = r.vel>0 ? r.piezas / r.vel : null;
+    r.pctRiesgo = r.piezas ? r.riesgo / r.piezas : 0;
+    r.vencido = r.dias < 0;
+    r.edadCaptura = pcDiasEntre(r.diaCap, hoy);
+    r.estatus = r.dias < 0 ? 'Vencido' : (r.riesgo<=0 ? 'Sin riesgo' : (r.dias<=7 ? 'Crítico (≤7 días)' : (r.dias<=15 ? 'Alto (≤15 días)' : (r.dias<=30 ? 'Medio (≤30 días)' : 'Bajo (>30 días)'))));
+  });
+  return filas;
+}
+function pcFiltrarMostrar(filas, mostrar){
+  if(!mostrar) return filas;
+  if(mostrar==='riesgo') return filas.filter(r=>r.riesgo>0);
+  if(mostrar==='vencidos') return filas.filter(r=>r.vencido);
+  const n = parseInt(mostrar); return filas.filter(r=>r.dias>=0 && r.dias<=n);
+}
+
+/* ---------- agregados ---------- */
+function pcAgregar(filas, claveFn, extra){
+  const m = new Map();
+  filas.forEach(r=>{
+    const k = claveFn(r);
+    if(!m.has(k)) m.set(k, {k, piezas:0, riesgo:0, valor:0, vencidas:0, riesgo15:0, tiendas:new Set(), tiendasRiesgo:new Set(), codigos:new Set(), lotes:0, velSum:0, velN:0, ...(extra?extra(r):{})});
+    const a = m.get(k);
+    a.piezas += r.piezas; a.riesgo += r.riesgo; a.valor += r.valor; a.lotes++;
+    if(r.vencido) a.vencidas += r.piezas;
+    if(!r.vencido && r.dias<=15) a.riesgo15 += r.riesgo;
+    a.tiendas.add(r.cadena+'|'+r.tienda); a.codigos.add(r.clave);
+    if(r.riesgo>0) a.tiendasRiesgo.add(r.cadena+'|'+r.tienda);
+    if(r.vel>0){ a.velSum += r.vel; a.velN++; }
+  });
+  return [...m.values()].map(a=>({...a, nTiendas:a.tiendas.size, nTiendasRiesgo:a.tiendasRiesgo.size, nCodigos:a.codigos.size, pct: a.piezas ? a.riesgo/a.piezas*100 : 0, velProm: a.velN ? a.velSum/a.velN : null}));
+}
+
+/* ---------- evolución de un lote (fecha de caducidad) ---------- */
+function pcEvolucionDatos(filasHist, fecha){
+  const reg = filasHist.filter(r=>r.fecha_caducidad===fecha);
+  if(!reg.length) return null;
+  const dias = [...new Set(reg.map(r=>r.diaCap))].sort();
+  const porClave = new Map(); // tienda|clave -> registros ordenados por captura
+  reg.forEach(r=>{ const k=r.cadena+'|'+r.tienda+'|'+r.clave; (porClave.get(k)||porClave.set(k,[]).get(k)).push(r); });
+  porClave.forEach(a=>a.sort((x,y)=>String(x.fecha_registro).localeCompare(String(y.fecha_registro))));
+  // serie: para cada día de captura, piezas conocidas (último registro de cada tienda|clave con día<=d)
+  const serie = dias.map(d=>{
+    let pz = 0, n = 0;
+    porClave.forEach(a=>{ let ult=null; a.forEach(r=>{ if(r.diaCap<=d) ult=r; }); if(ult){ pz += ult.piezas; n++; } });
+    return {dia:d, piezas:pz, n};
+  });
+  let inicial=0, actual=0, sinMover=[], sinRecaptura=[], recapturados=0;
+  const hoy = todayISO();
+  porClave.forEach((a,k)=>{
+    const p0 = a[0], p1 = a[a.length-1];
+    inicial += p0.piezas; actual += p1.piezas;
+    const dist = new Set(a.map(r=>r.diaCap)).size;
+    if(dist>=2){ recapturados++; if(p1.piezas >= p0.piezas) sinMover.push({...p1, p0:p0.piezas}); }
+    else if(pcDiasEntre(p1.diaCap, hoy) >= 7) sinRecaptura.push({...p1});
+  });
+  sinMover.sort((x,y)=>y.piezas-x.piezas); sinRecaptura.sort((x,y)=>y.piezas-x.piezas);
+  return {fecha, serie, inicial, actual, movidas:Math.max(0,inicial-actual), tiendasLote:porClave.size, recapturados, sinMover, sinRecaptura};
+}
+function pcSvgBarras(serie, etiqueta){
+  if(!serie.length) return '';
+  const W = Math.max(320, serie.length*58+40), H=170, pad=28;
+  const max = Math.max(...serie.map(s=>s.piezas), 1);
+  const bw = Math.min(38, (W-2*pad)/serie.length - 10);
+  let g = '';
+  serie.forEach((s,i)=>{
+    const x = pad + i*((W-2*pad)/serie.length) + 4;
+    const h = Math.round((s.piezas/max)*(H-pad*2));
+    g += `<rect x="${x}" y="${H-pad-h}" width="${bw}" height="${h}" rx="3" fill="var(--brand,#a1274b)" opacity="${i===serie.length-1?1:.6}"/>`
+      + `<text x="${x+bw/2}" y="${H-pad-h-4}" font-size="10" text-anchor="middle" fill="currentColor">${pcN(s.piezas)}</text>`
+      + `<text x="${x+bw/2}" y="${H-10}" font-size="9" text-anchor="middle" fill="currentColor" opacity=".7">${s.dia.slice(5)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; height:auto;" role="img" aria-label="${pcEsc(etiqueta)}">${g}</svg>`;
+}
+
+/* ---------- alertas con qué hacer ---------- */
+function pcConstruirAlertas(filas, ctx){
+  const A = [];
+  const add = (nivel, titulo, detalle, accion) => A.push({nivel, titulo, detalle, accion});
+  const vig = filas.filter(r=>!r.vencido);
+  const venc = filas.filter(r=>r.vencido && r.piezas>0);
+  if(venc.length){
+    const pz = venc.reduce((a,r)=>a+r.piezas,0), val = venc.reduce((a,r)=>a+r.piezas*r.precio,0);
+    const top = pcAgregar(venc, r=>r.cadena+' · '+r.tienda).sort((a,b)=>b.piezas-a.piezas).slice(0,3).map(a=>`${a.k} (${pcN(a.piezas)} pzas)`).join('; ');
+    add('bad', `${pcN(venc.length)} lote(s) ya vencido(s) en seguimiento: ${pcN(pz)} pzas (${pcMoney(val)})`, `Donde más: ${top}.`, 'Confirmar en la siguiente visita que se retiró y se dio de baja; si siguen en anaquel, retirar ese mismo día y levantar incidencia.');
+  }
+  const crit = vig.filter(r=>r.dias<=7 && r.riesgo>0).sort((a,b)=>b.valor-a.valor);
+  if(crit.length){
+    const pz = crit.reduce((a,r)=>a+r.riesgo,0), val = crit.reduce((a,r)=>a+r.valor,0);
+    const top = crit.slice(0,3).map(r=>`${r.tienda} / ${r.producto} (${pcN(r.riesgo)} pzas, vence ${r.fecha_caducidad.slice(5)})`).join('; ');
+    add('bad', `${pcN(crit.length)} lote(s) vencen en ≤7 días y no alcanzan a venderse: ${pcN(pz)} pzas (${pcMoney(val)})`, top+'.', 'Acción esta semana: promoción / exhibición adicional en esa tienda, o mover producto a una tienda de la misma cadena con mayor venta; avisar al supervisor hoy.');
+  }
+  const alto = vig.filter(r=>r.dias>7 && r.dias<=30 && r.riesgo>0);
+  if(alto.length){
+    const pz = alto.reduce((a,r)=>a+r.riesgo,0), val = alto.reduce((a,r)=>a+r.valor,0);
+    add('warn', `${pcN(alto.length)} lote(s) vencen en 8–30 días con riesgo: ${pcN(pz)} pzas (${pcMoney(val)})`, 'Todavía hay tiempo de actuar.', 'Planear rotación y reubicación esta semana; priorizar los de mayor valor (ver tabla por código).');
+  }
+  if(ctx.codigos.length && ctx.codigos[0].valor>0){
+    const c = ctx.codigos[0];
+    add('warn', `Código de mayor riesgo: ${c.producto} — ${pcN(c.riesgo)} pzas, ${pcMoney(c.valor)}`, `${pcN(c.nTiendasRiesgo)} tienda(s) con riesgo; ${pcN(c.pct,0)}% de lo capturado de este código.`, 'Revisar sobre-surtido de este código (pedido / inventario) y empujar promoción donde esté concentrado.');
+  }
+  const cadsRiesgo = ctx.cadenas.filter(c=>c.riesgo>0 && c.piezas>=30).sort((a,b)=>b.pct-a.pct);
+  if(cadsRiesgo.length){
+    const c = cadsRiesgo[0];
+    add(c.pct>=25?'bad':'warn', `Cadena con mayor % en riesgo: ${c.k} (${pcN(c.pct,0)}% de ${pcN(c.piezas)} pzas, ${pcMoney(c.valor)})`, 'Sobre la última captura vigente.', 'Hablar con el KAM/comprador de esa cadena: ajustar surtido o pedir apoyo promocional antes de que caduque.');
+  }
+  const sinVenta = vig.filter(r=>r.vel===0 && r.piezas>0 && r.dias<=60);
+  if(sinVenta.length){
+    const pz = sinVenta.reduce((a,r)=>a+r.piezas,0);
+    add('warn', `${pcN(sinVenta.length)} lote(s) sin movimiento de venta (venta diaria 0 o sin dato) vencen en ≤60 días: ${pcN(pz)} pzas`, 'Si es venta cero real, ese producto no se va a mover solo.', 'Verificar en tienda si está bien ubicado/etiquetado/disponible; si no se mueve, transferir o retirar antes de la fecha.');
+  }
+  const viejas = vig.filter(r=>r.dias<=30 && r.edadCaptura>=7);
+  if(viejas.length){
+    const porPers = pcAgregar(viejas, r=>r.persona||'(sin nombre)').sort((a,b)=>b.lotes-a.lotes).slice(0,3).map(a=>`${nombreCorto(a.k)} (${a.lotes})`).join(', ');
+    add('info', `${pcN(viejas.length)} lote(s) que vencen en ≤30 días no se han vuelto a revisar en 7+ días`, `Con más pendientes: ${porPers}.`, 'Pedir recaptura en la próxima visita: sin dato fresco, el riesgo real puede ser mayor o menor al calculado.');
+  }
+  const sinDato = filas.filter(r=>r.fuente==='Sin dato' || r.fuente==='Prom. general').length;
+  if(filas.length && sinDato/filas.length>0.25){
+    add('info', `${pcN(sinDato/filas.length*100,0)}% de los lotes usan velocidad estimada (no es dato de esa tienda)`, 'Esos riesgos son aproximados.', 'Mantener actualizada la base de venta por tienda/SKU para afinar el cálculo.');
+  }
+  const sups = pcAgregar(vig.filter(r=>r.riesgo>0), r=>r.supervisor||'(sin supervisor)').sort((a,b)=>b.valor-a.valor);
+  if(sups.length && sups[0].valor>0){
+    add('info', `Mayor valor en riesgo por supervisor(a): ${nombreCorto(sups[0].k)} — ${pcMoney(sups[0].valor)} (${pcN(sups[0].riesgo)} pzas)`, sups.slice(1,3).map(s=>`${nombreCorto(s.k)} ${pcMoney(s.valor)}`).join(' · '), 'Revisar con su equipo el plan de rotación de sus tiendas esta semana.');
+  }
+  if(!A.length) add('good', 'Sin alertas con los filtros actuales ✓', 'No hay lotes vencidos ni piezas en riesgo.', 'Mantener la captura al día en cada visita.');
+  return A;
+}
+
+/* ---------- render principal ---------- */
+function renderProxCaducar(){
+  if(!document.getElementById('view-proxcaducar')) return;
+  if(!currentUser || currentUser.perfil==='Embajador') return;
+  Object.keys(PC_DD).forEach(id=>{ const d=PC_DD[id]; if(!d.opts.length) pcDdRender(id); });
+  const selP = document.getElementById('pcPersona');
+  if(selP && selP.options.length<=1){
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').forEach(u=>{ const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre; selP.appendChild(o); });
+  }
+  if(!window._pcMesesReg){ registrarFiltroMesesCompletos('pc','pcMesDdPanel','pcMesDdBtn','pcDesde','pcHasta',renderProxCaducar); window._pcMesesReg = true; }
+  window.render_pcCadena = window.render_pcCodigo = window.render_pcDetalle = renderProxCaducar;
+
+  const f = pcLeerControles();
+  const hoy = todayISO();
+  const hist = pcCalcularRiesgo(pcFilasBase(f), f.colchon);          // todo lo capturado (con filtros)
+  const vigentes = pcCalcularRiesgo(pcAplicarModo(pcFilasBase(f), 'ultima'), f.colchon); // base de análisis: sin duplicados
+  const detalleBase = f.modo==='todo' ? hist : vigentes;
+  const detalle = pcFiltrarMostrar(detalleBase, f.mostrar);
+  window._pcDetalleRows = detalle; window._pcVigentes = vigentes; window._pcHist = hist;
+
+  // ---- KPIs
+  const vig = vigentes.filter(r=>!r.vencido);
+  const capturadoHoy = hist.filter(r=>r.diaCap===hoy);
+  const pzVig = vig.reduce((a,r)=>a+r.piezas,0);
+  const riesgoPz = vig.reduce((a,r)=>a+r.riesgo,0), riesgoVal = vig.reduce((a,r)=>a+r.valor,0);
+  const vencPz = vigentes.filter(r=>r.vencido).reduce((a,r)=>a+r.piezas,0);
+  const vencVal = vigentes.filter(r=>r.vencido).reduce((a,r)=>a+r.piezas*r.precio,0);
+  const r15 = vig.filter(r=>r.dias<=15).reduce((a,r)=>a+r.riesgo,0);
+  const tiendasVig = new Set(vig.map(r=>r.cadena+'|'+r.tienda)).size;
+  const kpi = (cls,label,val,sub) => `<div class="card kpi ${cls}"><div class="label">${label}</div><div class="value">${val}${sub?` <small>${sub}</small>`:''}</div></div>`;
+  document.getElementById('pcKpis').innerHTML =
+      kpi('', 'Capturado hoy', pcN(capturadoHoy.reduce((a,r)=>a+r.piezas,0)), `pzas · ${pcN(capturadoHoy.length)} registro(s)`)
+    + kpi('', 'Piezas vigentes en seguimiento', pcN(pzVig), `en ${pcN(tiendasVig)} tienda(s)`)
+    + kpi(riesgoPz>0?'bad':'good', 'Piezas que se pueden caducar', pcN(riesgoPz), pzVig?`${pcN(riesgoPz/pzVig*100,0)}% de lo vigente`:'')
+    + kpi(riesgoVal>0?'bad':'good', 'Valor en riesgo', pcMoney(riesgoVal), 'precio prom. catálogo')
+    + kpi(vencPz>0?'bad':'good', 'Ya vencidas (sin baja confirmada)', pcN(vencPz), pcMoney(vencVal))
+    + kpi(r15>0?'warn':'good', 'En riesgo y vencen ≤15 días', pcN(r15), 'pzas');
+
+  // ---- resúmenes
+  const cadenas = pcAgregar(vigentes, r=>r.cadena);
+  const codigos = pcAgregar(vigentes, r=>r.clave, r=>({producto:r.producto, familia:r.familia}));
+  const cOrd = ordenarFilas('pcCadena', cadenas, 'valor');
+  const kOrd = ordenarFilas('pcCodigo', codigos.sort((a,b)=>b.valor-a.valor), 'valor');
+  document.getElementById('pcCadenaHead').innerHTML = colHead('pcCadena','k','Cadena',false)+colHead('pcCadena','nTiendas','Tiendas',true)+colHead('pcCadena','piezas','Piezas capturadas',true)+colHead('pcCadena','riesgo','Piezas que se pueden caducar',true)+colHead('pcCadena','pct','% en riesgo',true)+colHead('pcCadena','valor','Valor en riesgo',true)+colHead('pcCadena','riesgo15','En riesgo ≤15 días',true)+colHead('pcCadena','vencidas','Ya vencidas (pzas)',true);
+  document.getElementById('pcCadenaBody').innerHTML = cOrd.map(a=>`<tr><td><b>${pcEsc(a.k)}</b></td><td class="num">${pcN(a.nTiendas)}</td><td class="num">${pcN(a.piezas)}</td><td class="num">${pcN(a.riesgo)}</td><td class="num" style="color:${a.pct>=25?'var(--bad)':a.pct>=10?'var(--warn)':'inherit'}">${pcN(a.pct,0)}%</td><td class="num">${pcMoney(a.valor)}</td><td class="num">${pcN(a.riesgo15)}</td><td class="num">${pcN(a.vencidas)}</td></tr>`).join('') || `<tr><td colspan="8" class="empty-state">Sin capturas de caducidad con estos filtros.</td></tr>`;
+  document.getElementById('pcCodigoHead').innerHTML = `<th>#</th>`+colHead('pcCodigo','producto','Producto',false)+colHead('pcCodigo','familia','Familia',false)+colHead('pcCodigo','nTiendas','Tiendas',true)+colHead('pcCodigo','piezas','Piezas',true)+colHead('pcCodigo','riesgo','Se pueden caducar',true)+colHead('pcCodigo','pct','% en riesgo',true)+colHead('pcCodigo','valor','Valor en riesgo',true)+colHead('pcCodigo','nTiendasRiesgo','Tiendas con riesgo',true)+colHead('pcCodigo','velProm','Venta diaria prom.',true);
+  document.getElementById('pcCodigoBody').innerHTML = kOrd.slice(0,50).map((a,i)=>`<tr><td>${i+1}${i===0 && a.valor>0?' 🔥':''}</td><td><b>${pcEsc(a.producto)}</b> <span style="color:var(--ink-soft); font-size:11px;">${pcEsc(a.k)}</span></td><td>${pcEsc(a.familia)}</td><td class="num">${pcN(a.nTiendas)}</td><td class="num">${pcN(a.piezas)}</td><td class="num">${pcN(a.riesgo)}</td><td class="num" style="color:${a.pct>=25?'var(--bad)':a.pct>=10?'var(--warn)':'inherit'}">${pcN(a.pct,0)}%</td><td class="num">${pcMoney(a.valor)}</td><td class="num">${pcN(a.nTiendasRiesgo)}</td><td class="num">${a.velProm==null?'—':pcN(a.velProm,2)}</td></tr>`).join('') || `<tr><td colspan="10" class="empty-state">Sin datos.</td></tr>`;
+
+  // ---- alertas
+  const alertas = pcConstruirAlertas(vigentes, {cadenas, codigos: kOrd});
+  const color = {bad:'var(--bad)', warn:'var(--warn)', info:'var(--brand,#a1274b)', good:'var(--good,#2e8b57)'};
+  const icono = {bad:'🔴', warn:'🟠', info:'🔵', good:'🟢'};
+  document.getElementById('pcAlertas').innerHTML = alertas.map(a=>`<div class="card" style="margin-bottom:8px; padding:10px 14px; border-left:4px solid ${color[a.nivel]};"><div style="font-weight:700; font-size:13.5px;">${icono[a.nivel]} ${pcEsc(a.titulo)}</div>${a.detalle?`<div style="font-size:12.5px; color:var(--ink-soft); margin-top:2px;">${pcEsc(a.detalle)}</div>`:''}<div style="font-size:12.5px; margin-top:4px;">👉 <b>Qué hacer:</b> ${pcEsc(a.accion)}</div></div>`).join('');
+
+  // ---- evolución
+  const evoSel = document.getElementById('pcEvoFecha');
+  const fechas = [...new Set(hist.map(r=>r.fecha_caducidad))].sort();
+  const prevEvo = evoSel.value;
+  if(evoSel.dataset.n !== String(fechas.length) + '|' + fechas.join(',').length){
+    evoSel.innerHTML = fechas.map(d=>`<option value="${d}">${d}${d<hoy?' (vencida)':d===hoy?' (hoy)':` (en ${pcDiasEntre(hoy,d)} d)`}</option>`).join('') || '<option value="">—</option>';
+    evoSel.dataset.n = String(fechas.length) + '|' + fechas.join(',').length;
+    const prox = fechas.find(d=>d>=hoy) || fechas[fechas.length-1] || '';
+    evoSel.value = fechas.includes(prevEvo) ? prevEvo : prox;
+  }
+  const evo = evoSel.value ? pcEvolucionDatos(hist, evoSel.value) : null;
+  const evoBox = document.getElementById('pcEvolucion');
+  if(!evo){ evoBox.innerHTML = `<div class="card"><p style="margin:0; font-size:13px; color:var(--ink-soft);">Sin capturas para esa fecha de caducidad con los filtros actuales.</p></div>`; }
+  else {
+    const pctMov = evo.inicial ? evo.movidas/evo.inicial*100 : 0;
+    const diasFalta = pcDiasEntre(hoy, evo.fecha);
+    const lectura = evo.recapturados===0
+      ? `Aún no hay una segunda captura de este lote: no se puede medir cuánto se ha movido. Pedir recaptura en la próxima visita.`
+      : `De ${pcN(evo.inicial)} pzas en la primera captura quedan ${pcN(evo.actual)} (${pcN(pctMov,0)}% ya se movió). ${evo.sinMover.length?`${pcN(evo.sinMover.length)} tienda(s)/código(s) recapturados NO se movieron.`:'Todo lo recapturado se movió.'}${diasFalta>=0?` Faltan ${pcN(diasFalta)} día(s) para que venza.`:' Esta fecha ya venció: lo que sigue en tienda debe darse de baja.'}`;
+    const filasTabla = [...evo.sinMover.slice(0,8).map(r=>({...r, nota:`Sin movimiento (antes ${pcN(r.p0)} pzas)`})), ...evo.sinRecaptura.slice(0,8).map(r=>({...r, nota:`Sin recaptura hace ${pcN(r.edadCaptura)} días`}))];
+    evoBox.innerHTML = `<div class="row" style="margin-bottom:10px;">`
+      + kpi('', 'Primera captura', pcN(evo.inicial), 'pzas')
+      + kpi('', 'Última captura', pcN(evo.actual), 'pzas')
+      + kpi(pctMov>=50?'good':'warn', 'Ya se movió', pcN(evo.movidas), `${pcN(pctMov,0)}%`)
+      + kpi(evo.sinMover.length?'bad':'good', 'Recapturados sin moverse', pcN(evo.sinMover.length), 'tienda-código')
+      + kpi(evo.sinRecaptura.length?'warn':'good', 'Sin recaptura (7+ días)', pcN(evo.sinRecaptura.length), 'tienda-código')
+      + `</div><div class="card" style="padding:12px 14px;"><div style="font-size:13px; margin-bottom:8px;"><b>Lote que caduca el ${evo.fecha}</b> — ${pcEsc(lectura)}</div>${pcSvgBarras(evo.serie, 'Piezas conocidas por día de captura')}<div style="font-size:11px; color:var(--ink-soft);">Piezas conocidas de este lote por día de captura (última captura de cada tienda y código hasta ese día).</div>`
+      + (filasTabla.length ? `<div class="table-scroll" style="margin-top:10px;"><table><thead><tr><th>Cadena</th><th>Tienda</th><th>Producto</th><th class="num">Pzas</th><th>Lectura</th></tr></thead><tbody>${filasTabla.map(r=>`<tr><td>${pcEsc(r.cadena)}</td><td>${pcEsc(r.tienda)}</td><td>${pcEsc(r.producto)}</td><td class="num">${pcN(r.piezas)}</td><td>${pcEsc(r.nota)}</td></tr>`).join('')}</tbody></table></div>`:'')
+      + `</div>`;
+  }
+
+  // ---- detalle
+  document.getElementById('pcDetalleTitulo').textContent = `(${f.modo==='todo'?'todo lo capturado':'última captura por tienda y código'} · ${pcN(detalle.length)} fila(s))`;
+  document.getElementById('pcDetalleHead').innerHTML = colHead('pcDetalle','num_tienda','# Tienda',true)+colHead('pcDetalle','tienda','Tienda',false)+colHead('pcDetalle','supervisor','Supervisor(a)',false)+colHead('pcDetalle','persona','Capturó',false)+colHead('pcDetalle','fecha_registro','Cuándo',false)+colHead('pcDetalle','fecha_caducidad','Caduca',false)+colHead('pcDetalle','dias','Días',true)+colHead('pcDetalle','producto','Producto',false)+colHead('pcDetalle','piezas','Pzas',true)+colHead('pcDetalle','vel','Venta diaria',true)+colHead('pcDetalle','riesgo','Se pueden caducar',true)+colHead('pcDetalle','valor','Valor',true)+colHead('pcDetalle','estatus','Estatus',false);
+  const dOrd = ordenarFilas('pcDetalle', detalle, 'valor');
+  const LIM = 500;
+  document.getElementById('pcDetalleBody').innerHTML = dOrd.slice(0,LIM).map(r=>`<tr><td class="num">${pcEsc(r.num_tienda)}</td><td>${pcEsc(r.cadena)} · ${pcEsc(r.tienda)}</td><td>${pcEsc(nombreCorto(r.supervisor))}</td><td>${pcEsc(nombreCorto(r.persona))}</td><td>${pcEsc(fechaHoraLocal(r.fecha_registro))}</td><td>${r.fecha_caducidad}</td><td class="num" style="color:${r.dias<0?'var(--bad)':r.dias<=7?'var(--warn)':'inherit'}">${r.dias}</td><td>${pcEsc(r.producto)} <span style="color:var(--ink-soft); font-size:11px;">${pcEsc(r.clave)}</span></td><td class="num">${pcN(r.piezas)}</td><td class="num" title="${pcEsc(r.fuente)}">${pcN(r.vel,2)}</td><td class="num">${pcN(r.riesgo)}</td><td class="num">${pcMoney(r.valor)}</td><td>${pcEsc(r.estatus)}</td></tr>`).join('') || `<tr><td colspan="13" class="empty-state">Sin capturas de caducidad con estos filtros.</td></tr>`;
+  document.getElementById('pcDetallePie').textContent = (dOrd.length>LIM ? `Mostrando ${LIM} de ${pcN(dOrd.length)} filas (el Excel trae todas). ` : '') + 'Venta diaria = piezas/día de esa tienda y código (si no hay dato de la tienda, se usa el promedio de la cadena). "Se pueden caducar" = lo que no alcanza a venderse antes de la fecha (se vende primero lo que caduca primero).';
+  document.getElementById('pcNota').textContent = f.modo==='todo'
+    ? '⚠️ Modo "Todo": la tabla y el Excel incluyen visitas repetidas; los KPIs y resúmenes siguen usando la última captura (sin duplicados).'
+    : `Se descartaron ${pcN(Math.max(0, hist.length - vigentes.length))} registro(s) repetidos o de visitas anteriores.`;
+}
+function pcLimpiarFiltros(){
+  Object.values(PC_DD).forEach(d=>d.sel=null);
+  ['pcPersona','pcDesde','pcHasta','pcMostrar'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  const m = document.getElementById('pcModo'); if(m) m.value='ultima';
+  const c = document.getElementById('pcColchon'); if(c) c.value='0';
+  window.pcFiltroMesesCompletos = new Set();
+  try{ _renderMesesCompletosChips('pc','pcMesDdPanel','pcMesDdBtn'); }catch(e){}
+  Object.keys(PC_DD).forEach(pcDdRender);
+  renderProxCaducar();
+}
+
+/* ---------- Excel ---------- */
+function pcFilasExcel(rows){
+  return rows.map(r=>({
+    'Núm. tienda': r.num_tienda, 'Cadena': r.cadena, 'Tienda': r.tienda, 'Región': r.region, 'Supervisor(a)': r.supervisor,
+    'Capturó': r.persona, 'Cuándo capturó': fechaHoraLocal(r.fecha_registro), 'Fecha de caducidad': r.fecha_caducidad, 'Días para caducar (hoy)': r.dias,
+    'Código': r.clave, 'Producto': r.producto, 'Familia': r.familia, 'Piezas': r.piezas,
+    'Item velocity (pzas/día)': Math.round(r.vel*100)/100, 'Fuente de la velocidad': r.fuente,
+    'Días de venta que cubre el stock': r.diasCubre==null ? '' : Math.round(r.diasCubre),
+    'Piezas que se pueden caducar': Math.round(r.riesgo*10)/10, '% en riesgo': Math.round(r.pctRiesgo*100),
+    'Precio promedio': r.precio, 'Valor en riesgo $': Math.round(r.valor), 'Estatus': r.estatus,
+  }));
+}
+async function exportarProxCaducarExcel(){
+  if(!currentUser || currentUser.perfil==='Embajador'){ toast('Esta vista es solo para Supervisor, Coordinador y Admin.'); return; }
+  renderProxCaducar();
+  const rows = window._pcDetalleRows || [];
+  if(!rows.length){ toast('No hay datos para exportar con estos filtros.'); return; }
+  const f = pcLeerControles();
+  const ordenadas = [...rows].sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad) || b.valor-a.valor);
+  const detalle = pcFilasExcel(ordenadas);
+  const vig = window._pcVigentes || [];
+  const resCad = pcAgregar(vig, r=>r.cadena).sort((a,b)=>b.valor-a.valor).map(a=>({'Cadena':a.k,'Tiendas':a.nTiendas,'Piezas capturadas':a.piezas,'Piezas que se pueden caducar':Math.round(a.riesgo),'% en riesgo':Math.round(a.pct),'Valor en riesgo $':Math.round(a.valor),'En riesgo ≤15 días':Math.round(a.riesgo15),'Ya vencidas (pzas)':a.vencidas}));
+  const resCod = pcAgregar(vig, r=>r.clave, r=>({producto:r.producto, familia:r.familia})).sort((a,b)=>b.valor-a.valor).map(a=>({'Código':a.k,'Producto':a.producto,'Familia':a.familia,'Tiendas':a.nTiendas,'Piezas':a.piezas,'Piezas que se pueden caducar':Math.round(a.riesgo),'% en riesgo':Math.round(a.pct),'Valor en riesgo $':Math.round(a.valor),'Tiendas con riesgo':a.nTiendasRiesgo}));
+  const nombre = `proximos_a_caducar_${f.modo==='todo'?'todo':'ultima_captura'}_${todayISO()}`;
+  const ok = await cargarXLSX();
+  if(ok && typeof XLSX!=='undefined'){
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalle), f.modo==='todo'?'Todo lo capturado':'Última captura');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resCad), 'Por cadena');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resCod), 'Por código');
+    XLSX.writeFile(wb, nombre+'.xlsx');
+    toast(`Excel listo ✓ (${detalle.length} filas)`);
+  } else {
+    const headers = Object.keys(detalle[0]);
+    exportarCSV(nombre+'.csv', headers, detalle.map(o=>headers.map(h=>o[h])));
+    toast('No se pudo cargar la librería de Excel; se descargó en CSV (abre en Excel).');
+  }
+}
+
+/* ---------- VACACIONES ---------- */
+const VACA_KEY = 'delico_odv_vacaciones_v1';
+const VACA_DIAS_TOTALES = 12; // dato inventado de prototipo — reemplazar con archivo real de saldos
+function getVacaciones(){ return _vacacionesSync.get(); }
+function saveVacaciones(arr){ _vacacionesSync.save(arr); }
+function diasEntre(desde, hasta){
+  const d1 = new Date(desde+'T00:00:00'), d2 = new Date(hasta+'T00:00:00');
+  return Math.max(1, Math.round((d2-d1)/86400000)+1);
+}
+function puedeVerVacacion(sol, viewer){
+  if(viewer.usuario===sol.usuario) return true;
+  if(sol.perfil==='Embajador'){
+    if(viewer.perfil==='Coordinador' || viewer.perfil==='Admin') return true;
+    if(viewer.perfil==='Supervisor' && mismaPersona(supervisorDePersona(sol.nombre), viewer.nombre)) return true;
+    return false;
+  }
+  if(sol.perfil==='Supervisor'){
+    if(viewer.perfil==='Coordinador') return true;
+    if(viewer.perfil==='Admin' && viewer.rol==='GERENTE') return true;
+    return false;
+  }
+  return viewer.perfil==='Admin' || viewer.perfil==='Coordinador';
+}
+function puedeAprobarVacacion(sol, viewer){
+  return puedeVerVacacion(sol, viewer) && viewer.usuario!==sol.usuario && ['Supervisor','Coordinador','Admin'].includes(viewer.perfil);
+}
+function solicitarVacaciones(){
+  const desde = document.getElementById('vacDesde').value;
+  const hasta = document.getElementById('vacHasta').value;
+  if(!desde || !hasta){ toast('Elige el periodo'); return; }
+  if(hasta<desde){ toast('La fecha "hasta" no puede ser antes que "desde"'); return; }
+  const dias = diasEntre(desde,hasta);
+  const arr = getVacaciones();
+  arr.push({id:uid(), tipo:'vacaciones', usuario:currentUser.usuario, nombre:currentUser.nombre, perfil:currentUser.perfil, rol:currentUser.rol, desde, hasta, dias, estado:'pendiente', fecha_solicitud:new Date().toISOString(), aprobado_por:''});
+  saveVacaciones(arr);
+  toast('Solicitud enviada ✓');
+  document.getElementById('vacDesde').value=''; document.getElementById('vacHasta').value='';
+  renderVacaciones();
+}
+function solicitarOnomastico(){
+  const dia = document.getElementById('onoDia').value;
+  if(!dia){ toast('Elige el día'); return; }
+  const arr = getVacaciones();
+  arr.push({id:uid(), tipo:'onomastico', usuario:currentUser.usuario, nombre:currentUser.nombre, perfil:currentUser.perfil, rol:currentUser.rol, desde:dia, hasta:dia, dias:1, estado:'pendiente', fecha_solicitud:new Date().toISOString(), aprobado_por:''});
+  saveVacaciones(arr);
+  toast('Solicitud de onomástico enviada ✓');
+  document.getElementById('onoDia').value='';
+  renderVacaciones();
+}
+function aprobarVacacion(id){ resolverVacacion(id,'aprobada'); }
+function rechazarVacacion(id){ resolverVacacion(id,'rechazada'); }
+function resolverVacacion(id, estado){
+  const arr = getVacaciones();
+  const idx = arr.findIndex(v=>v.id===id);
+  if(idx<0) return;
+  if(!puedeAprobarVacacion(arr[idx], currentUser)){ toast('No tienes permiso para resolver esta solicitud.'); return; }
+  arr[idx].estado = estado;
+  arr[idx].aprobado_por = currentUser.nombre;
+  saveVacaciones(arr);
+  toast(estado==='aprobada' ? 'Solicitud aprobada ✓' : 'Solicitud rechazada');
+  renderVacaciones();
+}
+function renderVacaciones(){
+  const todas = getVacaciones();
+  const mias = todas.filter(v=>v.usuario===currentUser.usuario);
+  const tomados = mias.filter(v=>v.estado==='aprobada' && (v.tipo||'vacaciones')==='vacaciones').reduce((s,v)=>s+v.dias,0);
+  document.getElementById('vacSaldoTotal').textContent = VACA_DIAS_TOTALES;
+  document.getElementById('vacTomados').textContent = tomados;
+  document.getElementById('vacDisponibles').textContent = Math.max(0, VACA_DIAS_TOTALES-tomados);
+
+  window._vacMisSolicitudesBodyRows = mias.map(v=>({...v, tipo_label:(v.tipo||'vacaciones')==='onomastico'?'🎂 Onomástico':'🌴 Vacaciones', periodo: v.desde+' al '+v.hasta}));
+  window.render_vacMisSolicitudesBody = function(){
+    const rows2 = window._vacMisSolicitudesBodyRows || [];
+    const head = document.getElementById('vacMisSolicitudesBodyHead');
+    if(head) head.innerHTML = `${colHead('vacMisSolicitudesBody','tipo_label','Tipo',false)}${colHead('vacMisSolicitudesBody','desde','Periodo',false)}${colHead('vacMisSolicitudesBody','dias','Días',true)}${colHead('vacMisSolicitudesBody','estado','Estado',false)}${colHead('vacMisSolicitudesBody','aprobado_por','Aprobó',false)}`;
+    const filas = ordenarFilas('vacMisSolicitudesBody', rows2, 'fecha_solicitud');
+    document.getElementById('vacMisSolicitudesBody').innerHTML = filas.map(v=>
+      `<tr><td>${(v.tipo||'vacaciones')==='onomastico'?'🎂 Onomástico':'🌴 Vacaciones'}</td><td>${v.desde} al ${v.hasta}</td><td class="num">${v.dias}</td><td><span class="pill" style="background:${v.estado==='aprobada'?'var(--good-soft)':v.estado==='rechazada'?'var(--bad-soft)':'var(--warn-soft)'}; color:${v.estado==='aprobada'?'var(--good)':v.estado==='rechazada'?'var(--bad)':'var(--warn)'};">${v.estado}</span></td><td>${v.aprobado_por||'—'}</td></tr>`
+    ).join('') || `<tr><td colspan="5" class="empty-state">Aún no has hecho solicitudes.</td></tr>`;
+  };
+  window.render_vacMisSolicitudesBody();
+
+  const porAprobar = todas.filter(v=>v.estado==='pendiente' && puedeAprobarVacacion(v, currentUser));
+  const wrap = document.getElementById('vacPorAprobarWrap');
+  wrap.classList.toggle('hidden', !porAprobar.length);
+  window._vacPorAprobarBodyRows = porAprobar;
+  window.render_vacPorAprobarBody = function(){
+    const rows2 = window._vacPorAprobarBodyRows || [];
+    const head = document.getElementById('vacPorAprobarBodyHead');
+    if(head) head.innerHTML = `${colHead('vacPorAprobarBody','nombre','Persona',false)}${colHead('vacPorAprobarBody','rol','Rol',false)}${colHead('vacPorAprobarBody','desde','Periodo',false)}${colHead('vacPorAprobarBody','dias','Días',true)}<th>Acción</th>`;
+    const filas = ordenarFilas('vacPorAprobarBody', rows2, 'desde');
+    document.getElementById('vacPorAprobarBody').innerHTML = filas.map(v=>
+      `<tr><td>${nombreCorto(v.nombre)}${(v.tipo||'vacaciones')==='onomastico'?' <span style="font-size:10px;">🎂</span>':''}</td><td>${v.rol}</td><td>${v.desde} al ${v.hasta}</td><td class="num">${v.dias}</td>
+        <td style="display:flex; gap:6px;"><button class="btn btn-brand" style="padding:4px 10px; font-size:11.5px;" onclick="aprobarVacacion('${v.id}')">Aprobar</button><button class="btn btn-ghost" style="padding:4px 10px; font-size:11.5px;" onclick="rechazarVacacion('${v.id}')">Rechazar</button></td></tr>`
+    ).join('');
+  };
+  window.render_vacPorAprobarBody();
+
+  const aprobadas = todas.filter(v=>v.estado==='aprobada' && v.hasta>=todayISO());
+  window._vacReporteBodyRows = aprobadas;
+  window.render_vacReporteBody = function(){
+    const rows2 = window._vacReporteBodyRows || [];
+    const head = document.getElementById('vacReporteBodyHead');
+    if(head) head.innerHTML = `${colHead('vacReporteBody','nombre','Persona',false)}${colHead('vacReporteBody','rol','Rol',false)}${colHead('vacReporteBody','desde','Periodo',false)}`;
+    const filas = ordenarFilas('vacReporteBody', rows2, 'desde');
+    document.getElementById('vacReporteBody').innerHTML = filas.map(v=>
+      `<tr><td>${nombreCorto(v.nombre)}</td><td>${v.rol}</td><td>${v.desde} al ${v.hasta}</td></tr>`
+    ).join('') || `<tr><td colspan="3" class="empty-state">Nadie tiene vacaciones aprobadas próximas o en curso.</td></tr>`;
+  };
+  window.render_vacReporteBody();
+  renderVacacionesInsights(todas, mias, porAprobar, aprobadas);
+}
+function renderVacacionesInsights(todas, mias, porAprobar, aprobadas){
+  const box = document.getElementById('vacInsights');
+  if(!box) return;
+  const esEmb = currentUser.perfil === 'Embajador';
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  if(esEmb){
+    const pendientesMias = mias.filter(v=>v.estado==='pendiente');
+    html += `<p style="font-size:12.5px; margin:0 0 6px;">🌴 Tienes <b>${Math.max(0, VACA_DIAS_TOTALES - mias.filter(v=>v.estado==='aprobada' && (v.tipo||'vacaciones')==='vacaciones').reduce((s,v)=>s+v.dias,0))}</b> día(s) disponibles.</p>`;
+    if(pendientesMias.length) html += `<p style="font-size:12.5px; margin:0;">⏳ Tienes ${pendientesMias.length} solicitud(es) pendiente(s) de aprobación.</p>`;
+    else html += `<p style="font-size:12.5px; margin:0; color:var(--ink-soft);">Sin solicitudes pendientes.</p>`;
+  } else {
+    if(porAprobar.length){
+      const antiguaDias = Math.max(...porAprobar.map(v=>Math.round((new Date()-new Date(v.fecha_solicitud||v.desde))/86400000)));
+      html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--warn,#c98a1b);">⏳ Hay ${porAprobar.length} solicitud(es) esperando tu aprobación — la más antigua lleva ~${antiguaDias} día(s) sin resolver.</p>`;
+    } else {
+      html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--good);">✅ No hay solicitudes pendientes por aprobar.</p>`;
+    }
+    // Traslape: 2+ personas de la misma tienda/sector fuera al mismo tiempo, próximas 30 días
+    const hoy = todayISO();
+    const en30 = isoDate(new Date(Date.now()+30*86400000));
+    const proximas = aprobadas.filter(v=>v.desde<=en30 && v.hasta>=hoy);
+    html += `<p style="font-size:12.5px; margin:0 0 6px;">📅 ${proximas.length} persona(s) con vacaciones aprobadas en los próximos 30 días.</p>`;
+    if(proximas.length>=2){
+      html += `<p style="font-size:12.5px; margin:0;">⚠️ Revisa que no se traslapen varias personas de la misma zona al mismo tiempo, para no dejar tiendas sin cobertura.</p>`;
+    }
+  }
+  html += `</div>`;
+  box.innerHTML = html;
+}
+
+/* ---------- INICIO (dashboard de entrada) ---------- */
+function resumenCuotaEscalonInicio(){
+  const scope = storesScopeParaMi();
+  const keys = new Set(scope.map(s=>s.cadena+'|'+s.num_tienda));
+  const rows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda));
+  const cuotaUni = rows.reduce((a,r)=>a+(r.cuota_uni||0),0);
+  const realUni = rows.reduce((a,r)=>a+(r.real_uni||0),0);
+  const escalonUni = rows.reduce((a,r)=>a+(r.escalon_uni||0),0);
+  return {
+    pctCuota: cuotaUni ? Math.round(realUni/cuotaUni*100) : null,
+    pctEscalon: escalonUni ? Math.round(realUni/escalonUni*100) : null,
+  };
+}
+function renderInicio(){
+  const primerNombre = nombreCorto(currentUser.nombre).split(' ')[0];
+  document.getElementById('inicioSaludo').textContent = `Hola, ${primerNombre.charAt(0)+primerNombre.slice(1).toLowerCase()}`;
+  const hoy = new Date();
+  document.getElementById('inicioFecha').textContent = `Hoy es ${hoy.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})}`;
+
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  /* Resumen de Inicio: siempre acotado al mes en curso (no a la semana que se esté viendo en Asignación de rutas) */
+  const inicioMesStartISO = todayISO().slice(0,7)+'-01';
+  const inicioMesEndISO = isoDate(new Date(hoy.getFullYear(), hoy.getMonth()+1, 0));
+  const startISO = inicioMesStartISO, endISO = inicioMesEndISO;
+  const rutasActivas = getRutas().filter(a=>a.tipo==='visita' && a.fecha>=startISO && a.fecha<=endISO && visibleUsuarios.has(a.usuario));
+  document.getElementById('inicioCardRutas').querySelector('.value').textContent = rutasActivas.length;
+
+  const rutasLabel = document.getElementById('inicioCardRutasLabel');
+  const rutasListaWrap = document.getElementById('inicioRutasListaWrap');
+  if(esEmbajador){
+    if(rutasLabel) rutasLabel.textContent = 'Tus tiendas asignadas este mes';
+    const misTiendasSemana = [...new Map(rutasActivas.map(a=>[a.cadena+'|'+a.tienda, a])).values()].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+    if(rutasListaWrap){
+      rutasListaWrap.classList.toggle('hidden', misTiendasSemana.length===0);
+      const listaEl = document.getElementById('inicioRutasLista');
+      if(listaEl) listaEl.innerHTML = misTiendasSemana.length
+        ? misTiendasSemana.map(a=>`<div style="padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; display:flex; justify-content:space-between; gap:8px;"><span>🏬 ${a.tienda} <small style="color:var(--ink-soft);">(${a.cadena})</small></span><small style="color:var(--ink-soft);">${a.fecha}</small></div>`).join('')
+        : '';
+    }
+  } else if(rutasListaWrap){
+    rutasListaWrap.classList.add('hidden');
+    if(rutasLabel) rutasLabel.textContent = 'Rutas activas este mes';
+  }
+
+  const vacPendCard = document.getElementById('inicioCardVacPendientes');
+  const vacaciones = getVacaciones();
+  const pendientes = vacaciones.filter(v=>v.estado==='pendiente' && puedeAprobarVacacion(v, currentUser));
+  if(esEmbajador){
+    // Un(a) embajador(a) nunca autoriza vacaciones de nadie (ni las propias) — esa tarjeta no le aplica.
+    if(vacPendCard) vacPendCard.style.display = 'none';
+  } else {
+    if(vacPendCard) vacPendCard.style.display = '';
+    document.getElementById('inicioCardVacPendientes').querySelector('.value').textContent = pendientes.length;
+  }
+  const vacProxLabel = document.getElementById('inicioCardVacProximasLabel');
+  if(vacProxLabel) vacProxLabel.textContent = esEmbajador ? 'Mis vacaciones próximas / en curso' : 'Vacaciones próximas / en curso';
+  const proximas = vacaciones.filter(v=>v.estado==='aprobada' && v.hasta>=todayISO() && puedeVerVacacion(v, currentUser));
+  document.getElementById('inicioCardVacProximas').querySelector('.value').textContent = proximas.length;
+
+  const miniIconos = document.getElementById('inicioMiniIconos');
+  if(miniIconos){
+    if(esEmbajador){
+      const {pctCuota, pctEscalon} = resumenCuotaEscalonInicio();
+      const chip = (icon, label, pct) => `<div class="card kpi" style="min-width:150px;"><div class="label">${icon} ${label}</div><div class="value" style="font-size:18px;">${pct!==null?pct+'%':'—'}</div></div>`;
+      miniIconos.innerHTML = chip('💰','Cubrimiento de cuota', pctCuota) + chip('🏆','Escalón bono', pctEscalon);
+      miniIconos.classList.remove('hidden');
+    } else {
+      miniIconos.classList.add('hidden');
+    }
+  }
+
+  const en7dias = new Date(hoy); en7dias.setDate(en7dias.getDate()+7);
+  const finVentanaCaducidad = isoDate(en7dias) < inicioMesEndISO ? isoDate(en7dias) : inicioMesEndISO;
+  const caducidades = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_caducidad && c.fecha_caducidad>=todayISO() && c.fecha_caducidad<=finVentanaCaducidad);
+  document.getElementById('inicioCardCaducidad').querySelector('.value').textContent = caducidades.length;
+
+  const alertas = [];
+  if(pendientes.length) alertas.push(`🌴 Tienes ${pendientes.length} solicitud(es) de vacaciones esperando tu autorización.`);
+  if(caducidades.length) alertas.push(`⏳ ${caducidades.length} reporte(s) de producto con caducidad en los próximos 7 días.`);
+  const tareasAbiertasA = getTareas().filter(t=>t.estado==='abierta' && t.asignado_a===currentUser.usuario && t.prioridad==='A');
+  if(tareasAbiertasA.length) alertas.push(`🔴 Tienes ${tareasAbiertasA.length} tarea(s) prioridad A sin cerrar.`);
+  const box = document.getElementById('inicioAlertas');
+  box.innerHTML = alertas.length
+    ? `<div class="card"><div class="lbl" style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin-bottom:8px;">Alertas de hoy</div>${alertas.map(a=>`<div style="padding:7px 0; border-bottom:1px solid var(--line); font-size:13px;">${a}</div>`).join('')}</div>`
+    : `<div class="card"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin alertas pendientes por ahora. ✓</p></div>`;
+
+  const notifBox = document.getElementById('inicioNotificaciones');
+  const misNotifs = getNotificaciones().filter(n=>n.para===currentUser.usuario && !n.leida);
+  notifBox.innerHTML = misNotifs.length
+    ? `<div class="card" style="border-left:4px solid var(--brand);"><div class="lbl" style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin-bottom:8px;">🔔 Notificaciones</div>
+        ${misNotifs.map(n=>`<div style="padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; display:flex; justify-content:space-between; gap:8px; align-items:flex-start;"><span>${n.texto}</span><button class="btn btn-ghost" style="padding:2px 8px; font-size:10.5px; white-space:nowrap;" onclick="marcarNotificacionLeida('${n.id}')">Marcar leída</button></div>`).join('')}
+      </div>`
+    : '';
+}
+
+/* ---------- TAREAS PERSONALES ---------- */
+const TAREAS_KEY = 'delico_odv_tareas_v1';
+function getTareas(){ return _tareasSync.get(); }
+function saveTareas(arr){ _tareasSync.save(arr); }
+const PRIORIDAD_TAREA_LABEL = {A:'🔴 Prioridad A', B:'🟡 Prioridad B', C:'🟢 Prioridad C'};
+function poblarAsignarA(){
+  const sel = document.getElementById('tareaAsignarA');
+  if(sel.options.length) return;
+  APP_DATA.equipo.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    const o = document.createElement('option'); o.value = u.usuario; o.textContent = nombreCorto(u.nombre)+' · '+u.rol; sel.appendChild(o);
+  });
+}
+function agregarTarea(){
+  const texto = document.getElementById('tareaTexto').value.trim();
+  const asignadoA = document.getElementById('tareaAsignarA').value;
+  const prioridad = document.getElementById('tareaPrioridad').value;
+  if(!texto || !asignadoA){ toast('Escribe la tarea y elige a quién se asigna'); return; }
+  const u = APP_DATA.equipo.find(x=>x.usuario===asignadoA);
+  const arr = getTareas();
+  arr.unshift({id:uid(), texto, prioridad, asignado_a:asignadoA, asignado_a_nombre:u?u.nombre:'', asignado_por:currentUser.nombre, fecha_creacion:new Date().toISOString(), estado:'abierta', retroalimentaciones:[], conclusion:'', calificacion:null});
+  saveTareas(arr);
+  document.getElementById('tareaTexto').value='';
+  toast('Tarea asignada ✓');
+  renderTareas();
+}
+function agregarRetro(id){
+  const input = document.getElementById('retro_'+id);
+  const val = input.value.trim();
+  if(!val) return;
+  const arr = getTareas();
+  const t = arr.find(x=>x.id===id);
+  if(!t) return;
+  t.retroalimentaciones.push({id:uid(), texto:val, autor:currentUser.nombre, fecha:new Date().toISOString()});
+  saveTareas(arr);
+  renderTareas();
+}
+function mostrarFinalizar(id){
+  const box = document.getElementById('fin_'+id);
+  box.classList.toggle('hidden');
+}
+function finalizarTarea(id){
+  const conclusion = document.getElementById('conclusion_'+id).value.trim();
+  const estrellas = document.querySelector(`input[name="stars_${id}"]:checked`);
+  if(!conclusion){ toast('Escribe una conclusión'); return; }
+  const arr = getTareas();
+  const t = arr.find(x=>x.id===id);
+  if(!t) return;
+  t.estado = 'finalizada';
+  t.conclusion = conclusion;
+  t.calificacion = estrellas ? parseInt(estrellas.value) : null;
+  saveTareas(arr);
+  toast('Tarea finalizada ✓');
+  renderTareas();
+}
+/* Mismas acciones (responder / finalizar) que en Objetivos, pero desde el módulo de "Prioridades"
+   dentro de Captura MEDI (Ejecución) — así se puede responder a lo que piden sin salir de ahí. */
+function agregarRetroModal(id){
+  const input = document.getElementById('mretro_'+id);
+  const val = input ? input.value.trim() : '';
+  if(!val){ toast('Escribe tu respuesta'); return; }
+  const arr = getTareas();
+  const t = arr.find(x=>x.id===id);
+  if(!t) return;
+  t.retroalimentaciones.push({id:uid(), texto:val, autor:currentUser.nombre, fecha:new Date().toISOString()});
+  saveTareas(arr);
+  toast('Respuesta enviada ✓');
+  renderTareas();
+  abrirPrioridadesCaptura();
+}
+function mostrarFinalizarModal(id){
+  const box = document.getElementById('mfin_'+id);
+  if(box) box.classList.toggle('hidden');
+}
+function finalizarTareaModal(id){
+  const conclEl = document.getElementById('mconclusion_'+id);
+  const conclusion = conclEl ? conclEl.value.trim() : '';
+  if(!conclusion){ toast('Escribe una conclusión'); return; }
+  const arr = getTareas();
+  const t = arr.find(x=>x.id===id);
+  if(!t) return;
+  t.estado = 'finalizada';
+  t.conclusion = conclusion;
+  saveTareas(arr);
+  toast('Tarea finalizada ✓');
+  renderTareas();
+  abrirPrioridadesCaptura();
+}
+function exportarTareas(){
+  const arr = getTareas();
+  exportarCSV(`tareas_${todayISO()}.csv`, ['Texto','Prioridad','Asignada a','Asignada por','Fecha creación','Estado','Conclusión','Calificación'],
+    arr.map(t=>[t.texto, t.prioridad, t.asignado_a_nombre, t.asignado_por, fechaLocal(t.fecha_creacion), t.estado, t.conclusion||'', t.calificacion??'']));
+}
+function renderTareas(){
+  poblarAsignarA();
+  let arr = getTareas().slice().sort((a,b)=> (a.estado===b.estado?0:a.estado==='abierta'?-1:1) || a.prioridad.localeCompare(b.prioridad) || b.fecha_creacion.localeCompare(a.fecha_creacion));
+  if(currentUser.perfil === 'Embajador'){
+    // Un(a) embajador(a) solo debe ver las tareas que le fueron asignadas a ella/él, nunca las de otras personas.
+    arr = arr.filter(t => t.asignado_a === currentUser.usuario);
+  }
+  const abiertas = arr.filter(t=>t.estado==='abierta').length;
+  const finalizadas = arr.length - abiertas;
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  setTxt('tareaKpiTotal', arr.length);
+  setTxt('tareaKpiAbiertas', abiertas);
+  setTxt('tareaKpiFinalizadas', finalizadas);
+  const grid = document.getElementById('tareasGrid');
+  grid.innerHTML = arr.map(t=>`
+    <div class="card" style="opacity:${t.estado==='finalizada'?0.75:1};">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <div>
+          <span class="pill" style="background:${t.prioridad==='A'?'var(--bad-soft)':t.prioridad==='B'?'var(--warn-soft)':'var(--good-soft)'}; color:${t.prioridad==='A'?'var(--bad)':t.prioridad==='B'?'var(--warn)':'var(--good)'};">${PRIORIDAD_TAREA_LABEL[t.prioridad]}</span>
+          <span class="pill" style="background:${t.estado==='abierta'?'var(--info-soft)':'var(--brand-soft)'}; color:${t.estado==='abierta'?'var(--info)':'var(--brand-dark)'}; margin-left:4px;">${t.estado}</span>
+          <div style="font-weight:700; font-size:14px; margin-top:6px;">${t.texto}</div>
+          <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">Asignada a <b>${nombreCorto(t.asignado_a_nombre)}</b> por ${nombreCorto(t.asignado_por)} · ${fechaLocal(t.fecha_creacion)}</div>
+        </div>
+      </div>
+      ${t.retroalimentaciones.length ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:6px;">
+        ${t.retroalimentaciones.map(r=>`<div style="font-size:12px;"><b>${nombreCorto(r.autor)}:</b> ${r.texto} <span style="color:var(--ink-soft);">(${fechaSoloDia(r.fecha)})</span></div>`).join('')}
+      </div>` : ''}
+      ${t.estado==='finalizada' ? `<div style="margin-top:10px; background:var(--good-soft); border-radius:8px; padding:8px 10px; font-size:12.5px;"><b>Conclusión:</b> ${t.conclusion} ${t.calificacion?' · '+'⭐'.repeat(t.calificacion):''}</div>` : (
+      currentUser.perfil==='Embajador'
+      ? `<div style="margin-top:10px; font-size:11.5px; color:var(--ink-soft);">Ábrela en Ejecución › Prioridades y tareas para responder o finalizarla.</div>`
+      : `
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+        <input type="text" id="retro_${t.id}" placeholder="Agregar retroalimentación..." style="flex:1; min-width:180px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;">
+        <button class="btn btn-ghost" style="padding:5px 10px; font-size:11.5px;" onclick="agregarRetro('${t.id}')">Agregar</button>
+        <button class="btn btn-brand" style="padding:5px 10px; font-size:11.5px;" onclick="mostrarFinalizar('${t.id}')">Finalizar tarea</button>
+      </div>
+      <div id="fin_${t.id}" class="hidden" style="margin-top:8px; border-top:1px dashed var(--line); padding-top:8px;">
+        <textarea id="conclusion_${t.id}" rows="2" placeholder="Conclusión..." style="width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;"></textarea>
+        <div style="display:flex; align-items:center; gap:4px; margin:6px 0; font-size:12px;">Satisfacción:
+          ${[1,2,3,4,5].map(n=>`<label style="cursor:pointer;"><input type="radio" name="stars_${t.id}" value="${n}" style="display:none;" onchange="this.closest('div').querySelectorAll('span').forEach((s,i)=>s.textContent = i<${n}?'⭐':'☆')"><span>☆</span></label>`).join('')}
+        </div>
+        <button class="btn btn-brand" style="padding:5px 10px; font-size:11.5px;" onclick="finalizarTarea('${t.id}')">Confirmar conclusión</button>
+      </div>`)}
+    </div>
+  `).join('') || `<p style="font-size:13px; color:var(--ink-soft);">Sin tareas asignadas todavía.</p>`;
+}
+
+/* ---------- REGISTRAR SUPERVISIÓN (auditoría de campo) ---------- */
+const AUDITORIA_KEY = 'delico_odv_auditoria_v1';
+const DIMENSIONES_AUDITORIA = ['Conocimiento de ruta','Conocimiento de tienda','Comunicación','Proactividad','Ejecución MEDI (mercadeo, degustación, precios)'];
+function getAuditorias(){ return _auditoriasSync.get(); }
+function saveAuditorias(arr){ _auditoriasSync.save(arr); }
+function personasEvaluablesPorMi(){
+  if(currentUser.perfil==='Supervisor') return APP_DATA.equipo.filter(u=>u.perfil==='Embajador' && mismaPersona(supervisorDePersona(u.nombre), currentUser.nombre));
+  if(currentUser.perfil==='Coordinador') return APP_DATA.equipo.filter(u=>u.perfil==='Embajador' || u.perfil==='Supervisor');
+  return APP_DATA.equipo.filter(u=>u.usuario!==currentUser.usuario); // Admin/Gerente: a todos
+}
+function poblarAuditoriaSelects(){
+  const perSel = document.getElementById('audPersona');
+  if(!perSel.options.length){
+    personasEvaluablesPorMi().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; perSel.appendChild(o);
+    });
+  }
+  const tiendaSel = document.getElementById('audTienda');
+  if(tiendaSel.options.length<=1){
+    [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).forEach(s=>{
+      const o=document.createElement('option'); o.value=s.tienda; o.dataset.cadena=s.cadena; o.textContent=`${s.tienda} (${s.cadena})`; tiendaSel.appendChild(o);
+    });
+  }
+  const dimBox = document.getElementById('audDimensiones');
+  if(!dimBox.children.length){
+    dimBox.innerHTML = DIMENSIONES_AUDITORIA.map((d,i)=>`
+      <div>
+        <label style="font-size:12.5px; font-weight:600;">${d}</label>
+        <div style="display:flex; gap:4px; margin-top:3px;">
+          ${[1,2,3,4,5].map(n=>`<label style="cursor:pointer;"><input type="radio" name="auddim_${i}" value="${n}" style="display:none;" onchange="this.closest('div').parentElement.querySelectorAll('span.st').forEach((s,idx)=>s.textContent = idx<${n}?'⭐':'☆')"><span class="st">☆</span></label>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+}
+/* ---------- NOTIFICACIONES ---------- */
+const NOTIF_KEY = 'delico_odv_notificaciones_v1';
+function getNotificaciones(){ return _notificacionesSync.get(); }
+function saveNotificaciones(arr){ _notificacionesSync.save(arr); }
+function crearNotificacion(paraUsuario, texto, tipo){
+  const arr = getNotificaciones();
+  arr.unshift({id:uid(), para:paraUsuario, texto, tipo:tipo||'info', fecha:todayISO(), leida:false});
+  saveNotificaciones(arr);
+}
+function marcarNotificacionLeida(id){
+  const arr = getNotificaciones();
+  const n = arr.find(x=>x.id===id);
+  if(n){ n.leida = true; saveNotificaciones(arr); renderInicio(); }
+}
+
+function guardarAuditoria(){
+  const persona = document.getElementById('audPersona').value;
+  const tiendaSel = document.getElementById('audTienda');
+  const tienda = tiendaSel.value;
+  if(!persona || !tienda){ toast('Elige persona y tienda'); return; }
+  const u = APP_DATA.equipo.find(x=>x.usuario===persona);
+  const scores = DIMENSIONES_AUDITORIA.map((d,i)=>{
+    const sel = document.querySelector(`input[name="auddim_${i}"]:checked`);
+    return {dimension:d, score: sel?parseInt(sel.value):null};
+  });
+  if(scores.some(s=>s.score===null)){ toast('Califica las 5 dimensiones'); return; }
+  const promedio = (scores.reduce((s,x)=>s+x.score,0)/scores.length).toFixed(1);
+  const pendientes = document.getElementById('audPendientes').value.trim();
+  const arr = getAuditorias();
+  arr.unshift({id:uid(), persona_usuario:persona, persona_nombre:u?u.nombre:'', tienda, cadena: tiendaSel.selectedOptions[0]?.dataset.cadena||'', evaluador:currentUser.nombre, fecha:new Date().toISOString(), scores, promedio, comentarios: document.getElementById('audComentarios').value.trim(), pendiente_texto: pendientes, pendiente_estado: pendientes ? 'abierta' : ''});
+  saveAuditorias(arr);
+  if(persona){
+    crearNotificacion(persona, `🕵️ Nueva evaluación de supervisión en ${tienda}: promedio ${promedio}/5.${pendientes ? ' Pendiente: '+pendientes : ' Sin pendientes.'}`, 'auditoria');
+    const sup = supervisorDePersona(u ? u.nombre : '');
+    const supU = sup ? APP_DATA.equipo.find(x=>mismaPersona(x.nombre, sup)) : null;
+    if(supU && supU.usuario !== currentUser.usuario) crearNotificacion(supU.usuario, `🕵️ Se evaluó a ${nombreCorto(u.nombre)} en ${tienda}: promedio ${promedio}/5.`, 'auditoria');
+  }
+  document.getElementById('audComentarios').value='';
+  document.getElementById('audPendientes').value='';
+  document.querySelectorAll('[name^="auddim_"]').forEach(r=>r.checked=false);
+  document.querySelectorAll('#audDimensiones span.st').forEach(s=>s.textContent='☆');
+  toast('Evaluación guardada y notificada ✓');
+  renderAuditoria();
+}
+function resolverPendienteAuditoria(id){
+  const arr = getAuditorias();
+  const a = arr.find(x=>x.id===id);
+  if(a){ a.pendiente_estado = 'cerrada'; a.pendiente_resuelto_por = currentUser.nombre; saveAuditorias(arr); renderAuditoria(); }
+}
+function renderAuditoria(){
+  poblarAuditoriaSelects();
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getAuditorias().filter(a=> currentUser.perfil==='Embajador' ? a.persona_usuario===currentUser.usuario : visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre);
+  window._audBodyRows = arr;
+  window.render_audBody = function(){
+    const rows2 = window._audBodyRows || [];
+    const head = document.getElementById('audBodyHead');
+    if(head) head.innerHTML = `${colHead('audBody','persona_nombre','Persona',false)}${colHead('audBody','tienda','Tienda',false)}${colHead('audBody','fecha','Fecha',false)}${colHead('audBody','evaluador','Evaluó',false)}${colHead('audBody','promedio','Promedio',true)}<th>Detalle</th><th>Pendiente</th>`;
+    const filas = ordenarFilas('audBody', rows2, 'fecha');
+    document.getElementById('audBody').innerHTML = filas.map(a=>{
+      const pendienteCell = !a.pendiente_texto ? '—' : (a.pendiente_estado==='cerrada'
+        ? `<span style="color:var(--good); font-weight:700;">✅ Resuelto</span>`
+        : `<span style="color:var(--bad); font-weight:700;">⏳ ${a.pendiente_texto}</span><br><button class="btn btn-ghost" style="padding:2px 8px; font-size:10.5px; margin-top:4px;" onclick="resolverPendienteAuditoria('${a.id}')">Marcar como resuelto</button>`);
+      return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${fechaSoloDia(a.fecha)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td><td style="font-size:11px;">${pendienteCell}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty-state">Sin evaluaciones registradas todavía.</td></tr>`;
+  };
+  window.render_audBody();
+}
+
+/* ---------- EVALUACIÓN 360° DEMOSTRADORAS ---------- */
+const EVAL360_KEY = 'delico_odv_eval360_v1';
+const EVAL360_CATEGORIAS = [
+  {key:'uniforme',      label:'Uniforme e imagen',        peso:20, items:['U1 Uniforme completo','U2 Uniforme limpio','U3 Imagen personal']},
+  {key:'seguridad',     label:'Seguridad e higiene',      peso:15, items:['S1 Material seguridad','S3 Buenas prácticas higiene','S4 Estación limpia']},
+  {key:'herramientas',  label:'Herramientas',             peso:15, items:['H1 Herramientas completas','H3 Utensilios limpios']},
+  {key:'charola',       label:'Presentación de charola',  peso:25, items:['C1 Charola limpia/atractiva','C2 Producto presentado','C3 Porciones uniformes']},
+  {key:'marca',         label:'Lineamientos de marca',    peso:25, items:['M1 Montaje','M4 Actitud consumidor','M5 Respeta promociones/recetas']},
+];
+const EVAL360_ESCALA = [
+  {v:5, label:'Excelente',   desc:'Cumple completamente y destaca en la ejecución.'},
+  {v:4, label:'Muy bien',    desc:'Cumple; presenta únicamente detalles menores.'},
+  {v:3, label:'Aceptable',   desc:'Cumple parcialmente; requiere algunas mejoras.'},
+  {v:2, label:'Deficiente',  desc:'Presenta varios incumplimientos.'},
+  {v:1, label:'No cumple',   desc:'Incumplimiento evidente o ausencia del requisito.'},
+];
+const EVAL360_PARAMS = {promedioMinimo:90, calMensualMinima:80, evalsPorTrimestre:3};
+function getEval360(){ return _eval360Sync.get(); }
+function saveEval360(arr){ _eval360Sync.save(arr); }
+function clasificacionEval360(total){
+  if(total===null || total===undefined) return null;
+  if(total>=95) return 'Ejecución sobresaliente';
+  if(total>=90) return 'Excelente';
+  if(total>=80) return 'Muy buena';
+  if(total>=70) return 'Cumple con oportunidades';
+  return 'Requiere seguimiento';
+}
+function calcularEval360(itemScores){
+  const subtotales = {};
+  let total = 0, completo = true;
+  EVAL360_CATEGORIAS.forEach(cat=>{
+    const vals = cat.items.map(it=>itemScores[it]).filter(v=>v!==null && v!==undefined && v!=='');
+    if(vals.length < cat.items.length){ subtotales[cat.key] = null; completo = false; return; }
+    const avg = vals.reduce((s,v)=>s+Number(v),0) / vals.length;
+    const sub = avg/5*cat.peso;
+    subtotales[cat.key] = sub;
+    total += sub;
+  });
+  return {subtotales, total: completo ? total : null, clasificacion: completo ? clasificacionEval360(total) : null};
+}
+function personasEvaluablesEval360(){ return personasEvaluablesPorMi(); }
+function poblarEval360Selects(){
+  const perSel = document.getElementById('ev360Persona');
+  if(!perSel.options.length){
+    personasEvaluablesEval360().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; perSel.appendChild(o);
+    });
+  }
+  const tiendaSel = document.getElementById('ev360Tienda');
+  if(tiendaSel.options.length<=1){
+    [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda)).forEach(s=>{
+      const o=document.createElement('option'); o.value=s.tienda; o.dataset.cadena=s.cadena; o.textContent=`${s.tienda} (${s.cadena})`; tiendaSel.appendChild(o);
+    });
+  }
+  const fechaInp = document.getElementById('ev360Fecha');
+  if(fechaInp && !fechaInp.value) fechaInp.value = todayISO();
+  const catBox = document.getElementById('ev360Categorias');
+  if(!catBox.children.length){
+    catBox.innerHTML = EVAL360_CATEGORIAS.map(cat=>`
+      <div>
+        <div style="font-size:13px; font-weight:700; color:var(--brand-dark); margin-bottom:6px;">${cat.label} <span style="font-weight:400; color:var(--ink-soft); font-size:11.5px;">(${cat.peso}%)</span></div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${cat.items.map(it=>`
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <label style="font-size:12px; min-width:190px;">${it}</label>
+              <div style="display:flex; gap:3px;">
+                ${EVAL360_ESCALA.map(e=>`<label style="cursor:pointer;" title="${e.label}: ${e.desc}"><input type="radio" name="ev360_${it.replace(/[^A-Za-z0-9]/g,'_')}" value="${e.v}" style="display:none;" onchange="actualizarEval360Resultado()"><span class="st">☆</span></label>`).join('')}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+    // pintar estrellas al click, similar patrón que Auditoría
+    catBox.querySelectorAll('input[type=radio]').forEach(inp=>{
+      inp.addEventListener('change', function(){
+        const n = parseInt(this.value);
+        this.closest('div').querySelectorAll('span.st').forEach((s,idx)=> s.textContent = idx<n ? '⭐' : '☆');
+      });
+    });
+  }
+}
+function leerItemScoresEval360(){
+  const scores = {};
+  EVAL360_CATEGORIAS.forEach(cat=>{
+    cat.items.forEach(it=>{
+      const sel = document.querySelector(`input[name="ev360_${it.replace(/[^A-Za-z0-9]/g,'_')}"]:checked`);
+      scores[it] = sel ? parseInt(sel.value) : null;
+    });
+  });
+  return scores;
+}
+function actualizarEval360Resultado(){
+  const scores = leerItemScoresEval360();
+  const r = calcularEval360(scores);
+  const detalle = document.getElementById('ev360ResultadoDetalle');
+  const totalBox = document.getElementById('ev360ResultadoTotal');
+  if(!detalle || !totalBox) return;
+  detalle.innerHTML = EVAL360_CATEGORIAS.map(cat=>{
+    const v = r.subtotales[cat.key];
+    return `${cat.label}: <b>${v===null?'—':v.toFixed(1)}</b> / ${cat.peso}`;
+  }).join(' &nbsp;·&nbsp; ');
+  if(r.total===null){
+    totalBox.innerHTML = `<span style="color:var(--ink-soft); font-size:13px; font-weight:600;">Faltan ítems por calificar...</span>`;
+  } else {
+    const color = r.total>=90 ? 'var(--good)' : (r.total>=80 ? 'var(--warn)' : 'var(--bad)');
+    totalBox.innerHTML = `<span style="color:${color};">${r.total.toFixed(1)} / 100 — ${r.clasificacion}</span>`;
+  }
+  return r;
+}
+function guardarEval360(){
+  const persona = document.getElementById('ev360Persona').value;
+  const tiendaSel = document.getElementById('ev360Tienda');
+  const tienda = tiendaSel.value;
+  const fecha = document.getElementById('ev360Fecha').value || todayISO();
+  if(!persona || !tienda){ toast('Elige demostradora y tienda'); return; }
+  const scores = leerItemScoresEval360();
+  const r = calcularEval360(scores);
+  if(r.total===null){ toast('Califica los 13 ítems para poder guardar'); return; }
+  const u = APP_DATA.equipo.find(x=>x.usuario===persona);
+  const d = new Date(fecha+'T12:00:00');
+  const anio = d.getFullYear(), mes = d.getMonth()+1, trimestre = 'T'+Math.ceil(mes/3);
+  const arr = getEval360();
+  arr.unshift({
+    id: uid(), persona_usuario: persona, persona_nombre: u?u.nombre:'',
+    tienda, cadena: tiendaSel.selectedOptions[0]?.dataset.cadena||'',
+    fecha, anio, mes, trimestre,
+    evaluador: currentUser.nombre,
+    itemScores: scores, subtotales: r.subtotales, total: r.total, clasificacion: r.clasificacion,
+    observaciones: document.getElementById('ev360Observaciones').value.trim(),
+    compromiso: document.getElementById('ev360Compromiso').value.trim(),
+  });
+  saveEval360(arr);
+  if(persona){
+    crearNotificacion(persona, `⭐ Nueva Evaluación 360° en ${tienda}: ${r.total.toFixed(1)}/100 (${r.clasificacion}).${document.getElementById('ev360Compromiso').value.trim() ? ' Compromiso: '+document.getElementById('ev360Compromiso').value.trim() : ''}`, 'eval360');
+    const sup = supervisorDePersona(u ? u.nombre : '');
+    const supU = sup ? APP_DATA.equipo.find(x=>mismaPersona(x.nombre, sup)) : null;
+    if(supU && supU.usuario !== currentUser.usuario) crearNotificacion(supU.usuario, `⭐ Se evaluó (360°) a ${nombreCorto(u.nombre)} en ${tienda}: ${r.total.toFixed(1)}/100.`, 'eval360');
+  }
+  document.getElementById('ev360Observaciones').value='';
+  document.getElementById('ev360Compromiso').value='';
+  document.querySelectorAll('#ev360Categorias input[type=radio]').forEach(inp=>inp.checked=false);
+  document.querySelectorAll('#ev360Categorias span.st').forEach(s=>s.textContent='☆');
+  actualizarEval360Resultado();
+  toast('Evaluación 360° guardada ✓');
+  renderEval360();
+}
+function calcularElegibilidadTrimestral(registros){
+  // agrupa por persona + año + trimestre
+  const grupos = {};
+  registros.forEach(r=>{
+    const k = r.persona_usuario+'|'+r.anio+'|'+r.trimestre;
+    (grupos[k] = grupos[k] || []).push(r);
+  });
+  return Object.entries(grupos).map(([k, regs])=>{
+    const [usuario, anio, trimestre] = k.split('|');
+    const nombre = regs[0].persona_nombre;
+    const nEval = regs.length;
+    const promedio = regs.reduce((s,r)=>s+r.total,0)/nEval;
+    const minMensual = Math.min(...regs.map(r=>r.total));
+    const elegible = nEval >= EVAL360_PARAMS.evalsPorTrimestre && promedio >= EVAL360_PARAMS.promedioMinimo && minMensual >= EVAL360_PARAMS.calMensualMinima;
+    // tie-break: promedio de subtotal Marca, luego Charola (para uso al ordenar la tabla)
+    const promMarca = regs.reduce((s,r)=>s+(r.subtotales.marca||0),0)/nEval;
+    const promCharola = regs.reduce((s,r)=>s+(r.subtotales.charola||0),0)/nEval;
+    return {usuario, nombre, anio, trimestre, nEval, promedio, minMensual, elegible, promMarca, promCharola};
+  }).sort((a,b)=> b.elegible-a.elegible || b.promedio-a.promedio || b.promMarca-a.promMarca || b.promCharola-a.promCharola);
+}
+function renderEval360(){
+  poblarEval360Selects();
+  actualizarEval360Resultado();
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getEval360().filter(a=> currentUser.perfil==='Embajador' ? a.persona_usuario===currentUser.usuario : visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre);
+  window._ev360BodyRows = arr;
+  window.render_ev360Body = function(){
+    const rows2 = window._ev360BodyRows || [];
+    const head = document.getElementById('ev360BodyHead');
+    if(head) head.innerHTML = `${colHead('ev360Body','persona_nombre','Demostradora',false)}${colHead('ev360Body','tienda','Tienda',false)}${colHead('ev360Body','fecha','Fecha',false)}${colHead('ev360Body','evaluador','Evaluó',false)}${colHead('ev360Body','total','Total',true)}${colHead('ev360Body','clasificacion','Clasificación',false)}<th>Detalle</th>`;
+    const filas = ordenarFilas('ev360Body', rows2, 'fecha');
+    document.getElementById('ev360Body').innerHTML = filas.map(a=>{
+      const det = EVAL360_CATEGORIAS.map(cat=>`${cat.label.split(' ')[0]}: ${a.subtotales[cat.key]!==null?a.subtotales[cat.key].toFixed(1):'—'}`).join(' · ');
+      return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${a.fecha}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.total.toFixed(1)}</td><td>${a.clasificacion}</td><td style="font-size:11px; color:var(--ink-soft);">${det}${a.observaciones?' — '+a.observaciones:''}</td></tr>`;
+    }).join('') || `<tr><td colspan="7" class="empty-state">Sin evaluaciones registradas todavía.</td></tr>`;
+  };
+  window.render_ev360Body();
+  const elegibilidad = calcularElegibilidadTrimestral(arr);
+  document.getElementById('ev360TrimBody').innerHTML = elegibilidad.map(e=>`
+    <tr>
+      <td>${nombreCorto(e.nombre)}</td>
+      <td>${e.trimestre} ${e.anio}</td>
+      <td class="num">${e.nEval} / ${EVAL360_PARAMS.evalsPorTrimestre}</td>
+      <td class="num">${e.promedio.toFixed(1)}</td>
+      <td class="num">${e.minMensual.toFixed(1)}</td>
+      <td>${e.elegible ? '<span style="color:var(--good); font-weight:700;">✅ Elegible</span>' : '<span style="color:var(--ink-soft);">No cumple aún</span>'}</td>
+    </tr>`).join('') || `<tr><td colspan="6" class="empty-state">Aún no hay evaluaciones suficientes para calcular elegibilidad trimestral.</td></tr>`;
+}
+
+function poblarFiltrosEvaluaciones(){
+  const perSel = document.getElementById('evaPersona');
+  if(perSel && perSel.options.length<=1){
+    equipoVisibleParaMi().slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre; perSel.appendChild(o);
+    });
+  }
+  const cadenaSel = document.getElementById('evaCadena');
+  if(cadenaSel && cadenaSel.options.length<=1){
+    [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
+  }
+  const regionSel = document.getElementById('evaRegion');
+  if(regionSel && regionSel.options.length<=1){
+    [...new Set(APP_DATA.equipo.map(u=>u.region).filter(Boolean))].sort().forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; regionSel.appendChild(o); });
+  }
+  const supSel = document.getElementById('evaSupervisor');
+  if(supSel && supSel.options.length<=1){
+    nombresSupervisorUnicos().forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; supSel.appendChild(o); });
+  }
+  registrarFiltroMesesCompletos('eva','evaMesDdPanel','evaMesDdBtn','evaDesde','evaHasta',renderEvaluaciones);
+}
+function evaluacionesFiltrosActivos(){
+  return {
+    persona: (document.getElementById('evaPersona')||{}).value || '',
+    cadena: (document.getElementById('evaCadena')||{}).value || '',
+    region: (document.getElementById('evaRegion')||{}).value || '',
+    supervisor: (document.getElementById('evaSupervisor')||{}).value || '',
+    desde: (document.getElementById('evaDesde')||{}).value || '',
+    hasta: (document.getElementById('evaHasta')||{}).value || '',
+  };
+}
+function aplicarFiltrosEvaluaciones(arr, campoUsuario, campoFecha){
+  const f = evaluacionesFiltrosActivos();
+  return arr.filter(a=>{
+    if(f.persona && a[campoUsuario]!==f.persona) return false;
+    if(f.cadena && a.tienda){ const st = APP_DATA.stores.find(s=>s.tienda===a.tienda); if(!st || st.cadena!==f.cadena) return false; }
+    if(f.region){ const u = APP_DATA.equipo.find(x=>x.usuario===a[campoUsuario]); if(!u || u.region!==f.region) return false; }
+    if(f.supervisor && supervisorDePersona(a.persona_nombre||a.persona)!==f.supervisor) return false;
+    const fecha = fechaSoloDia(a[campoFecha]);
+    if(f.desde && fecha && fecha<f.desde) return false;
+    if(f.hasta && fecha && fecha>f.hasta) return false;
+    return true;
+  });
+}
+function renderEvaluaciones(){
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const intro = document.getElementById('evaluacionesIntro');
+  if(intro) intro.textContent = esEmbajador
+    ? 'Aquí puedes ver las evaluaciones que te han hecho — qué se evaluó y los comentarios — para tenerlo presente. Esta vista es solo de consulta.'
+    : 'Evaluación 360°, Auditoría/supervisión y Onboarding, todo en un solo lugar. Filtra y exporta a Excel o PDF con los mismos filtros de siempre.';
+
+  const filtrosBar = document.getElementById('evaFiltrosBar');
+  if(filtrosBar) filtrosBar.classList.toggle('hidden', esEmbajador);
+  if(!esEmbajador) poblarFiltrosEvaluaciones();
+  const zonaEva = document.getElementById('reinicioZonaEvaluaciones');
+  if(zonaEva) zonaEva.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
+
+  let arr360 = getEval360().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
+  let arrAud = getAuditorias().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
+  let arrOnb = getCapturas().filter(c=>c.tipo==='onboarding' && visibleUsuarios.has(c.usuario));
+  if(!esEmbajador){
+    arr360 = aplicarFiltrosEvaluaciones(arr360, 'persona_usuario', 'fecha');
+    arrAud = aplicarFiltrosEvaluaciones(arrAud, 'persona_usuario', 'fecha');
+    arrOnb = aplicarFiltrosEvaluaciones(arrOnb, 'usuario', 'fecha_registro');
+  }
+  window._evaExport = { arr360, arrAud, arrOnb };
+
+  const box360 = document.getElementById('evalu360Body');
+  if(box360) box360.innerHTML = arr360.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>{
+    const det = EVAL360_CATEGORIAS.map(cat=>`${cat.label.split(' ')[0]}: ${a.subtotales[cat.key]!==null?a.subtotales[cat.key].toFixed(1):'—'}`).join(' · ');
+    return `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${a.fecha}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.total.toFixed(1)}</td><td>${a.clasificacion}</td><td style="font-size:11px; color:var(--ink-soft);">${det}${a.observaciones?' — Obs: '+a.observaciones:''}${a.compromiso?' — Compromiso: '+a.compromiso:''}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty-state">Sin evaluaciones 360° todavía.</td></tr>`;
+
+  const boxAud = document.getElementById('evaluAudBody');
+  if(boxAud) boxAud.innerHTML = arrAud.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(a=>
+    `<tr><td>${nombreCorto(a.persona_nombre)}</td><td>${a.tienda}</td><td>${fechaSoloDia(a.fecha)}</td><td>${nombreCorto(a.evaluador)}</td><td class="num" style="font-weight:700;">${a.promedio}</td><td style="font-size:11px; color:var(--ink-soft);">${a.scores.map(s=>s.dimension+': '+s.score).join(' · ')}${a.comentarios?' — '+a.comentarios:''}</td></tr>`
+  ).join('') || `<tr><td colspan="6" class="empty-state">Sin evaluaciones de supervisión todavía.</td></tr>`;
+
+  const onbWrap = document.getElementById('evaluOnboardingWrap');
+  if(onbWrap) onbWrap.classList.toggle('hidden', esEmbajador);
+  if(!esEmbajador){
+    const boxOnb = document.getElementById('evaluOnboardingBody');
+    if(boxOnb) boxOnb.innerHTML = arrOnb.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).map(c=>{
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      return `<tr><td>${c.persona_nueva||'—'}</td><td>${c.tienda||''}</td><td>${fechaSoloDia(c.fecha_registro)}</td><td>${nombreCorto(c.persona||'')}</td><td class="num">${ok}/${all.length}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" class="empty-state">Sin onboarding registrado todavía.</td></tr>`;
+  }
+  renderEvaluacionesInsights(arr360, arrAud, esEmbajador);
+}
+function renderEvaluacionesInsights(arr360, arrAud, esEmbajador){
+  const box = document.getElementById('evaInsights');
+  if(!box) return;
+  if(!arr360.length && !arrAud.length){ box.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">Sin evaluaciones en este filtro.</p>`; return; }
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  if(arr360.length){
+    const prom360 = arr360.reduce((a,x)=>a+x.total,0)/arr360.length;
+    const bajos = arr360.filter(x=>x.total<80);
+    html += `<p style="font-size:12.5px; margin:0 0 6px;">⭐ Promedio de Evaluación 360°: <b>${prom360.toFixed(1)}/100</b> sobre ${arr360.length} evaluación(es).</p>`;
+    if(bajos.length && !esEmbajador){
+      const porPersona = {};
+      bajos.forEach(x=>{ porPersona[x.persona_nombre] = (porPersona[x.persona_nombre]||0)+1; });
+      const peor = Object.entries(porPersona).sort((a,b)=>b[1]-a[1])[0];
+      html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${bajos.length} evaluación(es) por debajo de 80/100${peor?`, con más casos en <b>${nombreCorto(peor[0])}</b> (${peor[1]})`:''} — revisar plan de acción/compromiso en cada una.</p>`;
+    }
+  }
+  if(arrAud.length){
+    const promAud = arrAud.reduce((a,x)=>a+(x.promedio||0),0)/arrAud.length;
+    html += `<p style="font-size:12.5px; margin:0;">🕵️ Promedio de Auditoría/supervisión: <b>${promAud.toFixed(1)}</b> sobre ${arrAud.length} evaluación(es).</p>`;
+  }
+  const puntos = [
+    ...arr360.map(x=>({tienda:x.tienda, score:x.total})),
+    ...arrAud.map(x=>({tienda:x.tienda, score:x.promedio})),
+  ].filter(p=>p.tienda && p.score!=null);
+  const porCadenaEva = {};
+  puntos.forEach(p=>{
+    const st = APP_DATA.stores.find(s=>s.tienda===p.tienda);
+    if(!st) return;
+    (porCadenaEva[st.cadena] = porCadenaEva[st.cadena] || []).push(p.score);
+  });
+  const cadenasEva = Object.keys(porCadenaEva).sort();
+  if(cadenasEva.length>1){
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">🔗 <b>Por cadena:</b> ${cadenasEva.map(c=>{ const arr=porCadenaEva[c]; const prom=arr.reduce((a,v)=>a+v,0)/arr.length; return `${c} ${prom.toFixed(1)}`; }).join(' · ')}.</p>`;
+  }
+  const puntosTop = puntos.filter(p=>{ const st = APP_DATA.stores.find(s=>s.tienda===p.tienda); return st && esClusterTop(st.cluster); });
+  if(puntosTop.length){
+    const promTop = puntosTop.reduce((a,p)=>a+p.score,0)/puntosTop.length;
+    html += `<p style="font-size:12.5px; margin:6px 0 0;">⭐ <b>Tiendas TOP (cluster Diamante):</b> promedio ${promTop.toFixed(1)} sobre ${puntosTop.length} evaluación(es) — son las que más representan, priorízalas primero.</p>`;
+  }
+  html += `</div>`;
+  box.innerHTML = html;
+}
+async function exportarEvaluacionesExcel(){
+  await cargarXLSX();
+  if(typeof XLSX === 'undefined'){ toast('No se pudo cargar el exportador de Excel (sin conexión).'); return; }
+  const d = window._evaExport || {arr360:[],arrAud:[],arrOnb:[]};
+  if(!d.arr360.length && !d.arrAud.length && !d.arrOnb.length){ toast('No hay evaluaciones para exportar con estos filtros.'); return; }
+  const wb = XLSX.utils.book_new();
+  if(d.arr360.length){
+    const rows = d.arr360.map(a=>({
+      'Persona': a.persona_nombre, 'Tienda': a.tienda, 'Fecha': a.fecha, 'Evaluó': a.evaluador,
+      'Total': a.total, 'Clasificación': a.clasificacion,
+      ...Object.fromEntries(EVAL360_CATEGORIAS.map(cat=>[cat.label, a.subtotales[cat.key]!=null?a.subtotales[cat.key].toFixed(1):''])),
+      'Observaciones': a.observaciones||'', 'Compromiso': a.compromiso||'',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Eval 360');
+  }
+  if(d.arrAud.length){
+    const rows = d.arrAud.map(a=>({
+      'Persona': a.persona_nombre, 'Tienda': a.tienda, 'Fecha': fechaSoloDia(a.fecha), 'Evaluó': a.evaluador,
+      'Promedio': a.promedio, 'Detalle dimensiones': a.scores.map(s=>s.dimension+': '+s.score).join(' | '), 'Comentarios': a.comentarios||'',
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Auditoria-Supervision');
+  }
+  if(d.arrOnb.length){
+    const rows = d.arrOnb.map(c=>{
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      return { 'Persona nueva': c.persona_nueva||'', 'Tienda': c.tienda||'', 'Fecha': fechaSoloDia(c.fecha_registro), 'Registró': c.persona||'', 'Cumplimiento': `${ok}/${all.length}` };
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Onboarding');
+  }
+  XLSX.writeFile(wb, `evaluaciones_${todayISO()}.xlsx`);
+  toast('Excel exportado ✓');
+}
+async function exportarEvaluacionesPDF(){
+  await cargarJsPDF();
+  if(typeof window.jspdf === 'undefined'){ toast('No se pudo cargar el exportador de PDF (sin conexión).'); return; }
+  const d = window._evaExport || {arr360:[],arrAud:[],arrOnb:[]};
+  if(!d.arr360.length && !d.arrAud.length && !d.arrOnb.length){ toast('No hay evaluaciones para exportar con estos filtros.'); return; }
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','pt','letter');
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  let y = 50;
+  const nuevaPagina = () => { pdf.addPage(); y = 50; };
+  const linea = (texto, opts) => {
+    opts = opts || {};
+    pdf.setFont('helvetica', opts.bold?'bold':'normal');
+    pdf.setFontSize(opts.size||10);
+    const wrapped = pdf.splitTextToSize(texto, pageW-80);
+    wrapped.forEach(l=>{
+      if(y > pageH-40) nuevaPagina();
+      pdf.text(l, 40, y);
+      y += (opts.size||10) * 1.35;
+    });
+  };
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(16);
+  pdf.text('DELICO . ODV — Evaluaciones', 40, y); y += 24;
+  const f = evaluacionesFiltrosActivos();
+  const filtrosTxt = ['persona','cadena','region','supervisor','desde','hasta'].map(k=>f[k]?`${k}: ${f[k]}`:null).filter(Boolean).join(' · ');
+  if(filtrosTxt) linea(`Filtros: ${filtrosTxt}`, {size:9});
+  linea(`Generado: ${new Date().toLocaleString('es-MX')}`, {size:9}); y += 10;
+
+  if(d.arr360.length){
+    linea('⭐ Evaluación 360°', {bold:true, size:13}); y += 4;
+    d.arr360.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).forEach(a=>{
+      const det = EVAL360_CATEGORIAS.map(cat=>`${cat.label.split(' ')[0]}: ${a.subtotales[cat.key]!=null?a.subtotales[cat.key].toFixed(1):'—'}`).join(' · ');
+      linea(`${a.persona_nombre} — ${a.tienda} — ${a.fecha} — evaluó: ${a.evaluador} — Total: ${a.total.toFixed(1)} (${a.clasificacion})`, {bold:true});
+      linea(det, {size:9});
+      if(a.observaciones) linea(`Obs: ${a.observaciones}`, {size:9});
+      if(a.compromiso) linea(`Compromiso: ${a.compromiso}`, {size:9});
+      y += 6;
+    });
+    y += 10;
+  }
+  if(d.arrAud.length){
+    linea('🕵️ Auditoría / Registrar supervisión', {bold:true, size:13}); y += 4;
+    d.arrAud.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).forEach(a=>{
+      linea(`${a.persona_nombre} — ${a.tienda} — ${fechaSoloDia(a.fecha)} — evaluó: ${a.evaluador} — Promedio: ${a.promedio}`, {bold:true});
+      linea(a.scores.map(s=>s.dimension+': '+s.score).join(' · '), {size:9});
+      if(a.comentarios) linea(`Comentarios: ${a.comentarios}`, {size:9});
+      y += 6;
+    });
+    y += 10;
+  }
+  if(d.arrOnb.length){
+    linea('🧭 Onboarding', {bold:true, size:13}); y += 4;
+    d.arrOnb.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).forEach(c=>{
+      const all = [...(c.preparacion||[]), ...(c.camara||[]), ...(c.degustacion_checklist||[]), ...(c.mercadeo||[])];
+      const ok = all.filter(x=>x.cumple).length;
+      linea(`${c.persona_nueva||'—'} — ${c.tienda||''} — ${fechaSoloDia(c.fecha_registro)} — registró: ${c.persona||''} — Cumplimiento: ${ok}/${all.length}`, {bold:true});
+      y += 4;
+    });
+  }
+  pdf.save(`evaluaciones_${todayISO()}.pdf`);
+  toast('PDF generado ✓');
+}
+/* ---------- INFORMACIÓN PARA TIENDA (solo lectura, no confidencial) ---------- */
+/* ---------- BI REAL: cruce de cuotas, distribución y venta cero (fuente: 2.CUOTAS / 3.PIPELINE ODV / 2.SELL OUT) ---------- */
+/* ---------- Ruta de septiembre (Asignación tiendas septiembre.xlsx): permite que una tienda tenga 2+ personas asignadas ---------- */
+function personasDeTienda(cadena, numTienda){
+  return (APP_DATA.asignacion_rutas_sep||[]).filter(a => a.cadena===cadena && a.num_tienda===numTienda);
+}
+function tiendasDeRutaSeptiembre(usuario){
+  return (APP_DATA.asignacion_rutas_sep||[]).filter(a => a.usuario===usuario);
+}
+function storesScopeParaMi(){
+  if(currentUser.perfil === 'Embajador'){
+    const extra = tiendasExtraAprobadasParaMi();
+    const deSector = APP_DATA.stores.filter(s => s.sector === currentUser.usuario);
+    const deRutaSep = tiendasDeRutaSeptiembre(currentUser.usuario).map(a=>
+      APP_DATA.stores.find(s=>s.cadena===a.cadena && s.num_tienda===a.num_tienda)
+    ).filter(Boolean);
+    const vistas = new Map();
+    [...deSector, ...deRutaSep].forEach(s=> vistas.set(s.cadena+'|'+s.num_tienda, s));
+    APP_DATA.stores.filter(s=>extra.includes(s.tienda)).forEach(s=> vistas.set(s.cadena+'|'+s.num_tienda, s));
+    return [...vistas.values()];
+  }
+  return APP_DATA.stores;
+}
+function distribucionDeTienda(cadena, numTienda){
+  return (APP_DATA.distribucion_por_tienda||[]).find(d => d.cadena===cadena && d.num_tienda===numTienda);
+}
+function alertasVentaCeroDeTienda(cadena, numTienda){
+  return (APP_DATA.alertas_venta_cero||[]).filter(a => a.cadena===cadena && a.num_tienda===numTienda);
+}
+function cumplimientoSemanalDeTienda(cadena, numTienda){
+  return (APP_DATA.cumplimiento_semanal||[]).filter(c => c.cadena===cadena && c.num_tienda===numTienda).sort((a,b)=>a.semana-b.semana);
+}
+function semanasConDatos(){
+  /* Solo semanas donde ya hay venta real capturada en al menos una tienda (evita mostrar 0% en semanas futuras sin datos aún) */
+  const set = new Set();
+  (APP_DATA.cumplimiento_semanal||[]).forEach(c=>{ if(c.real_pesos>0) set.add(c.semana); });
+  return [...set].sort((a,b)=>a-b);
+}
+function resumenDistribucionGlobal(storesScope){
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const rows = (APP_DATA.distribucion_por_tienda||[]).filter(d => keys.has(d.cadena+'|'+d.num_tienda));
+  const objetivos = rows.reduce((a,r)=>a+r.objetivos,0);
+  const conVenta = rows.reduce((a,r)=>a+r.con_venta,0);
+  return {rows, objetivos, conVenta, pct: objetivos ? Math.round(conVenta/objetivos*1000)/10 : null};
+}
+function resumenCumplimientoGlobal(storesScope, semana){
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const rows = (APP_DATA.cumplimiento_semanal||[]).filter(c => keys.has(c.cadena+'|'+c.num_tienda) && (!semana || c.semana===semana));
+  const cuotaPesos = rows.reduce((a,r)=>a+r.cuota_pesos,0);
+  const realPesos = rows.reduce((a,r)=>a+r.real_pesos,0);
+  const cuotaUni = rows.reduce((a,r)=>a+r.cuota_uni,0);
+  const realUni = rows.reduce((a,r)=>a+r.real_uni,0);
+  return {rows, cuotaPesos, realPesos, cuotaUni, realUni,
+    pctPesos: cuotaPesos ? Math.round(realPesos/cuotaPesos*1000)/10 : null,
+    pctUni: cuotaUni ? Math.round(realUni/cuotaUni*1000)/10 : null};
+}
+
+/* ---------- BONO "Valor al Esfuerzo" — Sell Out 60% + Distribución 40%, vs. Escalón Bono (cuota alta) ---------- */
+const BONO_IMPACTO_SELLOUT = 900;   // pesos posibles al mes por Sell Out (60% de $1,500)
+const BONO_IMPACTO_DISTRIB = 600;   // pesos posibles al mes por Distribución (40% de $1,500)
+function ratingBonoSellOut(pct){
+  if(pct === null || pct === undefined) return 0;
+  if(pct > 120) return 1.20;
+  if(pct >= 101) return 1.10;
+  if(pct >= 95) return 1.00;
+  if(pct >= 90) return 0.50;
+  return 0.00;
+}
+function ratingBonoDistribucion(pct){
+  if(pct === null || pct === undefined) return 0;
+  if(pct >= 100) return 1.00;
+  if(pct >= 95) return 0.80;
+  if(pct >= 90) return 0.50;
+  return 0.00;
+}
+function semanasCuotaMes(mesLabel){
+  // "Septiembre" -> semanas_cuota_septiembre_2026, "Agosto" -> semanas_cuota_agosto_2026, etc.
+  const meta = APP_DATA.bi_meta || {};
+  const key = 'semanas_cuota_' + (mesLabel||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') + '_2026';
+  return meta[key] || [];
+}
+function mesesConEscalonDisponibles(){
+  return (APP_DATA.meses_disponibles||[]).filter(m => semanasCuotaMes(m).length>0);
+}
+const MES_NUM_BONO = {'Enero':1,'Febrero':2,'Marzo':3,'Abril':4,'Mayo':5,'Junio':6,'Julio':7,'Agosto':8,'Septiembre':9,'Octubre':10,'Noviembre':11,'Diciembre':12};
+function mesYaFinalizado(mesLabel){
+  const n = MES_NUM_BONO[mesLabel];
+  if(!n) return false;
+  const hoy = new Date();
+  return (hoy.getFullYear() > 2026) || (hoy.getFullYear()===2026 && n < (hoy.getMonth()+1));
+}
+function calcularBono(storesScope, mesLabel){
+  const semanas = semanasCuotaMes(mesLabel);
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const rowsMes = (APP_DATA.cumplimiento_semanal||[]).filter(c => keys.has(c.cadena+'|'+c.num_tienda) && semanas.includes(c.semana));
+  // El Bono "Valor al Esfuerzo" se calcula normalmente contra el Escalón (una meta más alta que la cuota base).
+  // Pero si a ese mes específico todavía no se le cargó el escalón (ej. porque el plan de bono arrancó después),
+  // en vez de decir "sin datos" cuando la venta real de ese mismo periodo SÍ existe, usamos la cuota base como
+  // referencia de respaldo — así siempre se filtra exactamente el mismo periodo en el que se dio la venta.
+  let rows = rowsMes.filter(c=>c.escalon_pesos!=null);
+  let usoCuotaComoFallback = false;
+  if(!rows.length){
+    rows = rowsMes.filter(c=>c.cuota_pesos!=null);
+    usoCuotaComoFallback = rows.length>0;
+  }
+  const metaPesos = rows.reduce((a,r)=>a+((usoCuotaComoFallback ? r.cuota_pesos : r.escalon_pesos)||0),0);
+  const realPesos = rows.reduce((a,r)=>a+(r.real_pesos||0),0);
+  const pctSellOut = metaPesos ? Math.round(realPesos/metaPesos*1000)/10 : null;
+  const distrib = resumenDistribucionGlobal(storesScope);
+  const pctDistrib = distrib.pct;
+  const ratingSO = ratingBonoSellOut(pctSellOut);
+  const ratingDist = ratingBonoDistribucion(pctDistrib);
+  const bonoSellOut = Math.round(ratingSO * BONO_IMPACTO_SELLOUT);
+  const bonoDistrib = Math.round(ratingDist * BONO_IMPACTO_DISTRIB);
+  const bonoTotal = bonoSellOut + bonoDistrib;
+  const hayVentaSemana = rows.some(r=>r.real_pesos>0);
+  const mesFinalizado = mesYaFinalizado(mesLabel);
+  return {semanas, escalonPesos:metaPesos, realPesos, pctSellOut, pctDistrib, ratingSO, ratingDist, bonoSellOut, bonoDistrib, bonoTotal, rows, hayVentaSemana, mesFinalizado, mesLabel, usoCuotaComoFallback};
+}
+function explicacionBonoFinalizado(pct, etiqueta, minimo){
+  if(pct===null || pct===undefined) return `<div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">Mes finalizado — sin datos de ${etiqueta} para calcular el resultado.</div>`;
+  if(pct >= minimo) return '';
+  return `<div style="font-size:12px; color:var(--bad); margin-top:6px; background:var(--bad-soft); border-radius:8px; padding:6px 10px;">Mes finalizado — no se alcanzó el bono de ${etiqueta}: tu resultado fue <b>${pct}%</b>, el mínimo para bono era <b>${minimo}%</b>.</div>`;
+}
+function tarjetaBono(nombre, r){
+  const colorSO = r.ratingSO>=1 ? 'var(--good)' : (r.ratingSO>0 ? 'var(--warn,#c98a1b)' : 'var(--bad)');
+  const colorDist = r.ratingDist>=1 ? 'var(--good)' : (r.ratingDist>0 ? 'var(--warn,#c98a1b)' : 'var(--bad)');
+  return `<div class="card" style="margin-bottom:12px;">
+    ${nombre ? `<div class="lbl" style="font-size:12.5px; font-weight:700; color:var(--brand-dark); margin-bottom:8px;">${nombre}</div>` : ''}
+    ${r.mesFinalizado ? `<div class="pill" style="background:var(--brand-soft); color:var(--brand-dark); margin-bottom:8px;">Mes finalizado</div>` : ''}
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+      <div class="kpi" style="flex:1; min-width:120px;"><div class="label">Sell Out (60%)</div><div class="num" style="color:${colorSO};">${r.pctSellOut==null?'—':r.pctSellOut+'%'}</div><div style="font-size:11px; color:var(--ink-soft);">rating ${r.ratingSO.toFixed(2)} → $${r.bonoSellOut}</div>
+        ${r.mesFinalizado ? explicacionBonoFinalizado(r.pctSellOut, 'Sell Out', 90) : ''}
+      </div>
+      <div class="kpi" style="flex:1; min-width:120px;"><div class="label">Distribución (40%)</div><div class="num" style="color:${colorDist};">${r.pctDistrib==null?'—':r.pctDistrib+'%'}</div><div style="font-size:11px; color:var(--ink-soft);">rating ${r.ratingDist.toFixed(2)} → $${r.bonoDistrib}</div>
+        ${r.mesFinalizado ? explicacionBonoFinalizado(r.pctDistrib, 'Distribución', 90) : ''}
+      </div>
+    </div>
+    <div style="background:var(--surface-2); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:12.5px; font-weight:700; color:var(--brand-dark);">Bono estimado del mes</span>
+      <span style="font-size:20px; font-weight:800; color:var(--brand-dark);">$${r.bonoTotal.toLocaleString('es-MX')}</span>
+    </div>
+    ${!r.hayVentaSemana && !r.mesFinalizado ? `<p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">Aún no hay venta real cargada para este mes — el % de Sell Out se actualizará solo cuando se suba el Sell Out correspondiente.</p>` : ''}
+    ${r.usoCuotaComoFallback ? `<p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">ℹ️ A ${r.mesLabel} todavía no se le cargó el Escalón de Bono, así que el % de Sell Out de arriba se calculó contra la <b>cuota base</b> del mismo periodo (mismas semanas en las que se dio esa venta) — en cuanto se cargue el escalón real, este % se ajusta.</p>` : ''}
+  </div>`;
+}
+function renderBonoTab(){
+  const box = document.getElementById('bonoTabBody');
+  if(!box) return;
+  const esPropio = currentUser.perfil === 'Embajador';
+  const embWrap = document.getElementById('bonoTabEmbWrap');
+  if(embWrap) embWrap.style.display = esPropio ? 'none' : '';
+  const embSel = document.getElementById('bonoTabEmbSel');
+  if(embSel && !embSel.options.length){
+    embSel.innerHTML = equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>`<option value="${u.usuario}">${nombreCorto(u.nombre)}</option>`).join('');
+  }
+  const meses = mesesConEscalonDisponibles();
+  const mesSel = document.getElementById('bonoTabMesSel');
+  if(mesSel && !mesSel.options.length){
+    const conDatoB = mesesConDatoReal().filter(m=>meses.includes(m)); const mesDefault = conDatoB[conDatoB.length-1] || meses[meses.length-1] || (APP_DATA.meses_disponibles||[])[0];
+    mesSel.innerHTML = meses.map(m=>`<option value="${m}" ${m===mesDefault?'selected':''}>${m} 2026</option>`).join('');
+  }
+  const mes = mesSel ? mesSel.value : (meses.slice(-1)[0]);
+  const seleccionados = esPropio ? [currentUser.usuario] : (embSel ? [...embSel.selectedOptions].map(o=>o.value) : []);
+  if(!mes){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">Todavía no hay una meta de "Escalón Bono" cargada para calcular el bono.</p>`; const insWrap=document.getElementById('bonoInsights'); if(insWrap) insWrap.innerHTML=''; return; }
+
+  // vista de equipo (o de las personas elegidas en el multi-select): una tarjeta por embajadora
+  const equipoScope = (seleccionados.length ? equipoVisibleParaMi().filter(u=>seleccionados.includes(u.usuario)) : equipoVisibleParaMi().filter(u=>u.perfil==='Embajador'))
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if(!equipoScope.length){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">No hay embajadoras en tu equipo.</p>`; return; }
+  const resultados = equipoScope.map(u=>{
+    const scope = APP_DATA.stores.filter(s=>s.sector===u.usuario);
+    if(!scope.length) return null;
+    const r = calcularBono(scope, mes);
+    return {u, r};
+  }).filter(Boolean);
+  box.innerHTML = resultados.map(({u,r})=>tarjetaBono(nombreCorto(u.nombre), r)).join('')
+    + (esPropio || seleccionados.length===1 ? `<p style="font-size:11px; color:var(--ink-soft);">Rango Sell Out: &gt;120%→1.20 · 101-120%→1.10 · 95-100%→1.00 · 90-94.9%→0.50 · &lt;90%→0.00. Rango Distribución: 100%→1.00 · 95-99.9%→0.80 · 90-94.9%→0.50 · &lt;90%→0.00.</p>` : '');
+  renderBonoInsights(resultados, mes);
+}
+function renderBonoInsights(resultados, mes){
+  const box = document.getElementById('bonoInsights');
+  if(!box) return;
+  if(!resultados.length){ box.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">Sin datos para generar insights.</p>`; return; }
+  const totalBono = resultados.reduce((a,x)=>a+x.r.bonoTotal,0);
+  const conBonoCompleto = resultados.filter(x=>x.r.bonoTotal>=1450).length;
+  const sinBono = resultados.filter(x=>x.r.bonoTotal===0);
+  const ordenadosPeor = [...resultados].sort((a,b)=>a.r.bonoTotal-b.r.bonoTotal);
+  const ordenadosMejor = [...resultados].sort((a,b)=>b.r.bonoTotal-a.r.bonoTotal);
+  const peorSO = ordenadosPeor.filter(x=>x.r.pctSellOut!=null && x.r.pctSellOut<90);
+  const peorDist = ordenadosPeor.filter(x=>x.r.pctDistrib!=null && x.r.pctDistrib<90);
+  let html = `<div class="card" style="border-left:4px solid var(--brand-dark);">`;
+  html += `<p style="font-size:12.5px; margin:0 0 6px;">📊 En <b>${mes} 2026</b>, el equipo mostrado (${resultados.length} persona(s)) acumula <b>$${totalBono.toLocaleString('es-MX')}</b> de bono estimado; <b>${conBonoCompleto}</b> alcanzan el bono máximo y <b>${sinBono.length}</b> se quedan en $0.</p>`;
+  if(ordenadosMejor[0]) html += `<p style="font-size:12.5px; margin:0 0 6px;">🏆 Mejor resultado: <b>${nombreCorto(ordenadosMejor[0].u.nombre)}</b> con $${ordenadosMejor[0].r.bonoTotal.toLocaleString('es-MX')}.</p>`;
+  if(peorSO.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${peorSO.length} persona(s) están por debajo del 90% en Sell Out (mínimo para bono) — la más urgente: <b>${nombreCorto(peorSO[0].u.nombre)}</b> (${peorSO[0].r.pctSellOut}%). Hay que revisar por qué desde ahora, no hasta que cierre el mes.</p>`;
+  if(peorDist.length) html += `<p style="font-size:12.5px; margin:0 0 6px; color:var(--bad);">⚠️ ${peorDist.length} persona(s) están por debajo del 90% en Distribución — la más urgente: <b>${nombreCorto(peorDist[0].u.nombre)}</b> (${peorDist[0].r.pctDistrib}%). Esto suele ser lo más fácil y rápido de corregir en campo (exhibición/anaquel) antes de que cierre el mes.</p>`;
+  if(!peorSO.length && !peorDist.length) html += `<p style="font-size:12.5px; margin:0; color:var(--good);">✅ Nadie está por debajo del mínimo de 90% en Sell Out ni Distribución en este corte.</p>`;
+  html += `</div>`;
+  box.innerHTML = html;
+}
+function supervisorDeTienda(store){
+  if(!store || !store.sector) return '';
+  const u = APP_DATA.equipo.find(x=>x.usuario===store.sector);
+  return u ? supervisorDePersona(u.nombre) : '';
+}
+function embajadorDeTienda(store){
+  if(!store || !store.sector) return '';
+  const u = APP_DATA.equipo.find(x=>x.usuario===store.sector);
+  return u ? u.nombre : '';
+}
+
+/* ---------- ANÁLISIS DE CUMPLIMIENTO (Objetivos): por cadena / familia / cluster / tienda, ordenable y exportable ---------- */
+function storesScopeObjetivos(){
+  let scope = storesScopeParaMi();
+  // Un(a) supervisor(a) solo debe ver la información de su propio equipo en Objetivos —
+  // igual que Embajador ya solo ve la suya. Coordinador/Admin/Gerente siguen viendo todo.
+  if(currentUser.perfil === 'Supervisor') scope = scope.filter(s => mismaPersona(supervisorDeTienda(s), currentUser.nombre));
+  const sup = (document.getElementById('objSupervisor')||{}).value;
+  const emb = (document.getElementById('objEmbajador')||{}).value;
+  if(objFiltroCadenas.size) scope = scope.filter(s=>objFiltroCadenas.has(s.cadena));
+  if(sup) scope = scope.filter(s=> mismaPersona(supervisorDeTienda(s), sup));
+  if(emb){
+    const rutaKeys = new Set(tiendasDeRutaSeptiembre(emb).map(a=>a.cadena+'|'+a.num_tienda));
+    scope = scope.filter(s=> s.sector===emb || rutaKeys.has(s.cadena+'|'+s.num_tienda));
+  }
+  if(objFiltroTiendas.size) scope = scope.filter(s=> objFiltroTiendas.has(s.tienda));
+  return scope;
+}
+function nombresSupervisorUnicos(){
+  const vistos = new Map(); // nombre normalizado -> etiqueta elegida (forma canónica, misma que usa supervisorDePersona)
+  APP_DATA.plantilla.map(p=>p.supervisor).filter(Boolean).forEach(s=>{
+    const n = normNombre(s).split(/\s+/).filter(Boolean).sort().join(' ');
+    if(!vistos.has(n)) vistos.set(n, nombreCanonicoPersona(s));
+  });
+  return [...vistos.values()].sort();
+}
+function poblarFiltrosObjetivos(){
+  poblarSelectFiltro('objSupervisor', nombresSupervisorUnicos());
+  const embSel = document.getElementById('objEmbajador');
+  if(embSel && embSel.options.length<=1){
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
+    });
+  }
+  poblarObjTiendaMulti();
+  renderObjMesChips();
+  renderObjTiendaDropdown();
+  renderObjCadenaChips();
+  renderObjFamiliaChips();
+  renderObjCodigoDropdown();
+}
+function visitasPorTienda(storesScope){
+  const hoy = new Date();
+  const hoyISO = todayISO();
+  const inicioMes = isoDate(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  const semanasTranscurridas = Math.max(1, Math.ceil(hoy.getDate()/7));
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const capturas = getCapturas().filter(c=>c.fecha_registro && fechaLocal(c.fecha_registro)>=inicioMes && fechaLocal(c.fecha_registro)<=hoyISO && visibleUsuarios.has(c.usuario));
+  const diasConCaptura = new Map(); // cadena|tienda -> Set(dias)
+  capturas.forEach(c=>{
+    if(!c.tienda) return;
+    const key = (c.cadena||'')+'|'+c.tienda;
+    if(!diasConCaptura.has(key)) diasConCaptura.set(key, new Set());
+    diasConCaptura.get(key).add(fechaLocal(c.fecha_registro));
+  });
+  const map = new Map();
+  storesScope.forEach(s=>{
+    const key = s.cadena+'|'+s.num_tienda;
+    const diasKey = s.cadena+'|'+s.tienda;
+    const objetivo = Math.round((s.visitas_requeridas_semana||0) * semanasTranscurridas);
+    const reales = diasConCaptura.has(diasKey) ? diasConCaptura.get(diasKey).size : 0;
+    map.set(key, {objetivo, reales});
+  });
+  return map;
+}
+function skusEnScope(storesScope){
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  let rows = (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda));
+  if(objFiltroFamilias.size) rows = rows.filter(r=>objFiltroFamilias.has(r.familia));
+  if(objFiltroCodigos.size) rows = rows.filter(r=>objFiltroCodigos.has(r.clave));
+  return rows;
+}
+function combinacionesEnScope(storesScope){
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  let rows = (APP_DATA.combinaciones||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda));
+  if(objFiltroFamilias.size) rows = rows.filter(r=>objFiltroFamilias.has(r.familia));
+  if(objFiltroCodigos.size) rows = rows.filter(r=>objFiltroCodigos.has(r.clave));
+  return rows;
+}
+function agregarPorDimension(storesScope, dimFn){
+  const skus = skusEnScope(storesScope);
+  const combs = combinacionesEnScope(storesScope).filter(c=>c.objetivo===1);
+  const visitas = visitasPorTienda(storesScope);
+  const storeByKey = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const grupos = new Map();
+  const getGrupo = (dim) => {
+    if(!grupos.has(dim)) grupos.set(dim, {dim, real_uni:0, real_pesos:0, cuota_uni:0, cuota_pesos:0, objetivo_comb:0, con_venta_comb:0, visitas_obj:0, visitas_real:0, storesVistas:new Set()});
+    return grupos.get(dim);
+  };
+  skus.forEach(r=>{
+    const dim = dimFn(r, storeByKey.get(r.cadena+'|'+r.num_tienda));
+    if(dim==null) return;
+    const g = getGrupo(dim);
+    g.real_uni += r.real_uni; g.real_pesos += r.real_pesos;
+    g.cuota_uni += r.cuota_uni; g.cuota_pesos += r.cuota_pesos;
+  });
+  combs.forEach(r=>{
+    const dim = dimFn(r, storeByKey.get(r.cadena+'|'+r.num_tienda));
+    if(dim==null) return;
+    const g = getGrupo(dim);
+    g.objetivo_comb += 1;
+    if(r.con_venta) g.con_venta_comb += 1;
+  });
+  storesScope.forEach(s=>{
+    const dim = dimFn(s, s);
+    if(dim==null) return;
+    const g = getGrupo(dim);
+    const v = visitas.get(s.cadena+'|'+s.num_tienda) || {objetivo:0, reales:0};
+    g.visitas_obj += v.objetivo; g.visitas_real += v.reales;
+  });
+  const totalPesos = [...grupos.values()].reduce((a,g)=>a+g.real_pesos,0);
+  return [...grupos.values()].map(g=>({
+    ...g,
+    part_pct: totalPesos ? Math.round(g.real_pesos/totalPesos*1000)/10 : 0,
+    pct_cuota: g.cuota_uni ? Math.round(g.real_uni/g.cuota_uni*1000)/10 : null,
+    pct_dist: g.objetivo_comb ? Math.round(g.con_venta_comb/g.objetivo_comb*1000)/10 : null,
+    pct_visitas: g.visitas_obj ? Math.round(g.visitas_real/g.visitas_obj*1000)/10 : null,
+  }));
+}
+let anzSortState = {};
+function anzOrdenar(tablaId, campo, tipo){
+  const st = anzSortState[tablaId] || {campo:null, asc:true};
+  st.asc = (st.campo===campo) ? !st.asc : true;
+  st.campo = campo;
+  anzSortState[tablaId] = st;
+  window['render_'+tablaId] && window['render_'+tablaId]();
+}
+function flechaOrden(tablaId, campo){
+  const st = anzSortState[tablaId];
+  if(!st || st.campo!==campo) return '';
+  return st.asc ? ' ▲' : ' ▼';
+}
+function ordenarFilas(tablaId, filas, defaultCampo){
+  const st = anzSortState[tablaId] || {campo:defaultCampo, asc:false};
+  const campo = st.campo || defaultCampo;
+  const asc = st.hasOwnProperty('asc') ? st.asc : false;
+  return [...filas].sort((a,b)=>{
+    let va=a[campo], vb=b[campo];
+    if(typeof va==='string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    va = va??-Infinity; vb = vb??-Infinity;
+    return asc ? va-vb : vb-va;
+  });
+}
+function colHead(tablaId, campo, label, numeric){
+  return `<th ${numeric?'class="num"':''} style="cursor:pointer; user-select:none;" onclick="anzOrdenar('${tablaId}','${campo}','${numeric?'num':'str'}')">${label}${flechaOrden(tablaId,campo)}</th>`;
+}
+function csvEscape(v){
+  if(v===null||v===undefined) return '';
+  const s = String(v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function exportarCSV(filename, headers, rows2D){
+  const lines = [headers.map(csvEscape).join(',')].concat(rows2D.map(r=>r.map(csvEscape).join(',')));
+  const blob = new Blob(['﻿'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function renderInsightsObjetivos(storesScope){
+  const box = document.getElementById('anzInsights');
+  if(!box) return;
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const semanas = semanasDeMesesSeleccionados();
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const totalPzas = sumMetaUni(cumpRows);
+  const metaLabelTxt = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+
+  const porCadena = {};
+  cumpRows.forEach(c=>{ porCadena[c.cadena] = (porCadena[c.cadena]||0) + (metaUni(c)||0); });
+  const cadenasOrdenadas = Object.entries(porCadena).sort((a,b)=>b[1]-a[1]);
+  const topCadena = cadenasOrdenadas[0];
+
+  const visitas = visitasPorTienda(storesScope);
+  let totalVisitasObj = 0;
+  storesScope.forEach(s=>{ const v = visitas.get(s.cadena+'|'+s.num_tienda) || {objetivo:0}; totalVisitasObj += v.objetivo; });
+  const idealPorVisita = totalVisitasObj ? Math.round(totalPzas/totalVisitasObj*10)/10 : null;
+
+  const porTienda = {};
+  cumpRows.forEach(c=>{ const k=c.cadena+'|'+c.num_tienda; (porTienda[k]=porTienda[k]||{nombre:'', total:0}); porTienda[k].total += (metaUni(c)||0); });
+  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTienda[k]) porTienda[k].nombre = s.num_tienda+' · '+s.tienda; });
+  const topTiendas = Object.values(porTienda).filter(t=>t.nombre).sort((a,b)=>b.total-a.total).slice(0,5);
+
+  const mesesTxt = objFiltroMeses && objFiltroMeses.size ? [...objFiltroMeses].join(' + ') : 'el periodo elegido';
+  const lineas = [];
+  lineas.push(`📦 <b>Qué se pide (${metaLabelTxt.toLowerCase()}):</b> ${fmtNum(totalPzas)} piezas en total, en ${storesScope.length} tienda(s), para ${mesesTxt}.`);
+  if(topCadena) lineas.push(`🏬 <b>Cadena con más piezas pedidas:</b> ${topCadena[0]} (${fmtNum(topCadena[1])} pzas · ${totalPzas?Math.round(topCadena[1]/totalPzas*100):0}% del total).`);
+  if(idealPorVisita!==null) lineas.push(`🎯 <b>Ideal por visita:</b> con ${fmtNum(totalVisitasObj)} visita(s) objetivo en el periodo, el ideal es cubrir ~${idealPorVisita} piezas por visita para llegar a la ${metaLabelTxt.toLowerCase()}.`);
+  if(topTiendas.length) lineas.push(`🔝 <b>Tiendas con más piezas pedidas:</b> ${topTiendas.map(t=>`${t.nombre} (${fmtNum(t.total)})`).join(', ')}.`);
+  if(!totalPzas) lineas.push(`ℹ️ Sin ${metaLabelTxt.toLowerCase()} cargada todavía para el/los mes(es)/tienda(s) elegidos.`);
+
+  box.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
+}
+function toggleAnzSemanaVista(){
+  const wrap = document.getElementById('anzTablaSemanaWrap');
+  const chart = document.getElementById('anzChartSemana');
+  const btn = document.getElementById('anzSemanaToggleBtn');
+  const showingTabla = !wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden', showingTabla);
+  chart.classList.toggle('hidden', !showingTabla);
+  btn.textContent = showingTabla ? 'Ver tabla' : 'Ver gráfica';
+}
+function exportarAnzSemana(){
+  const d = window._anzSemanaData || [];
+  exportarCSV(`piezas_pedidas_por_semana_${todayISO()}.csv`, ['Semana','Piezas pedidas'], d.map(s=>[s.semana, s.cuota]));
+}
+const OBJ_PIE_PALETA = ['#767a1a','#a7ab27','#cba3dd','#c1502c','#8a9a5b','#d9c26b','#5c7a99','#b56576'];
+function renderAnalisisObjetivos(){
+  poblarFiltrosObjetivos();
+  const storesScope = storesScopeObjetivos();
+  renderInsightsObjetivos(storesScope);
+
+  const metaLabelTxt = objMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const semanasMesChart = semanasDeMesesSeleccionados();
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanasMesChart.has(c.semana));
+
+  // --- Peso semanal de cada tienda (tomado de cumplimiento_semanal, que sí trae desglose por semana) para poder
+  // prorratear la cuota mensual por SKU (ventas_cuota_sku) — así todo lo de abajo (gráfica, pastel, tablas)
+  // puede respetar los filtros de familia/código, que son a nivel SKU. ---
+  const semsConFilas = new Set((APP_DATA.cumplimiento_semanal||[]).map(c=>c.semana)); // semanas sin filas (ej. la 31) no deben repartir peso
+  const semanasCodigoArr = [...semanasMesChart].filter(s=>semsConFilas.has(s)).sort((a,b)=>a-b);
+  const pesoSemanaTienda = {}; // 'cadena|num_tienda' -> {semana: proporcion 0-1}
+  const totalPorTienda = {};
+  cumpRows.forEach(c=>{ const k = c.cadena+'|'+c.num_tienda; totalPorTienda[k] = (totalPorTienda[k]||0) + (metaUni(c)||0); });
+  cumpRows.forEach(c=>{
+    const k = c.cadena+'|'+c.num_tienda;
+    const total = totalPorTienda[k];
+    if(!pesoSemanaTienda[k]) pesoSemanaTienda[k] = {};
+    pesoSemanaTienda[k][c.semana] = total>0 ? (metaUni(c)||0)/total : (1/Math.max(1,semanasCodigoArr.length));
+  });
+  const pesoSemanaParejo = {}; semanasCodigoArr.forEach(s=> pesoSemanaParejo[s] = 1/Math.max(1,semanasCodigoArr.length));
+  const skusScope = skusEnScope(storesScope); // ya respeta cadena/familia/código
+
+  // --- Piezas pedidas por semana (a nivel SKU en scope, así sí respeta familia/código) ---
+  const porSemana = {};
+  semanasCodigoArr.forEach(s=> porSemana[s] = {cuota:0});
+  skusScope.forEach(r=>{
+    const total = metaUniSku(r) || 0;
+    const k = r.cadena+'|'+r.num_tienda;
+    const pesos = pesoSemanaTienda[k] || pesoSemanaParejo;
+    semanasCodigoArr.forEach(s=>{ porSemana[s].cuota += total * (pesos===pesoSemanaParejo ? pesoSemanaParejo[s] : (pesos[s]||0)); });
+  });
+  const semanas = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
+  const maxVal = Math.max(1, ...semanas.map(s=>porSemana[s].cuota));
+  window._anzSemanaData = semanas.map(s=>({semana:s, cuota:porSemana[s].cuota}));
+
+  // --- Cuadros de resumen (Cuota del periodo y # Tiendas en vista) — a nivel SKU en scope,
+  // así sí reflejan los filtros de cadena, familia y código seleccionados arriba. ---
+  const totalUdsEnVista = semanas.reduce((a,s)=>a+porSemana[s].cuota, 0);
+  const tiendasEnVista = new Set(skusScope.map(r=>r.cadena+'|'+r.num_tienda)).size;
+  const kpiUdsEl = document.getElementById('kpiUds');
+  if(kpiUdsEl) kpiUdsEl.innerHTML = fmtNum(totalUdsEnVista) + ' <small>pzas</small>';
+  const kpiTiendasEl = document.getElementById('kpiTiendas');
+  if(kpiTiendasEl) kpiTiendasEl.textContent = tiendasEnVista;
+  const chartBox = document.getElementById('anzChartSemana');
+  if(chartBox){
+    chartBox.innerHTML = semanas.length ? `<div style="display:flex; gap:18px; align-items:flex-end; height:150px; padding:10px 4px;">
+      ${semanas.map(s=>{
+        const cu = porSemana[s].cuota;
+        return `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1;">
+          <div style="display:flex; gap:3px; align-items:flex-end; height:110px;">
+            <div title="${metaLabelTxt}: ${fmtNum(cu)}" style="width:24px; background:var(--brand-dark); height:${Math.round(cu/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
+          </div>
+          <div style="font-size:11px; color:var(--ink-soft); font-weight:600;">Sem ${s}</div>
+          <div style="font-size:10.5px; font-weight:700; color:var(--ink);">${fmtNum(cu)}</div>
+        </div>`;
+      }).join('')}
+    </div>`
+    : `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin semanas con datos todavía para este filtro.</p>`;
+  }
+  const tablaSemanaWrap = document.getElementById('anzTablaSemanaWrap');
+  if(tablaSemanaWrap){
+    tablaSemanaWrap.innerHTML = semanas.length ? `<table><thead><tr>${colHead('anzTablaSemana','semana','Semana',true)}${colHead('anzTablaSemana','cuota',metaLabelTxt+' (piezas)',true)}</tr></thead>
+      <tbody>${ordenarFilas('anzTablaSemana', window._anzSemanaData, 'semana').map(s=>`<tr><td>Semana ${s.semana}</td><td class="num">${fmtNum(s.cuota)}</td></tr>`).join('')}</tbody></table>`
+    : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">Sin semanas con datos.</p>`;
+  }
+
+  // --- Participación por cadena (pastel) — a nivel SKU en scope, respeta familia/código ---
+  const porCadena = {};
+  skusScope.forEach(r=>{ porCadena[r.cadena] = (porCadena[r.cadena]||0) + (metaUniSku(r)||0); });
+  const totalCadenas = Object.values(porCadena).reduce((a,v)=>a+v,0);
+  const cadenasArr = Object.entries(porCadena).sort((a,b)=>b[1]-a[1]);
+  const pieBox = document.getElementById('objPieParticipacion');
+  if(pieBox){
+    if(!totalCadenas){
+      pieBox.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin datos de ${metaLabelTxt.toLowerCase()} para este filtro todavía.</p>`;
+    } else {
+      let acumGrados = 0;
+      const segmentos = cadenasArr.map(([cad,val],i)=>{
+        const pct = val/totalCadenas*100;
+        const grados = pct/100*360;
+        const seg = `${OBJ_PIE_PALETA[i%OBJ_PIE_PALETA.length]} ${acumGrados}deg ${acumGrados+grados}deg`;
+        acumGrados += grados;
+        return seg;
+      });
+      pieBox.innerHTML = `<div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap;">
+        <div style="width:150px; height:150px; border-radius:50%; background:conic-gradient(${segmentos.join(', ')}); flex-shrink:0;"></div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${cadenasArr.map(([cad,val],i)=>`<div style="display:flex; align-items:center; gap:8px; font-size:12.5px;"><span style="width:12px; height:12px; border-radius:3px; background:${OBJ_PIE_PALETA[i%OBJ_PIE_PALETA.length]}; display:inline-block; flex-shrink:0;"></span><b>${cad}</b><span style="color:var(--ink-soft);">${fmtNum(val)} pzas · ${Math.round(val/totalCadenas*100)}%</span></div>`).join('')}
+        </div>
+      </div>`;
+    }
+  }
+  window.exportarParticipacionCadenaCSV = function(){
+    if(!cadenasArr.length){ toast('No hay datos para exportar.'); return; }
+    exportarCSV(`objetivos_participacion_por_cadena_${todayISO()}.csv`, ['Cadena','Piezas', '% del total'],
+      cadenasArr.map(([cad,val])=>[cad, val, totalCadenas? Math.round(val/totalCadenas*100):0]));
+  };
+
+  // --- Tablas: por tienda (con desglose por código) y por código Délico (con desglose por tienda) ---
+  const tablasBox = document.getElementById('anzTablas');
+  if(!tablasBox) return;
+  tablasBox.innerHTML = `<div style="margin-top:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 8px;">Por tienda — cuánto vender de cada código, por semana (clic para ver por código)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCSV()">⬇ Exportar a Excel</button></div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:0 0 8px;">El total mes es la cuota real capturada por SKU/tienda. El desglose por semana es un estimado — se reparte usando el mismo peso semanal que ya tiene cada tienda en "Piezas pedidas por semana" — así que puede no cuadrar centavo a centavo con el real cuando ya haya venta capturada, pero te da la referencia de a qué le tienes que apostar cada semana.</p>
+      <div class="table-scroll" id="anzTablaTienda"></div>
+    </div>
+    <div style="margin-top:22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;"><h3 style="font-size:14px; color:var(--brand-dark); margin:14px 0 4px;">Por código Délico — cuánto vender de cada producto, por semana (clic para ver por tienda)</h3><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarAnalisisCodigoCSV()">⬇ Exportar a Excel</button></div>
+      <div class="table-scroll" id="anzTablaCodigo"></div>
+    </div>`;
+
+  const porCodigo = {}; // clave -> {clave, nombre, total, porTienda:{key:{tienda,cadena,total,semanas:{}}}, semanas:{}}
+  const porTiendaCod = {}; // 'cadena|num_tienda' -> {cadena, tienda, num_tienda, total, semanas:{}, porCodigo:{clave:{nombre,total,semanas}}}
+  skusScope.forEach(r=>{
+    const total = metaUniSku(r) || 0;
+    if(!porCodigo[r.clave]){
+      const prod = claveAProducto(r.clave);
+      porCodigo[r.clave] = {clave:r.clave, nombre: (prod&&prod.nombre) || r.clave, total:0, semanas:{}, porTienda:{}};
+    }
+    const g = porCodigo[r.clave];
+    g.total += total;
+    const k = r.cadena+'|'+r.num_tienda;
+    const pesos = pesoSemanaTienda[k] || pesoSemanaParejo;
+    if(!g.porTienda[k]) g.porTienda[k] = {tienda:r.tienda, cadena:r.cadena, total:0, semanas:{}};
+    g.porTienda[k].total += total;
+    if(!porTiendaCod[k]) porTiendaCod[k] = {cadena:r.cadena, tienda:r.tienda, num_tienda:r.num_tienda, total:0, semanas:{}, porCodigo:{}};
+    const t = porTiendaCod[k];
+    t.total += total;
+    const prodTC = claveAProducto(r.clave);
+    if(!t.porCodigo[r.clave]) t.porCodigo[r.clave] = {clave:r.clave, nombre:(prodTC&&prodTC.nombre)||r.clave, total:0, semanas:{}};
+    const tc = t.porCodigo[r.clave];
+    tc.total += total;
+    semanasCodigoArr.forEach(s=>{
+      const estim = total * (pesos===pesoSemanaParejo ? pesoSemanaParejo[s] : (pesos[s]||0));
+      g.semanas[s] = (g.semanas[s]||0) + estim;
+      g.porTienda[k].semanas[s] = (g.porTienda[k].semanas[s]||0) + estim;
+      t.semanas[s] = (t.semanas[s]||0) + estim;
+      tc.semanas[s] = (tc.semanas[s]||0) + estim;
+    });
+  });
+  let tiendaExpandida = null;
+  window.toggleTiendaExpandida = function(key){ tiendaExpandida = tiendaExpandida===key ? null : key; window.render_anzTablaTienda(); };
+  window.render_anzTablaTienda = function(){
+    const box = document.getElementById('anzTablaTienda');
+    if(!box) return;
+    const filas = Object.values(porTiendaCod).sort((a,b)=>b.total-a.total);
+    const theadSemanas = semanasCodigoArr.map(s=>`<th class="num">Sem ${s} (est.)</th>`).join('');
+    const rowsHtml = filas.map(f=>{
+      const key = f.cadena+'|'+f.num_tienda;
+      let html = `<tr style="cursor:pointer;" onclick="toggleTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${tiendaExpandida===key?'▼':'▶'} ${f.num_tienda} · ${f.tienda} <span style="color:var(--ink-soft); font-size:10.5px;">(${f.cadena})</span></td><td class="num" style="font-weight:700;">${fmtNum(f.total)}</td>${semanasCodigoArr.map(s=>`<td class="num">${fmtNum(f.semanas[s]||0)}</td>`).join('')}</tr>`;
+      if(tiendaExpandida===key){
+        const codigos = Object.values(f.porCodigo).sort((a,b)=>b.total-a.total);
+        html += codigos.map(c=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${c.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${c.clave})</span></td><td class="num" style="font-size:12px;">${fmtNum(c.total)}</td>${semanasCodigoArr.map(s=>`<td class="num" style="font-size:12px;">${fmtNum(c.semanas[s]||0)}</td>`).join('')}</tr>`).join('');
+      }
+      return html;
+    }).join('');
+    box.innerHTML = `<table><thead><tr><th># Tienda (clic para ver por código)</th><th class="num">Total mes (piezas)</th>${theadSemanas}</tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="${2+semanasCodigoArr.length}" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
+  };
+  window.render_anzTablaTienda();
+  window.exportarAnalisisCSV = function(){
+    const filas = Object.values(porTiendaCod).sort((a,b)=>b.total-a.total);
+    const headers = ['Cadena','# Tienda','Tienda','Total mes (piezas)', ...semanasCodigoArr.map(s=>`Sem ${s} (estimado)`)];
+    const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.total, ...semanasCodigoArr.map(s=>f.semanas[s]||0)]);
+    exportarCSV(`objetivos_por_tienda_${todayISO()}.csv`, headers, rows);
+  };
+  let codigoExpandido = null;
+  window.toggleCodigoExpandido = function(clave){ codigoExpandido = codigoExpandido===clave ? null : clave; window.render_anzTablaCodigo(); };
+  window.render_anzTablaCodigo = function(){
+    const box = document.getElementById('anzTablaCodigo');
+    if(!box) return;
+    const filas = Object.values(porCodigo).sort((a,b)=>b.total-a.total);
+    const theadSemanas = semanasCodigoArr.map(s=>`<th class="num">Sem ${s} (est.)</th>`).join('');
+    const rowsHtml = filas.map(f=>{
+      let html = `<tr style="cursor:pointer;" onclick="toggleCodigoExpandido('${f.clave.replace(/'/g,"\\'")}')"><td>${codigoExpandido===f.clave?'▼':'▶'} ${f.nombre} <span style="color:var(--ink-soft); font-size:10.5px;">(${f.clave})</span></td><td class="num" style="font-weight:700;">${fmtNum(f.total)}</td>${semanasCodigoArr.map(s=>`<td class="num">${fmtNum(f.semanas[s]||0)}</td>`).join('')}</tr>`;
+      if(codigoExpandido===f.clave){
+        const tiendas = Object.values(f.porTienda).sort((a,b)=>b.total-a.total);
+        html += tiendas.map(t=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${t.tienda} <span style="color:var(--ink-soft); font-size:10.5px;">(${t.cadena})</span></td><td class="num" style="font-size:12px;">${fmtNum(t.total)}</td>${semanasCodigoArr.map(s=>`<td class="num" style="font-size:12px;">${fmtNum(t.semanas[s]||0)}</td>`).join('')}</tr>`).join('');
+      }
+      return html;
+    }).join('');
+    box.innerHTML = `<table><thead><tr><th>Código Délico (clic para ver por tienda)</th><th class="num">Total mes (piezas)</th>${theadSemanas}</tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="${2+semanasCodigoArr.length}" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
+  };
+  window.render_anzTablaCodigo();
+  window.exportarAnalisisCodigoCSV = function(){
+    const filas = Object.values(porCodigo).sort((a,b)=>b.total-a.total);
+    const headers = ['Código','Producto','Total mes (piezas)', ...semanasCodigoArr.map(s=>`Sem ${s} (estimado)`)];
+    const rows = filas.map(f=>[f.clave, f.nombre, f.total, ...semanasCodigoArr.map(s=>f.semanas[s]||0)]);
+    exportarCSV(`objetivos_por_codigo_delico_${todayISO()}.csv`, headers, rows);
+  };
+}
+/* ---------- CUMPLIMIENTO DE VENTA (Comunicar/Retroalimentación): cuota/escalón vs. venta real, siempre del mismo periodo exacto elegido ---------- */
+let cvFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
+function asegurarCvFiltroMesesInicial(){
+  if(cvFiltroMeses === null) cvFiltroMeses = new Set(mesesConDatoReal());
+}
+function cvMesTodo(){ cvFiltroMeses = new Set(mesesDisponiblesObj()); renderCvMesChips(); renderCumpVenta(); }
+function cvMesNinguno(){ cvFiltroMeses = new Set(); renderCvMesChips(); renderCumpVenta(); }
+function toggleCvFiltroMes(m){
+  asegurarCvFiltroMesesInicial();
+  if(cvFiltroMeses.has(m)) cvFiltroMeses.delete(m); else cvFiltroMeses.add(m);
+  renderCvMesChips(); renderCumpVenta();
+}
+function renderCvMesChips(){
+  const panel = document.getElementById('cvMesDdPanel');
+  const btn = document.getElementById('cvMesDdBtn');
+  if(!panel || !btn) return;
+  asegurarCvFiltroMesesInicial();
+  const meses = mesesDisponiblesObj();
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cvMesTodo()">Todo</button><button type="button" onclick="cvMesNinguno()">Ninguno</button></div>`
+    + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${cvFiltroMeses.has(m)?'checked':''} onchange="toggleCvFiltroMes('${m}')"> ${m}</label>`).join('');
+  const sel = meses.filter(m=>cvFiltroMeses.has(m));
+  btn.textContent = sel.length===0 ? 'Ninguno seleccionado' : sel.length===meses.length ? 'Todos los meses' : sel.join(', ');
+}
+function semanasDeMesesSeleccionadosCv(){
+  asegurarCvFiltroMesesInicial();
+  const set = new Set();
+  [...cvFiltroMeses].forEach(m => semanasCuotaMes(m).forEach(s=>set.add(s)));
+  return set;
+}
+function renderCvTiendaDropdown(){
+  const panel = document.getElementById('cvTiendaDdPanel');
+  const btn = document.getElementById('cvTiendaDdBtn');
+  const sel = document.getElementById('cvTiendaMulti');
+  if(!panel || !btn || !sel) return;
+  const opciones = [...sel.options];
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cvTiendaTodasDD(true)">Todo</button><button type="button" onclick="cvTiendaTodasDD(false)">Ninguno</button></div>`
+    + (opciones.map(o=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${o.value.replace(/"/g,'&quot;')}" ${o.selected?'checked':''} onchange="onCvTiendaDdCheck(this)"> ${o.textContent}</label>`).join('') || `<div style="padding:8px; font-size:12px; color:var(--ink-soft);">Sin tiendas.</div>`);
+  const marcadas = opciones.filter(o=>o.selected);
+  btn.textContent = (marcadas.length===0 || marcadas.length===opciones.length) ? 'Todas' : (marcadas.length + ' seleccionada' + (marcadas.length>1?'s':''));
+}
+let cvFiltroCadenas = new Set(); // vacío = todas
+function renderCvCadenaChips(){
+  const panel = document.getElementById('cvCadenaDdPanel');
+  const btn = document.getElementById('cvCadenaDdBtn');
+  if(!panel || !btn) return;
+  const cadenas = cadenasDisponiblesFiltro();
+  const marcado = c => !cvFiltroCadenas.size || cvFiltroCadenas.has(c);
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cvCadenaTodasDD(true)">Todo</button><button type="button" onclick="cvCadenaTodasDD(false)">Ninguno</button></div>`
+    + cadenas.map(c=>`<label class="tienda-dd-item"><input type="checkbox" ${marcado(c)?'checked':''} onchange="onCvCadenaDdCheck(this,'${c.replace(/'/g,"\\'")}')"> ${c}</label>`).join('');
+  const marcadas = cadenas.filter(marcado);
+  btn.textContent = (marcadas.length===0 || marcadas.length===cadenas.length) ? 'Todas' : marcadas.join(', ');
+}
+function cvCadenaTodasDD(marcar){
+  cvFiltroCadenas = marcar ? new Set() : new Set(['__ninguna__']);
+  renderCvCadenaChips();
+  renderCumpVenta();
+}
+function onCvCadenaDdCheck(chk, cadena){
+  const cadenas = cadenasDisponiblesFiltro();
+  if(!cvFiltroCadenas.size) cvFiltroCadenas = new Set(cadenas); // pasa de "todas implícito" a set explícito al primer desmarcado
+  if(chk.checked) cvFiltroCadenas.add(cadena); else cvFiltroCadenas.delete(cadena);
+  if(cvFiltroCadenas.size===cadenas.length) cvFiltroCadenas = new Set(); // vuelve a "todas implícito"
+  renderCvCadenaChips();
+  renderCumpVenta();
+}
+let cvFiltroTiendas = new Set();
+function onCvTiendaMultiChange(){
+  const sel = document.getElementById('cvTiendaMulti');
+  if(!sel) return;
+  cvFiltroTiendas = new Set([...sel.selectedOptions].map(o=>o.value));
+  renderCumpVenta();
+}
+function onCvTiendaDdCheck(chk){
+  const sel = document.getElementById('cvTiendaMulti');
+  const val = chk.getAttribute('data-val');
+  const opt = [...sel.options].find(o=>o.value===val);
+  if(opt) opt.selected = chk.checked;
+  onCvTiendaMultiChange();
+  renderCvTiendaDropdown();
+}
+function cvTiendaTodasDD(marcar){
+  const sel = document.getElementById('cvTiendaMulti');
+  [...sel.options].forEach(o=>o.selected=marcar);
+  onCvTiendaMultiChange();
+  renderCvTiendaDropdown();
+}
+let cvMetaTipo = 'cuota'; // 'cuota' | 'escalon'
+function cvMetaUni(row){ return cvMetaTipo==='escalon' ? (row.escalon_uni ?? null) : (row.cuota_uni ?? 0); }
+function cvMetaPesos(row){ return cvMetaTipo==='escalon' ? (row.escalon_pesos ?? null) : (row.cuota_pesos ?? 0); }
+function setCvMetaTipo(t){ cvMetaTipo = t; renderCvMetaTipoChips(); renderCumpVenta(); }
+function renderCvMetaTipoChips(){
+  const el = document.getElementById('cvMetaTipoWrap');
+  if(!el) return;
+  const chip = (label, val, activo) => `<button type="button" onclick="setCvMetaTipo('${val}')" style="padding:5px 14px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid ${activo?'var(--brand-dark)':'#d8dba0'}; background:${activo?'var(--brand-dark)':'#fff'}; color:${activo?'#fff':'var(--ink)'};">${label}</button>`;
+  el.innerHTML = chip('Cuota (para sueldo)', 'cuota', cvMetaTipo==='cuota') + chip('Escalón Bono', 'escalon', cvMetaTipo==='escalon');
+  const nota = document.getElementById('cvMetaTipoNota');
+  if(nota) nota.textContent = cvMetaTipo==='escalon'
+    ? 'Comparando contra la meta más alta que activa el Bono "Valor al Esfuerzo". Solo existe para los meses/semanas donde ya se cargó el escalón (por ahora, septiembre).'
+    : 'Comparando contra la cuota base (la que el equipo necesita cubrir para que sea rentable/sueldo).';
+}
+function storesScopeCumpVenta(){
+  let scope = storesScopeParaMi();
+  if(cvFiltroCadenas.size) scope = scope.filter(s=> cvFiltroCadenas.has(s.cadena));
+  const sup = (document.getElementById('cvSupervisor')||{}).value;
+  const emb = (document.getElementById('cvEmbajador')||{}).value;
+  if(sup) scope = scope.filter(s=> mismaPersona(supervisorDeTienda(s), sup));
+  if(emb){
+    const rutaKeys = new Set(tiendasDeRutaSeptiembre(emb).map(a=>a.cadena+'|'+a.num_tienda));
+    scope = scope.filter(s=> s.sector===emb || rutaKeys.has(s.cadena+'|'+s.num_tienda));
+  }
+  if(cvFiltroTiendas.size) scope = scope.filter(s=> cvFiltroTiendas.has(s.tienda));
+  return scope;
+}
+function poblarFiltrosCumpVenta(){
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const supWrap = document.getElementById('cvSupervisorWrap');
+  if(supWrap) supWrap.style.display = esEmbajador ? 'none' : '';
+  const embWrap = document.getElementById('cvEmbajadorWrap');
+  if(embWrap) embWrap.style.display = esEmbajador ? 'none' : '';
+  poblarSelectFiltro('cvSupervisor', nombresSupervisorUnicos());
+  const embSel = document.getElementById('cvEmbajador');
+  if(embSel && embSel.options.length<=1){
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
+    });
+  }
+  poblarSelectMultipleTiendas('cvTiendaMulti', storesScopeParaMi());
+  renderCvMesChips();
+  renderCvCadenaChips();
+  renderCvTiendaDropdown();
+  renderCvMetaTipoChips();
+}
+function restablecerFiltrosCumpVenta(){
+  const sup = document.getElementById('cvSupervisor'); if(sup) sup.value = '';
+  const emb = document.getElementById('cvEmbajador'); if(emb) emb.value = '';
+  const cvTiendaMultiSel = document.getElementById('cvTiendaMulti');
+  if(cvTiendaMultiSel) [...cvTiendaMultiSel.options].forEach(o=>o.selected=false);
+  cvFiltroTiendas.clear();
+  cvFiltroCadenas = new Set();
+  cvFiltroMeses = new Set(mesesConDatoReal());
+  renderCvMesChips();
+  renderCvCadenaChips();
+  renderCvTiendaDropdown();
+  cvMetaTipo = 'cuota';
+  renderCvMetaTipoChips();
+  toast('Filtros de Cumplimiento de venta restablecidos');
+  renderCumpVenta();
+}
+function toggleCvSemanaVista(){
+  const wrap = document.getElementById('cvTablaSemanaWrap');
+  const chart = document.getElementById('cvChartSemana');
+  const btn = document.getElementById('cvSemanaToggleBtn');
+  const showingTabla = !wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden', showingTabla);
+  chart.classList.toggle('hidden', !showingTabla);
+  btn.textContent = showingTabla ? 'Ver tabla' : 'Ver gráfica';
+}
+function exportarCvSemana(){
+  const d = window._cvSemanaData || [];
+  exportarCSV(`cumplimiento_venta_por_semana_${todayISO()}.csv`, ['Semana','Meta (piezas)','Real (piezas)','% Cumplimiento'], d.map(s=>[s.semana, s.meta, s.real, s.pct]));
+}
+function renderCvSemanal(storesScope, semanas){
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const porSemana = {};
+  cumpRows.forEach(c=>{ (porSemana[c.semana] = porSemana[c.semana] || {meta:0, real:0}); porSemana[c.semana].meta += (cvMetaUni(c)||0); porSemana[c.semana].real += (c.real_uni||0); });
+  const semArr = Object.keys(porSemana).map(Number).sort((a,b)=>a-b);
+  const maxVal = Math.max(1, ...semArr.map(s=>Math.max(porSemana[s].meta, porSemana[s].real)));
+  window._cvSemanaData = semArr.map(s=>({semana:s, meta:porSemana[s].meta, real:porSemana[s].real, pct: porSemana[s].meta ? Math.round(porSemana[s].real/porSemana[s].meta*1000)/10 : null}));
+  const chartBox = document.getElementById('cvChartSemana');
+  if(chartBox){
+    chartBox.innerHTML = semArr.length ? `<div style="display:flex; gap:18px; align-items:flex-end; height:150px; padding:10px 4px;">
+      ${semArr.map(s=>{
+        const m = porSemana[s].meta, r = porSemana[s].real;
+        return `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1;">
+          <div style="display:flex; gap:3px; align-items:flex-end; height:110px;">
+            <div title="${metaLabelTxt}: ${fmtNum(m)}" style="width:18px; background:#d8dba0; height:${Math.round(m/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
+            <div title="Real: ${fmtNum(r)}" style="width:18px; background:var(--brand-dark); height:${Math.round(r/maxVal*110)}px; border-radius:3px 3px 0 0;"></div>
+          </div>
+          <div style="font-size:11px; color:var(--ink-soft); font-weight:600;">Sem ${s}</div>
+          <div style="font-size:10.5px; font-weight:700; color:var(--ink);">${fmtNum(r)}/${fmtNum(m)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex; gap:16px; font-size:11px; color:var(--ink-soft); margin-top:4px;"><span><span style="display:inline-block; width:10px; height:10px; background:#d8dba0; border-radius:2px; margin-right:4px;"></span>${metaLabelTxt}</span><span><span style="display:inline-block; width:10px; height:10px; background:var(--brand-dark); border-radius:2px; margin-right:4px;"></span>Real</span></div>`
+    : `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin semanas con datos todavía para este filtro.</p>`;
+  }
+  const tablaWrap = document.getElementById('cvTablaSemanaWrap');
+  if(tablaWrap){
+    tablaWrap.innerHTML = semArr.length ? `<table><thead><tr>${colHead('cvTablaSemana','semana','Semana',true)}${colHead('cvTablaSemana','meta',metaLabelTxt+' (piezas)',true)}${colHead('cvTablaSemana','real','Real (piezas)',true)}${colHead('cvTablaSemana','pct','% Cumplimiento',true)}</tr></thead>
+      <tbody>${ordenarFilas('cvTablaSemana', window._cvSemanaData, 'semana').map(s=>`<tr><td>Semana ${s.semana}</td><td class="num">${fmtNum(s.meta)}</td><td class="num">${fmtNum(s.real)}</td><td class="num">${s.pct!=null?s.pct+'%':'—'}</td></tr>`).join('')}</tbody></table>`
+    : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">Sin semanas con datos.</p>`;
+  }
+}
+function renderCvInsights(storesScope, semanas){
+  const box = document.getElementById('cvInsights');
+  if(!box) return;
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const metaTot = cumpRows.reduce((a,r)=>a+(cvMetaUni(r)||0),0);
+  const realTot = cumpRows.reduce((a,r)=>a+(r.real_uni||0),0);
+  const faltaTot = Math.max(0, metaTot-realTot);
+  const pct = metaTot ? Math.round(realTot/metaTot*1000)/10 : null;
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+
+  const storeByKey = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const porCluster = {};
+  cumpRows.forEach(r=>{
+    const st = storeByKey.get(r.cadena+'|'+r.num_tienda);
+    const cl = st && st.cluster ? st.cluster : 'Sin cluster';
+    if(!porCluster[cl]) porCluster[cl] = {meta:0, real:0};
+    porCluster[cl].meta += (cvMetaUni(r)||0);
+    porCluster[cl].real += (r.real_uni||0);
+  });
+  const clustersConMeta = Object.entries(porCluster).filter(([,v])=>v.meta>0).map(([cl,v])=>({cl, pct: Math.round(v.real/v.meta*1000)/10}));
+  clustersConMeta.sort((a,b)=>a.pct-b.pct);
+  const peorCluster = clustersConMeta[0];
+
+  const porTienda = {};
+  cumpRows.forEach(r=>{
+    const k = r.cadena+'|'+r.num_tienda;
+    if(!porTienda[k]) porTienda[k] = {nombre:'', meta:0, real:0};
+    porTienda[k].meta += (cvMetaUni(r)||0);
+    porTienda[k].real += (r.real_uni||0);
+  });
+  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTienda[k]) porTienda[k].nombre = s.num_tienda+' · '+s.tienda; });
+  const rezagadas = Object.values(porTienda).filter(t=>t.nombre && t.meta>0).map(t=>({...t, falta: Math.max(0,t.meta-t.real)})).sort((a,b)=>b.falta-a.falta).slice(0,5);
+
+  const lineas = [];
+  lineas.push(`📊 <b>Cubrimiento (${metaLabelTxt.toLowerCase()}):</b> ${fmtNum(realTot)} de ${fmtNum(metaTot)} piezas ${pct!=null?`(${pct}%)`:''}, en ${storesScope.length} tienda(s).`);
+  if(faltaTot>0) lineas.push(`⚠️ <b>Falta por cubrir:</b> ${fmtNum(faltaTot)} piezas para llegar a la ${metaLabelTxt.toLowerCase()} del periodo elegido.`);
+  else if(metaTot>0) lineas.push(`✅ <b>Cuota cubierta:</b> ya se alcanzó o superó la ${metaLabelTxt.toLowerCase()} del periodo elegido.`);
+  if(peorCluster) lineas.push(`🚩 <b>Cluster con más rezago:</b> ${peorCluster.cl} (${peorCluster.pct}% de cubrimiento).`);
+  if(rezagadas.length) lineas.push(`🔻 <b>Códigos con más rezago:</b> ${rezagadas.map(t=>`${t.nombre} (faltan ${fmtNum(t.falta)})`).join(', ')}.`);
+  if(!metaTot) lineas.push(`ℹ️ Sin ${metaLabelTxt.toLowerCase()} cargada todavía para el/los mes(es)/tienda(s) elegidos.`);
+
+  const filasPorCadena = cumpRows.map(r=>{
+    const st = storeByKey.get(r.cadena+'|'+r.num_tienda);
+    return {cadena: r.cadena, cluster: st && st.cluster, num_tienda: r.num_tienda, meta: (cvMetaUni(r)||0), real: (r.real_uni||0)};
+  });
+  lineas.push(...insightsPorCadenaYTop(filasPorCadena, metaLabelTxt.toLowerCase()));
+
+  box.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
+}
+/* ---------- DIAGNÓSTICO "¿Qué se está atorando?" (Cumplimiento de venta) ----------
+   Solo compara contra las semanas que YA tienen sell out cargado (si no, las semanas futuras salen como 0% y todo parece atorado). */
+function cvDiagSemanasConDato(semanas){
+  const tot = {};
+  (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{ tot[r.semana] = (tot[r.semana]||0) + (r.real_uni||0); });
+  return [...semanas].filter(s=>tot[s]>0).sort((a,b)=>a-b);
+}
+function cvDiagAgrupar(filas, keyFn){
+  const m = new Map();
+  filas.forEach(r=>{
+    const k = keyFn(r); if(k==null || k==='') return;
+    if(!m.has(k)) m.set(k, {k, meta:0, real:0, sem:{}, tiendas:new Set()});
+    const a = m.get(k); a.meta += r.meta; a.real += r.real; a.tiendas.add(r.cadena+'|'+r.num_tienda);
+    const s = a.sem[r.semana] = a.sem[r.semana] || {meta:0, real:0}; s.meta += r.meta; s.real += r.real;
+  });
+  const arr = [...m.values()].map(a=>({...a, falta:Math.max(0,a.meta-a.real), pct:a.meta?a.real/a.meta*100:null, n:a.tiendas.size}));
+  const totFalta = arr.reduce((x,a)=>x+a.falta,0);
+  arr.forEach(a=>{ a.peso = totFalta ? a.falta/totFalta*100 : 0; });
+  return arr;
+}
+function cvDiagTendencia(a, semsDato){
+  const pts = semsDato.map(s=>({s, pct: a.sem[s] && a.sem[s].meta ? a.sem[s].real/a.sem[s].meta*100 : null})).filter(p=>p.pct!=null);
+  if(pts.length<2) return {txt:'', delta:0, desde:null};
+  const ult = pts.slice(-3);
+  const delta = pts[pts.length-1].pct - pts[pts.length-2].pct;
+  let desde = null;
+  for(let i=pts.length-1;i>=0 && pts[i].pct<85;i--) desde = pts[i].s;
+  return {txt: ult.map(p=>`S${p.s} ${Math.round(p.pct)}%`).join(' → '), delta, desde};
+}
+const cvDiagColor = pct => pct==null ? 'var(--ink-soft)' : pct>=100 ? 'var(--good,#2e8b57)' : pct>=85 ? '#9a9a1f' : pct>=60 ? 'var(--warn)' : 'var(--bad)';
+function cvDiagTabla(titulo, icono, arr, semsDato, opts){
+  opts = opts || {};
+  const filas = arr.filter(a=>a.meta>0).sort((a,b)=>b.falta-a.falta).slice(0, opts.top||6);
+  if(arr.filter(a=>a.meta>0).length<2 && !opts.siempre) return '';
+  const html = filas.map(a=>{
+    const t = a.sem ? cvDiagTendencia(a, semsDato) : {txt:'',delta:0,desde:null};
+    const flecha = t.delta<=-8 ? '🔻' : t.delta>=8 ? '🔺' : '▪️';
+    const pct = a.pct==null ? 0 : a.pct;
+    return `<tr><td style="max-width:210px;"><b>${pcEsc(a.etiqueta||a.k)}</b>${a.sub?`<div style="font-size:10.5px; color:var(--ink-soft);">${pcEsc(a.sub)}</div>`:''}</td>
+      <td style="min-width:90px;"><div style="background:var(--line,#e6e6d8); border-radius:5px; height:9px; width:90px;"><div style="height:9px; border-radius:5px; width:${Math.min(100,Math.max(2,pct))}%; background:${cvDiagColor(a.pct)};"></div></div><div style="font-size:11.5px; font-weight:700; color:${cvDiagColor(a.pct)};">${a.pct==null?'—':Math.round(a.pct)+'%'}</div></td>
+      <td class="num">${fmtNum(a.falta)}</td><td class="num">${Math.round(a.peso)}%</td>
+      <td style="font-size:11px; color:var(--ink-soft);">${t.txt?`${flecha} ${t.txt}`:''}${t.desde?`<div>bajo 85% desde S${t.desde}</div>`:''}</td></tr>`;
+  }).join('');
+  if(!html) return '';
+  return `<div class="card" style="padding:12px 14px; margin-bottom:12px;"><div style="font-weight:700; font-size:13.5px; margin-bottom:6px;">${icono} ${titulo}</div>
+    <div class="table-scroll"><table><thead><tr><th></th><th>Cumplimiento</th><th class="num">Falta (pzas)</th><th class="num">Pesa en el rezago</th><th>Tendencia</th></tr></thead><tbody>${html}</tbody></table></div></div>`;
+}
+function cvDiagFamiliasYCodigos(storesScope, semanas, semsDato){
+  // Agosto: ventas_cuota_sku (meta y real del mes completo). Septiembre: cuota_sep del SKU prorrateada a las semanas con dato vs. mtd_26 del pipeline.
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const meses = [...cvFiltroMeses];
+  const porSku = new Map();
+  const nombres = {}; APP_DATA.catalogo_productos.forEach(p=>nombres[p.clave]=p.nombre);
+  const suma = (fam, clave, meta, real)=>{
+    const k = clave; if(!porSku.has(k)) porSku.set(k,{k, etiqueta:(nombres[clave]||clave), familia:fam||'', meta:0, real:0});
+    const a = porSku.get(k); a.meta+=meta; a.real+=real;
+  };
+  if(meses.includes('Agosto')){
+    (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda)).forEach(r=>suma(r.familia, r.clave, r.cuota_uni||0, r.real_uni||0));
+  }
+  ['Septiembre','Octubre'].forEach(mesX=>{
+    if(!meses.includes(mesX)) return;
+    const mesSems = semanasCuotaMes(mesX);
+    const conDato = new Set(semsDato);
+    const tot = {}, aFecha = {};
+    (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{
+      if(!mesSems.includes(r.semana)) return;
+      const k = r.cadena+'|'+r.num_tienda; const m = cvMetaUni(r)||0;
+      tot[k]=(tot[k]||0)+m; if(conDato.has(r.semana)) aFecha[k]=(aFecha[k]||0)+m;
+    });
+    // La cuota del SKU se prorratea a las semanas que ya tienen venta cargada; el real sale del sell out por código (real_sep_uni / real_oct_uni)
+    (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda)).forEach(r=>{
+      const k = r.cadena+'|'+r.num_tienda;
+      const f = tot[k] ? (aFecha[k]||0)/tot[k] : 0;
+      if(!f) return;
+      suma(r.familia, r.clave, skuMetaMes(r, mesX, cvMetaTipo)*f, skuRealMes(r, mesX));
+    });
+  });
+  const skus = [...porSku.values()].map(a=>({...a, falta:Math.max(0,a.meta-a.real), pct:a.meta?a.real/a.meta*100:null, sub:a.familia, sem:null}));
+  const fams = new Map();
+  skus.forEach(a=>{ const f=a.familia||'Sin familia'; if(!fams.has(f)) fams.set(f,{k:f,meta:0,real:0,sem:null,n:0}); const x=fams.get(f); x.meta+=a.meta; x.real+=a.real; x.n++; });
+  const famArr = [...fams.values()].map(a=>({...a, falta:Math.max(0,a.meta-a.real), pct:a.meta?a.real/a.meta*100:null, sub:`${a.n} código(s)`}));
+  const tF = famArr.reduce((x,a)=>x+a.falta,0), tS = skus.reduce((x,a)=>x+a.falta,0);
+  famArr.forEach(a=>a.peso = tF? a.falta/tF*100:0); skus.forEach(a=>a.peso = tS? a.falta/tS*100:0);
+  return {fams:famArr, skus};
+}
+function renderCvDiagnostico(storesScope, semanas){
+  const box = document.getElementById('cvDiag'); if(!box) return;
+  const semsDato = cvDiagSemanasConDato(semanas);
+  /* Semana en curso (ej. S41 con solo 1 de 7 días de sell out): la meta "a la fecha" se prorratea por los días ya cargados
+     para no mostrar un falso "ritmo atorado" cuando apenas va el primer día de la semana. */
+  const encRaw = (APP_DATA.bi_meta||{}).semana_en_curso;
+  const enc = (encRaw && semsDato.includes(encRaw.semana) && encRaw.dias_con_dato>0 && encRaw.dias_con_dato<(encRaw.dias||7)) ? encRaw : null;
+  const fracEnc = enc ? enc.dias_con_dato/(enc.dias||7) : 1;
+  const storeBy = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const filas = (APP_DATA.cumplimiento_semanal||[]).filter(r=>storeBy.has(r.cadena+'|'+r.num_tienda) && semsDato.includes(r.semana)).map(r=>{
+    const st = storeBy.get(r.cadena+'|'+r.num_tienda);
+    return {cadena:r.cadena, num_tienda:r.num_tienda, tienda:st.tienda, semana:r.semana, meta:(cvMetaUni(r)||0)*(enc && r.semana===enc.semana ? fracEnc : 1), real:r.real_uni||0, st};
+  });
+  const metaTxt = cvMetaTipo==='escalon' ? 'escalón Bono' : 'cuota';
+  if(!filas.length || !filas.some(r=>r.meta>0)){
+    box.innerHTML = `<div class="card"><p style="margin:0; font-size:13px; color:var(--ink-soft);">Todavía no hay semanas con venta real cargada dentro del periodo elegido, así que no se puede diagnosticar. Elige otro mes o sube el sell out más reciente.</p></div>`;
+    return;
+  }
+  const metaT = filas.reduce((a,r)=>a+r.meta,0), realT = filas.reduce((a,r)=>a+r.real,0);
+  const pctT = metaT ? realT/metaT*100 : null;
+  const metaPeriodo = (APP_DATA.cumplimiento_semanal||[]).filter(r=>storeBy.has(r.cadena+'|'+r.num_tienda) && semanas.has(r.semana)).reduce((a,r)=>a+(cvMetaUni(r)||0),0);
+  const semsExisten = new Set((APP_DATA.cumplimiento_semanal||[]).map(r=>r.semana));
+  const semsFaltan = [...semanas].filter(s=>!semsDato.includes(s) && semsExisten.has(s)).length;
+  const semsEfectivas = semsDato.length - (enc ? (1-fracEnc) : 0);
+  const ritmoSem = realT/Math.max(fracEnc>0?fracEnc:1, semsEfectivas);
+  const semsPorVenir = semsFaltan + (enc ? (1-fracEnc) : 0);
+  const proy = realT + ritmoSem*semsPorVenir;
+  const pctProy = metaPeriodo ? proy/metaPeriodo*100 : null;
+
+  // ---- dimensiones
+  const dims = [
+    cvDiagTabla('Por cadena','🏪', cvDiagAgrupar(filas, r=>r.cadena), semsDato),
+    cvDiagTabla('Por región','🗺️', cvDiagAgrupar(filas, r=>(r.st.region && String(r.st.region)!=='0') ? r.st.region : '(sin región)'), semsDato),
+    currentUser.perfil==='Embajador' ? '' : cvDiagTabla('Por supervisor(a)','👩‍💼', cvDiagAgrupar(filas, r=>{ const s=supervisorDeTienda(r.st); return s?nombreCorto(s):'(sin supervisor)'; }), semsDato),
+    currentUser.perfil==='Embajador' ? '' : cvDiagTabla('Por embajador(a) / sector','🧑‍🍳', cvDiagAgrupar(filas, r=>{ const e=embajadorDeTienda(r.st); return e?nombreCorto(e):(r.st.sector||'(sin asignar)'); }), semsDato),
+    cvDiagTabla('Por cluster de tienda','💎', cvDiagAgrupar(filas, r=>r.st.cluster||'Sin cluster'), semsDato),
+    cvDiagTabla('Tiendas que más pesan en el rezago','📍', cvDiagAgrupar(filas, r=>r.cadena+'|'+r.num_tienda).map(a=>{ const s=storeBy.get(a.k); return {...a, etiqueta:`${s.num_tienda} · ${s.tienda}`, sub:s.cadena}; }), semsDato, {top:8, siempre:true}),
+  ];
+  const fc = cvDiagFamiliasYCodigos(storesScope, semanas, semsDato);
+  dims.splice(2,0, cvDiagTabla('Por familia','🥣', fc.fams, semsDato));
+  dims.push(cvDiagTabla('Códigos (SKU) que más pesan en el rezago','🔻', fc.skus, semsDato, {top:8, siempre:true}));
+
+  // ---- causas: visitas, demos, distribución, venta cero (solo tiendas rezagadas)
+  const porTienda = cvDiagAgrupar(filas, r=>r.cadena+'|'+r.num_tienda).filter(a=>a.meta>0);
+  const rez = porTienda.filter(a=>a.pct<80);
+  const mesesAnioMes = new Set([...cvFiltroMeses].map(m=>MES_NUM_BONO[m]).filter(Boolean).map(n=>'2026-'+String(n).padStart(2,'0')));
+  const caps = getCapturas().filter(c=>c.fecha_registro && mesesAnioMes.has(fechaLocal(c.fecha_registro).slice(0,7)));
+  const visitas = new Set(caps.filter(c=>c.tipo==='entrada_tienda').map(c=>c.cadena+'|'+c.tienda));
+  const demos = new Set(caps.filter(c=>c.tipo==='degustacion').map(c=>c.cadena+'|'+c.tienda));
+  const hayCapturas = caps.some(c=>c.tipo==='entrada_tienda');
+  const dist = new Map((APP_DATA.distribucion_por_tienda||[]).map(d=>[d.cadena+'|'+d.num_tienda, d]));
+  const vcero = {}; (APP_DATA.alertas_venta_cero||[]).forEach(a=>{ const k=a.cadena+'|'+a.num_tienda; vcero[k]=(vcero[k]||0)+1; });
+  const nombreSt = k => { const s=storeBy.get(k); return s? `${s.num_tienda} · ${s.tienda}` : k; };
+  const rezSinVisita = hayCapturas ? rez.filter(a=>!visitas.has(storeBy.get(a.k).cadena+'|'+storeBy.get(a.k).tienda)) : [];
+  const rezSinDemo = hayCapturas ? rez.filter(a=>!demos.has(storeBy.get(a.k).cadena+'|'+storeBy.get(a.k).tienda)) : [];
+  const rezDist = rez.filter(a=>dist.get(a.k) && dist.get(a.k).pct_distribucion<100);
+  const rezVCero = rez.filter(a=>vcero[a.k]>0);
+  const pctProm = arr => arr.length ? arr.reduce((x,a)=>x+a.real,0)/Math.max(1,arr.reduce((x,a)=>x+a.meta,0))*100 : null;
+  const conDemo = porTienda.filter(a=>{const s=storeBy.get(a.k); return demos.has(s.cadena+'|'+s.tienda);});
+  const sinDemo = porTienda.filter(a=>{const s=storeBy.get(a.k); return !demos.has(s.cadena+'|'+s.tienda);});
+  const conVisita = porTienda.filter(a=>{const s=storeBy.get(a.k); return visitas.has(s.cadena+'|'+s.tienda);});
+  const sinVisita = porTienda.filter(a=>{const s=storeBy.get(a.k); return !visitas.has(s.cadena+'|'+s.tienda);});
+
+  // ---- alertas y sugerencias
+  const A = []; const add=(n,t,d,a)=>A.push({n,t,d,a});
+  const piv = (APP_DATA.bi_meta||{}).pipeline_actualizado_utc;
+  if(piv){
+    const dias = Math.round((Date.now()-new Date(piv).getTime())/86400000);
+    if(dias>=7) add('warn', `El sell out solo está cargado hasta la semana S${semsDato[semsDato.length-1]} (actualizado hace ${dias} días)`, 'Los % de abajo son "a la fecha de carga"; lo que se vendió después no se está viendo.', 'Cargar el sell out y el pipeline más recientes antes de tomar decisiones con estos %.');
+  }
+  if(pctT!=null && pctT<85) add('bad', `Ritmo atorado: ${Math.round(pctT)}% de la ${metaTxt} a la fecha (${fmtNum(realT)} de ${fmtNum(metaT)} pzas)`, pctProy!=null ? `Si siguen al ritmo actual (~${fmtNum(ritmoSem)} pzas/semana) cierran en ~${Math.round(pctProy)}% de la ${metaTxt} del periodo.` : '', (semsPorVenir>0.01 ? `Para cerrar necesitan ~${fmtNum(Math.max(0,metaPeriodo-realT)/semsPorVenir)} pzas/semana en las ${Math.round(semsPorVenir*10)/10} semana(s) restantes: concentrar esfuerzo en las tiendas y códigos que más pesan (tablas de abajo).` : `El periodo ya cerró con ${fmtNum(Math.max(0,metaPeriodo-realT))} pzas por debajo de la meta: usa las tablas de abajo para decidir dónde arrancar fuerte el siguiente mes.`));
+  else if(pctT!=null) add('good', `Vas en ${Math.round(pctT)}% de la ${metaTxt} a la fecha`, '', 'Mantener el ritmo y cuidar las tiendas rezagadas para que no jalen el promedio.');
+  const dimsFuertes = [['cadena',cvDiagAgrupar(filas,r=>r.cadena)],['región',cvDiagAgrupar(filas,r=>(r.st.region && String(r.st.region)!=='0') ? r.st.region : '(sin región)')],['familia',fc.fams],['código',fc.skus]];
+  dimsFuertes.forEach(([n,arr])=>{
+    const top = arr.filter(a=>a.meta>0).sort((a,b)=>b.falta-a.falta)[0];
+    if(top && arr.length>1 && top.peso>=30 && top.pct<90) add(top.pct<70?'bad':'warn', `${top.etiqueta||top.k}: concentra ${Math.round(top.peso)}% del rezago por ${n} (cumple ${Math.round(top.pct)}%)`, `Faltan ${fmtNum(top.falta)} pzas.`, `Sentarse con el responsable de ${top.etiqueta||top.k} para un plan específico (exhibición, promoción, resurtido o degustaciones).`);
+  });
+  const sups = cvDiagAgrupar(filas, r=>{ const s=supervisorDeTienda(r.st); return s?nombreCorto(s):''; }).filter(a=>a.meta>0).sort((a,b)=>b.falta-a.falta);
+  if(currentUser.perfil!=='Embajador' && sups.length>1 && sups[0].pct<80) add('warn', `Supervisión con más rezago: ${sups[0].k} (${Math.round(sups[0].pct)}%, faltan ${fmtNum(sups[0].falta)} pzas)`, `Le siguen ${sups.slice(1,3).map(s=>`${s.k} ${Math.round(s.pct)}%`).join(' · ')}.`, 'Acompañamiento en piso esta semana y revisar su ruta: ¿las tiendas rezagadas están dentro de las visitas?');
+  const cae = cvDiagAgrupar(filas, r=>r.cadena).filter(a=>a.meta>0).map(a=>({a, t:cvDiagTendencia(a, semsDato)})).filter(x=>x.t.delta<=-15).sort((x,y)=>x.t.delta-y.t.delta);
+  if(cae.length) add('warn', `Caída fuerte en la última semana: ${cae.slice(0,3).map(x=>`${x.a.k} (${Math.round(x.t.delta)} pts)`).join(', ')}`, 'Pasó de una semana a otra, no es un problema de todo el mes.', 'Revisar qué cambió esa semana: quiebres de inventario, cambio de exhibición, precio, o falta de visita.');
+  if(rez.length){
+    if(rezDist.length) add('warn', `${rezDist.length} de ${rez.length} tiendas rezagadas no tienen toda la distribución (<100% de lo objetivo)`, rezDist.slice(0,3).map(a=>`${nombreSt(a.k)} (${Math.round(dist.get(a.k).pct_distribucion)}%)`).join('; ')+'.', 'Si no está en anaquel no se vende: gestionar altas/resurtido de esos códigos con la cadena antes de pedir más esfuerzo en piso.');
+    if(rezVCero.length) add('warn', `${rezVCero.length} tiendas rezagadas tienen códigos con venta cero`, rezVCero.slice(0,3).map(a=>`${nombreSt(a.k)} (${vcero[a.k]} código(s))`).join('; ')+'.', 'Revisar si hay producto, precio correcto y ubicación; si hay inventario sin venta, impulsar con degustación o promoción.');
+    if(hayCapturas && rezSinVisita.length) add('warn', `${rezSinVisita.length} de ${rez.length} tiendas rezagadas NO tienen visita registrada en el periodo`, rezSinVisita.slice(0,3).map(a=>nombreSt(a.k)).join('; ')+'.', 'Meterlas a la ruta de esta semana (Preasignación de rutas) como prioridad.');
+    if(hayCapturas && rezSinDemo.length) add('info', `${rezSinDemo.length} de ${rez.length} tiendas rezagadas no han tenido degustación en el periodo`, '', 'Programar demos en las tiendas rezagadas con mayor tráfico (empezar por las de mayor "falta").');
+  }
+  if(hayCapturas && conDemo.length>=3 && sinDemo.length>=3){
+    const a = pctProm(conDemo), b = pctProm(sinDemo);
+    add(a>b?'info':'info', `Tiendas con degustación cumplen ${Math.round(a)}% vs ${Math.round(b)}% las que no tuvieron`, `${conDemo.length} con demo vs ${sinDemo.length} sin demo (solo cuenta lo capturado en la app; es una pista, no una prueba de causa).`, a>b+5 ? 'Las demos parecen ayudar: priorizarlas en tiendas con rezago.' : 'Por ahora no se ve una diferencia clara; revisar calidad/ubicación de las demos.');
+  }
+  if(hayCapturas && conVisita.length>=3 && sinVisita.length>=3){
+    const a = pctProm(conVisita), b = pctProm(sinVisita);
+    add('info', `Tiendas visitadas cumplen ${Math.round(a)}% vs ${Math.round(b)}% las sin visita registrada`, `${conVisita.length} visitadas vs ${sinVisita.length} sin visita (según capturas de check-in).`, a>b+5 ? 'La visita se nota en venta: subir cobertura en las no visitadas.' : 'La visita por sí sola no explica el rezago: revisar qué se hace en la visita (exhibición, resurtido, demo).');
+  }
+  const color = {bad:'var(--bad)', warn:'var(--warn)', info:'var(--brand,#a1274b)', good:'var(--good,#2e8b57)'}, ico={bad:'🔴',warn:'🟠',info:'🔵',good:'🟢'};
+  const alertasHtml = A.map(x=>`<div class="card" style="margin-bottom:8px; padding:10px 14px; border-left:4px solid ${color[x.n]};"><div style="font-weight:700; font-size:13.5px;">${ico[x.n]} ${pcEsc(x.t)}</div>${x.d?`<div style="font-size:12.5px; color:var(--ink-soft); margin-top:2px;">${pcEsc(x.d)}</div>`:''}<div style="font-size:12.5px; margin-top:4px;">👉 <b>Qué hacer:</b> ${pcEsc(x.a)}</div></div>`).join('');
+
+  box.innerHTML = `<div class="card" style="padding:12px 14px; margin-bottom:12px;"><div style="font-size:13px; line-height:1.55;">
+      Comparando <b>${metaTxt}</b> contra venta real en las <b>${semsDato.length} semana(s) con dato</b> (S${semsDato[0]}–S${semsDato[semsDato.length-1]})${enc?` · <b>S${enc.semana} va en curso: ${enc.dias_con_dato} de ${enc.dias||7} días</b>, su meta se prorrateó a la fecha`:''}${semsFaltan?` · faltan ${semsFaltan} semana(s) del periodo por cargar`:''}.
+      <b>${Math.round(pctT)}%</b> de cumplimiento a la fecha, faltan <b>${fmtNum(Math.max(0,metaT-realT))} pzas</b>. "Pesa en el rezago" = qué parte del hueco total explica cada renglón: ahí es donde más vale la pena actuar primero.</div></div>
+    <h3 style="font-size:14px; color:var(--brand-dark); margin:6px 0 8px;">🚨 Alertas y qué hacer</h3>${alertasHtml}
+    <h3 style="font-size:14px; color:var(--brand-dark); margin:16px 0 8px;">¿Dónde se está atorando?</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:0 14px;">${dims.join('')}</div>
+    <p style="font-size:11px; color:var(--ink-soft); margin:2px 0 0;">Familia y código: Septiembre y Octubre usan la cuota por SKU prorrateada a las semanas con dato vs. la venta real por código del sell out; Agosto usa la cuota y real por SKU del mes completo.</p>`;
+}
+
+let cvTiendaExpandida = null;
+let cvSemanaTiendaExpandida = null;
+function renderCvTablaTienda(storesScope, semanas){
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const porTiendaSem = {};
+  cumpRows.forEach(c=>{
+    const key = c.cadena+'|'+c.num_tienda;
+    (porTiendaSem[key] = porTiendaSem[key] || {cadena:c.cadena, num_tienda:c.num_tienda, tienda:'', meta:0, real:0, semanas:{}});
+    const m = cvMetaUni(c)||0, r = c.real_uni||0;
+    porTiendaSem[key].meta += m;
+    porTiendaSem[key].real += r;
+    porTiendaSem[key].semanas[c.semana] = {meta:m, real:r};
+  });
+  storesScope.forEach(s=>{ const k=s.cadena+'|'+s.num_tienda; if(porTiendaSem[k]) porTiendaSem[k].tienda = s.tienda; });
+
+  window.toggleCvTiendaExpandida = function(key){ cvTiendaExpandida = cvTiendaExpandida===key ? null : key; window.render_cvTablaTienda(); };
+  window.render_cvTablaTienda = function(){
+    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).map(v=>({...v, falta: Math.max(0, v.meta-v.real), pct: v.meta ? Math.round(v.real/v.meta*1000)/10 : null})).sort((a,b)=>b.falta-a.falta);
+    const rowsHtml = filas.map(f=>{
+      const key = f.cadena+'|'+f.num_tienda;
+      let html = `<tr style="cursor:pointer;" onclick="toggleCvTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${cvTiendaExpandida===key?'▼':'▶'} ${f.num_tienda} · ${f.tienda}</td><td>${f.cadena}</td><td class="num">${fmtNum(f.meta)}</td><td class="num">${fmtNum(f.real)}</td><td class="num">${f.pct!=null?f.pct+'%':'—'}</td><td class="num">${fmtNum(f.falta)}</td></tr>`;
+      if(cvTiendaExpandida===key){
+        const semsOrdenadas = Object.keys(f.semanas).map(Number).sort((a,b)=>a-b);
+        html += semsOrdenadas.map(s=>{
+          const d = f.semanas[s];
+          const p = d.meta ? Math.round(d.real/d.meta*1000)/10 : null;
+          return `<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;" colspan="2">Semana ${s}</td><td class="num" style="font-size:12px;">${fmtNum(d.meta)}</td><td class="num" style="font-size:12px;">${fmtNum(d.real)}</td><td class="num" style="font-size:12px;">${p!=null?p+'%':'—'}</td><td class="num" style="font-size:12px;">${fmtNum(Math.max(0,d.meta-d.real))}</td></tr>`;
+        }).join('');
+      }
+      return html;
+    }).join('');
+    document.getElementById('cvTablaTienda').innerHTML = `<table><thead><tr><th># Tienda (clic para desglose por semana)</th><th>Cadena</th><th class="num">${metaLabelTxt} (piezas)</th><th class="num">Real (piezas)</th><th class="num">%</th><th class="num">Falta</th></tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="6" class="empty-state">Sin datos.</td></tr>`}</tbody></table>`;
+  };
+  window.render_cvTablaTienda();
+
+  window.exportarCvTablaCSV = function(){
+    const filas = Object.values(porTiendaSem).filter(v=>v.tienda).map(v=>({...v, falta: Math.max(0, v.meta-v.real), pct: v.meta ? Math.round(v.real/v.meta*1000)/10 : null})).sort((a,b)=>b.falta-a.falta);
+    const headers = ['Cadena','# Tienda','Tienda', metaLabelTxt+' (piezas)','Real (piezas)','% Cumplimiento','Falta (piezas)'];
+    const rows = filas.map(f=>[f.cadena, f.num_tienda, f.tienda, f.meta, f.real, f.pct, f.falta]);
+    exportarCSV(`cumplimiento_venta_por_tienda_${todayISO()}.csv`, headers, rows);
+  };
+}
+const MES_A_NUM_CV = {'Enero':1,'Febrero':2,'Marzo':3,'Abril':4,'Mayo':5,'Junio':6,'Julio':7,'Agosto':8,'Septiembre':9,'Octubre':10,'Noviembre':11,'Diciembre':12};
+/* Selector de semana + tabla "a nivel código de tienda" para UNA semana elegida (complementa la tabla
+   de arriba, que va al revés: por tienda, expandiendo a sus semanas). */
+function poblarCvSemanaPick(semanas){
+  const sel = document.getElementById('cvSemanaPick');
+  if(!sel) return;
+  const semArr = [...semanas].sort((a,b)=>a-b);
+  const valorPrevio = sel.value;
+  sel.innerHTML = semArr.length ? semArr.map(s=>`<option value="${s}">Semana ${s}</option>`).join('') : `<option value="">Sin semanas</option>`;
+  if(valorPrevio && semArr.map(String).includes(valorPrevio)) sel.value = valorPrevio;
+  else if(semArr.length) sel.value = String(semArr[semArr.length-1]);
+}
+function renderCvPorSemanaTienda(){
+  const box = document.getElementById('cvTablaSemanaTienda');
+  if(!box) return;
+  const sel = document.getElementById('cvSemanaPick');
+  const semana = sel && sel.value ? Number(sel.value) : null;
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  if(!semana){ window._cvSemanaTiendaData = []; box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin semanas disponibles para este filtro.</p>`; return; }
+  const storesScope = storesScopeCumpVenta();
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const filas = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && c.semana===semana).map(c=>{
+    const st = storesScope.find(s=>s.cadena===c.cadena && s.num_tienda===c.num_tienda);
+    const meta = cvMetaUni(c)||0, real = c.real_uni||0;
+    return {cadena:c.cadena, num_tienda:c.num_tienda, tienda: st?st.tienda:'', meta, real, falta: Math.max(0, meta-real), pct: meta ? Math.round(real/meta*1000)/10 : null};
+  }).filter(f=>f.tienda);
+  window._cvSemanaTiendaData = filas;
+  window.toggleCvSemanaTiendaExpandida = function(key){ cvSemanaTiendaExpandida = cvSemanaTiendaExpandida===key ? null : key; window.render_cvSemanaTienda(); };
+  window.render_cvSemanaTienda = function(){
+    const ordenadas = ordenarFilas('cvSemanaTienda', window._cvSemanaTiendaData, 'falta');
+    const rowsHtml = ordenadas.map(f=>{
+      const key = f.cadena+'|'+f.num_tienda;
+      let fila = `<tr style="cursor:pointer;" onclick="toggleCvSemanaTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${cvSemanaTiendaExpandida===key?'▼':'▶'} ${f.num_tienda}</td><td>${f.tienda}</td><td>${f.cadena}</td><td class="num">${fmtNum(f.meta)}</td><td class="num">${fmtNum(f.real)}</td><td class="num">${f.pct!=null?f.pct+'%':'—'}</td><td class="num">${fmtNum(f.falta)}</td></tr>`;
+      if(cvSemanaTiendaExpandida===key){
+        const skus = (APP_DATA.ventas_cuota_sku||[]).filter(v=>v.cadena===f.cadena && v.num_tienda===f.num_tienda);
+        fila += skus.length ? `<tr style="background:#f7f8ee;"><td colspan="7" style="padding:6px 10px 2px 26px; font-size:11px; color:var(--ink-soft);">Detalle por código (SKU) — cuota y venta real del periodo completo con datos cargados, no solo de esta semana:</td></tr>`
+          + skus.sort((a,b)=>(b.cuota_uni||0)-(a.cuota_uni||0)).map(v=>{
+            const mesesSel = [...cvFiltroMeses]; const metaSku = mesesSel.reduce((a,m)=>a+skuMetaMes(v,m,cvMetaTipo),0); const realSku = mesesSel.reduce((a,m)=>a+skuRealMes(v,m),0);
+            const pctSku = metaSku ? Math.round(realSku/metaSku*1000)/10 : null;
+            return `<tr style="background:#f7f8ee;"><td colspan="2" style="padding-left:26px; font-size:12px;">${v.clave}</td><td style="font-size:12px;">${v.familia||''}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(metaSku):'—'}</td><td class="num" style="font-size:12px;">${fmtNum(realSku)}</td><td class="num" style="font-size:12px;">${pctSku!=null?pctSku+'%':'—'}</td><td class="num" style="font-size:12px;">${metaSku!=null?fmtNum(Math.max(0,metaSku-(v.real_uni||0))):'—'}</td></tr>`;
+          }).join('')
+          : `<tr style="background:#f7f8ee;"><td colspan="7" style="padding-left:26px; font-size:12px; color:var(--ink-soft);">Sin detalle por código disponible para esta tienda.</td></tr>`;
+      }
+      return fila;
+    }).join('');
+    box.innerHTML = `<table><thead><tr>${colHead('cvSemanaTienda','num_tienda','# Tienda (clic para ver el detalle por código)',true)}<th>Tienda</th><th>Cadena</th>${colHead('cvSemanaTienda','meta',metaLabelTxt+' (piezas)',true)}${colHead('cvSemanaTienda','real','Real (piezas)',true)}${colHead('cvSemanaTienda','pct','%',true)}${colHead('cvSemanaTienda','falta','Falta',true)}</tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="7" class="empty-state">Sin datos para esta semana.</td></tr>`}</tbody></table>`;
+  };
+  window.render_cvSemanaTienda();
+}
+function exportarCvSemanaTiendaCSV(){
+  const filas = window._cvSemanaTiendaData || [];
+  const sel = document.getElementById('cvSemanaPick');
+  const semana = sel ? sel.value : '';
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+  const headers = ['# Tienda','Tienda','Cadena', metaLabelTxt+' (piezas)','Real (piezas)','% Cumplimiento','Falta (piezas)'];
+  const rows = filas.map(f=>[f.num_tienda, f.tienda, f.cadena, f.meta, f.real, f.pct, f.falta]);
+  exportarCSV(`cumplimiento_venta_semana_${semana}_${todayISO()}.csv`, headers, rows);
+}
+function renderCumpVenta(){
+  poblarFiltrosCumpVenta();
+  const storesScope = storesScopeCumpVenta();
+  const semanas = semanasDeMesesSeleccionadosCv();
+  const metaLabelTxt = cvMetaTipo==='escalon' ? 'Escalón Bono' : 'Cuota';
+
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const cumpRows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && semanas.has(c.semana));
+  const metaUniT = cumpRows.reduce((a,r)=>a+(cvMetaUni(r)||0),0);
+  const realUniT = cumpRows.reduce((a,r)=>a+(r.real_uni||0),0);
+  const pctUni = metaUniT ? Math.round(realUniT/metaUniT*1000)/10 : null;
+
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  setTxt('cvKpiMetaLabel', metaLabelTxt+' del periodo (piezas)');
+  setTxt('cvKpiMeta', fmtNum(metaUniT));
+  setTxt('cvKpiReal', fmtNum(realUniT));
+  setTxt('cvKpiPct', pctUni!=null ? pctUni+'%' : '—');
+  setTxt('cvKpiFalta', fmtNum(Math.max(0, metaUniT-realUniT)));
+  setTxt('cvKpiTiendas', storesScope.length);
+
+  renderCvSemanal(storesScope, semanas);
+  renderCvInsights(storesScope, semanas);
+  try{ renderCvDiagnostico(storesScope, semanas); }catch(e){ console.error('cvDiag', e); const bx=document.getElementById('cvDiag'); if(bx) bx.innerHTML=''; }
+  renderCvTablaTienda(storesScope, semanas);
+  poblarCvSemanaPick(semanas);
+  renderCvPorSemanaTienda();
+
+  const note = document.getElementById('cvScopeNote');
+  if(currentUser.perfil === 'Embajador'){
+    const extra = tiendasExtraAprobadasParaMi();
+    if(note) note.textContent = extra.length
+      ? `Mostrando solo tus tiendas asignadas + ${extra.length} tienda(s) adicional(es) aprobada(s) temporalmente.`
+      : 'Mostrando solo tus tiendas asignadas.';
+  } else if(note) note.textContent = '';
+}
+/* ---------- CUMPLIMIENTO DE PRIORIDADES (pestaña propia): qué tanto se ejecuta cada prioridad vigente en piso, por mes y por tienda ---------- */
+let cpFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
+function asegurarCpFiltroMesesInicial(){
+  if(cpFiltroMeses === null) cpFiltroMeses = new Set(mesesDisponiblesObj());
+}
+function cpMesTodo(){ cpFiltroMeses = new Set(mesesDisponiblesObj()); renderCpMesChips(); renderCumpPrioridades(); }
+function cpMesNinguno(){ cpFiltroMeses = new Set(); renderCpMesChips(); renderCumpPrioridades(); }
+function toggleCpFiltroMes(m){
+  asegurarCpFiltroMesesInicial();
+  if(cpFiltroMeses.has(m)) cpFiltroMeses.delete(m); else cpFiltroMeses.add(m);
+  renderCpMesChips(); renderCumpPrioridades();
+}
+function renderCpMesChips(){
+  const panel = document.getElementById('cpMesDdPanel');
+  const btn = document.getElementById('cpMesDdBtn');
+  if(!panel || !btn) return;
+  asegurarCpFiltroMesesInicial();
+  const meses = mesesDisponiblesObj();
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cpMesTodo()">Todo</button><button type="button" onclick="cpMesNinguno()">Ninguno</button></div>`
+    + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${cpFiltroMeses.has(m)?'checked':''} onchange="toggleCpFiltroMes('${m}')"> ${m}</label>`).join('');
+  const sel = meses.filter(m=>cpFiltroMeses.has(m));
+  btn.textContent = sel.length===0 ? 'Ninguno seleccionado' : sel.length===meses.length ? 'Todos los meses' : sel.join(', ');
+}
+function mesesSeleccionadosCpComoAnioMes(){
+  asegurarCpFiltroMesesInicial();
+  const set = new Set();
+  [...cpFiltroMeses].forEach(m => { const n = MES_NUM_BONO[m]; if(n) set.add('2026-' + String(n).padStart(2,'0')); });
+  return set;
+}
+function renderCpTiendaDropdown(){
+  const panel = document.getElementById('cpTiendaDdPanel');
+  const btn = document.getElementById('cpTiendaDdBtn');
+  const sel = document.getElementById('cpTiendaMulti');
+  if(!panel || !btn || !sel) return;
+  const opciones = [...sel.options];
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="cpTiendaTodasDD(true)">Todo</button><button type="button" onclick="cpTiendaTodasDD(false)">Ninguno</button></div>`
+    + (opciones.map(o=>`<label class="tienda-dd-item"><input type="checkbox" data-val="${o.value.replace(/"/g,'&quot;')}" ${o.selected?'checked':''} onchange="onCpTiendaDdCheck(this)"> ${o.textContent}</label>`).join('') || `<div style="padding:8px; font-size:12px; color:var(--ink-soft);">Sin tiendas.</div>`);
+  const marcadas = opciones.filter(o=>o.selected);
+  btn.textContent = (marcadas.length===0 || marcadas.length===opciones.length) ? 'Todas' : (marcadas.length + ' seleccionada' + (marcadas.length>1?'s':''));
+}
+let cpFiltroTiendas = new Set();
+function onCpTiendaMultiChange(){
+  const sel = document.getElementById('cpTiendaMulti');
+  if(!sel) return;
+  cpFiltroTiendas = new Set([...sel.selectedOptions].map(o=>o.value));
+  renderCumpPrioridades();
+}
+function onCpTiendaDdCheck(chk){
+  const sel = document.getElementById('cpTiendaMulti');
+  const val = chk.getAttribute('data-val');
+  const opt = [...sel.options].find(o=>o.value===val);
+  if(opt) opt.selected = chk.checked;
+  onCpTiendaMultiChange();
+  renderCpTiendaDropdown();
+}
+function cpTiendaTodasDD(marcar){
+  const sel = document.getElementById('cpTiendaMulti');
+  [...sel.options].forEach(o=>o.selected=marcar);
+  onCpTiendaMultiChange();
+  renderCpTiendaDropdown();
+}
+function poblarFiltrosCumpPrioridades(){
+  poblarSelectMultipleTiendas('cpTiendaMulti', storesScopeParaMi());
+  renderCpMesChips();
+  renderCpTiendaDropdown();
+}
+function restablecerFiltrosCumpPrioridades(){
+  const cpTiendaMultiSel = document.getElementById('cpTiendaMulti');
+  if(cpTiendaMultiSel) [...cpTiendaMultiSel.options].forEach(o=>o.selected=false);
+  cpFiltroTiendas.clear();
+  cpFiltroMeses = new Set(mesesDisponiblesObj());
+  renderCpMesChips();
+  renderCpTiendaDropdown();
+  toast('Filtros de Cumplimiento de prioridades restablecidos');
+  renderCumpPrioridades();
+}
+function storesScopeCumpPrioridades(){
+  let scope = storesScopeParaMi();
+  if(cpFiltroTiendas.size) scope = scope.filter(s=> cpFiltroTiendas.has(s.tienda));
+  return scope;
+}
+function prioridadesEnScopeCp(storesScope){
+  const cadenasScope = new Set(storesScope.map(s=>s.cadena));
+  let arr = getPrioridades().filter(p=> !p.cadenas || !p.cadenas.length || p.cadenas.some(c=>cadenasScope.has(c)));
+  if(currentUser.perfil === 'Embajador'){
+    arr = arr.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
+  }
+  return arr;
+}
+function cpVisitasEnVentana(p, storesScope, mesesSet){
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const tiendaNames = new Set(storesScope.map(s=>s.tienda));
+  const desde = p.desde || '0000-01-01';
+  const hasta = p.hasta || '9999-12-31';
+  return getCapturas().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
+    && fechaLocal(c.fecha_registro)>=desde && fechaLocal(c.fecha_registro)<=hasta
+    && mesesSet.has(fechaLocal(c.fecha_registro).slice(0,7))
+    && tiendaNames.has(c.tienda)
+    && (!p.cadenas || !p.cadenas.length || p.cadenas.includes(c.cadena)));
+}
+function cpEjecucionesEnScope(p, storesScope, mesesSet){
+  const tiendaNames = new Set(storesScope.map(s=>s.tienda));
+  return getCumplimientosPrioridad().filter(r=> r.prioridad_id===p.id && r.fecha_registro && mesesSet.has(fechaLocal(r.fecha_registro).slice(0,7)) && tiendaNames.has(r.tienda));
+}
+let cpPrioridadExpandida = null;
+function renderCumpPrioridades(){
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  const filtrosBar = document.getElementById('cpFiltrosBar');
+  const tiendasWrap = document.getElementById('cpKpiTiendasWrap');
+  const insightsWrap = document.getElementById('cpInsightsWrap');
+  const tablaWrap = document.getElementById('cpTablaWrap');
+  if(filtrosBar) filtrosBar.classList.toggle('hidden', esEmbajador);
+  if(tiendasWrap) tiendasWrap.classList.toggle('hidden', esEmbajador);
+  if(insightsWrap) insightsWrap.classList.toggle('hidden', esEmbajador);
+  if(tablaWrap) tablaWrap.classList.toggle('hidden', esEmbajador);
+  renderCpTareas();
+  if(esEmbajador){
+    /* Vista simplificada de solo consulta: cuántas prioridades vigentes se pusieron y cuántas cumplió. */
+    const storesScope = storesScopeCumpPrioridades();
+    const prioridades = prioridadesEnScopeCp(storesScope);
+    const conSeguimiento = prioridades.filter(p=>p.requiere_foto||p.requiere_confirmacion);
+    const misRegistros = getCumplimientosPrioridad().filter(r=>r.usuario===currentUser.usuario);
+    const cumplidas = conSeguimiento.filter(p=>misRegistros.some(r=>r.prioridad_id===p.id)).length;
+    const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+    setTxt('cpKpiTotal', prioridades.length);
+    setTxt('cpKpiSeguimiento', conSeguimiento.length);
+    setTxt('cpKpiPct', conSeguimiento.length ? Math.round(cumplidas/conSeguimiento.length*100)+'%' : '—');
+    const note = document.getElementById('cpScopeNote');
+    if(note) note.textContent = `De ${conSeguimiento.length} prioridad(es) que piden foto o confirmación, ya cumpliste ${cumplidas}. Esta vista es solo de consulta — para responder o subir foto, ve a Ejecución › Prioridades y tareas.`;
+    return;
+  }
+  poblarFiltrosCumpPrioridades();
+  const storesScope = storesScopeCumpPrioridades();
+  const mesesSet = mesesSeleccionadosCpComoAnioMes();
+  const prioridades = prioridadesEnScopeCp(storesScope);
+  const conSeguimiento = prioridades.filter(p=>p.requiere_foto||p.requiere_confirmacion);
+
+  window._cpDatos = conSeguimiento.map(p=>{
+    const visitasArr = cpVisitasEnVentana(p, storesScope, mesesSet);
+    const visitasUnicas = new Set(visitasArr.map(c=>c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
+    const ejecs = cpEjecucionesEnScope(p, storesScope, mesesSet);
+    const pct = visitasUnicas.size ? Math.round(ejecs.length/visitasUnicas.size*100) : null;
+    // desglose por tienda
+    const porTienda = {};
+    visitasArr.forEach(c=>{ (porTienda[c.tienda] = porTienda[c.tienda] || {tienda:c.tienda, cadena:c.cadena, visitas:new Set(), ejecs:0}).visitas.add(c.usuario+'|'+fechaLocal(c.fecha_registro)); });
+    ejecs.forEach(e=>{ if(porTienda[e.tienda]) porTienda[e.tienda].ejecs += 1; else porTienda[e.tienda] = {tienda:e.tienda, cadena:e.cadena, visitas:new Set(), ejecs:1}; });
+    const tiendasDetalle = Object.values(porTienda).map(t=>({tienda:t.tienda, cadena:t.cadena, visitas:t.visitas.size, ejecs:t.ejecs, pct: t.visitas.size ? Math.round(t.ejecs/t.visitas.size*100) : null})).sort((a,b)=>(a.pct??999)-(b.pct??999));
+    return {...p, visitasVentana: visitasUnicas.size, ejecuciones: ejecs.length, pct, tiendasDetalle};
+  });
+
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  setTxt('cpKpiTotal', prioridades.length);
+  setTxt('cpKpiSeguimiento', conSeguimiento.length);
+  const conPct = window._cpDatos.filter(p=>p.pct!=null);
+  const pctProm = conPct.length ? Math.round(conPct.reduce((a,p)=>a+p.pct,0)/conPct.length) : null;
+  setTxt('cpKpiPct', pctProm!=null ? pctProm+'%' : '—');
+  setTxt('cpKpiTiendas', storesScope.length);
+
+  // Insights
+  const insBox = document.getElementById('cpInsights');
+  if(insBox){
+    const lineas = [];
+    lineas.push(`📊 <b>Prioridades vigentes en este filtro:</b> ${prioridades.length}, de las cuales ${conSeguimiento.length} tienen seguimiento (foto o confirmación) para poder medir su cumplimiento.`);
+    if(pctProm!=null) lineas.push(`🎯 <b>Cobertura promedio:</b> ${pctProm}% de las visitas en la ventana de vigencia sí ejecutaron la prioridad.`);
+    const ordenadasPeor = [...conPct].sort((a,b)=>a.pct-b.pct);
+    const peor = ordenadasPeor[0];
+    const mejor = ordenadasPeor[ordenadasPeor.length-1];
+    if(peor && peor!==mejor) lineas.push(`🚩 <b>La que más rezago tiene:</b> "${peor.texto}" — ${peor.pct}% de cobertura${peor.desde?` (vigente desde ${peor.desde})`:''}.`);
+    if(mejor) lineas.push(`✅ <b>La que mejor se está ejecutando:</b> "${mejor.texto}" — ${mejor.pct}% de cobertura.`);
+    if(peor && peor.tiendasDetalle && peor.tiendasDetalle.length){
+      const peoresTiendas = peor.tiendasDetalle.filter(t=>t.pct!=null).sort((a,b)=>a.pct-b.pct).slice(0,4);
+      if(peoresTiendas.length) lineas.push(`📍 <b>Dónde falla más "${peor.texto}":</b> ${peoresTiendas.map(t=>`${t.tienda} (${t.pct}%)`).join(', ')}.`);
+    }
+    if(!conSeguimiento.length) lineas.push(`ℹ️ Ninguna de las prioridades vigentes en este filtro tiene seguimiento activado (foto o confirmación), así que no se puede medir % de cobertura todavía.`);
+    insBox.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">${lineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>`;
+  }
+
+  // Tabla por prioridad, expandible a detalle por tienda
+  window.toggleCpPrioridadExpandida = function(id){ cpPrioridadExpandida = cpPrioridadExpandida===id ? null : id; window.render_cpTabla(); };
+  window.render_cpTabla = function(){
+    const box = document.getElementById('cpTablaPrioridades');
+    if(!box) return;
+    const filas = window._cpDatos.slice().sort((a,b)=>(a.pct??999)-(b.pct??999));
+    const respuestasTodas = getCumplimientosPrioridad();
+    const rowsHtml = filas.map(p=>{
+      let html = `<tr style="cursor:pointer;" onclick="toggleCpPrioridadExpandida('${p.id}')"><td>${cpPrioridadExpandida===p.id?'▼':'▶'} ${p.texto}</td><td class="num">${p.visitasVentana}</td><td class="num">${p.ejecuciones}</td><td class="num">${p.pct!=null?p.pct+'%':'—'}</td></tr>`;
+      if(cpPrioridadExpandida===p.id){
+        html += p.tiendasDetalle.length ? p.tiendasDetalle.map(t=>`<tr style="background:#f7f8ee;"><td style="padding-left:26px; font-size:12px;">${t.tienda}${t.cadena?' · '+t.cadena:''}</td><td class="num" style="font-size:12px;">${t.visitas}</td><td class="num" style="font-size:12px;">${t.ejecs}</td><td class="num" style="font-size:12px;">${t.pct!=null?t.pct+'%':'—'}</td></tr>`).join('')
+          : `<tr style="background:#f7f8ee;"><td colspan="4" style="font-size:12px; padding-left:26px; color:var(--ink-soft);">Sin visitas registradas en la ventana de vigencia para este filtro.</td></tr>`;
+        const respuestas = respuestasTodas.filter(r=>r.prioridad_id===p.id);
+        if(respuestas.length){
+          html += `<tr style="background:#f7f8ee;"><td colspan="4" style="padding:6px 6px 6px 26px;">
+            <div style="font-size:11px; font-weight:700; color:var(--brand-dark); text-transform:uppercase; margin-bottom:4px;">Respuestas capturadas (qué contestó cada quien)</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${respuestas.map(r=>`<div style="font-size:12px; border-bottom:1px dashed var(--line); padding-bottom:4px;">
+                <b>${nombreCorto(r.persona)}</b> · ${r.tienda||''} · ${fechaHoraLocal(r.fecha_registro)}
+                ${r.activa ? ` — <span style="color:${r.activa==='si'?'var(--good)':'var(--bad)'}; font-weight:700;">${r.activa==='si'?'Sí, está activa':'No, no está activa'}</span>` : ''}
+                ${r.comentario ? `<br><span style="color:var(--ink-soft);">"${r.comentario}"</span>` : ''}
+                ${r.foto ? `<br><img src="${r.foto}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; margin-top:3px; border:1px solid var(--line);">` : ''}
+              </div>`).join('')}
+            </div>
+          </td></tr>`;
+        }
+      }
+      return html;
+    }).join('');
+    box.innerHTML = `<table><thead><tr><th>Prioridad (clic para ver detalle por tienda)</th><th class="num">Visitas en ventana</th><th class="num">Ejecutada</th><th class="num">% Cobertura</th></tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="4" class="empty-state">Sin prioridades con seguimiento en este filtro.</td></tr>`}</tbody></table>`;
+  };
+  window.render_cpTabla();
+
+  window.exportarCpTablaCSV = function(){
+    const filas = window._cpDatos || [];
+    const headers = ['Prioridad','Visitas en ventana','Ejecutada','% Cobertura'];
+    const rows = filas.map(p=>[p.texto, p.visitasVentana, p.ejecuciones, p.pct??'']);
+    exportarCSV(`cumplimiento_prioridades_${todayISO()}.csv`, headers, rows);
+  };
+
+  const note = document.getElementById('cpScopeNote');
+  if(currentUser.perfil === 'Embajador'){
+    const extra = tiendasExtraAprobadasParaMi();
+    if(note) note.textContent = extra.length
+      ? `Mostrando solo tus tiendas asignadas + ${extra.length} tienda(s) adicional(es) aprobada(s) temporalmente.`
+      : 'Mostrando solo tus tiendas asignadas.';
+  } else if(note) note.textContent = '';
+}
+function renderCpTareas(){
+  const box = document.getElementById('cpTareasBox');
+  if(!box) return;
+  const esEmbajador = currentUser.perfil === 'Embajador';
+  if(esEmbajador){
+    const mias = getTareas().filter(t=>t.asignado_a===currentUser.usuario);
+    const cumplidas = mias.filter(t=>t.estado==='finalizada').length;
+    box.innerHTML = `<div class="row" style="margin-bottom:4px;">
+        <div class="card kpi"><div class="label">Tareas asignadas a ti</div><div class="value">${mias.length}</div></div>
+        <div class="card kpi good"><div class="label">Finalizadas</div><div class="value">${cumplidas}</div></div>
+        <div class="card kpi warn"><div class="label">Abiertas</div><div class="value">${mias.length-cumplidas}</div></div>
+      </div>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">Esta vista es solo de consulta. Para responder o finalizar una tarea, ve a Ejecución › Prioridades y tareas.</p>`;
+    return;
+  }
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getTareas().filter(t=>visibleUsuarios.has(t.asignado_a)).sort((a,b)=>(a.estado===b.estado?0:a.estado==='abierta'?-1:1) || b.fecha_creacion.localeCompare(a.fecha_creacion));
+  const abiertas = arr.filter(t=>t.estado==='abierta').length;
+  window._cpTareasExport = arr;
+  box.innerHTML = `<div class="row" style="margin-bottom:10px;">
+      <div class="card kpi"><div class="label">Total</div><div class="value">${arr.length}</div></div>
+      <div class="card kpi warn"><div class="label">Abiertas</div><div class="value">${abiertas}</div></div>
+      <div class="card kpi good"><div class="label">Finalizadas</div><div class="value">${arr.length-abiertas}</div></div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-bottom:6px;"><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarCpTareasCSV()">⬇ Exportar a Excel</button></div>
+    <div class="table-scroll"><table><thead><tr><th>Persona</th><th>Tarea</th><th>Prioridad</th><th>Estado</th><th>Respuesta / conclusión</th></tr></thead><tbody>
+      ${arr.length ? arr.map(t=>`<tr>
+          <td>${nombreCorto(t.asignado_a_nombre)}</td>
+          <td style="font-size:12px;">${t.texto}</td>
+          <td>${PRIORIDAD_TAREA_LABEL[t.prioridad]||t.prioridad}</td>
+          <td>${t.estado}</td>
+          <td style="font-size:12px;">${t.estado==='finalizada' ? (t.conclusion||'') : (t.retroalimentaciones&&t.retroalimentaciones.length ? t.retroalimentaciones.map(r=>`${nombreCorto(r.autor)}: ${r.texto}`).join(' · ') : '—')}</td>
+        </tr>`).join('') : `<tr><td colspan="5" class="empty-state">Sin tareas asignadas en este alcance.</td></tr>`}
+    </tbody></table></div>`;
+}
+function exportarCpTareasCSV(){
+  const arr = window._cpTareasExport || [];
+  const headers = ['Persona','Tarea','Prioridad','Estado','Asignó','Fecha creación','Respuesta/conclusión'];
+  const rows = arr.map(t=>[nombreCorto(t.asignado_a_nombre), t.texto, t.prioridad, t.estado, t.asignado_por, fechaSoloDia(t.fecha_creacion), t.estado==='finalizada' ? (t.conclusion||'') : (t.retroalimentaciones&&t.retroalimentaciones.length ? t.retroalimentaciones.map(r=>`${r.autor}: ${r.texto}`).join(' | ') : '')]);
+  exportarCSV(`tareas_${todayISO()}.csv`, headers, rows);
+}
+/* Mes(es) para Distribución reportada en campo — mismo patrón de checklist desplegable que Objetivos/Cumplimiento de venta */
+let distFiltroMeses = null; // null = aun no inicializado -> se llena con "todos" la primera vez
+function asegurarDistFiltroMesesInicial(){
+  if(distFiltroMeses === null) distFiltroMeses = new Set(mesesDisponiblesObj());
+}
+function distMesTodo(){ distFiltroMeses = new Set(mesesDisponiblesObj()); renderDistMesChips(); renderDistribucion(); }
+function distMesNinguno(){ distFiltroMeses = new Set(); renderDistMesChips(); renderDistribucion(); }
+function toggleDistFiltroMes(m){
+  asegurarDistFiltroMesesInicial();
+  if(distFiltroMeses.has(m)) distFiltroMeses.delete(m); else distFiltroMeses.add(m);
+  renderDistMesChips(); renderDistribucion();
+}
+function renderDistMesChips(){
+  const panel = document.getElementById('distMesDdPanel');
+  const btn = document.getElementById('distMesDdBtn');
+  if(!panel || !btn) return;
+  asegurarDistFiltroMesesInicial();
+  const meses = mesesDisponiblesObj();
+  panel.innerHTML = `<div class="tienda-dd-accion"><button type="button" onclick="distMesTodo()">Todo</button><button type="button" onclick="distMesNinguno()">Ninguno</button></div>`
+    + meses.map(m=>`<label class="tienda-dd-item"><input type="checkbox" ${distFiltroMeses.has(m)?'checked':''} onchange="toggleDistFiltroMes('${m}')"> ${m}</label>`).join('');
+  const sel = meses.filter(m=>distFiltroMeses.has(m));
+  btn.textContent = sel.length===0 ? 'Ninguno seleccionado' : sel.length===meses.length ? 'Todos los meses' : sel.join(', ');
+}
+function mesesSeleccionadosDistComoAnioMes(){
+  asegurarDistFiltroMesesInicial();
+  const set = new Set();
+  [...distFiltroMeses].forEach(m => { const n = MES_NUM_BONO[m]; if(n) set.add('2026-' + String(n).padStart(2,'0')); });
+  return set;
+}
+/* Número de semana ISO (misma numeración que usa el resto de la app para cuotas/escalones: semana 31-35 = agosto, 36-40 = septiembre 2026) */
+function getISOWeek(fechaISO){
+  const d = new Date(fechaSoloDia(fechaISO)+'T00:00:00Z');
+  if(isNaN(d)) return null;
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+function restablecerFiltrosDistribucion(){
+  ['distCadena','distRegion','distCluster','distSupervisor','distEmbajador','distTienda'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const distTiendaMultiSel = document.getElementById('distTiendaMulti');
+  if(distTiendaMultiSel) [...distTiendaMultiSel.options].forEach(o=>o.selected=false);
+  distFiltroMeses = new Set(mesesDisponiblesObj());
+  renderDistMesChips();
+  const dCampoDesdeEl2 = document.getElementById('distCampoDesde');
+  const dCampoHastaEl2 = document.getElementById('distCampoHasta');
+  if(dCampoDesdeEl2) dCampoDesdeEl2.value = '';
+  if(dCampoHastaEl2) dCampoHastaEl2.value = '';
+  toast('Filtros de Distribución restablecidos');
+  renderDistribucion();
+}
+let distTiendaExpandida = null;
+function toggleDistTiendaExpandida(key){ distTiendaExpandida = distTiendaExpandida===key ? null : key; renderDistribucion(); }
+function renderDistribucion(){
+  const box = document.getElementById('distribucionBox');
+  if(!box) return;
+  poblarSelectFiltro('distCadena', [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort());
+  poblarSelectFiltro('distRegion', [...new Set(APP_DATA.stores.map(s=>s.region).filter(Boolean))].sort());
+  poblarSelectFiltro('distCluster', [...new Set(APP_DATA.stores.map(s=>s.cluster).filter(Boolean))].sort());
+  poblarSelectFiltro('distSupervisor', nombresSupervisorUnicos());
+  const embSel = document.getElementById('distEmbajador');
+  if(embSel && embSel.options.length<=1){
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+      const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
+    });
+  }
+  poblarSelectFiltro('distTienda', [...new Set(APP_DATA.stores.map(s=>s.tienda))].sort());
+  if(currentUser.perfil === 'Embajador') poblarDistTiendaMulti();
+  renderDistMesChips();
+  const fCadena = document.getElementById('distCadena').value;
+  const fRegion = document.getElementById('distRegion').value;
+  const fCluster = document.getElementById('distCluster').value;
+  const fSupervisor = document.getElementById('distSupervisor').value;
+  const fEmbajador = document.getElementById('distEmbajador').value;
+  const fTienda = document.getElementById('distTienda').value;
+  const distTiendaMultiSel = document.getElementById('distTiendaMulti');
+  const fTiendasMulti = distTiendaMultiSel ? [...distTiendaMultiSel.selectedOptions].map(o=>o.value) : [];
+
+  let storesScope = storesScopeParaMi();
+  if(fCadena) storesScope = storesScope.filter(s=>s.cadena===fCadena);
+  if(fRegion) storesScope = storesScope.filter(s=>s.region===fRegion);
+  if(fCluster) storesScope = storesScope.filter(s=>s.cluster===fCluster);
+  if(fSupervisor) storesScope = storesScope.filter(s=> mismaPersona(supervisorDeTienda(s), fSupervisor));
+  if(fEmbajador) storesScope = storesScope.filter(s=> s.sector===fEmbajador);
+  if(fTiendasMulti.length) storesScope = storesScope.filter(s=> fTiendasMulti.includes(s.tienda));
+  else if(fTienda) storesScope = storesScope.filter(s=> s.tienda===fTienda);
+  const g = resumenDistribucionGlobal(storesScope);
+  window._distribucionExport = {rows: g.rows, storesScope};
+  let html = `<div class="row" style="margin-bottom:14px;">
+    <div class="card kpi ${g.pct!==null && g.pct<90?'warn':'good'}"><div class="label">% Combinaciones con venta registrada</div><div class="value">${g.pct!==null?g.pct+'%':'—'}</div></div>
+    <div class="card kpi"><div class="label">Combinaciones objetivo (con inventario)</div><div class="value">${fmtNum(g.objetivos)}</div></div>
+    <div class="card kpi good"><div class="label">Combinaciones que sí vendieron</div><div class="value">${fmtNum(g.conVenta)}</div></div>
+    <div class="card kpi bad"><div class="label">Combinaciones en venta cero</div><div class="value">${fmtNum(g.objetivos-g.conVenta)}</div></div>
+  </div>
+  <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 14px;">Fuente: ${(APP_DATA.bi_meta&&APP_DATA.bi_meta.fuente_pipeline)||'Pipeline ODV'} — una "combinación" es tienda+SKU con inventario. Se considera cumplida si registró al menos una venta (no importa la cantidad).</p>`;
+
+  // --- Insights de combinaciones sin cubrir ---
+  const keys = new Set(storesScope.map(s=>s.cadena+'|'+s.num_tienda));
+  const combsScope = (APP_DATA.combinaciones||[]).filter(c=>keys.has(c.cadena+'|'+c.num_tienda) && c.objetivo===1);
+  const sinCubrir = combsScope.filter(c=>!c.con_venta);
+  const porFamiliaVC = {}; sinCubrir.forEach(c=>{ porFamiliaVC[c.familia] = (porFamiliaVC[c.familia]||0)+1; });
+  const porClusterVC = {}; sinCubrir.forEach(c=>{ const k=c.cluster||'Sin cluster'; porClusterVC[k] = (porClusterVC[k]||0)+1; });
+  const topFam = Object.entries(porFamiliaVC).sort((a,b)=>b[1]-a[1]);
+  const topClusterVC = Object.entries(porClusterVC).sort((a,b)=>b[1]-a[1]);
+  html += `<h2 class="section-title" style="margin-top:6px;">💡 Insights de cobertura</h2><div class="card" style="border-left:4px solid var(--brand-dark); margin-bottom:16px;">`;
+  if(sinCubrir.length){
+    html += `<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;">⚠️ <b>${sinCubrir.length} combinaciones sin cubrir</b> (con inventario, sin venta) en esta vista${topFam.length?`, concentradas en ${topFam[0][0]} (${topFam[0][1]})`:''}${topClusterVC.length?` y en el cluster ${topClusterVC[0][0]} (${topClusterVC[0][1]})`:''}.</div>`;
+  } else {
+    html += `<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;">✅ Sin combinaciones sin cubrir en esta vista.</div>`;
+  }
+  html += `<div style="padding:8px 0; font-size:13px; color:var(--ink-soft);">ℹ️ El Pipeline es una sola foto semanal — no tengo con qué comparar si estas combinaciones son las mismas que se repiten semana a semana o si son nuevas. Si me confirmas que quieres que guarde una copia del Pipeline cada semana, desde la próxima semana ya puedo decirte "repetida" vs "nueva" para cada una.</div>`;
+  const storeByKeyDist = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const filasDistCadena = combsScope.map(c=>{
+    const st = storeByKeyDist.get(c.cadena+'|'+c.num_tienda);
+    return {cadena: c.cadena, cluster: st && st.cluster, num_tienda: c.num_tienda, meta: 1, real: c.con_venta ? 1 : 0};
+  });
+  insightsPorCadenaYTop(filasDistCadena, '% distribución').forEach(l=>{
+    html += `<div style="padding:8px 0; border-top:1px solid var(--line); font-size:13px;">${l}</div>`;
+  });
+  html += `</div>`;
+
+  // --- Gráfica de mix: combinaciones sin cubrir por familia ---
+  if(topFam.length){
+    const maxFam = topFam[0][1];
+    html += `<h2 class="section-title">Mix de combinaciones sin cubrir por familia</h2><div class="card" style="margin-bottom:18px;"><div class="viz-root">
+      ${topFam.map(([fam,val],i)=>{
+        const pct = Math.round(val/sinCubrir.length*100);
+        const width = Math.round(val/maxFam*100);
+        const colores = ['var(--v-s1)','var(--v-s2)','var(--v-s3)','var(--v-s4)'];
+        return `<div class="viz-bar-row"><div class="viz-bar-label">${fam}</div><div class="viz-bar-track"><div class="viz-bar-fill" style="width:${width}%; background:${colores[i%4]};"></div></div><div class="viz-bar-value">${val} · ${pct}%</div></div>`;
+      }).join('')}
+    </div></div>`;
+  }
+
+  const rowsBase = g.rows.map(r=>{ const s = APP_DATA.stores.find(x=>x.cadena===r.cadena && x.num_tienda===r.num_tienda); return {...r, region: s?.region||'', cluster: s?.cluster||''}; });
+  const rows = ordenarFilas('distTablaTiendas', rowsBase, 'pct_distribucion');
+  html += `<div style="display:flex; justify-content:space-between; align-items:center;"><h2 class="section-title" style="margin:14px 0 8px;">Por tienda (clic para desglose por SKU)</h2></div>`;
+  html += `<div class="table-scroll"><table><thead><tr>${colHead('distTablaTiendas','cadena','Cadena',false)}${colHead('distTablaTiendas','num_tienda','# Tda',false)}${colHead('distTablaTiendas','tienda','Tienda',false)}${colHead('distTablaTiendas','region','Región',false)}${colHead('distTablaTiendas','cluster','Cluster',false)}${colHead('distTablaTiendas','objetivos','Combinaciones',true)}${colHead('distTablaTiendas','con_venta','Con venta',true)}${colHead('distTablaTiendas','pct_distribucion','% Distribución',true)}</tr></thead><tbody>`;
+  html += rows.map(r=>{
+    const s = APP_DATA.stores.find(x=>x.cadena===r.cadena && x.num_tienda===r.num_tienda);
+    const key = r.cadena+'|'+r.num_tienda;
+    let rowHtml = `<tr style="cursor:pointer;" onclick="toggleDistTiendaExpandida('${key.replace(/'/g,"\\'")}')"><td>${distTiendaExpandida===key?'▼':'▶'} ${r.cadena}</td><td>${r.num_tienda}</td><td>${r.tienda}</td><td>${s?.region||'—'}</td><td>${s?.cluster||'—'}</td><td class="num">${r.objetivos}</td><td class="num">${r.con_venta}</td><td class="num" style="font-weight:700; color:${(r.pct_distribucion??100)<90?'var(--bad)':'var(--good)'};">${r.pct_distribucion??'—'}%</td></tr>`;
+    if(distTiendaExpandida===key){
+      const skus = (APP_DATA.combinaciones||[]).filter(c=>c.cadena===r.cadena && c.num_tienda===r.num_tienda && c.objetivo===1).sort((a,b)=> (a.con_venta-b.con_venta) || (b.dias_inventario||0)-(a.dias_inventario||0));
+      rowHtml += skus.length ? skus.map(c=>`<tr style="background:#f7f8ee;"><td colspan="2" style="padding-left:26px; font-size:12px;">${c.clave}</td><td colspan="2" style="font-size:12px;">${c.item_desc||''}</td><td style="font-size:12px;">${c.familia}</td><td class="num" style="font-size:12px;">${c.con_venta?'Con venta':'⚠️ Sin venta'}</td><td class="num" style="font-size:12px;">${c.dias_inventario!=null?Math.round(c.dias_inventario)+' días inv.':'—'}</td><td></td></tr>`).join('')
+        : `<tr style="background:#f7f8ee;"><td colspan="8" style="padding-left:26px; font-size:12px; color:var(--ink-soft);">Sin SKUs con detalle.</td></tr>`;
+    }
+    return rowHtml;
+  }).join('') || `<tr><td colspan="8" class="empty-state">Sin tiendas para tu vista.</td></tr>`;
+  html += `</tbody></table></div>`;
+
+  box.innerHTML = html;
+  renderDistribucionCampo(storesScope);
+}
+function renderDistribucionCampo(storesScope){
+  const box = document.getElementById('distribucionCampoBox');
+  if(!box) return;
+  const mesesSet = mesesSeleccionadosDistComoAnioMes();
+  const tiendasScope = new Set(storesScope.map(s=>s.tienda));
+  let capturas = getCapturas().filter(c=> (c.tipo==='mercadeo' || c.tipo==='onboarding') && Array.isArray(c.distribucion) && c.distribucion.length && tiendasScope.has(c.tienda));
+  capturas = capturas.filter(c=> mesesSet.has((c.fecha_registro||'').slice(0,7)));
+  const dCampoDesdeEl = document.getElementById('distCampoDesde');
+  const dCampoHastaEl = document.getElementById('distCampoHasta');
+  const dCampoDesde = dCampoDesdeEl && dCampoDesdeEl.value;
+  const dCampoHasta = dCampoHastaEl && dCampoHastaEl.value;
+  if(dCampoDesde) capturas = capturas.filter(c=> (c.fecha_registro||'').slice(0,10) >= dCampoDesde);
+  if(dCampoHasta) capturas = capturas.filter(c=> (c.fecha_registro||'').slice(0,10) <= dCampoHasta);
+  const porFamilia = {};
+  let totalReq = 0, totalCumplido = 0;
+  capturas.forEach(c=>{
+    (c.distribucion||[]).forEach(r=>{
+      if(!(r.req>0)) return; // solo cuenta lo que se marcó como requerido
+      totalReq++;
+      const g = (porFamilia[r.familia] = porFamilia[r.familia] || {req:0, cumplido:0});
+      g.req++;
+      if(r.real>0){ totalCumplido++; g.cumplido++; }
+    });
+  });
+  window._distribucionCampoExport = {capturas, porFamilia, totalReq, totalCumplido};
+  window._distribucionCampoCapturasScope = capturas; // usado por el desglose por semana
+  poblarDistSemanaPick(capturas);
+  renderDistPorSemanaTienda();
+  if(!capturas.length){
+    box.innerHTML = `<div class="card"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin checklists de Distribución capturados en campo para el/los mes(es) elegido(s).</p></div>`;
+    return;
+  }
+  const pctGlobal = totalReq ? Math.round(totalCumplido/totalReq*1000)/10 : null;
+  const famRows = Object.keys(porFamilia).sort().map(f=>{ const g = porFamilia[f]; return {familia:f, req:g.req, cumplido:g.cumplido, pct: g.req?Math.round(g.cumplido/g.req*1000)/10:null}; });
+  const storeByKeyCampo = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
+  const filasCampoCadena = [];
+  capturas.forEach(c=>{
+    const st = APP_DATA.stores.find(s=>s.tienda===c.tienda && s.cadena===c.cadena) || storesScope.find(s=>s.tienda===c.tienda);
+    (c.distribucion||[]).forEach(r=>{
+      if(!(r.req>0)) return;
+      filasCampoCadena.push({cadena: c.cadena, cluster: st && st.cluster, num_tienda: st && st.num_tienda, meta: 1, real: r.real>0?1:0});
+    });
+  });
+  const insightsCampo = insightsPorCadenaYTop(filasCampoCadena, '% cubrimiento en campo');
+  box.innerHTML = `<div class="row" style="margin-bottom:14px;">
+      <div class="card kpi ${pctGlobal!==null && pctGlobal<90?'warn':'good'}"><div class="label">% Cubrimiento reportado en campo</div><div class="value">${pctGlobal!==null?pctGlobal+'%':'—'}</div></div>
+      <div class="card kpi"><div class="label">Checklists capturados</div><div class="value">${capturas.length}</div></div>
+      <div class="card kpi"><div class="label">Códigos requeridos marcados</div><div class="value">${totalReq}</div></div>
+      <div class="card kpi ${totalReq-totalCumplido?'bad':'good'}"><div class="label">Códigos requeridos sin presencia</div><div class="value">${totalReq-totalCumplido}</div></div>
+    </div>
+    ${insightsCampo.length ? `<div class="card" style="border-left:4px solid var(--brand-dark); margin-bottom:14px;">${insightsCampo.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;">${l}</div>`).join('')}</div>` : ''}
+    <div class="table-scroll"><table><thead><tr><th>Familia</th><th class="num">Requerido (marcado)</th><th class="num">Con presencia (real)</th><th class="num">% Cubrimiento</th></tr></thead><tbody>
+      ${famRows.map(r=>`<tr><td>${r.familia}</td><td class="num">${r.req}</td><td class="num">${r.cumplido}</td><td class="num" style="font-weight:700; color:${(r.pct??100)<90?'var(--bad)':'var(--good)'};">${r.pct??'—'}%</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+/* Desglose por semana — a nivel código de tienda, de lo capturado en campo (checklist Mercadeo › Distribución) */
+function poblarDistSemanaPick(capturas){
+  const sel = document.getElementById('distSemanaPick');
+  if(!sel) return;
+  const semanas = [...new Set(capturas.map(c=>getISOWeek(c.fecha_registro)).filter(s=>s!=null))].sort((a,b)=>a-b);
+  const valorPrevio = sel.value;
+  sel.innerHTML = semanas.length ? semanas.map(s=>`<option value="${s}">Semana ${s}</option>`).join('') : `<option value="">Sin semanas</option>`;
+  if(valorPrevio && semanas.map(String).includes(valorPrevio)) sel.value = valorPrevio;
+  else if(semanas.length) sel.value = String(semanas[semanas.length-1]);
+}
+function renderDistPorSemanaTienda(){
+  const box = document.getElementById('distTablaSemanaTienda');
+  if(!box) return;
+  const sel = document.getElementById('distSemanaPick');
+  const semana = sel && sel.value ? Number(sel.value) : null;
+  const capturas = window._distribucionCampoCapturasScope || [];
+  if(!semana){ window._distSemanaTiendaData = []; box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin semanas disponibles para este filtro.</p>`; return; }
+  const capsSemana = capturas.filter(c=> getISOWeek(c.fecha_registro)===semana);
+  const porTienda = {};
+  capsSemana.forEach(c=>{
+    const key = c.cadena+'|'+c.tienda;
+    const g = (porTienda[key] = porTienda[key] || {cadena:c.cadena, tienda:c.tienda, req:0, cumplido:0});
+    (c.distribucion||[]).forEach(r=>{
+      if(!(r.req>0)) return;
+      g.req++;
+      if(r.real>0) g.cumplido++;
+    });
+  });
+  const filas = Object.values(porTienda).map(f=>({...f, pct: f.req ? Math.round(f.cumplido/f.req*1000)/10 : null})).sort((a,b)=>(a.pct??999)-(b.pct??999));
+  window._distSemanaTiendaData = filas;
+  window.render_distSemanaTienda = function(){
+    const ordenadas = ordenarFilas('distSemanaTienda', window._distSemanaTiendaData, 'pct');
+    box.innerHTML = `<table><thead><tr><th>Tienda</th>${colHead('distSemanaTienda','cadena','Cadena',false)}${colHead('distSemanaTienda','req','Requerido',true)}${colHead('distSemanaTienda','cumplido','Con presencia',true)}${colHead('distSemanaTienda','pct','% Cumplimiento',true)}</tr></thead>
+      <tbody>${ordenadas.map(f=>`<tr><td>${f.tienda}</td><td>${f.cadena}</td><td class="num">${f.req}</td><td class="num">${f.cumplido}</td><td class="num" style="font-weight:700; color:${(f.pct??100)<90?'var(--bad)':'var(--good)'};">${f.pct!=null?f.pct+'%':'—'}</td></tr>`).join('') || `<tr><td colspan="5" class="empty-state">Sin checklists de Distribución esa semana para este filtro.</td></tr>`}</tbody></table>`;
+  };
+  window.render_distSemanaTienda();
+}
+function exportarDistSemanaTiendaCSV(){
+  const filas = window._distSemanaTiendaData || [];
+  const sel = document.getElementById('distSemanaPick');
+  const semana = sel ? sel.value : '';
+  const headers = ['Tienda','Cadena','Requerido','Con presencia','% Cumplimiento'];
+  const rows = filas.map(f=>[f.tienda, f.cadena, f.req, f.cumplido, f.pct]);
+  exportarCSV(`distribucion_campo_semana_${semana}_${todayISO()}.csv`, headers, rows);
+}
+function exportarDistribucionCampoCSV(){
+  const d = window._distribucionCampoExport;
+  if(!d || !d.capturas.length){ toast('Sin datos de distribución en campo para este filtro.'); return; }
+  const rows = [];
+  d.capturas.forEach(c=>{
+    (c.distribucion||[]).forEach(r=>{
+      if(!(r.req>0)) return;
+      rows.push([c.tienda, c.cadena, c.persona, fechaSoloDia(c.fecha_registro), r.sku, r.familia, r.req, r.real, r.real>0?'Sí':'No']);
+    });
+  });
+  exportarCSV(`distribucion_campo_${todayISO()}.csv`, ['Tienda','Cadena','Persona','Fecha','SKU','Familia','Requerido','Real','Cumplido'], rows);
+}
+window.render_distTablaTiendas = renderDistribucion;
+function exportarDistribucionCSV(){
+  const d = window._distribucionExport;
+  if(!d){ toast('Primero consulta la vista de distribución.'); return; }
+  exportarCSV(`distribucion_${todayISO()}.csv`, ['Cadena','# Tienda','Tienda','Región','Cluster','Combinaciones objetivo','Con venta','% Distribución'],
+    d.rows.map(r=>{ const s = APP_DATA.stores.find(x=>x.cadena===r.cadena && x.num_tienda===r.num_tienda); return [r.cadena, r.num_tienda, r.tienda, s?.region||'', s?.cluster||'', r.objetivos, r.con_venta, r.pct_distribucion??'']; }));
+}
+function restablecerFiltrosKpis(){
+  document.getElementById('kpiCadena').value = '';
+  document.getElementById('kpiTienda').innerHTML = '<option value="">Selecciona...</option>';
+  const d1 = document.getElementById('kpiDesde'); if(d1) d1.value = '';
+  const d2 = document.getElementById('kpiHasta'); if(d2) d2.value = '';
+  window.kdxFiltroMesesCompletos = new Set();
+  _renderMesesCompletosChips('kdx','kdxMesDdPanel','kdxMesDdBtn');
+  document.getElementById('kpiContenido').innerHTML = `<p style="font-size:13px; color:var(--ink-soft);">Selecciona cadena y tienda para ver sus KPIs.</p>`;
+  toast('Filtros de KPIs por tienda restablecidos');
+}
+function exportarKpisTienda(){
+  const d = window._kpisTiendaExport;
+  if(!d){ toast('Primero selecciona una tienda.'); return; }
+  exportarCSV(`kpis_${d.tienda.replace(/[^a-z0-9]/gi,'_')}_${todayISO()}.csv`, ['Semana','Cuota pz','Real pz','% pz','Cuota $','Real $','% $','Visitas objetivo','Visitas reales'],
+    d.filas.map(f=>[f.semana, f.cuota_uni, f.real_uni, f.pct_uni, f.cuota_pesos, f.real_pesos, f.pct_pesos, f.visitas_obj, f.visitas_real]));
+}
+function renderKpis(){
+  const cadenaSel = document.getElementById('kpiCadena');
+  // A nivel Embajador, Kardex solo debe dejar ver sus propias tiendas asignadas (storesScopeParaMi ya
+  // resuelve esto: sector + ruta de septiembre + extra-tiendas aprobadas para Embajador, todas las
+  // tiendas para el resto de los perfiles) — no debe poder consultar cualquier tienda de la compañía.
+  const storesScope = storesScopeParaMi();
+  if(cadenaSel.options.length<=1){
+    [...new Set(storesScope.map(s=>s.cadena))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cadenaSel.appendChild(o); });
+    cadenaSel.onchange = ()=>{
+      const tSel = document.getElementById('kpiTienda');
+      tSel.innerHTML = '<option value="">Selecciona...</option>' + storesScopeParaMi().filter(s=>s.cadena===cadenaSel.value).sort((a,b)=>a.tienda.localeCompare(b.tienda)).map(s=>`<option>${s.tienda}</option>`).join('');
+    };
+  }
+  const tienda = document.getElementById('kpiTienda').value;
+  const cadena = cadenaSel.value;
+  const box = document.getElementById('kpiContenido');
+  if(!tienda){ box.innerHTML = `<p style="font-size:13px; color:var(--ink-soft);">Selecciona cadena y tienda para ver sus KPIs.</p>`; return; }
+  const store = APP_DATA.stores.find(s=>s.cadena===cadena && s.tienda===tienda);
+  const hoy = todayISO();
+  const inicioMes = isoDate(new Date(new Date(hoy).getFullYear(), new Date(hoy).getMonth(), 1));
+  const fDesde = (document.getElementById('kpiDesde')||{}).value || inicioMes;
+  const fHasta = (document.getElementById('kpiHasta')||{}).value || hoy;
+  const rangoPersonalizado = !!((document.getElementById('kpiDesde')||{}).value || (document.getElementById('kpiHasta')||{}).value);
+  registrarFiltroMesesCompletos('kdx','kdxMesDdPanel','kdxMesDdBtn','kpiDesde','kpiHasta',renderKpis);
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const capturasTodas = getCapturas().filter(c=>c.tienda===tienda);
+  const capturas = capturasTodas.filter(c=> !c.fecha_registro || (fechaLocal(c.fecha_registro)>=fDesde && fechaLocal(c.fecha_registro)<=fHasta));
+  const planMes = getRutas().filter(a=>a.tipo==='visita' && a.tienda===tienda && a.fecha>=fDesde && a.fecha<=fHasta && visibleUsuarios.has(a.usuario));
+  const realDiasSet = new Set(capturasTodas.filter(c=>c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)));
+  const cumplidasMes = planMes.filter(a=> realDiasSet.has(a.usuario+'|'+a.fecha)).length;
+  const pctCumplimientoMes = planMes.length ? Math.round(cumplidasMes/planMes.length*100) : null;
+  const caducidades = capturasTodas.filter(c=>c.tipo==='caducidad' && c.fecha_caducidad && c.fecha_caducidad>=hoy).sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad));
+  const incidenciasAbiertas = capturas.filter(c=>c.tipo==='incidencia').length;
+
+  const dist = store ? distribucionDeTienda(store.cadena, store.num_tienda) : null;
+  const combsStore = store ? (APP_DATA.combinaciones||[]).filter(c=>c.cadena===store.cadena && c.num_tienda===store.num_tienda && c.objetivo===1) : [];
+  const ventaCeroStore = combsStore.filter(c=>!c.con_venta);
+  const atoradosStore = [...combsStore].filter(c=>c.dias_inventario!=null).sort((a,b)=>b.dias_inventario-a.dias_inventario).slice(0,5);
+  const ytd25 = combsStore.reduce((a,c)=>a+(c.ytd_25||0),0), ytd26 = combsStore.reduce((a,c)=>a+(c.ytd_26||0),0);
+  const pctAA = ytd25 ? Math.round((ytd26-ytd25)/ytd25*1000)/10 : null;
+  const skusStore = store ? (APP_DATA.ventas_cuota_sku||[]).filter(r=>r.cadena===store.cadena && r.num_tienda===store.num_tienda) : [];
+  const cuotaMesUni = skusStore.reduce((a,r)=>a+r.cuota_uni,0), realMesUni = skusStore.reduce((a,r)=>a+r.real_uni,0);
+  const cuotaMesPesos = skusStore.reduce((a,r)=>a+r.cuota_pesos,0), realMesPesos = skusStore.reduce((a,r)=>a+r.real_pesos,0);
+  const pctCuotaMes = cuotaMesPesos ? Math.round(realMesPesos/cuotaMesPesos*1000)/10 : null;
+
+  const semSemanal = store ? cumplimientoSemanalDeTienda(store.cadena, store.num_tienda) : [];
+  const semanasOk = new Set(semanasConDatos());
+  // Visitas plan vs real por semana (misma numeración de semana ISO que cumplimiento_semanal)
+  const planTienda = getRutas().filter(a=>a.tipo==='visita' && a.tienda===tienda && visibleUsuarios.has(a.usuario));
+  const visitasPorSemana = {};
+  planTienda.forEach(a=>{
+    const wk = isoWeekNumber(new Date(a.fecha+'T00:00:00'));
+    (visitasPorSemana[wk] = visitasPorSemana[wk] || {obj:0, real:0});
+    visitasPorSemana[wk].obj += 1;
+    if(realDiasSet.has(a.usuario+'|'+a.fecha)) visitasPorSemana[wk].real += 1;
+  });
+  let filasSemana = semSemanal.map(s=>{
+    const vObj = (visitasPorSemana[s.semana]||{obj:0}).obj, vReal = (visitasPorSemana[s.semana]||{real:0}).real;
+    return {
+      semana: s.semana, cuota_uni: s.cuota_uni, real_uni: s.real_uni, pct_uni: s.pct_uni, cuota_pesos: s.cuota_pesos, real_pesos: s.real_pesos, pct_pesos: s.pct_pesos,
+      conDatos: semanasOk.has(s.semana),
+      visitas_obj: vObj, visitas_real: vReal, pct_visitas: vObj ? Math.round(vReal/vObj*1000)/10 : null,
+    };
+  });
+  // Desglose por código (SKU) de esta tienda, mes a la fecha — la venta/cuota por SKU no trae corte semanal en el origen,
+  // así que este desglose es a nivel mes (igual que en Objetivos > Por código de tienda).
+  let filasSku = store ? agregarPorDimension([store], r=> r.clave || null).filter(a=>a.dim!==null) : [];
+  window._kpisTiendaExport = {tienda, filas: filasSemana, filasSku};
+
+  // --- Insights: la historia de la tienda ---
+  const insightsLineas = [];
+  if(pctCuotaMes!==null){
+    insightsLineas.push(pctCuotaMes<80
+      ? `🔴 Esta tienda va en <b>${pctCuotaMes}%</b> de su cuota del mes — por debajo de lo esperado. Real: ${fmtMoney(realMesPesos)} vs meta ${fmtMoney(cuotaMesPesos)}.`
+      : `✅ Esta tienda va en <b>${pctCuotaMes}%</b> de su cuota del mes (${fmtMoney(realMesPesos)} de ${fmtMoney(cuotaMesPesos)}).`);
+  }
+  if(pctAA!==null){
+    insightsLineas.push(pctAA<0
+      ? `📉 Vs año anterior (YTD) está <b>${pctAA}%</b> abajo — venía vendiendo más el año pasado en el mismo periodo.`
+      : `📈 Vs año anterior (YTD) está <b>+${pctAA}%</b> arriba — buena señal de crecimiento.`);
+  }
+  if(dist && dist.pct_distribucion!==null){
+    insightsLineas.push(dist.pct_distribucion<90
+      ? `⚠️ Su objetivo de distribución está en ${dist.pct_distribucion}% — hay ${ventaCeroStore.length} combinación(es) con inventario que no han vendido nada. Empujar esos códigos primero.`
+      : `✅ Buen nivel de distribución (${dist.pct_distribucion}%) — casi todo lo que tiene inventario ya vendió.`);
+  }
+  if(atoradosStore.length){
+    insightsLineas.push(`🐌 Los códigos que más se están atorando (más días de inventario sin rotar): ${atoradosStore.map(a=>`${a.clave} (${Math.round(a.dias_inventario)} días)`).join(', ')}. Sugerencia: activar degustación/exhibición extra de estos artículos para acelerar rotación.`);
+  }
+  if(pctCumplimientoMes!==null){
+    insightsLineas.push(pctCumplimientoMes<80
+      ? `🚩 El plan de visita se está cumpliendo solo al ${pctCumplimientoMes}% este mes — parte del rezago de venta puede venir de falta de presencia en piso.`
+      : `✅ El plan de visita se está cumpliendo bien (${pctCumplimientoMes}%) — la presencia en piso no es el problema principal si hay rezago de venta.`);
+  }
+  if(caducidades.length){
+    insightsLineas.push(`⏰ Hay ${caducidades.length} lote(s) con caducidad reportada próxima — revisar rotación de esos productos para evitar merma.`);
+  }
+  insightsLineas.push(`💡 Para elevar la venta promedio: prioriza los códigos atorados y en venta cero arriba, asegura el 100% del plan de visita, y valida que el anaquel/exhibición esté completo en cada visita (Categoría/Mercadeo en Captura MEDI).`);
+
+  box.innerHTML = `
+    <div class="row" style="margin:14px 0;">
+      <div class="card kpi ${pctCuotaMes!==null && pctCuotaMes<80?'warn':'good'}"><div class="label">Cuota de venta del mes</div><div class="value" style="font-size:16px;">${fmtNum(realMesUni)}/${fmtNum(cuotaMesUni)} pz${pctCuotaMes!==null?' · '+pctCuotaMes+'%':''}</div></div>
+      <div class="card kpi ${pctAA!==null && pctAA<0?'warn':'good'}"><div class="label">vs Año anterior (YTD)</div><div class="value">${pctAA!==null?(pctAA>=0?'+':'')+pctAA+'%':'—'}</div></div>
+      <div class="card kpi ${dist && dist.pct_distribucion!==null && dist.pct_distribucion<90 ? 'warn':'good'}"><div class="label">Objetivo de distribución</div><div class="value">${dist?dist.pct_distribucion+'%':'Sin datos'}</div></div>
+      <div class="card kpi ${ventaCeroStore.length?'bad':'good'}"><div class="label">Combinaciones en venta cero</div><div class="value">${ventaCeroStore.length}</div></div>
+    </div>
+    <div class="row" style="margin-bottom:14px;">
+      <div class="card kpi ${pctCumplimientoMes!==null && pctCumplimientoMes<70 ? 'warn':'good'}"><div class="label">Plan de visita vs. real${rangoPersonalizado?' ('+fDesde+' a '+fHasta+')':' (mes)'}</div><div class="value">${cumplidasMes}/${planMes.length}${pctCumplimientoMes!==null?' · '+pctCumplimientoMes+'%':''}</div></div>
+      <div class="card kpi ${caducidades.length?'bad':'good'}"><div class="label">Alertas de caducidad</div><div class="value">${caducidades.length}</div></div>
+      <div class="card kpi ${incidenciasAbiertas?'bad':'good'}"><div class="label">Incidencias reportadas</div><div class="value">${incidenciasAbiertas}</div></div>
+      <div class="card kpi"><div class="label">Frecuencia sugerida de visita</div><div class="value" style="font-size:15px;">${store?.sugerencia_visita||'—'}</div></div>
+    </div>
+    <h2 class="section-title" style="margin-top:6px;">💡 Insights — la historia de esta tienda</h2>
+    <div class="card" style="border-left:4px solid var(--brand-dark); margin-bottom:18px;">${insightsLineas.map(l=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5;">${l}</div>`).join('')}</div>
+    <h2 class="section-title">Cuota, distribución y plan de visita — por semana</h2>
+    <div class="table-scroll" style="margin-bottom:14px;">
+      <table><thead><tr>${colHead('kpiTablaSemana','semana','Semana',true)}${colHead('kpiTablaSemana','cuota_uni','Cuota (pzas)',true)}${colHead('kpiTablaSemana','real_uni','Real (pzas)',true)}${colHead('kpiTablaSemana','pct_uni','% pzas',true)}${colHead('kpiTablaSemana','cuota_pesos','Cuota ($)',true)}${colHead('kpiTablaSemana','real_pesos','Real ($)',true)}${colHead('kpiTablaSemana','pct_pesos','% $',true)}${colHead('kpiTablaSemana','visitas_obj','Visitas objetivo',true)}${colHead('kpiTablaSemana','visitas_real','Visitas reales',true)}${colHead('kpiTablaSemana','pct_visitas','% Cubrimiento visitas',true)}</tr></thead>
+      <tbody>${(filasSemana=ordenarFilas('kpiTablaSemana', filasSemana, 'semana')).length ? filasSemana.map(s=>{
+        return `<tr><td>Sem ${s.semana}${s.conDatos?'':' <small style="color:var(--ink-soft);">(sin datos aún)</small>'}</td><td class="num">${fmtNum(s.cuota_uni)}</td><td class="num">${s.conDatos?fmtNum(s.real_uni):'—'}</td><td class="num" style="font-weight:700; color:${s.conDatos && s.pct_uni<80?'var(--bad)':'var(--good)'};">${s.conDatos?s.pct_uni+'%':'—'}</td><td class="num">${fmtMoney(s.cuota_pesos)}</td><td class="num">${s.conDatos?fmtMoney(s.real_pesos):'—'}</td><td class="num" style="font-weight:700; color:${s.conDatos && s.pct_pesos<80?'var(--bad)':'var(--good)'};">${s.conDatos?s.pct_pesos+'%':'—'}</td><td class="num">${s.visitas_obj}</td><td class="num" style="font-weight:700; color:${s.visitas_obj && s.visitas_real<s.visitas_obj?'var(--warn)':'var(--good)'};">${s.visitas_real}</td><td class="num" style="font-weight:700; color:${s.pct_visitas!==null && s.pct_visitas<80?'var(--bad)':'var(--good)'};">${s.pct_visitas!==null?s.pct_visitas+'%':'—'}</td></tr>`;
+      }).join('') : `<tr><td colspan="10" class="empty-state">Sin datos de cuota para esta tienda.</td></tr>`}</tbody></table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center;"><h2 class="section-title" style="margin:14px 0 8px;">Desglose por código (SKU) — mes a la fecha</h2><button class="btn btn-ghost" style="font-size:11px; padding:4px 10px;" onclick="exportarKpiSkuTienda()">⬇ Exportar a Excel</button></div>
+    <p style="font-size:11px; color:var(--ink-soft); margin:-4px 0 8px;">La venta y cuota por código no traen corte semanal en el origen — este desglose es a nivel mes a la fecha, igual que en Objetivos › Por código de tienda.</p>
+    <div class="table-scroll" style="margin-bottom:18px;" id="kpiTablaSku"></div>
+    ${ventaCeroStore.length ? `<h2 class="section-title">⚠️ Combinaciones con inventario y venta cero en esta tienda</h2>
+    <div class="card" style="margin-bottom:18px;">${ventaCeroStore.map(a=>`<div style="padding:5px 0; font-size:13px; border-bottom:1px solid var(--line);">${a.clave} — ${a.item_desc||''} (${a.familia}) — ${a.dias_inventario!=null?Math.round(a.dias_inventario)+' días de inventario sin vender':''}</div>`).join('')}</div>` : ''}
+    <h2 class="section-title">⏰ Caducidad reportada</h2>
+    ${caducidades.length ? `<div class="table-scroll" style="margin-bottom:18px;"><table><thead><tr><th>Producto</th><th class="num">Piezas</th><th>Fecha caducidad</th><th>Reportó</th><th>Fecha reporte</th></tr></thead><tbody>
+      ${caducidades.map(c=>`<tr><td>${nombreProducto(c.clave)}</td><td class="num">${c.piezas??''}</td><td>${c.fecha_caducidad}</td><td>${nombreCorto(c.persona||'')}</td><td>${fechaHoraLocal(c.fecha_registro)}</td></tr>`).join('')}
+    </tbody></table></div>` : `<div class="card" style="margin-bottom:18px;"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin caducidad reportada próxima en esta tienda. ✓</p></div>`}
+    <h2 class="section-title">📋 Reportes hechos en esta tienda${rangoPersonalizado?' ('+fDesde+' a '+fHasta+')':''}</h2>
+    ${capturas.length ? `<div class="table-scroll"><table><thead><tr><th>Tipo</th><th>Persona</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody>
+      ${capturas.slice().sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||'')).slice(0,50).map(c=>`<tr><td>${TIPO_LABEL[c.tipo]||c.tipo}</td><td>${nombreCorto(c.persona||'')}</td><td>${fechaHoraLocal(c.fecha_registro)}</td><td style="font-size:12px;">${detalleCaptura(c)}</td></tr>`).join('')}
+    </tbody></table>${capturas.length>50?`<p style="font-size:11px; color:var(--ink-soft); margin-top:6px;">Mostrando los 50 más recientes de ${capturas.length}.</p>`:''}</div>` : `<div class="card"><p style="font-size:13px; color:var(--ink-soft); margin:0;">Sin reportes capturados todavía en esta tienda.</p></div>`}
+    <p style="font-size:11px; color:var(--ink-soft); margin-top:10px;">Cuota: ${(APP_DATA.bi_meta&&APP_DATA.bi_meta.fuente_cuotas)||''}. Distribución/venta cero: ${(APP_DATA.bi_meta&&APP_DATA.bi_meta.fuente_pipeline)||''}. Venta real: Sell Out por cadena (datos hasta la fecha más reciente cargada por cadena).</p>
+  `;
+  window.render_kpiTablaSku = function(){
+    const wrap = document.getElementById('kpiTablaSku');
+    if(!wrap) return;
+    const filas = ordenarFilas('kpiTablaSku', filasSku, 'real_pesos');
+    window._kpisTiendaExport.filasSku = filas;
+    wrap.innerHTML = `<table><thead><tr>
+      ${colHead('kpiTablaSku','dim','Clave SKU')}
+      ${colHead('kpiTablaSku','real_uni','Venta Uni',true)}
+      ${colHead('kpiTablaSku','real_pesos','Pesos',true)}
+      ${colHead('kpiTablaSku','cuota_uni','Cuota Uni',true)}
+      ${colHead('kpiTablaSku','cuota_pesos','Cuota $',true)}
+      ${colHead('kpiTablaSku','pct_cuota','% Cumplimiento cuota',true)}
+      ${colHead('kpiTablaSku','objetivo_comb','Objetivo distribución',true)}
+      ${colHead('kpiTablaSku','con_venta_comb','Con venta',true)}
+      ${colHead('kpiTablaSku','pct_dist','% Cubrimiento distribución',true)}
+      </tr></thead><tbody>${filas.length ? filas.map(a=>`<tr><td>${a.dim}</td><td class="num">${fmtNum(a.real_uni)}</td><td class="num">${fmtMoney(a.real_pesos)}</td><td class="num">${fmtNum(a.cuota_uni)}</td><td class="num">${fmtMoney(a.cuota_pesos)}</td><td class="num" style="font-weight:700; color:${a.pct_cuota!==null && a.pct_cuota<80?'var(--bad)':'var(--good)'};">${a.pct_cuota??'—'}%</td><td class="num">${a.objetivo_comb}</td><td class="num">${a.con_venta_comb}</td><td class="num" style="font-weight:700; color:${a.pct_dist!==null && a.pct_dist<90?'var(--warn)':'var(--good)'};">${a.pct_dist??'—'}%</td></tr>`).join('') : `<tr><td colspan="9" class="empty-state">Sin códigos con objetivo de distribución para esta tienda.</td></tr>`}</tbody></table>`;
+  };
+  window.render_kpiTablaSku();
+}
+window.render_kpiTablaSemana = renderKpis;
+function exportarKpiSkuTienda(){
+  const d = window._kpisTiendaExport || {};
+  const filas = d.filasSku || [];
+  exportarCSV(`kpis_tienda_sku_${(d.tienda||'').replace(/[^a-z0-9]+/gi,'_')}_${todayISO()}.csv`,
+    ['Clave SKU','Venta Uni','Pesos','Cuota Uni','Cuota $','% Cumplimiento cuota','Objetivo distribución','Con venta','% Cubrimiento distribución'],
+    filas.map(a=>[a.dim, a.real_uni, a.real_pesos, a.cuota_uni, a.cuota_pesos, a.pct_cuota, a.objetivo_comb, a.con_venta_comb, a.pct_dist]));
+}
+
+/* ---------- DAILY NEWS ---------- */
+const NOTICIAS_KEY = 'delico_odv_noticias_v1';
+function getNoticias(){ return _noticiasSync.get(); }
+function saveNoticias(arr){ _noticiasSync.save(arr); }
+function previewNewsFoto(){
+  const input = document.getElementById('newsFoto');
+  const img = document.getElementById('newsFotoPrev');
+  const file = input.files[0];
+  if(!file) return;
+  window._fotosPendientes.add('newsFoto');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    comprimirImagen(e.target.result, 1280, 0.72).then((comprimida) => {
+      img.src = comprimida; img.classList.remove('hidden'); input.dataset.b64 = comprimida;
+      window._fotosPendientes.delete('newsFoto');
+    });
+  };
+  reader.onerror = () => window._fotosPendientes.delete('newsFoto');
+  reader.readAsDataURL(file);
+}
+function publicarNoticia(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+  const texto = document.getElementById('newsTexto').value.trim();
+  const fotoInput = document.getElementById('newsFoto');
+  const foto = fotoInput.dataset.b64 || '';
+  if(!texto && !foto){ toast('Escribe algo o sube una foto'); return; }
+  const arr = getNoticias();
+  arr.unshift({id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, perfil:currentUser.perfil, fecha:new Date().toISOString(), texto, foto});
+  saveNoticias(arr);
+  document.getElementById('newsTexto').value = '';
+  fotoInput.value = ''; fotoInput.dataset.b64 = '';
+  document.getElementById('newsFotoPrev').classList.add('hidden');
+  renderNoticias();
+  toast('Publicado ✓');
+}
+function renderNoticias(){
+  const grid = document.getElementById('noticiasGrid');
+  if(!grid) return;
+  const zona = document.getElementById('reinicioZonaNoticias');
+  if(zona) zona.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
+  const arr = getNoticias();
+  grid.innerHTML = arr.map(n=>`<div class="card" style="padding:0; overflow:hidden;">
+      ${n.foto? `<img src="${n.foto}" style="width:100%; height:150px; object-fit:cover;">` : ''}
+      <div style="padding:12px;">
+        <div style="font-weight:700; font-size:12.5px;">${nombreCorto(n.persona)} <span style="font-weight:500; color:var(--ink-soft); font-size:11px;">· ${n.perfil}</span></div>
+        <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">${fechaHoraLocal(n.fecha)}</div>
+        <div style="font-size:13px;">${n.texto||''}</div>
+      </div>
+    </div>`).join('') || `<div class="empty-state" style="grid-column:1/-1;">Aún no hay publicaciones. ¡Sé el primero en compartir algo!</div>`;
+  const insBox = document.getElementById('noticiasInsights');
+  if(insBox){
+    if(currentUser.perfil==='Embajador' || !arr.length){ insBox.innerHTML = ''; }
+    else{
+      const porPersona = {};
+      arr.forEach(n=>{ porPersona[n.persona] = (porPersona[n.persona]||0)+1; });
+      const top = Object.entries(porPersona).sort((a,b)=>b[1]-a[1])[0];
+      const hace7 = new Date(Date.now()-7*86400000).toISOString();
+      const ultSemana = arr.filter(n=>n.fecha>=hace7).length;
+      insBox.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">
+        <p style="font-size:12.5px; margin:0 0 6px;">💡 <b>${arr.length}</b> publicación(es) en total, <b>${ultSemana}</b> en los últimos 7 días.</p>
+        ${top?`<p style="font-size:12.5px; margin:0;">🏅 Quien más comparte: <b>${nombreCorto(top[0])}</b> (${top[1]}).</p>`:''}
+      </div>`;
+    }
+  }
+}
+function getEscucha(){ return _escuchaSync.get(); }
+function saveEscucha(arr){ _escuchaSync.save(arr); }
+function publicarEscucha(){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+  const texto = (document.getElementById('escuchaTexto').value||'').trim();
+  const fotos = ((window._fotosMulti||{}).escucha||[]).map(f=>f.b64);
+  if(!texto && !fotos.length){ toast('Escribe algo o adjunta una foto'); return; }
+  const arr = getEscucha();
+  arr.unshift({id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, perfil:currentUser.perfil, fecha:new Date().toISOString(), texto, fotos});
+  saveEscucha(arr);
+  document.getElementById('escuchaTexto').value = '';
+  window._fotosMulti = window._fotosMulti || {}; window._fotosMulti.escucha = [];
+  renderFotosMultiPreview('escucha');
+  renderEscucha();
+  toast('Enviado ✓');
+}
+function renderEscucha(){
+  const box = document.getElementById('escuchaLista');
+  if(!box) return;
+  window._fotosMulti = window._fotosMulti || {};
+  if(!window._fotosMulti.escucha) window._fotosMulti.escucha = [];
+  const zonaEsc = document.getElementById('reinicioZonaEscucha');
+  if(zonaEsc) zonaEsc.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getEscucha().filter(m=>visibleUsuarios.has(m.usuario));
+  box.innerHTML = arr.map(m=>`<div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+        <div style="font-weight:700; font-size:12.5px;">${nombreCorto(m.persona)} <span style="font-weight:500; color:var(--ink-soft); font-size:11px;">· ${m.perfil||''}</span></div>
+        <div style="font-size:11px; color:var(--ink-soft);">${fechaHoraLocal(m.fecha)}</div>
+      </div>
+      ${m.texto ? `<div style="font-size:13px; margin-top:6px; white-space:pre-wrap;">${m.texto}</div>` : ''}
+      ${(m.fotos&&m.fotos.length) ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">${m.fotos.map(f=>`<img src="${f}" style="width:76px; height:76px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">`).join('')}</div>` : ''}
+    </div>`).join('') || `<div class="empty-state">Aún no hay comentarios. ¡Sé el primero en escribir algo!</div>`;
+  const insBox = document.getElementById('escuchaInsights');
+  if(insBox){
+    if(currentUser.perfil==='Embajador' || !arr.length){ insBox.innerHTML = ''; }
+    else{
+      const porPersona = {};
+      arr.forEach(m=>{ porPersona[m.persona] = (porPersona[m.persona]||0)+1; });
+      const top = Object.entries(porPersona).sort((a,b)=>b[1]-a[1])[0];
+      const hace7 = new Date(Date.now()-7*86400000).toISOString();
+      const ultSemana = arr.filter(m=>m.fecha>=hace7).length;
+      insBox.innerHTML = `<div class="card" style="border-left:4px solid var(--brand-dark);">
+        <p style="font-size:12.5px; margin:0 0 6px;">💡 <b>${arr.length}</b> comentario(s) en total, <b>${ultSemana}</b> en los últimos 7 días.</p>
+        ${top?`<p style="font-size:12.5px; margin:0;">🏅 Quien más participa: <b>${nombreCorto(top[0])}</b> (${top[1]}) — buena oportunidad para leer y responder lo que se ha compartido.</p>`:''}
+      </div>`;
+    }
+  }
+}
+function exportarDetalleFormularios(){
+  // Exporta, para CUALQUIER tipo de captura (respeta el filtro de Tipo/Persona/Fechas de Reportes del equipo),
+  // la respuesta real de cada pregunta/campo — no solo si se hizo el reporte o si se cumplió.
+  const arr = capturasFiltradasReporte();
+  if(!arr.length){ toast('No hay capturas para exportar en este filtro.'); return; }
+  const headers = ['Tipo','Persona','Tienda','Fecha','Sección / producto','Pregunta / campo','Respuesta','Comentario'];
+  const rows = [];
+  const fmtVal = (type_, val) => {
+    if(type_==='producto') return val ? nombreProducto(val) : '';
+    if(val===undefined || val===null) return '';
+    if(type_==='checkbox') return val ? 'Sí' : 'No';
+    if(type_==='file_multi') return (Array.isArray(val) && val.length) ? `${val.length} foto(s)` : '';
+    if(type_==='file') return val ? '1 foto' : '';
+    if(type_==='file_video') return val ? 'Sí (video)' : '';
+    if(Array.isArray(val)) return val.join(' | ');
+    return String(val);
+  };
+  arr.forEach(c=>{
+    const fecha = fechaHoraLocal(c.fecha_registro);
+    const tipoLabel = TIPO_LABEL[c.tipo] || c.tipo;
+    if(c.tipo==='mercadeo' || c.tipo==='onboarding'){
+      const secciones = [
+        ['Preparación de la visita', c.preparacion],
+        ['Cámara', c.camara],
+        ['Degustación', c.degustacion_checklist],
+        ['Mercadeo', c.mercadeo],
+      ];
+      secciones.forEach(([secLabel, items])=>{
+        (items||[]).forEach(it=>{
+          rows.push([tipoLabel, c.persona, c.tienda||'', fecha, secLabel, it.item, it.cumple?'Sí':'No', it.comentario||'']);
+        });
+      });
+      if(c.comentarios_generales) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, 'Comentarios generales', '', '', c.comentarios_generales]);
+    } else if(c.tipo==='gasto_ticket'){
+      (c.lineas||[]).forEach((l,i)=>{
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, 'Línea '+(i+1), l.detalle||'', l.costo!=null&&l.costo!==''?('$'+l.costo):'', `${l.tipo||''}${l.piezas?(' · '+l.piezas+' pzas'):''}${l.origen?(' · '+l.origen):''}`]);
+      });
+    } else if(c.tipo==='carga_anaquel'){
+      (c.frentes||[]).forEach(f=>{
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, nombreProducto(f.clave), 'Frentes / profundidad', `${f.frentes||0} frentes`, `${f.profundidad||0} de profundidad`]);
+      });
+      if(c.contexto){
+        const ctx = c.contexto;
+        if(ctx.categoria_ubicacion) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Categoría de ubicación', ctx.categoria_ubicacion, '']);
+        if(ctx.tipo_exhibicion) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Tipo de exhibición', ctx.tipo_exhibicion, '']);
+        if(ctx.planograma) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Planograma', ctx.planograma, '']);
+        if(ctx.bloque_marca) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Tipo de exhibición de marca', ctx.bloque_marca, '']);
+        if(ctx.pisos) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Tienda de', ctx.pisos, '']);
+        if((ctx.categorias_aledanas||[]).length) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Categorías aledañas', ctx.categorias_aledanas.join(' / '), '']);
+        if(ctx.muros_interfieren || ctx.muros_cercanos || ctx.plaza_comercial){
+          const flags = [ctx.muros_interfieren&&'Muros interfieren', ctx.muros_cercanos&&'Muros cercanos', ctx.plaza_comercial&&'Tienda en plaza comercial'].filter(Boolean).join(' / ');
+          rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Otros', flags, '']);
+        }
+        if(ctx.comentarios) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Comentarios', '', ctx.comentarios]);
+      }
+      if(c.fotos && c.fotos.length) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Fotos de la exhibición', `${c.fotos.length} foto(s)`, '']);
+    } else if(c.tipo==='incapacidad' || c.tipo==='inasistencia'){
+      rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Comentario', '', c.comentarios||'']);
+      if(c.fotos && c.fotos.length) rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', 'Fotos', `${c.fotos.length} foto(s)`, '']);
+    } else if(FORM_DEFS[c.tipo]){
+      FORM_DEFS[c.tipo].fields.forEach(([key,type_,label])=>{
+        if(type_==='tienda_select') return; // ya va en la columna Tienda
+        const val = fmtVal(type_, c[key]);
+        if(type_!=='checkbox' && val==='') return;
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', label, val, '']);
+      });
+    } else {
+      // Respaldo genérico para cualquier tipo futuro que no tenga un caso especial arriba.
+      Object.keys(c).forEach(key=>{
+        if(['id','tipo','usuario','persona','fecha_registro','tienda','cadena'].includes(key)) return;
+        let val = c[key];
+        if(Array.isArray(val)) val = val.length ? `${val.length} elemento(s)` : '';
+        if(val===undefined || val===null || val==='') return;
+        rows.push([tipoLabel, c.persona, c.tienda||'', fecha, '', key, String(val), '']);
+      });
+    }
+  });
+  if(!rows.length){ toast('No hay detalle capturado para exportar en este filtro.'); return; }
+  exportarCSV(`detalle_formularios_${todayISO()}.csv`, headers, rows);
+}
+function exportCSV(){
+  const arr = capturasFiltradasReporte();
+  if(!arr.length){ toast('No hay capturas para exportar'); return; }
+  const cols = ['geo_estado','geo_dist_m','tipo','persona','usuario','fecha_registro','tienda','clave','clave2','clave3','fecha_caducidad','piezas','tipo_incidencia','descripcion','lote','fecha','comentarios','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
+  let csv = cols.join(',') + '\n';
+  arr.forEach(c=>{
+    csv += cols.map(k=>{
+      let v = (c[k] ?? '').toString().replace(/"/g,'""');
+      if(v.includes(',')||v.includes('\n')) v = `"${v}"`;
+      return v;
+    }).join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'delico_odv_capturas_' + todayISO() + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+/* Reduce una imagen base64 a un tamaño chico (para exportar sin pesar tanto) */
+function reducirImagen(dataUrl, maxW){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{
+      let w = img.width, h = img.height;
+      if(w > maxW){ h = Math.round(h*maxW/w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.72));
+    };
+    img.onerror = ()=> resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+/* Normaliza el campo "foto" de una captura: puede ser un solo string (formularios de una foto) o un
+   arreglo de strings (formularios de varias fotos, ej. Degustación) — esto deja todo como arreglo. */
+function fotosDeCaptura(c){
+  if(!c.foto) return [];
+  return Array.isArray(c.foto) ? c.foto.filter(Boolean) : [c.foto];
+}
+async function exportImagenesReporte(){
+  const arr = capturasFiltradasReporte().filter(c=>fotosDeCaptura(c).length);
+  if(!arr.length){ toast('No hay capturas con foto para este filtro.'); return; }
+  const total = arr.reduce((a,c)=>a+fotosDeCaptura(c).length, 0);
+  toast(`Exportando ${total} imagen(es)...`);
+  for(let i=0;i<arr.length;i++){
+    const c = arr[i];
+    const fotos = fotosDeCaptura(c);
+    for(let j=0;j<fotos.length;j++){
+      const chica = await reducirImagen(fotos[j], 700);
+      const a = document.createElement('a');
+      a.href = chica;
+      a.download = `${c.tipo}_${(c.tienda||'sin_tienda').replace(/[^a-z0-9]+/gi,'_')}_${fechaLocal(c.fecha_registro)}_${i+1}_${j+1}.jpg`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      await new Promise(r=>setTimeout(r, 250));
+    }
+  }
+  toast('Imágenes exportadas ✓');
+}
+async function exportPDFReporte(){
+  await cargarJsPDF();
+  if(typeof window.jspdf === 'undefined'){ toast('No se pudo cargar el exportador de PDF (sin conexión).'); return; }
+  const arr = capturasFiltradasReporte().filter(c=>fotosDeCaptura(c).length);
+  if(!arr.length){ toast('No hay capturas con foto para este filtro.'); return; }
+  toast('Generando PDF...');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p','pt','letter');
+  const pageW = pdf.internal.pageSize.getWidth();
+  let primera = true;
+  for(let i=0;i<arr.length;i++){
+    const c = arr[i];
+    const fotos = fotosDeCaptura(c);
+    for(let j=0;j<fotos.length;j++){
+      if(!primera) pdf.addPage();
+      primera = false;
+      const chica = await reducirImagen(fotos[j], 900);
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
+      pdf.text(`DELICO . ODV — ${TIPO_LABEL[c.tipo]||c.tipo}${fotos.length>1?` (foto ${j+1}/${fotos.length})`:''}`, 40, 44);
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
+      pdf.text(`Persona: ${c.persona}`, 40, 64);
+      pdf.text(`Fecha: ${fechaHoraLocal(c.fecha_registro)}`, 40, 80);
+      pdf.text(`Cadena: ${c.cadena||'—'}    Tienda: ${c.tienda||'—'}`, 40, 96);
+      pdf.text(`Detalle: ${detalleCaptura(c).replace(/<[^>]+>/g,' ')}`.slice(0,110), 40, 112);
+      try{
+        const img = new Image(); img.src = chica;
+        await new Promise(r=>{ img.onload=r; img.onerror=r; });
+        const maxImgW = pageW - 80;
+        const ratio = img.height / img.width;
+        const w = maxImgW, h = w*ratio;
+        pdf.addImage(chica, 'JPEG', 40, 130, w, h);
+      }catch(e){}
+    }
+  }
+  pdf.save(`delico_odv_reporte_fotos_${todayISO()}.pdf`);
+  toast('PDF generado ✓');
+}
+
+/* ---------- ASIGNACIÓN DE RUTA ---------- */
+const RUTA_KEY = 'delico_odv_rutas_v1';
+const DAY_NAMES = ['Viernes','Sábado','Domingo','Lunes','Martes','Miércoles','Jueves']; // semana de campo: viernes a jueves (ciclo real de captura), no lunes-domingo
+const TIPO_DIA = [['visita','Visita a tienda'],['descanso','Día de descanso'],['vacacion','Vacación'],['home_office','Home office'],['incidencia','Incapacidad'],['otra','Otra']];
+const TIPO_DIA_LABEL = Object.fromEntries(TIPO_DIA);
+const ROLES_TIENDA = ['Promotoría','Degustación','Supervisión'];
+
+/* Inicio de la "semana de campo" (viernes a jueves) que contiene la fecha d — se usa para Calendario,
+   Asignación de ruta, Pre-plan y el bloqueo de semanas ya publicadas. NO se usa para las semanas ISO
+   de cuota/cumplimiento (esas siguen su propio calendario, sin tocar). */
+function inicioSemanaCampo(d){
+  const dt = new Date(d);
+  const day = dt.getDay(); // 0=Dom,1=Lun,2=Mar,3=Mié,4=Jue,5=Vie,6=Sáb
+  const diff = (day - 5 + 7) % 7; // días desde el viernes anterior (0 si "d" ya es viernes)
+  dt.setDate(dt.getDate()-diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+let rutaWeekStart = inicioSemanaCampo(new Date());
+function isoDate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function isoWeekNumber(d){
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (t.getUTCDay()+6)%7;
+  t.setUTCDate(t.getUTCDate()-day+3);
+  const first = new Date(Date.UTC(t.getUTCFullYear(),0,4));
+  return 1 + Math.round(((t-first)/86400000 - 3 + ((first.getUTCDay()+6)%7)) / 7);
+}
+function fmtDateLabel(d){ return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}); }
+function getRutas(){ return _rutasSync.get(); }
+function saveRutas(arr){ return _rutasSync.save(arr); }
+function getSemanasPublicadas(){ return JSON.parse(localStorage.getItem('delico_odv_semanas_publicadas') || '[]'); }
+/* Semanas ya guardadas quedan bloqueadas para edición; se desbloquean manualmente con el lápiz.
+   rutaUnlockedWeeks vive solo en memoria (se re-bloquea al recargar la página o al re-guardar). */
+let rutaUnlockedWeeks = new Set();
+function serializeRutaEntry(a){ return [a.fecha,a.usuario,a.tipo,a.cadena||'',a.tienda||'',a.rol||''].join('|'); }
+function getSnapshotSemana(startISO){ const raw = localStorage.getItem('delico_odv_ruta_snap_'+startISO); return raw ? JSON.parse(raw) : null; }
+function saveSnapshotSemana(startISO, endISO){
+  const entradas = getRutas().filter(a=>a.fecha>=startISO && a.fecha<=endISO);
+  localStorage.setItem('delico_odv_ruta_snap_'+startISO, JSON.stringify(entradas));
+}
+function contarCambiosSemana(startISO, endISO){
+  const snap = getSnapshotSemana(startISO) || [];
+  const current = getRutas().filter(a=>a.fecha>=startISO && a.fecha<=endISO);
+  const snapCount = {}; snap.map(serializeRutaEntry).forEach(s=>snapCount[s]=(snapCount[s]||0)+1);
+  const curCount = {}; current.map(serializeRutaEntry).forEach(s=>curCount[s]=(curCount[s]||0)+1);
+  let added=0, removed=0;
+  new Set([...Object.keys(snapCount), ...Object.keys(curCount)]).forEach(k=>{
+    const diff = (curCount[k]||0) - (snapCount[k]||0);
+    if(diff>0) added+=diff; else if(diff<0) removed+=-diff;
+  });
+  return {added, removed, total: added+removed};
+}
+function desbloquearSemana(){
+  const {startISO} = visibleDateRange();
+  rutaUnlockedWeeks.add(startISO);
+  toast('Semana desbloqueada — ya puedes editarla.');
+  renderRuta();
+}
+function cancelarEdicionSemana(){
+  const {startISO, endISO} = visibleDateRange();
+  const snap = getSnapshotSemana(startISO) || [];
+  const otras = getRutas().filter(a=> !(a.fecha>=startISO && a.fecha<=endISO));
+  saveRutas([...otras, ...snap.map(a=>({...a, id: a.id || uid()}))]);
+  rutaUnlockedWeeks.delete(startISO);
+  toast('Se descartaron los cambios — la semana vuelve a como estaba guardada.');
+  renderRuta();
+}
+function borrarTodaLaSemana(){
+  const {startISO, endISO} = visibleDateRange();
+  if(fechaBloqueada(startISO)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para poder borrarla.'); return; }
+  if(!confirm(`¿Borrar TODAS las asignaciones de esta vista (${document.getElementById('rutaWeekLabel').textContent})? Esto no se puede deshacer.`)) return;
+  const otras = getRutas().filter(a=> !(a.fecha>=startISO && a.fecha<=endISO));
+  saveRutas(otras);
+  toast('Se borró toda la vista.');
+  renderRuta();
+}
+
+function visibleDateRange(){
+  const start = rutaWeekStart;
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  return {start, end, startISO: isoDate(start), endISO: isoDate(end)};
+}
+
+/* Confidencialidad: un Embajador solo ve su propio usuario; un Supervisor no ve la programación de Coordinador/Admin/Gerente */
+function equipoVisibleParaMi(){
+  if(currentUser.perfil === 'Embajador'){
+    return [currentUser];
+  }
+  if(currentUser.perfil === 'Supervisor'){
+    // Un(a) supervisor(a) solo debe ver su propia información y la de su equipo — nunca la de
+    // otros supervisores, coordinación o administración. Coordinador/Admin siguen viendo a todos.
+    return APP_DATA.equipo.filter(u => u.usuario===currentUser.usuario || mismaPersona(supervisorDePersona(u.nombre), currentUser.nombre));
+  }
+  return APP_DATA.equipo;
+}
+function tiendaDeUsuario(u){
+  return APP_DATA.stores.find(s=>s.sector===u.usuario);
+}
+function poblarFiltrosRuta(){
+  poblarSelectFiltro('rutaFiltroSupervisor', nombresSupervisorUnicos());
+  poblarSelectFiltro('rutaFiltroRegion', [...new Set(APP_DATA.equipo.map(u=>u.region).filter(Boolean))].sort());
+  poblarSelectFiltro('rutaFiltroCadena', [...new Set(APP_DATA.stores.map(s=>s.cadena))].sort());
+  poblarSelectFiltro('rutaFiltroCluster', [...new Set(APP_DATA.stores.map(s=>s.cluster).filter(Boolean))].sort());
+}
+function renderPersonaPool(){
+  const pool = document.getElementById('personaPool');
+  if(!pool) return;
+  poblarFiltrosRuta();
+  const q = (document.getElementById('personaSearch').value || '').trim().toLowerCase();
+  const fSup = (document.getElementById('rutaFiltroSupervisor')||{}).value;
+  const fRegion = (document.getElementById('rutaFiltroRegion')||{}).value;
+  const fCadena = (document.getElementById('rutaFiltroCadena')||{}).value;
+  const fCluster = (document.getElementById('rutaFiltroCluster')||{}).value;
+  const {startISO, endISO} = visibleDateRange();
+  const arr = getRutas();
+  let lista = [...equipoVisibleParaMi()].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if(q) lista = lista.filter(u => u.nombre.toLowerCase().startsWith(q) || u.nombre.toLowerCase().includes(' '+q));
+  if(fSup) lista = lista.filter(u => mismaPersona(supervisorDePersona(u.nombre), fSup));
+  if(fRegion) lista = lista.filter(u => u.region===fRegion);
+  if(fCadena) lista = lista.filter(u => { const t = tiendaDeUsuario(u); return t && t.cadena===fCadena; });
+  if(fCluster) lista = lista.filter(u => { const t = tiendaDeUsuario(u); return t && t.cluster===fCluster; });
+  pool.innerHTML = lista.map(u=>{
+    const shortName = nombreCorto(u.nombre);
+    const diasOcupados = arr.filter(a => a.usuario===u.usuario && a.fecha>=startISO && a.fecha<=endISO).length;
+    return `<div class="persona-chip" draggable="true" data-usuario="${u.usuario}" ondragstart="dragPersona(event)">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span>${shortName}</span>
+        <span style="font-size:10px; font-weight:700; color:${diasOcupados>0?'var(--spring-dark)':'var(--ink-soft)'};">${diasOcupados}/7 días</span>
+      </div>
+      <span style="color:var(--ink-soft); font-weight:500;">${u.perfil} · ${u.rol}</span>
+    </div>`;
+  }).join('') || `<div style="font-size:12px; color:var(--ink-soft);">Sin resultados</div>`;
+}
+function dragPersona(e){
+  e.dataTransfer.setData('text/usuario', e.currentTarget.dataset.usuario);
+}
+let rutaModoArrastre = 'cero';
+function setRutaModoArrastre(modo){
+  rutaModoArrastre = modo;
+  toast(modo==='preplan' ? 'Modo Pre-plan activo: al soltar una persona se sugieren tiendas del pre-plan (revísalas y ajusta).' : 'Modo de cero: al soltar una persona los días quedan en blanco para llenar.');
+}
+function rolSugeridoParaUsuario(u){
+  if(['Supervisor','Coordinador','Admin'].includes(u.perfil)) return 'Supervisión';
+  if(/SUPERV/.test(u.rol||'')) return 'Supervisión';
+  if(/H[ÍI]BRIDO/.test(u.rol||'')) return 'Degustación';
+  if(/DEGUST/.test(u.rol||'')) return 'Degustación';
+  return 'Promotoría';
+}
+function vacacionEnFecha(usuario, fechaISO){
+  return getVacaciones().find(v => v.usuario===usuario && (v.tipo||'vacaciones')==='vacaciones' && v.estado!=='rechazada' && v.desde<=fechaISO && v.hasta>=fechaISO) || null;
+}
+function onDropPersona(e, dateISO){
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  const usuario = e.dataTransfer.getData('text/usuario');
+  if(!usuario) return;
+  const u = APP_DATA.equipo.find(x=>x.usuario===usuario);
+  if(!u) return;
+  if(fechaBloqueada(dateISO)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  // Al soltar, se llenan los 7 días de la vista visible para esa persona (cubre la semana completa por default).
+  // Si algún día de esos 7 ya tenía algo, no se toca — solo se rellenan los que están vacíos.
+  const {start} = visibleDateRange();
+  const arr = getRutas();
+  const existentesEnVentana = new Set(arr.filter(a=>a.usuario===usuario).map(a=>a.fecha));
+  let sugerencias = [];
+  if(rutaModoArrastre==='preplan'){
+    const lunesRef = new Date(start); lunesRef.setDate(lunesRef.getDate()-7);
+    const {filas} = calcularPreplan(isoDate(lunesRef), isoDate(new Date(lunesRef.getTime()+6*86400000)));
+    sugerencias = filas.slice(0,7);
+  }
+  const rolSugerido = rolSugeridoParaUsuario(u);
+  let creados = 0;
+  let diasVacacion = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const iso = isoDate(d);
+    if(existentesEnVentana.has(iso)) continue;
+    const vac = vacacionEnFecha(u.usuario, iso);
+    if(vac){
+      arr.push({id:uid()+'_'+i, fecha:iso, usuario:u.usuario, nombre:u.nombre, tipo:'vacacion', cadena:'', tienda:'', rol:''});
+      diasVacacion.push(iso);
+    } else {
+      const sug = sugerencias.length ? sugerencias[i % sugerencias.length] : null;
+      arr.push({id:uid()+'_'+i, fecha:iso, usuario:u.usuario, nombre:u.nombre, tipo:'visita', cadena: sug?sug.s.cadena:'', tienda: sug?sug.s.tienda:'', rol: rolSugerido});
+    }
+    creados++;
+  }
+  saveRutas(arr);
+  renderRuta();
+  if(diasVacacion.length){
+    avisoPersonalizado(`⚠️ ${nombreCorto(u.nombre)} tiene vacaciones solicitadas/aprobadas que cubren ${diasVacacion.length} día(s) de esta semana (${diasVacacion.join(', ')}). Se marcaron como "Vacación" automáticamente — revísalas.`);
+  } else {
+    toast(creados ? `Se agregó a ${nombreCorto(u.nombre)} en los 7 días — quita o edita los que no apliquen.` : 'Esa persona ya tenía los 7 días cubiertos en esta ventana.');
+  }
+}
+function renderRutaCard(a, locked){
+  const shortName = nombreCorto(a.nombre);
+  const dis = locked ? 'disabled' : '';
+  let extra = '';
+  if(a.tipo === 'visita'){
+    const sugeridas = tiendasDeRutaSeptiembre(a.usuario);
+    extra = `
+      ${sugeridas.length ? `
+      <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Sugeridas (asignación del mes)</div>
+      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:4px;">
+        ${sugeridas.map(s=>{
+          const activa = a.cadena===s.cadena && a.tienda===s.tienda;
+          return `<button type="button" ${dis} onclick="updRutaTiendaSugerida('${a.id}','${s.cadena}','${s.tienda}')" title="${s.cadena} — ${s.tipo_servicio||''}" style="border:2px solid ${activa?'var(--brand)':'var(--line)'}; border-radius:7px; padding:3px 6px; background:${activa?'var(--brand-soft)':'#fff'}; cursor:${locked?'default':'pointer'}; font-size:10.5px; font-weight:${activa?'700':'400'}; ${locked?'opacity:.6;':''}">${s.tienda}</button>`;
+        }).join('')}
+      </div>` : ''}
+      <div style="font-size:9.5px; color:var(--ink-soft); margin:4px 0 2px; text-transform:uppercase; font-weight:700; letter-spacing:.02em;">Otro — buscar cualquier tienda</div>
+      <input type="text" ${dis} placeholder="Escribe para buscar..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off" onchange="updRutaTiendaBuscada('${a.id}', this.value); this.value='';" value="${a.tienda ? (a.tienda + (a.cadena?(' — '+a.cadena):'')) : ''}" style="width:100%; margin-bottom:4px;">
+      <div style="display:flex; gap:3px; margin-top:4px; flex-wrap:wrap;">
+        ${ROLES_TIENDA.map(r=>`<button type="button" ${dis} class="rc-rolbtn ${a.rol===r?'active':''}" onclick="updRuta('${a.id}','rol','${r}')">${r}</button>`).join('')}
+      </div>
+      ${locked?'':`<button type="button" class="btn btn-ghost" style="font-size:10px; padding:3px 6px; margin-top:5px;" onclick="agregarOtraTiendaMismoDia('${a.id}')">+ otra tienda ese día</button>`}`;
+  }
+  const vacAlerta = a.tipo==='visita' ? vacacionEnFecha(a.usuario, a.fecha) : null;
+  return `<div class="ruta-card tipo-${a.tipo}">
+    ${vacAlerta ? `<div style="background:#fbe4e0; color:var(--bad); font-size:9.5px; font-weight:700; border-radius:5px; padding:2px 5px; margin-bottom:3px;">⚠️ Vacaciones ${vacAlerta.estado} este día</div>` : ''}
+    <div class="rc-name">${shortName}${locked?'🔒':`<button class="rc-del" onclick="delRutaCard('${a.id}')" title="Quitar">✕</button>`}</div>
+    <div style="display:flex; gap:3px; flex-wrap:wrap; margin-bottom:2px;">
+      ${TIPO_DIA.map(([v,l])=>`<button type="button" ${dis} class="rc-tipobtn ${a.tipo===v?'active':''}" onclick="updRuta('${a.id}','tipo','${v}')" title="${l}">${l.replace('Visita a tienda','Tienda').replace('Día de descanso','Descanso').replace('Home office','Home')}</button>`).join('')}
+    </div>
+    ${extra}
+  </div>`;
+}
+function fechaBloqueada(fechaISO){
+  const wk = inicioSemanaCampo(new Date(fechaISO+'T00:00:00'));
+  const wkISO = isoDate(wk);
+  return getSemanasPublicadas().includes(wkISO) && !rutaUnlockedWeeks.has(wkISO);
+}
+function updRuta(id, field, value){
+  const arr = getRutas();
+  const idx = arr.findIndex(a=>a.id===id);
+  if(idx<0) return;
+  if(fechaBloqueada(arr[idx].fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  arr[idx][field] = value;
+  if(field==='tipo' && value!=='visita'){ arr[idx].cadena=''; arr[idx].tienda=''; arr[idx].rol=''; }
+  if(field==='cadena'){ arr[idx].tienda=''; }
+  saveRutas(arr);
+  renderRuta();
+}
+/* Un clic en una tienda "sugerida" (de la asignación de rutas del mes, ej. Adignación tiendas septiembre.xlsx)
+   llena cadena + tienda de un solo golpe — para no tener que ir cadena por cadena, tienda por tienda. */
+function updRutaTiendaSugerida(id, cadena, tienda){
+  const arr = getRutas();
+  const idx = arr.findIndex(a=>a.id===id);
+  if(idx<0) return;
+  if(fechaBloqueada(arr[idx].fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  arr[idx].cadena = cadena;
+  arr[idx].tienda = tienda;
+  saveRutas(arr);
+  renderRuta();
+}
+/* El buscador "Otro" usa un <datalist> con TODAS las tiendas como "Tienda — Cadena" (poblado una sola vez
+   por poblarDatalistTiendas). Al elegir/escribir una coincidencia exacta, se separan cadena y tienda y se
+   llenan ambas — sirve quien no está en la asignación sugerida de este mes o para tiendas nuevas. */
+function updRutaTiendaBuscada(id, valorEscrito){
+  if(!valorEscrito) return;
+  const partes = valorEscrito.split(' — ');
+  if(partes.length < 2){ toast('Elige una tienda de la lista que aparece al escribir.'); return; }
+  const cadena = partes[partes.length-1];
+  const tienda = partes.slice(0,-1).join(' — ');
+  const match = APP_DATA.stores.find(s=>s.tienda===tienda && s.cadena===cadena);
+  if(!match){ toast('No se encontró esa tienda exacta — elígela de la lista que aparece al escribir.'); return; }
+  const arr = getRutas();
+  const idx = arr.findIndex(a=>a.id===id);
+  if(idx<0) return;
+  if(fechaBloqueada(arr[idx].fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  arr[idx].cadena = cadena;
+  arr[idx].tienda = tienda;
+  saveRutas(arr);
+  renderRuta();
+}
+function poblarDatalistTiendas(){
+  const dl = document.getElementById('dlTodasTiendas');
+  if(!dl || dl.options.length) return;
+  dl.innerHTML = APP_DATA.stores.map(s=>`<option value="${s.tienda} — ${s.cadena}">`).join('');
+}
+function delRutaCard(id){
+  const arr = getRutas();
+  const found = arr.find(a=>a.id===id);
+  if(found && fechaBloqueada(found.fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  saveRutas(arr.filter(a=>a.id!==id));
+  renderRuta();
+}
+function agregarOtraTiendaMismoDia(id){
+  const arr = getRutas();
+  const base = arr.find(a=>a.id===id);
+  if(!base) return;
+  if(fechaBloqueada(base.fecha)){ toast('Esta semana ya está guardada. Da clic en "✏️ Editar" para modificarla.'); return; }
+  const uBase = APP_DATA.equipo.find(x=>x.usuario===base.usuario);
+  arr.push({id:uid(), fecha:base.fecha, usuario:base.usuario, nombre:base.nombre, tipo:'visita', cadena:'', tienda:'', rol: uBase?rolSugeridoParaUsuario(uBase):(base.rol||'')});
+  saveRutas(arr);
+  renderRuta();
+}
+function shiftWeek(delta){
+  rutaWeekStart.setDate(rutaWeekStart.getDate() + delta*7);
+  renderRuta();
+}
+function shiftDay(delta){
+  rutaWeekStart.setDate(rutaWeekStart.getDate() + delta);
+  renderRuta();
+}
+function onWeekPickerChange(val){
+  if(!val) return;
+  rutaWeekStart = new Date(val+'T00:00:00');
+  renderRuta();
+}
+function renderRuta(){
+  renderPersonaPool();
+  poblarDatalistTiendas();
+  const start = rutaWeekStart;
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  const startISO = isoDate(start), endISO = isoDate(end);
+  document.getElementById('rutaWeekLabel').textContent = `Vista del ${fmtDateLabel(start)} al ${fmtDateLabel(end)}`;
+  document.getElementById('rutaWeekPicker').value = startISO;
+  const yaGuardada = getSemanasPublicadas().includes(startISO);
+  const desbloqueada = rutaUnlockedWeeks.has(startISO);
+  const locked = yaGuardada && !desbloqueada;
+  document.getElementById('rutaSaveStatus').textContent = '';
+
+  const lockBar = document.getElementById('rutaLockBar');
+  if(locked){
+    lockBar.innerHTML = `<div style="display:flex; align-items:center; gap:10px; background:var(--brand-soft); border:1px solid #d8dba0; border-radius:10px; padding:8px 12px; font-size:12.5px;">
+      🔒 <b>Esta vista ya está guardada y distribuida.</b> Solo lectura.
+      <button class="btn btn-ghost" style="margin-left:auto; padding:4px 10px; font-size:12px;" onclick="desbloquearSemana()">✏️ Editar</button>
+    </div>`;
+  } else if(yaGuardada && desbloqueada){
+    const cambios = contarCambiosSemana(startISO, endISO);
+    lockBar.innerHTML = `<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--warn-soft); border:1px solid #ecd9a8; border-radius:10px; padding:8px 12px; font-size:12.5px; color:#6b4f16;">
+      ✏️ <b>Editando una vista ya guardada.</b> ${cambios.total ? `<span>${cambios.added} agregado${cambios.added===1?'':'s'}, ${cambios.removed} quitado${cambios.removed===1?'':'s'} desde el último guardado.</span>` : `<span>Sin cambios todavía.</span>`}
+      <button class="btn btn-brand" style="margin-left:auto; padding:4px 10px; font-size:12px;" onclick="guardarSemanaRuta()">💾 Guardar cambios</button>
+      <button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" onclick="cancelarEdicionSemana()">Descartar y bloquear</button>
+    </div>`;
+  } else {
+    lockBar.innerHTML = '';
+  }
+
+  const board = document.getElementById('rutaBoard');
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getRutas().filter(a => visibleUsuarios.has(a.usuario));
+  // Vista en tabla: FILAS = los 7 días (viernes → jueves), COLUMNAS = cada persona. Así un descanso, vacación
+  // o doble tienda de una persona nunca descuadra a las demás (cada quien tiene su columna).
+  const dias = [];
+  for(let i=0;i<7;i++){ const d = new Date(start); d.setDate(d.getDate()+i); dias.push({i, d, iso:isoDate(d)}); }
+  const enSemana = arr.filter(a=>a.fecha>=startISO && a.fecha<=endISO);
+  const ordenEquipo = new Map(APP_DATA.equipo.map((u,k)=>[u.usuario,k]));
+  const usuariosCol = [...new Set(enSemana.map(a=>a.usuario))].sort((a,b)=>(ordenEquipo.get(a)??999)-(ordenEquipo.get(b)??999));
+  const personaDe = us => APP_DATA.equipo.find(u=>u.usuario===us);
+  const hoyISO = todayISO();
+  const attrDrop = locked
+    ? `ondragover="event.preventDefault()" ondrop="event.preventDefault(); toast('Esta semana ya está guardada. Da clic en &quot;✏️ Editar&quot; para modificarla.')"`
+    : null;
+  const dropAttrs = iso => attrDrop || `ondragover="event.preventDefault(); this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="onDropPersona(event,'${iso}')"`;
+  let html = `<table class="ruta-tabla"><thead><tr><th class="rt-dia">Día</th>`;
+  if(!usuariosCol.length) html += `<th class="rt-vacio">Personas</th>`;
+  usuariosCol.forEach(us=>{
+    const u = personaDe(us);
+    const nombre = u ? nombreCorto(u.nombre) : us;
+    const diasPlan = enSemana.filter(a=>a.usuario===us).length;
+    html += `<th class="rt-persona"><div>${pcEsc(nombre)}</div><div class="rt-sub">${u?pcEsc(u.rol):''} · ${diasPlan}/7 días</div></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+  dias.forEach(({i,d,iso})=>{
+    html += `<tr${iso===hoyISO?' class="rt-hoy"':''}><th class="rt-dia" ${dropAttrs(iso)}><div>${DAY_NAMES[i]}</div><div class="rt-fecha">${fmtDateLabel(d)}</div></th>`;
+    if(!usuariosCol.length){
+      html += `<td class="rt-celda rt-vacia" ${dropAttrs(iso)}>${locked?'Sin cambios en este día':'Suelta aquí a una persona'}</td>`;
+    }
+    usuariosCol.forEach(us=>{
+      const cards = enSemana.filter(a=>a.usuario===us && a.fecha===iso);
+      html += `<td class="rt-celda" ${dropAttrs(iso)}>${cards.map(a=>renderRutaCard(a, locked)).join('') || '<div class="rt-nada">—</div>'}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  board.innerHTML = html;
+  renderRutaResumenSemana(startISO, endISO);
+}
+/* ===================== CARGAR RUTAS DESDE ARCHIVO EXCEL ===================== */
+/* Lee el "rol" que arman las supervisoras en Excel (formatos CENTRO y OCCIDENTE, y parecidos):
+   una fila por persona+tienda, columnas por fecha, "1" = visita, DESCANSO/VACACIONES/... = día especial.
+   Muestra vista previa, deja corregir quién es quién y pregunta caso por caso cuando ya hay ruta capturada. */
+const IMP_PERFILES = ['Supervisor','Coordinador','Admin'];
+const IMP_ESTADOS = {DESCANSO:'descanso', VACACIONES:'vacacion', VACACION:'vacacion', INCAPACIDAD:'incidencia', ONOMASTICO:'otra', ADMINISTRACION:'otra', 'HOME OFFICE':'home_office', HOME:'home_office'};
+const IMP_PRIO = {incidencia:5, vacacion:4, otra:3, home_office:2, descanso:1};
+function impNrm(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
+function impTokens(s, quitarParentesis){
+  let t = impNrm(s);
+  if(quitarParentesis) t = t.replace(/\([^)]*\)/g,' ');
+  return t.replace(/[^A-Z0-9 ]/g,' ').split(/\s+/).filter(x=>x && !['DE','DEL','LA','LOS','Y'].includes(x)).map(x=>x==='MA'?'MARIA':x);
+}
+function impLev1(a,b){ // distancia de edición <=1
+  if(a===b) return true;
+  if(Math.abs(a.length-b.length)>1) return false;
+  let i=0,j=0,dif=0;
+  while(i<a.length && j<b.length){
+    if(a[i]===b[j]){ i++; j++; continue; }
+    if(++dif>1) return false;
+    if(a.length>b.length) i++; else if(a.length<b.length) j++; else { i++; j++; }
+  }
+  return dif + (a.length-i) + (b.length-j) <= 1;
+}
+function impTokEq(a,b){ return a===b || (a.length>=5 && b.length>=5 && impLev1(a,b)); }
+function impCover(from, inTo){ if(!from.length) return 0; return from.filter(t=>inTo.some(x=>impTokEq(t,x))).length / from.length; }
+function impBuscarUsuario(nombreArchivo){
+  const tf = impTokens(nombreArchivo, true);
+  if(!tf.length) return null;
+  let mejor = null, mejorScore = 0, empate = false;
+  APP_DATA.equipo.forEach(u=>{
+    const te = impTokens(u.nombre, true);
+    const covF = impCover(tf, te), covE = impCover(te, tf);
+    const comunes = tf.filter(t=>te.some(x=>impTokEq(t,x))).length;
+    if(!(covF>=0.999 || covE>=0.999) || comunes<2) return;
+    const score = covF + 0.01*covE + (covF>=0.999 && covE>=0.999 ? 1 : 0);
+    if(score>mejorScore+1e-9){ mejor=u; mejorScore=score; empate=false; }
+    else if(Math.abs(score-mejorScore)<=1e-9) empate=true;
+  });
+  return (mejor && !empate) ? mejor : null;
+}
+function impSimNombres(a,b){
+  const ta = impTokens(a), tb = impTokens(b);
+  if(!ta.length || !tb.length) return 0;
+  const inter = ta.filter(t=>tb.some(x=>impTokEq(t,x))).length;
+  return inter / Math.max(ta.length, tb.length);
+}
+function impBuscarTienda(det, nombre, cadena){
+  const n = parseInt(String(det||'').replace(/\D/g,''),10);
+  const cadN = impNrm(cadena);
+  const sinEspacios = s => impNrm(s).replace(/[^A-Z0-9]/g,'');
+  let porNum = [];
+  if(n) porNum = APP_DATA.stores.filter(s=>Math.round(Number(s.num_tienda))===n);
+  if(porNum.length>1){
+    const f = porNum.filter(s=>impNrm(s.cadena)===cadN);
+    if(f.length) porNum = f;
+  }
+  let candNum = null;
+  if(porNum.length){
+    candNum = porNum.map(s=>({s, sim: impSimNombres(nombre, s.tienda)})).sort((a,b)=>b.sim-a.sim)[0];
+  }
+  // por nombre
+  let candNom = null;
+  if(nombre){
+    const ex = APP_DATA.stores.filter(s=>sinEspacios(s.tienda)===sinEspacios(nombre));
+    if(ex.length){ candNom = {s: ex.find(s=>impNrm(s.cadena)===cadN) || ex[0], sim:1}; }
+    else {
+      const cands = APP_DATA.stores.map(s=>({s, sim: impSimNombres(nombre, s.tienda) + (impNrm(s.cadena)===cadN?0.05:0)})).sort((a,b)=>b.sim-a.sim);
+      if(cands[0] && cands[0].sim>=0.75) candNom = cands[0];
+    }
+  }
+  if(candNum && (candNum.sim>=0.34 || !candNom)) return {store:candNum.s, via:'numero'};
+  if(candNom) return {store:candNom.s, via:'nombre'};
+  return {store:null, via:''};
+}
+function impFechaDeCelda(v){
+  if(v==null || v==='') return null;
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  if(typeof v==='number' && v>40000 && v<60000) return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10);
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+function impLeerHoja(filas){
+  let hdr=-1, colsFecha=[];
+  for(let r=0; r<Math.min(filas.length,25); r++){
+    const cols = [];
+    (filas[r]||[]).forEach((c,i)=>{ const f=impFechaDeCelda(c); if(f) cols.push({i,f}); });
+    if(cols.length>=5){ hdr=r; colsFecha=cols; break; }
+  }
+  if(hdr<0) return null;
+  const celdasHdr = [];
+  for(let r=Math.max(0,hdr-2); r<=Math.min(filas.length-1,hdr+1); r++) (filas[r]||[]).forEach((c,i)=>celdasHdr.push({i, t:impNrm(c)}));
+  const buscaCol = (...nombres) => { const x = celdasHdr.find(c=>nombres.some(n=>c.t===n || c.t.startsWith(n))); return x?x.i:-1; };
+  let cDemo = buscaCol('DEMO','DEMOSTRADORA','EMBAJADOR','PERSONA','NOMBRE');
+  if(cDemo<0) cDemo = colsFecha[0].i-1;
+  let cDet = buscaCol('DET'); if(cDet<0) cDet=0;
+  let cTienda = buscaCol('TIENDA'); if(cTienda<0) cTienda=1;
+  let cCadena = buscaCol('CADENA'); if(cCadena<0) cCadena=2;
+  const out = {personas:{}, orden:[], huerfanas:0, pendientes:0, desconocidos:{}, tiendas:{}};
+  let actual = null;
+  for(let r=hdr+1; r<filas.length; r++){
+    const fila = filas[r]||[];
+    const demo = String(fila[cDemo]==null?'':fila[cDemo]).trim();
+    const tienda = String(fila[cTienda]==null?'':fila[cTienda]).trim();
+    const detTxt = String(fila[cDet]==null?'':fila[cDet]).trim();
+    const cadena = String(fila[cCadena]==null?'':fila[cCadena]).trim();
+    let rolTxt = '';
+    for(let c=0;c<cDemo;c++){ const t=impNrm(fila[c]); if(/DEGUST|PROMOT|SUPERV|HIBRID/.test(t)){ rolTxt=t; break; } }
+    let persona = null;
+    if(demo){
+      const key = impNrm(demo);
+      persona = out.personas[key];
+      if(!persona){ persona = out.personas[key] = {key, nombreArchivo:demo, dias:{}, filas:0}; out.orden.push(key); }
+      actual = persona;
+    } else if(!tienda && !detTxt){
+      persona = actual; // fila de descansos/incapacidad sin nombre: pertenece al bloque de arriba
+      if(!fila.some(c=>c!=null && c!=='')) continue;
+      if(!colsFecha.some(({i})=>String(fila[i]==null?'':fila[i]).trim())) { actual = actual; continue; }
+    } else {
+      // tiene tienda pero no persona
+      if(colsFecha.some(({i})=>String(fila[i]==null?'':fila[i]).trim()!=='')) out.huerfanas++;
+      continue;
+    }
+    if(!persona) continue;
+    if(demo) persona.filas++;
+    colsFecha.forEach(({i,f})=>{
+      const raw = fila[i]; if(raw==null || raw==='') return;
+      const t = impNrm(raw);
+      const dia = persona.dias[f] = persona.dias[f] || {estado:null, visitas:[], pisadas:0};
+      if(IMP_ESTADOS[t]){
+        const e = IMP_ESTADOS[t];
+        if(!dia.estado || IMP_PRIO[e]>IMP_PRIO[dia.estado]) dia.estado = e;
+      } else if(t==='PENDIENTE' || t===''){ out.pendientes++; }
+      else if(/^[1-9]\d*$/.test(t) || t==='X'){
+        if(!demo) return; // un "1" en una fila sin tienda no sirve
+        const sk = detTxt+'|'+impNrm(tienda)+'|'+impNrm(cadena);
+        if(!out.tiendas[sk]) out.tiendas[sk] = {det:detTxt, tienda, cadena, m:impBuscarTienda(detTxt, tienda, cadena), store:null, veces:0};
+        out.tiendas[sk].veces++;
+        if(!dia.visitas.some(v=>v.sk===sk)) dia.visitas.push({sk, rolTxt});
+      } else { out.desconocidos[t] = (out.desconocidos[t]||0)+1; }
+    });
+  }
+  return out;
+}
+async function impArchivosElegidos(input){
+  const files = [...(input.files||[])]; input.value='';
+  if(!files.length) return;
+  if(!IMP_PERFILES.includes(currentUser.perfil)){ toast('Esta opción es solo para Supervisor, Coordinador y Admin.'); return; }
+  toast('Leyendo archivo(s)…');
+  try{
+    if(!(await cargarXLSX())) throw new Error('no se pudo cargar el lector de Excel (revisa tu internet)');
+    const imp = window._imp = {archivos:[], personas:[], tiendas:{}, huerfanas:0, pendientes:0, desconocidos:{}, decisiones:{}};
+    for(const f of files){
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      let hojasOk = 0;
+      for(const nombreHoja of wb.SheetNames){
+        if(/DEGUST|PIVOT|PLAN/i.test(nombreHoja) && wb.SheetNames.length>1) continue;
+        const filas = XLSX.utils.sheet_to_json(wb.Sheets[nombreHoja], {header:1, raw:true, cellDates:false, defval:null});
+        const r = impLeerHoja(filas);
+        if(!r || !r.orden.length) continue;
+        hojasOk++;
+        r.orden.forEach(k=>{
+          const p = r.personas[k];
+          let ex = imp.personas.find(x=>x.key===k);
+          if(!ex){ ex = {key:k, nombreArchivo:p.nombreArchivo, dias:{}, filas:0, usuario:'', auto:false}; imp.personas.push(ex); }
+          ex.filas += p.filas;
+          Object.keys(p.dias).forEach(fe=>{ ex.dias[fe] = p.dias[fe]; });
+        });
+        Object.entries(r.tiendas).forEach(([sk,v])=>{ if(!imp.tiendas[sk]) imp.tiendas[sk]=v; else imp.tiendas[sk].veces+=v.veces; });
+        imp.huerfanas += r.huerfanas; imp.pendientes += r.pendientes;
+        Object.entries(r.desconocidos).forEach(([t,n])=>imp.desconocidos[t]=(imp.desconocidos[t]||0)+n);
+      }
+      imp.archivos.push({nombre:f.name, hojas:hojasOk});
+    }
+    if(!imp.personas.length){ toast('No encontré un rol de rutas en el archivo (necesito columna de persona y columnas con fechas).'); return; }
+    const visibles = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+    imp.personas.forEach(p=>{
+      p.vacante = /VACANTE/.test(p.key);
+      const u = p.vacante ? null : impBuscarUsuario(p.nombreArchivo);
+      if(u){
+        p.auto = true;
+        if(visibles.has(u.usuario)) p.usuario = u.usuario; else { p.usuario=''; p.fuera = u.nombre; }
+      }
+    });
+    impRenderModal();
+  }catch(e){
+    console.error(e);
+    toast('No pude leer el archivo: '+(e && e.message ? e.message : e));
+  }
+}
+function impStoreDe(sk){
+  const t = window._imp.tiendas[sk];
+  if(!t) return {cadena:'', tienda:''};
+  const s = t.store || t.m.store;
+  if(s) return {cadena:s.cadena, tienda:s.tienda};
+  return {cadena:t.cadena.replace(/^CADENA$/i,''), tienda:t.tienda};
+}
+function impRolDe(u, rolTxt){
+  if(/DEGUST/.test(rolTxt)) return 'Degustación';
+  if(/PROMOT/.test(rolTxt)) return 'Promotoría';
+  if(/SUPERV/.test(rolTxt)) return 'Supervisión';
+  return rolSugeridoParaUsuario(u);
+}
+/* Registros que se cargarían: lista de {usuario, fecha, recs[]} */
+function impPropuesta(){
+  const imp = window._imp, out = [];
+  imp.personas.forEach(p=>{
+    if(!p.usuario) return;
+    const u = APP_DATA.equipo.find(x=>x.usuario===p.usuario); if(!u) return;
+    Object.keys(p.dias).sort().forEach(fecha=>{
+      const d = p.dias[fecha];
+      let recs = [];
+      if(d.estado) recs = [{fecha, usuario:u.usuario, nombre:u.nombre, tipo:d.estado, cadena:'', tienda:'', rol:''}];
+      else recs = d.visitas.map(v=>{ const s=impStoreDe(v.sk); return {fecha, usuario:u.usuario, nombre:u.nombre, tipo:'visita', cadena:s.cadena, tienda:s.tienda, rol:impRolDe(u, v.rolTxt)}; });
+      if(recs.length) out.push({usuario:u.usuario, nombre:u.nombre, fecha, recs, conVisitaYEstado: !!(d.estado && d.visitas.length)});
+    });
+  });
+  return out;
+}
+function impDescr(recs){
+  if(!recs.length) return '—';
+  if(recs[0].tipo!=='visita') return TIPO_DIA_LABEL[recs[0].tipo]||recs[0].tipo;
+  return recs.map(r=>r.tienda||'(sin tienda)').join(' + ');
+}
+function impAnalizar(){
+  const prop = impPropuesta(), existentes = getRutas();
+  const porClave = {};
+  existentes.forEach(a=>{ (porClave[a.usuario+'|'+a.fecha] = porClave[a.usuario+'|'+a.fecha] || []).push(a); });
+  const nuevos = [], iguales = [], conflictos = [], bloqueados = [];
+  prop.forEach(g=>{
+    if(fechaBloqueada(g.fecha)){ bloqueados.push(g); return; }
+    const ex = porClave[g.usuario+'|'+g.fecha];
+    if(!ex || !ex.length){ nuevos.push(g); return; }
+    const s1 = ex.map(serializeRutaEntry).sort().join('~'), s2 = g.recs.map(serializeRutaEntry).sort().join('~');
+    if(s1===s2) iguales.push(g); else conflictos.push({g, ex});
+  });
+  return {nuevos, iguales, conflictos, bloqueados};
+}
+function impRenderModal(){
+  const imp = window._imp;
+  const visibles = equipoVisibleParaMi();
+  const optsPersona = sel => `<option value="">— No cargar —</option>` + visibles.map(u=>`<option value="${u.usuario}" ${sel===u.usuario?'selected':''}>${pcEsc(u.nombre)} (${u.usuario})</option>`).join('');
+  const filasPers = imp.personas.map((p,i)=>{
+    const dias = Object.keys(p.dias).length;
+    let nVis=0, nEst=0; Object.values(p.dias).forEach(d=>{ if(d.estado) nEst++; else nVis += d.visitas.length; });
+    const nota = p.vacante ? '<span style="color:var(--ink-soft);">Vacante — sin persona asignada</span>'
+      : p.fuera ? `<span style="color:var(--bad);">Es ${pcEsc(nombreCorto(p.fuera))}, fuera de tu equipo</span>`
+      : (!p.usuario ? '<span style="color:var(--bad);">No la reconocí — elige quién es</span>' : (p.auto?'<span style="color:var(--good);">✓ reconocida</span>':'<span>elegida por ti</span>'));
+    return `<tr style="border-top:1px solid var(--line);">
+      <td style="padding:6px 6px; font-size:12px;"><b>${pcEsc(p.nombreArchivo)}</b><div style="font-size:10.5px;">${nota}</div></td>
+      <td style="padding:6px 6px;"><select onchange="impElegirPersona(${i}, this.value)" style="max-width:230px; font-size:12px; padding:4px 6px;">${optsPersona(p.usuario)}</select></td>
+      <td style="padding:6px 6px; font-size:12px; text-align:center;">${dias}</td>
+      <td style="padding:6px 6px; font-size:12px; text-align:center;">${nVis}</td>
+      <td style="padding:6px 6px; font-size:12px; text-align:center;">${nEst}</td>
+    </tr>`;
+  }).join('');
+  const sinReconocer = Object.entries(imp.tiendas).filter(([sk,t])=>!t.m.store && !t.store);
+  const tiendasHtml = sinReconocer.length ? `
+    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:14px 0 4px;">Tiendas que no pude identificar (${sinReconocer.length})</div>
+    <p style="font-size:11.5px; color:var(--ink-soft); margin:0 0 6px;">Si no eliges nada, se cargan tal como vienen en el archivo (con el nombre escrito). Si quieres, busca la tienda correcta del catálogo.</p>
+    ${sinReconocer.map(([sk,t])=>`<div style="display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap;">
+      <span style="font-size:12px; min-width:210px;">${pcEsc(t.tienda||'(sin nombre)')} <span style="color:var(--ink-soft);">· ${pcEsc(t.cadena)} ${t.det?('· #'+pcEsc(t.det)):''}</span></span>
+      <input type="text" list="dlTodasTiendas" placeholder="Buscar tienda del catálogo…" data-sk="${pcEsc(sk)}" onchange="impElegirTienda(this)" style="flex:1; min-width:200px; font-size:12px; padding:4px 6px;">
+    </div>`).join('')}` : '';
+  const body = document.getElementById('modalBody');
+  body.classList.add('modal-wide');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>📥 Cargar rutas desde archivo</h3>
+    <p class="d">${imp.archivos.map(a=>pcEsc(a.nombre)+' ('+a.hojas+' hoja'+(a.hojas===1?'':'s')+')').join(' · ')}. Revisa quién es quién y las diferencias; no se guarda nada hasta que confirmes.</p>
+    <div style="overflow:auto; max-height:240px; border:1px solid var(--line); border-radius:10px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead><tr style="background:var(--brand-soft); font-size:11px; text-align:left;"><th style="padding:6px;">En el archivo</th><th style="padding:6px;">Se carga como</th><th style="padding:6px;">Días</th><th style="padding:6px;">Visitas</th><th style="padding:6px;">Descansos / otros</th></tr></thead>
+        <tbody>${filasPers}</tbody>
+      </table>
+    </div>
+    ${tiendasHtml}
+    <div id="impResumen" style="margin-top:14px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-brand" id="impBtnCargar" onclick="impConfirmar()">Cargar</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+  impRenderResumen();
+}
+function impElegirPersona(i, usuario){
+  const p = window._imp.personas[i]; p.usuario = usuario; p.auto = false; p.fuera = '';
+  impRenderModal();
+}
+function impElegirTienda(inp){
+  const sk = inp.dataset.sk, t = window._imp.tiendas[sk]; if(!t) return;
+  const v = inp.value.trim();
+  if(!v){ t.store = null; }
+  else {
+    const s = APP_DATA.stores.find(x=>(x.tienda+' — '+x.cadena)===v);
+    if(s) t.store = s; else { t.store=null; toast('Elige una tienda de la lista.'); }
+  }
+  impRenderResumen();
+}
+function impDecidir(clave, valor){
+  window._imp.decisiones[clave] = valor;
+  impRenderResumen();
+}
+function impDecidirTodos(valor){
+  impAnalizar().conflictos.forEach(c=>{ window._imp.decisiones[c.g.usuario+'|'+c.g.fecha] = valor; });
+  impRenderResumen();
+}
+function impRenderResumen(){
+  const box = document.getElementById('impResumen'); if(!box) return;
+  const an = impAnalizar(), imp = window._imp;
+  const pend = an.conflictos.filter(c=>!imp.decisiones[c.g.usuario+'|'+c.g.fecha]).length;
+  const fechas = [...an.nuevos, ...an.iguales, ...an.conflictos.map(c=>c.g), ...an.bloqueados].map(g=>g.fecha).sort();
+  const fmt = iso => { const [y,m,d] = iso.split('-'); return `${d}/${m}`; };
+  const sinPersona = imp.personas.filter(p=>!p.usuario && !p.vacante && !p.fuera).length;
+  const visitasYestado = impPropuesta().filter(g=>g.conVisitaYEstado).length;
+  let html = `<div class="row" style="gap:8px; margin-bottom:10px;">
+    <div class="card kpi good" style="flex:1; min-width:110px;"><div class="label">Días nuevos</div><div class="value">${an.nuevos.length}</div></div>
+    <div class="card kpi" style="flex:1; min-width:110px;"><div class="label">Ya estaban igual</div><div class="value">${an.iguales.length}</div></div>
+    <div class="card kpi ${an.conflictos.length?'warn':''}" style="flex:1; min-width:110px;"><div class="label">Distintos a lo capturado</div><div class="value">${an.conflictos.length}</div></div>
+    ${an.bloqueados.length?`<div class="card kpi" style="flex:1; min-width:110px;"><div class="label">Semana ya guardada (se omiten)</div><div class="value">${an.bloqueados.length}</div></div>`:''}
+  </div>`;
+  if(fechas.length) html += `<p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">Fechas del archivo: ${fmt(fechas[0])} al ${fmt(fechas[fechas.length-1])}.</p>`;
+  const avisos = [];
+  if(sinPersona) avisos.push(`${sinPersona} persona(s) del archivo sin asignar — no se cargarán hasta que las elijas.`);
+  if(imp.huerfanas) avisos.push(`${imp.huerfanas} celda(s) con visita en filas sin persona (no se cargan).`);
+  if(imp.pendientes) avisos.push(`${imp.pendientes} celda(s) con "PENDIENTE" — se dejaron en blanco.`);
+  if(visitasYestado) avisos.push(`${visitasYestado} día(s) traen visita y además descanso/vacaciones: se cargó el descanso/vacaciones.`);
+  const desc = Object.entries(imp.desconocidos);
+  if(desc.length) avisos.push('Textos que no entendí y omití: '+desc.map(([t,n])=>`"${pcEsc(t)}" (${n})`).join(', '));
+  if(avisos.length) html += `<div style="background:var(--warn-soft); border:1px solid #ecd9a8; border-radius:8px; padding:8px 11px; font-size:12px; color:#6b4f16; margin-bottom:10px;">${avisos.map(a=>'⚠️ '+a).join('<br>')}</div>`;
+  if(an.conflictos.length){
+    html += `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+      <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark);">Ya hay ruta capturada en estos días — decide caso por caso</div>
+      <span style="font-size:11.5px; color:${pend?'var(--bad)':'var(--good)'};">${pend?pend+' por decidir':'Todo decidido ✓'}</span>
+      <button class="btn btn-ghost" style="font-size:11px; padding:3px 8px; margin-left:auto;" onclick="impDecidirTodos('actual')">Todos: conservar lo actual</button>
+      <button class="btn btn-ghost" style="font-size:11px; padding:3px 8px;" onclick="impDecidirTodos('archivo')">Todos: usar el archivo</button>
+    </div>
+    <div style="max-height:260px; overflow:auto; border:1px solid var(--line); border-radius:10px;">
+    ${an.conflictos.map(({g, ex})=>{
+      const clave = g.usuario+'|'+g.fecha, dec = imp.decisiones[clave];
+      const dn = new Date(g.fecha+'T00:00:00');
+      return `<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:7px 10px; border-top:1px solid var(--line); font-size:12px; ${dec?'':'background:#fff8ee;'}">
+        <div style="min-width:150px;"><b>${pcEsc(nombreCorto(g.nombre))}</b><div style="font-size:10.5px; color:var(--ink-soft);">${DAY_NAMES[(dn.getDay()+2)%7]||''} ${fmt(g.fecha)}</div></div>
+        <label style="flex:1; min-width:150px; cursor:pointer;"><input type="radio" name="imp_${pcEsc(clave)}" ${dec==='actual'?'checked':''} onchange="impDecidir('${clave}','actual')"> <span style="color:var(--ink-soft);">Actual:</span> ${pcEsc(impDescr(ex))}</label>
+        <label style="flex:1; min-width:150px; cursor:pointer;"><input type="radio" name="imp_${pcEsc(clave)}" ${dec==='archivo'?'checked':''} onchange="impDecidir('${clave}','archivo')"> <span style="color:var(--ink-soft);">Archivo:</span> <b>${pcEsc(impDescr(g.recs))}</b></label>
+      </div>`;
+    }).join('')}
+    </div>`;
+  }
+  box.innerHTML = html;
+  const btn = document.getElementById('impBtnCargar');
+  const aCargar = an.nuevos.length + an.conflictos.filter(c=>imp.decisiones[c.g.usuario+'|'+c.g.fecha]==='archivo').length;
+  btn.textContent = pend ? `Faltan ${pend} por decidir` : (aCargar ? `Cargar ${aCargar} día${aCargar===1?'':'s'}` : 'Nada nuevo que cargar');
+  btn.disabled = !!pend || !aCargar;
+  btn.style.opacity = btn.disabled ? .5 : 1;
+}
+async function impConfirmar(){
+  const imp = window._imp; if(!imp) return;
+  if(!IMP_PERFILES.includes(currentUser.perfil)) return;
+  const an = impAnalizar();
+  if(an.conflictos.some(c=>!imp.decisiones[c.g.usuario+'|'+c.g.fecha])){ toast('Faltan casos por decidir.'); return; }
+  const reemplazar = new Set(), agregar = [];
+  an.nuevos.forEach(g=>agregar.push(g));
+  an.conflictos.forEach(c=>{ if(imp.decisiones[c.g.usuario+'|'+c.g.fecha]==='archivo'){ reemplazar.add(c.g.usuario+'|'+c.g.fecha); agregar.push(c.g); } });
+  if(!agregar.length){ toast('No hay nada que cargar.'); return; }
+  let arr = getRutas().filter(a=>!reemplazar.has(a.usuario+'|'+a.fecha));
+  let n = 0;
+  agregar.forEach(g=>g.recs.forEach(r=>{ arr.push(Object.assign({id: uid()+'_i'+(n++)}, r)); }));
+  const btn = document.getElementById('impBtnCargar');
+  if(btn){ btn.disabled = true; btn.textContent = '☁️ Subiendo a la nube… no cierres la app'; }
+  let res = {ok:true, total:0, fallidos:0};
+  try{ res = await saveRutas(arr) || res; }catch(e){ res = {ok:false, total:0, fallidos:1}; }
+  const fechas = agregar.map(g=>g.fecha).sort();
+  closeModal();
+  rutaWeekStart = new Date(fechas[0]+'T00:00:00');
+  window._imp = null;
+  const nPers = new Set(agregar.map(g=>g.usuario)).size;
+  if(res.fallidos){
+    toast(`Se cargaron ${agregar.length} día(s) de ${nPers} persona(s) en ESTE dispositivo, pero ${res.fallidos} registro(s) NO subieron a la nube, así que al equipo no le llegan todavía. Revisa tu internet y usa "☁️ Reenviar rutas al equipo".`, 12000);
+  } else {
+    toast(`Listo: ${agregar.length} día(s) de ${nPers} persona(s) cargados y subidos a la nube — ya les llegan al equipo en su calendario. Revisa la vista y da "Guardar y distribuir" cuando esté bien.`, 8000);
+  }
+  renderRuta();
+}
+/* Reenvía a la nube TODAS las rutas guardadas en este dispositivo (por si una carga se quedó a medias,
+   por ejemplo si se cerró o recargó la app antes de que terminara de subir). */
+async function reenviarRutasNube(){
+  if(!IMP_PERFILES.includes(currentUser.perfil)){ toast('Esta opción es solo para Supervisor, Coordinador y Admin.'); return; }
+  const arr = getRutas().filter(a=>a && a.id);
+  if(!arr.length){ toast('No hay rutas guardadas en este dispositivo.'); return; }
+  toast(`☁️ Subiendo ${arr.length} registro(s) de ruta a la nube…`, 4000);
+  const resultados = await Promise.all(arr.map(d=>subirAColeccion('rutas', d)));
+  const malos = resultados.filter(r=>!(r && r.ok));
+  if(malos.length){
+    const motivo = (malos.find(r=>r && r.error)||{}).error || 'sin detalle';
+    toast(`No se pudieron subir ${malos.length} de ${arr.length}. Motivo: ${motivo}. Revisa tu internet o los permisos de la nube.`, 12000);
+  } else {
+    toast(`✓ Listo: ${arr.length} registro(s) de ruta ya están en la nube. El equipo los ve al abrir o refrescar su app.`, 8000);
+  }
+}
+function impAbrirSelector(){
+  if(!IMP_PERFILES.includes(currentUser.perfil)){ toast('Esta opción es solo para Supervisor, Coordinador y Admin.'); return; }
+  document.getElementById('rutaImpInput').click();
+}
+
+function renderRutaResumenSemana(startISO, endISO){
+  const box = document.getElementById('rutaResumenSemana');
+  if(!box) return;
+  window._rutaResumenSemanaArgs = [startISO, endISO];
+  window.render_rutaTablaRegion = function(){ renderRutaResumenSemana.apply(null, window._rutaResumenSemanaArgs); };
+  const visibleUsuarios = equipoVisibleParaMi();
+  const visibleSet = new Set(visibleUsuarios.map(u=>u.usuario));
+  const arr = getRutas().filter(a => visibleSet.has(a.usuario) && a.fecha>=startISO && a.fecha<=endISO);
+
+  // Tiendas por asignar según región (universo de tiendas de servicio vs. las que ya tienen al menos una visita programada esta vista)
+  const tiendasAsignadas = new Set(arr.filter(a=>a.tipo==='visita' && a.tienda).map(a=>a.cadena+'|'+a.tienda));
+  const porRegion = {};
+  APP_DATA.stores.forEach(s=>{
+    const region = s.region || 'Sin región';
+    (porRegion[region] = porRegion[region] || {total:0, asignadas:0});
+    porRegion[region].total++;
+    if(tiendasAsignadas.has(s.cadena+'|'+s.tienda)) porRegion[region].asignadas++;
+  });
+
+  // Cobertura de personas: ¿tienen los 7 días capturados?
+  const embajadores = visibleUsuarios.filter(u=>u.perfil==='Embajador' || ROLES_EMBAJADOR.includes(u.rol));
+  const personasSinCompletar = [];
+  const tiposPorPersona = {};
+  embajadores.forEach(u=>{
+    const dias = arr.filter(a=>a.usuario===u.usuario);
+    const diasUnicos = new Set(dias.map(a=>a.fecha)).size;
+    if(diasUnicos < 7) personasSinCompletar.push({nombre:u.nombre, dias:diasUnicos});
+    const conteo = {visita:0, descanso:0, vacacion:0, home_office:0, incidencia:0, otra:0};
+    dias.forEach(a=>{ if(conteo.hasOwnProperty(a.tipo)) conteo[a.tipo]++; });
+    tiposPorPersona[u.usuario] = conteo;
+  });
+  const totalTipos = Object.values(tiposPorPersona).reduce((acc,c)=>{
+    Object.keys(c).forEach(k=>acc[k]=(acc[k]||0)+c[k]); return acc;
+  }, {});
+
+  const html = `
+    <div class="row" style="margin-bottom:14px;">
+      <div class="card kpi"><div class="label">Personas con ruta 7/7 días</div><div class="value">${embajadores.length-personasSinCompletar.length} / ${embajadores.length}</div></div>
+      <div class="card kpi ${totalTipos.visita?'good':'warn'}"><div class="label">Visitas a tienda capturadas</div><div class="value">${totalTipos.visita||0}</div></div>
+      <div class="card kpi"><div class="label">Descansos / Home / Incapacidad</div><div class="value" style="font-size:16px;">${totalTipos.descanso||0} / ${totalTipos.home_office||0} / ${totalTipos.incidencia||0}</div></div>
+      <div class="card kpi"><div class="label">Plantilla de referencia (por persona)</div><div class="value" style="font-size:13px;">23 visitas · 5 descansos · 2 home · 1 incapacidad</div></div>
+    </div>
+    ${personasSinCompletar.length ? `<div class="card" style="border-left:4px solid var(--bad); margin-bottom:14px;">
+      <div class="lbl" style="font-weight:700; color:var(--bad); margin-bottom:6px;">⚠️ Personas sin los 7/7 días capturados en esta vista</div>
+      ${personasSinCompletar.map(p=>`<div style="font-size:12.5px; padding:3px 0;">${nombreCorto(p.nombre)} — ${p.dias}/7 días</div>`).join('')}
+    </div>` : `<div class="card" style="border-left:4px solid var(--good); margin-bottom:14px;"><p style="font-size:13px; margin:0;">Todas las personas visibles tienen los 7 días de esta vista capturados. ✓</p></div>`}
+    <h3 style="font-size:14px; color:var(--brand-dark); margin:0 0 8px;">Tiendas por asignar según región</h3>
+    <div class="table-scroll">
+      <table><thead><tr id="rutaTablaRegionHead">${colHead('rutaTablaRegion','region','Región',false)}${colHead('rutaTablaRegion','total','Tiendas totales',true)}${colHead('rutaTablaRegion','asignadas','Con al menos una visita en esta vista',true)}${colHead('rutaTablaRegion','faltan','Faltan por asignar',true)}</tr></thead>
+      <tbody>${ordenarFilas('rutaTablaRegion', Object.entries(porRegion).map(([r,d])=>({region:r, total:d.total, asignadas:d.asignadas, faltan:d.total-d.asignadas})), 'total').map(d=>`<tr><td>${d.region}</td><td class="num">${d.total}</td><td class="num">${d.asignadas}</td><td class="num" style="font-weight:700; color:${d.faltan>0?'var(--bad)':'var(--good)'};">${d.faltan}</td></tr>`).join('')}</tbody></table>
+    </div>
+    <p style="font-size:11px; color:var(--ink-soft); margin-top:8px;">"Plantilla de referencia" es la proporción de días que nos diste (23 visitas / 5 descansos / 2 home office / 1 incapacidad) — la dejamos como referencia junto a lo realmente capturado en esta vista; no es un periodo exacto de 7 días, así que no la tomamos como pass/fail automático.</p>
+  `;
+  box.innerHTML = html;
+}
+
+/* ---------- Validación de cobertura + Guardar/Publicar ---------- */
+function validarCoberturaTiendas(){
+  const {startISO, endISO} = visibleDateRange();
+  const embajadorUsuarios = new Set(APP_DATA.equipo.filter(u=>u.perfil==='Embajador').map(u=>u.usuario));
+  const arr = getRutas().filter(a => a.fecha>=startISO && a.fecha<=endISO && a.tipo==='visita' && a.tienda && embajadorUsuarios.has(a.usuario));
+  const porTienda = {};
+  arr.forEach(a=>{
+    const key = a.cadena+'|'+a.tienda;
+    (porTienda[key] = porTienda[key] || []).push(a.fecha);
+  });
+  const warnings = [];
+  Object.keys(porTienda).forEach(key=>{
+    const [cadena, tienda] = key.split('|');
+    const info = APP_DATA.stores.find(s=>s.cadena===cadena && s.tienda===tienda);
+    const visitas = porTienda[key].length;
+    if(!info || !info.visitas_requeridas_semana) return;
+    if(info.visitas_requeridas_semana >= 1 && visitas < info.visitas_requeridas_semana){
+      warnings.push(`<b>${tienda}</b> (${cadena}) — sugerencia: ${info.sugerencia_visita.toLowerCase()}. En esta vista solo tiene <b>${visitas}</b> visita${visitas===1?'':'s'} de embajador(a) agendada${visitas===1?'':'s'}.`);
+    }
+  });
+  return warnings;
+}
+function resumenPorcentajeCadena(){
+  const {startISO, endISO} = visibleDateRange();
+  const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+  const arr = getRutas().filter(a => a.fecha>=startISO && a.fecha<=endISO && a.tipo==='visita' && a.cadena && visibleUsuarios.has(a.usuario));
+  if(!arr.length) return null;
+  const porCadena = {};
+  arr.forEach(a=> porCadena[a.cadena] = (porCadena[a.cadena]||0)+1);
+  const total = arr.length;
+  const cadenas = Object.keys(porCadena).sort((a,b)=>porCadena[b]-porCadena[a]);
+  const colores = ['var(--v-s1)','var(--v-s2)','var(--v-s3)','var(--v-s4)'];
+  return `<div class="viz-root" style="margin:10px 0;">
+    <div style="font-size:12px; color:var(--ink-soft); margin-bottom:8px;">${total} visita${total===1?'':'s'} planeada${total===1?'':'s'} en esta vista</div>
+    ${cadenas.map((c,i)=>{
+      const val = porCadena[c]; const pct = Math.round(val/total*100);
+      return `<div class="viz-bar-row"><div class="viz-bar-label">${c}</div><div class="viz-bar-track"><div class="viz-bar-fill" style="width:${pct}%; background:${colores[i%4]};"></div></div><div class="viz-bar-value">${val} · ${pct}%</div></div>`;
+    }).join('')}
+  </div>`;
+}
+function guardarSemanaRuta(){
+  const warnings = validarCoberturaTiendas();
+  const pctHtml = resumenPorcentajeCadena();
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>${warnings.length ? '⚠️ Revisa antes de guardar' : '✅ Cobertura completa'}</h3>
+    <p class="d">Ventana: ${document.getElementById('rutaWeekLabel').textContent}.</p>
+    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin-bottom:2px;">Reparto de visitas por cadena</div>
+    ${pctHtml || `<p style="font-size:12.5px; color:var(--ink-soft);">Sin visitas con cadena asignada todavía en esta vista.</p>`}
+    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:14px 0 2px;">Cobertura vs. sugerencia de visita (solo Embajador)</div>
+    ${warnings.length ? `<div style="max-height:220px; overflow:auto; display:flex; flex-direction:column; gap:8px;">${warnings.map(w=>`<div style="background:var(--warn-soft); border:1px solid #ecd9a8; border-radius:8px; padding:9px 11px; font-size:12.5px; color:#6b4f16; line-height:1.4;">⚠️ ${w}</div>`).join('')}</div><p style="font-size:12px; color:var(--ink-soft); margin-top:10px;">Esto no bloquea el guardado — es para que quede el argumento de por qué, si aplica, se está dejando de cubrir una tienda esta semana.</p>` : `<p style="font-size:13.5px; color:var(--good);">No se detectaron tiendas por debajo de su frecuencia sugerida en esta ventana.</p>`}
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Volver a revisar la ruta</button>
+      <button class="btn btn-brand" onclick="confirmarGuardarSemana()">Confirmar y guardar${warnings.length ? ' de todas formas' : ''}</button>
+    </div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function confirmarGuardarSemana(){
+  const {startISO, endISO} = visibleDateRange();
+  const pub = getSemanasPublicadas();
+  if(!pub.includes(startISO)){ pub.push(startISO); localStorage.setItem('delico_odv_semanas_publicadas', JSON.stringify(pub)); }
+  saveSnapshotSemana(startISO, endISO);
+  rutaUnlockedWeeks.delete(startISO);
+  closeModal();
+  toast('Ruta guardada y distribuida a embajadores ✓ — la vista queda bloqueada; usa el lápiz para editarla de nuevo.');
+  renderRuta();
+}
+/* Orden de agrupación del resumen: embajadores primero, supervisión/coordinación/gerencia al final */
+const ROL_ORDEN_RESUMEN = ['DEGUSTACIÓN','HÍBRIDO','PROMOTORÍA','SUPERVISIÓN','COORDINADOR','GERENTE','KAM','CPFR / PLANEACIÓN','BI'];
+const ROLES_EMBAJADOR = ['DEGUSTACIÓN','HÍBRIDO','PROMOTORÍA'];
+
+function detalleRutaEntry(a){
+  if(a.tipo === 'visita') return `${a.tienda || '(sin tienda)'}${a.rol? ' · '+a.rol : ''}`;
+  return TIPO_DIA_LABEL[a.tipo] || a.tipo;
+}
+function buildResumenNode(scope){
+  const {startISO, start, end} = visibleDateRange();
+  const dias = Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return {iso:isoDate(d), label:DAY_NAMES[i], num:String(d.getDate()).padStart(2,'0')}; });
+  let personas = equipoVisibleParaMi();
+  if(scope === 'embajadores') personas = personas.filter(u => ROLES_EMBAJADOR.includes(u.rol));
+  const arr = getRutas();
+  const grupos = {};
+  personas.forEach(u=>{
+    const entradas = arr.filter(a=>a.usuario===u.usuario && dias.some(d=>d.iso===a.fecha));
+    if(!entradas.length) return;
+    (grupos[u.rol] = grupos[u.rol] || []).push({u, entradas});
+  });
+  const rolesPresentes = Object.keys(grupos).sort((a,b)=> ROL_ORDEN_RESUMEN.indexOf(a) - ROL_ORDEN_RESUMEN.indexOf(b));
+
+  const node = document.createElement('div');
+  node.style.cssText = 'background:#faf3d7; padding:24px; width:920px; font-family:Poppins,sans-serif; color:#26260f;';
+  let html = `<div style="font-family:Oswald,sans-serif; font-weight:700; font-size:16px; margin-bottom:2px;">DELICO . ODV — #modoMEDI</div>
+    <div style="font-size:13px; color:#6d6a4a; margin-bottom:16px;">Resumen de ruta — ${scope==='embajadores'?'Embajadores':'Todos los roles'} · ${fmtDateLabel(start)} al ${fmtDateLabel(end)}</div>`;
+  if(!rolesPresentes.length){
+    html += `<div style="font-size:13px; color:#6d6a4a;">Sin asignaciones en esta ventana.</div>`;
+  } else {
+    html += `<table style="width:100%; border-collapse:collapse; font-size:11px;"><thead><tr>
+      <th style="text-align:left; padding:6px 8px; border-bottom:2px solid #a7ab27; width:150px;">Persona</th>
+      ${dias.map(d=>`<th style="text-align:left; padding:6px 8px; border-bottom:2px solid #a7ab27;">${d.label}<br><span style="font-weight:500; color:#6d6a4a;">${d.num}</span></th>`).join('')}
+    </tr></thead><tbody>`;
+    rolesPresentes.forEach(rol=>{
+      const items = grupos[rol].sort((a,b)=>a.u.nombre.localeCompare(b.u.nombre));
+      html += `<tr><td colspan="8" style="padding:10px 8px 4px; font-family:Oswald,sans-serif; font-weight:700; font-size:11px; color:#767a1a; text-transform:uppercase; letter-spacing:.03em;">${rol}</td></tr>`;
+      items.forEach(({u,entradas})=>{
+        const shortName = nombreCorto(u.nombre);
+        html += `<tr><td style="padding:5px 8px; font-weight:700; border-bottom:1px solid #e9e2c6; vertical-align:top;">${shortName}</td>`;
+        dias.forEach(d=>{
+          const enEseDia = entradas.filter(a=>a.fecha===d.iso);
+          const contenido = enEseDia.length ? enEseDia.map(detalleRutaEntry).join('<br>') : '—';
+          html += `<td style="padding:5px 8px; border-bottom:1px solid #e9e2c6; vertical-align:top; color:#3d3a2c;">${contenido}</td>`;
+        });
+        html += `</tr>`;
+      });
+    });
+    html += `</tbody></table>`;
+  }
+  node.innerHTML = html;
+  return node;
+}
+async function exportResumen(scope, formato){
+  await cargarHtml2Canvas();
+  if(typeof html2canvas === 'undefined'){ toast('No se pudo cargar el exportador (sin conexión).'); return; }
+  if(formato === 'pdf') await cargarJsPDF();
+  const node = buildResumenNode(scope);
+  node.style.position = 'fixed'; node.style.left = '-9999px'; node.style.top = '0';
+  document.body.appendChild(node);
+  html2canvas(node, {backgroundColor:'#faf3d7', scale:2}).then(canvas=>{
+    document.body.removeChild(node);
+    if(formato === 'pdf'){
+      if(typeof window.jspdf === 'undefined'){ toast('No se pudo cargar el exportador de PDF.'); return; }
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p','pt',[canvas.width, canvas.height]);
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`resumen_ruta_${scope}_${isoDate(rutaWeekStart)}.pdf`);
+    } else {
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `resumen_ruta_${scope}_${isoDate(rutaWeekStart)}.png`;
+      a.click();
+    }
+  }).catch(()=>{ if(node.parentNode) document.body.removeChild(node); toast('No se pudo exportar.'); });
+}
+async function exportRutaExcel(){
+  await cargarXLSX();
+  if(typeof XLSX === 'undefined'){ toast('No se pudo cargar el exportador de Excel (sin conexión).'); return; }
+  const {startISO, start} = visibleDateRange();
+  const dias = Array.from({length:7}, (_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return {iso:isoDate(d), label:DAY_NAMES[i]+' '+String(d.getDate()).padStart(2,'0')}; });
+  const personas = equipoVisibleParaMi();
+  const arr = getRutas();
+  const rows = personas.map(u=>{
+    const row = { 'Persona': u.nombre, 'Rol': u.rol, 'Región': u.region || '', 'Perfil': u.perfil };
+    dias.forEach(d=>{
+      const entradas = arr.filter(a=>a.usuario===u.usuario && a.fecha===d.iso);
+      row[d.label] = entradas.length ? entradas.map(detalleRutaEntry).join(' | ') : '';
+    });
+    return row;
+  }).filter(r => Object.values(r).some((v,i)=> i>=4 && v)); // solo personas con algo asignado esta vista
+  if(!rows.length){ toast('No hay asignaciones en esta vista para exportar.'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:26},{wch:14},{wch:16},{wch:12},{wch:20},{wch:20},{wch:20},{wch:20},{wch:20},{wch:20},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Ruta semana');
+  XLSX.writeFile(wb, `ruta_todos_los_roles_${startISO}.xlsx`);
+  toast('Excel exportado ✓');
+}
+
+/* ---------- EQUIPO ODV (fuente: EQUIPO ODV.xlsx, actualizado oct-2026) ----------
+   Se aplica sobre app_data.json al cargar: nombres/roles/región de cada usuario y a quién reporta cada embajador(a)
+   (CDMX/METROPOLITANA -> SCDM01, FORÁNEAS -> SGDL01). Para cambiar al equipo, edita esta lista. */
+const EQUIPO_ODV = [
+ {
+  "rol": "SUPERVISIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "SCDM01",
+  "nombre": "VACANTE* (SCDM01)",
+  "usuario": "SCDM01",
+  "perfil": "Supervisor"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM01",
+  "nombre": "CASTILLO HERNANDEZ BELEM",
+  "usuario": "DCDM01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM02",
+  "nombre": "DOTOR CABRERA YASMIN",
+  "usuario": "DCDM02",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM03",
+  "nombre": "ESTEBAN GARCIA YULISSA JAQUELIN",
+  "usuario": "DCDM03",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM04",
+  "nombre": "GONZALEZ BRITO ROCIO",
+  "usuario": "DCDM04",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM05",
+  "nombre": "HERNANDEZ GUTIERREZ YOLANDA",
+  "usuario": "DCDM05",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM06",
+  "nombre": "MORA SANCHEZ ENGRACIA",
+  "usuario": "DCDM06",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM07",
+  "nombre": "RAMIREZ DOMINGUEZ YASMIN",
+  "usuario": "DCDM07",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM08",
+  "nombre": "RODRIGUEZ DIAZ MARIA ELENA",
+  "usuario": "DCDM08",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM09",
+  "nombre": "SANTA SONIA",
+  "usuario": "DCDM09",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM10",
+  "nombre": "ZAMUDIO PIEDRA MARIA IMELDA",
+  "usuario": "DCDM10",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM11",
+  "nombre": "BARRIOS CARBAJAL CARMEN SANDRA",
+  "usuario": "DCDM11",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "DCDM12",
+  "nombre": "PÉREZ CAUDILLO BLANCA XÓCHITL",
+  "usuario": "DCDM12",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "HÍBRIDO",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "HCDM01",
+  "nombre": "VACANTE* (HCDM01)",
+  "usuario": "HCDM01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "PROMOTORÍA",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "PCDM101",
+  "nombre": "GARCIA GARCIA MARIA DE JESUS",
+  "usuario": "PCDM101",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "PROMOTORÍA",
+  "region": "CDMX/METROPOLITANA",
+  "sector": "PCDM102",
+  "nombre": "SALAZAR MARIN GILBERTO",
+  "usuario": "PCDM102",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "SUPERVISIÓN",
+  "region": "FORÁNEAS",
+  "sector": "SGDL01",
+  "nombre": "MÓNICA ROMO GÓMEZ",
+  "usuario": "SGDL01",
+  "perfil": "Supervisor"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL01",
+  "nombre": "CASTILLO MORALES ALICIA",
+  "usuario": "DGDL01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL02",
+  "nombre": "CERVANTES PADILLA SILVIA ALICIA",
+  "usuario": "DGDL02",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL03",
+  "nombre": "CORTES HERNANDEZ JULIA ISABEL",
+  "usuario": "DGDL03",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL04",
+  "nombre": "ESQUIVEL OROZCO IRENE",
+  "usuario": "DGDL04",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL05",
+  "nombre": "GUZMAN GOMEZ CINTHIA NAITZE",
+  "usuario": "DGDL05",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL06",
+  "nombre": "LOPEZ SOTO NADIA",
+  "usuario": "DGDL06",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "DEGUSTACIÓN",
+  "region": "FORÁNEAS",
+  "sector": "DGDL07",
+  "nombre": "PADILLA PLASCENCIA BRENDA ADRIANA",
+  "usuario": "DGDL07",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "HÍBRIDO",
+  "region": "FORÁNEAS",
+  "sector": "HLEO01",
+  "nombre": "MENDOZA LUNA MARIA MAGDALENA",
+  "usuario": "HLEO01",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "PROMOTORÍA",
+  "region": "FORÁNEAS",
+  "sector": "PGDL101",
+  "nombre": "VACANTE* (PGDL101)",
+  "usuario": "PGDL101",
+  "perfil": "Embajador"
+ },
+ {
+  "rol": "COORDINADOR",
+  "region": "NACIONAL",
+  "sector": "CNAC01",
+  "nombre": "COBA FABIOLA",
+  "usuario": "CNAC01",
+  "perfil": "Coordinador"
+ },
+ {
+  "rol": "GERENTE",
+  "region": "NACIONAL",
+  "sector": "GNAC01",
+  "nombre": "JIMÉNEZ FANNY",
+  "usuario": "GNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "KAM",
+  "region": "NACIONAL",
+  "sector": "KNAC01",
+  "nombre": "SANTIAGO ALEJANDRA",
+  "usuario": "KNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "CPFR / PLANEACIÓN",
+  "region": "NACIONAL",
+  "sector": "PNAC01",
+  "nombre": "NORIEGA ALEJANDRA",
+  "usuario": "PNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "BI",
+  "region": "NACIONAL",
+  "sector": "BNAC01",
+  "nombre": "CAMACHO EVELIN",
+  "usuario": "BNAC01",
+  "perfil": "Admin"
+ },
+ {
+  "rol": "MARKETING",
+  "region": "NACIONAL",
+  "sector": "MNAC01",
+  "nombre": "HEDDERICH INGRID",
+  "usuario": "MNAC01",
+  "perfil": "Admin"
+ }
+];
+function aplicarEquipoODV(){
+  if(!APP_DATA) return;
+  const porUsuario = new Map(APP_DATA.equipo.map(u=>[u.usuario,u]));
+  EQUIPO_ODV.forEach(r=>{
+    const u = porUsuario.get(r.usuario);
+    if(u){ u.nombre=r.nombre; u.rol=r.rol; u.region=r.region; u.sector=r.sector; u.perfil=r.perfil; }
+    else { const nuevo = {...r}; APP_DATA.equipo.push(nuevo); porUsuario.set(r.usuario, nuevo); }
+  });
+  // el orden del equipo = el del Excel (así las columnas de Asignación de ruta salen agrupadas igual)
+  const orden = new Map(EQUIPO_ODV.map((r,i)=>[r.usuario,i]));
+  APP_DATA.equipo.sort((a,b)=>(orden.has(a.usuario)?orden.get(a.usuario):999)-(orden.has(b.usuario)?orden.get(b.usuario):999));
+  // plantilla (quién reporta a quién) reconstruida desde el Excel
+  const supPorRegion = {};
+  EQUIPO_ODV.filter(r=>r.perfil==='Supervisor').forEach(r=>{ supPorRegion[r.region]=r; });
+  APP_DATA.plantilla = EQUIPO_ODV.filter(r=>r.perfil==='Embajador'||r.perfil==='Supervisor').map(r=>{
+    const sup = r.perfil==='Embajador' ? (supPorRegion[r.region]||null) : r;
+    return {nombre:r.nombre, sector:r.sector, supervisor: sup ? sup.nombre : r.nombre};
+  });
+}
+/* ---------- Carga de datos (app_data.json) + sesión persistente (validada por Firebase, no por localStorage a ciegas) ---------- */
+function iniciarApp(){
+  fetch('app_data.json', {cache:'no-store'})
+    .then(r => { if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+    .then(data => {
+      APP_DATA = data;
+      aplicarEquipoODV();
+      document.getElementById('loadingScreen').style.display = 'none';
+      // onAuthStateChanged es la fuente de verdad de la sesión: Firebase ya trae su propia
+      // persistencia entre recargas, así que ya no confiamos en un valor de localStorage editable a mano.
+      auth.onAuthStateChanged(fbUser => {
+        if(fbUser && fbUser.email){
+          const usuarioDesdeEmail = fbUser.email.split('@')[0];
+          const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === usuarioDesdeEmail);
+          if(found){ currentUser = found; boot(); return; }
+        }
+        currentUser = null;
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+      });
+    })
+    .catch(() => {
+      document.getElementById('loadingTexto').style.display = 'none';
+      document.getElementById('loadingError').style.display = 'block';
+    });
+}
+document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+/* ---------- Barrera de acceso temporal (clave compartida del equipo) ---------- */
+/* Esto NO es un login real por persona — es solo un candado a la puerta mientras se construye
+   el backend con autenticación real (Firebase). Para cambiar la clave: genera el SHA-256 de la
+   nueva clave y reemplaza GATE_HASH (por ejemplo en la consola del navegador:
+   crypto.subtle.digest('SHA-256', new TextEncoder().encode('tu_clave_nueva')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))) ) */
+const GATE_HASH = 'a33b7536deaf73fa1b6b1d45ff1220c2ace2a97877759fa65223a34e5796b178';
+const GATE_KEY = 'delico_odv_gate_ok_v1';
+async function sha256Hex(texto){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function verificarClaveAcceso(){
+  const val = document.getElementById('gatePass').value;
+  const errBox = document.getElementById('gateError');
+  errBox.textContent = '';
+  if(!val){ errBox.textContent = 'Escribe la clave de acceso.'; return; }
+  let hash;
+  try { hash = await sha256Hex(val); } catch(e){ errBox.textContent = 'Este navegador no puede verificar la clave (usa https). Contacta a tu coordinador(a).'; return; }
+  if(hash === GATE_HASH){
+    localStorage.setItem(GATE_KEY, '1');
+    abrirTrasClaveAcceso();
+  } else {
+    errBox.textContent = 'Clave incorrecta.';
+  }
+}
+function abrirTrasClaveAcceso(){
+  document.getElementById('gateScreen').style.display = 'none';
+  document.getElementById('loadingScreen').style.display = 'flex';
+  iniciarApp();
+}
+(function(){
+  if(localStorage.getItem(GATE_KEY) === '1'){
+    abrirTrasClaveAcceso();
+  } else {
+    const gp = document.getElementById('gatePass');
+    gp.addEventListener('keydown', e=>{ if(e.key==='Enter') verificarClaveAcceso(); });
+    gp.focus();
+  }
+})();
+
+/* ---------- Bloquea el scroll de fondo cuando hay un modal abierto (fix de "transparencia" al escrolear en celular) ---------- */
+(function(){
+  const modalBg = document.getElementById('modalBg');
+  let scrollGuardado = 0;
+  new MutationObserver(() => {
+    const abierto = modalBg.classList.contains('open');
+    const yaBloqueado = document.body.classList.contains('modal-lock');
+    if(abierto && !yaBloqueado){
+      scrollGuardado = window.scrollY || window.pageYOffset || 0;
+      document.body.style.top = (-scrollGuardado) + 'px';
+      document.body.classList.add('modal-lock');
+      modalBg.scrollTop = 0;
+    } else if(!abierto && yaBloqueado){
+      document.body.classList.remove('modal-lock');
+      document.body.style.top = '';
+      window.scrollTo(0, scrollGuardado);
+    }
+  }).observe(modalBg, {attributes:true, attributeFilter:['class']});
+})();
+
+/* ---------- PWA: registrar service worker para poder instalar la app en el celular ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{ /* si falla (ej. abierta como archivo local), la app sigue funcionando igual */ });
+  });
+}
+
+/* ---------- Instalar la app en el celular ----------
+   Android/Chrome/Edge disparan "beforeinstallprompt" — lo capturamos para poder mostrar el botón
+   cuando el usuario quiera (antes solo aparecía una vez, solo, y si lo cerraban ya no volvía a salir).
+   iPhone/iPad (Safari) NUNCA disparan ese evento — Apple no lo soporta — así que ahí siempre mostramos
+   una guía manual ("Compartir" → "Agregar a pantalla de inicio"). */
+let _deferredInstallPrompt = null;
+function esIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !window.MSStream; }
+function appYaInstalada(){
+  try{
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if(window.navigator.standalone === true) return true; // iPhone/iPad ya instalada
+  }catch(e){}
+  return false;
+}
+function mostrarBotonesInstalar(){
+  const ocultar = appYaInstalada();
+  document.querySelectorAll('.btnInstalarApp').forEach(b=> b.classList.toggle('hidden', ocultar));
+}
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  mostrarBotonesInstalar();
 });
-
-// Red primero (para traer la versión más nueva cuando hay internet), y si falla, usa el caché (modo sin conexión).
-// NUEVO (v97): si la red NO falla pero se queda "colgada" (señal débil / datos
+window.addEventListener('appinstalled', () => { _deferredInstallPrompt = null; mostrarBotonesInstalar(); });
+document.addEventListener('DOMContentLoaded', mostrarBotonesInstalar);
+mostrarBotonesInstalar(); // por si DOMContentLoaded ya pasó cuando se registró este listener
+async function intentarInstalarApp(){
+  if(_deferredInstallPrompt){
+    _deferredInstallPrompt.prompt();
+    try{ await _deferredInstallPrompt.userChoice; }catch(e){}
+    _deferredInstallPrompt = null;
+    mostrarBotonesInstalar();
+  } else {
+    abrirGuiaInstalacion();
+  }
+}
+function abrirGuiaInstalacion(){
+  const body = document.getElementById('modalBody');
+  const ios = esIOS();
+  body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>📲 Instalar la app en tu celular</h3>
+    <p class="d">Así te queda como un ícono en tu pantalla de inicio, abre más rápido y funciona mejor sin internet.</p>
+    ${ios ? `
+    <div class="card" style="margin-top:6px;">
+      <p style="font-weight:700; font-size:13px; margin:0 0 8px;">📱 iPhone / iPad — tiene que ser con Safari</p>
+      <ol style="font-size:13px; line-height:1.8; margin:0; padding-left:18px;">
+        <li>Abre este link en <b>Safari</b> (no funciona desde Chrome ni desde WhatsApp/Instagram — ábrelo en Safari).</li>
+        <li>Toca el ícono de <b>Compartir</b> (el cuadrito con la flecha hacia arriba ⬆️), abajo al centro de la pantalla.</li>
+        <li>Baja en el menú que se abre y toca <b>"Agregar a pantalla de inicio"</b>.</li>
+        <li>Toca <b>"Agregar"</b> arriba a la derecha.</li>
+      </ol>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">Ya te va a quedar el ícono de Délico ODV en tu pantalla, como cualquier otra app.</p>
+    </div>` : `
+    <div class="card" style="margin-top:6px;">
+      <p style="font-weight:700; font-size:13px; margin:0 0 8px;">🤖 Android (Chrome) / computadora (Chrome o Edge)</p>
+      ${_deferredInstallPrompt ? `
+      <button class="btn btn-brand" style="margin-bottom:10px;" onclick="intentarInstalarApp()">📲 Instalar ahora</button>
+      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">Si el botón no hace nada, hazlo manual:</p>
+      ` : `
+      <p style="font-size:12px; color:var(--ink-soft); margin:0 0 10px;">Tu celular no mostró el aviso automático de instalar — no pasa nada, hazlo así:</p>
+      `}
+      <ol style="font-size:13px; line-height:1.8; margin:0; padding-left:18px;">
+        <li>Celular: toca los <b>3 puntitos</b> (⋮) arriba a la derecha de Chrome → <b>"Instalar app"</b> o <b>"Agregar a pantalla de inicio"</b> → <b>"Instalar"</b>.</li>
+        <li>Computadora: busca el ícono de <b>instalar</b> ⊕ al final de la barra de direcciones, o los 3 puntitos → <b>"Instalar Délico ODV..."</b>.</li>
+      </ol>
+      ${!_deferredInstallPrompt ? `
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:10px 0 0;">¿No te aparece "Instalar app" en ese menú? Es porque Chrome en ese celular necesita que Play Store esté actualizado y con sesión iniciada. Si sigue sin aparecer, usa <b>"Agregar a pantalla de inicio"</b> normal — te deja el ícono igual y la app funciona exactamente igual.</p>
+      ` : ``}
+    </div>`}
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+</script>
+</body>
+</html>
