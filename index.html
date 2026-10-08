@@ -9024,10 +9024,15 @@ function cvDiagFamiliasYCodigos(storesScope, semanas, semsDato){
 function renderCvDiagnostico(storesScope, semanas){
   const box = document.getElementById('cvDiag'); if(!box) return;
   const semsDato = cvDiagSemanasConDato(semanas);
+  /* Semana en curso (ej. S41 con solo 1 de 7 días de sell out): la meta "a la fecha" se prorratea por los días ya cargados
+     para no mostrar un falso "ritmo atorado" cuando apenas va el primer día de la semana. */
+  const encRaw = (APP_DATA.bi_meta||{}).semana_en_curso;
+  const enc = (encRaw && semsDato.includes(encRaw.semana) && encRaw.dias_con_dato>0 && encRaw.dias_con_dato<(encRaw.dias||7)) ? encRaw : null;
+  const fracEnc = enc ? enc.dias_con_dato/(enc.dias||7) : 1;
   const storeBy = new Map(storesScope.map(s=>[s.cadena+'|'+s.num_tienda, s]));
   const filas = (APP_DATA.cumplimiento_semanal||[]).filter(r=>storeBy.has(r.cadena+'|'+r.num_tienda) && semsDato.includes(r.semana)).map(r=>{
     const st = storeBy.get(r.cadena+'|'+r.num_tienda);
-    return {cadena:r.cadena, num_tienda:r.num_tienda, tienda:st.tienda, semana:r.semana, meta:cvMetaUni(r)||0, real:r.real_uni||0, st};
+    return {cadena:r.cadena, num_tienda:r.num_tienda, tienda:st.tienda, semana:r.semana, meta:(cvMetaUni(r)||0)*(enc && r.semana===enc.semana ? fracEnc : 1), real:r.real_uni||0, st};
   });
   const metaTxt = cvMetaTipo==='escalon' ? 'escalón Bono' : 'cuota';
   if(!filas.length || !filas.some(r=>r.meta>0)){
@@ -9039,8 +9044,10 @@ function renderCvDiagnostico(storesScope, semanas){
   const metaPeriodo = (APP_DATA.cumplimiento_semanal||[]).filter(r=>storeBy.has(r.cadena+'|'+r.num_tienda) && semanas.has(r.semana)).reduce((a,r)=>a+(cvMetaUni(r)||0),0);
   const semsExisten = new Set((APP_DATA.cumplimiento_semanal||[]).map(r=>r.semana));
   const semsFaltan = [...semanas].filter(s=>!semsDato.includes(s) && semsExisten.has(s)).length;
-  const ritmoSem = realT/Math.max(1,semsDato.length);
-  const proy = realT + ritmoSem*semsFaltan;
+  const semsEfectivas = semsDato.length - (enc ? (1-fracEnc) : 0);
+  const ritmoSem = realT/Math.max(fracEnc>0?fracEnc:1, semsEfectivas);
+  const semsPorVenir = semsFaltan + (enc ? (1-fracEnc) : 0);
+  const proy = realT + ritmoSem*semsPorVenir;
   const pctProy = metaPeriodo ? proy/metaPeriodo*100 : null;
 
   // ---- dimensiones
@@ -9084,7 +9091,7 @@ function renderCvDiagnostico(storesScope, semanas){
     const dias = Math.round((Date.now()-new Date(piv).getTime())/86400000);
     if(dias>=7) add('warn', `El sell out solo está cargado hasta la semana S${semsDato[semsDato.length-1]} (actualizado hace ${dias} días)`, 'Los % de abajo son "a la fecha de carga"; lo que se vendió después no se está viendo.', 'Cargar el sell out y el pipeline más recientes antes de tomar decisiones con estos %.');
   }
-  if(pctT!=null && pctT<85) add('bad', `Ritmo atorado: ${Math.round(pctT)}% de la ${metaTxt} a la fecha (${fmtNum(realT)} de ${fmtNum(metaT)} pzas)`, pctProy!=null ? `Si siguen al ritmo actual (~${fmtNum(ritmoSem)} pzas/semana) cierran en ~${Math.round(pctProy)}% de la ${metaTxt} del periodo.` : '', (semsFaltan ? `Para cerrar necesitan ~${fmtNum(Math.max(0,metaPeriodo-realT)/semsFaltan)} pzas/semana en las ${semsFaltan} semana(s) restantes: concentrar esfuerzo en las tiendas y códigos que más pesan (tablas de abajo).` : `El periodo ya cerró con ${fmtNum(Math.max(0,metaPeriodo-realT))} pzas por debajo de la meta: usa las tablas de abajo para decidir dónde arrancar fuerte el siguiente mes.`));
+  if(pctT!=null && pctT<85) add('bad', `Ritmo atorado: ${Math.round(pctT)}% de la ${metaTxt} a la fecha (${fmtNum(realT)} de ${fmtNum(metaT)} pzas)`, pctProy!=null ? `Si siguen al ritmo actual (~${fmtNum(ritmoSem)} pzas/semana) cierran en ~${Math.round(pctProy)}% de la ${metaTxt} del periodo.` : '', (semsPorVenir>0.01 ? `Para cerrar necesitan ~${fmtNum(Math.max(0,metaPeriodo-realT)/semsPorVenir)} pzas/semana en las ${Math.round(semsPorVenir*10)/10} semana(s) restantes: concentrar esfuerzo en las tiendas y códigos que más pesan (tablas de abajo).` : `El periodo ya cerró con ${fmtNum(Math.max(0,metaPeriodo-realT))} pzas por debajo de la meta: usa las tablas de abajo para decidir dónde arrancar fuerte el siguiente mes.`));
   else if(pctT!=null) add('good', `Vas en ${Math.round(pctT)}% de la ${metaTxt} a la fecha`, '', 'Mantener el ritmo y cuidar las tiendas rezagadas para que no jalen el promedio.');
   const dimsFuertes = [['cadena',cvDiagAgrupar(filas,r=>r.cadena)],['región',cvDiagAgrupar(filas,r=>(r.st.region && String(r.st.region)!=='0') ? r.st.region : '(sin región)')],['familia',fc.fams],['código',fc.skus]];
   dimsFuertes.forEach(([n,arr])=>{
@@ -9113,7 +9120,7 @@ function renderCvDiagnostico(storesScope, semanas){
   const alertasHtml = A.map(x=>`<div class="card" style="margin-bottom:8px; padding:10px 14px; border-left:4px solid ${color[x.n]};"><div style="font-weight:700; font-size:13.5px;">${ico[x.n]} ${pcEsc(x.t)}</div>${x.d?`<div style="font-size:12.5px; color:var(--ink-soft); margin-top:2px;">${pcEsc(x.d)}</div>`:''}<div style="font-size:12.5px; margin-top:4px;">👉 <b>Qué hacer:</b> ${pcEsc(x.a)}</div></div>`).join('');
 
   box.innerHTML = `<div class="card" style="padding:12px 14px; margin-bottom:12px;"><div style="font-size:13px; line-height:1.55;">
-      Comparando <b>${metaTxt}</b> contra venta real en las <b>${semsDato.length} semana(s) con dato</b> (S${semsDato[0]}–S${semsDato[semsDato.length-1]})${semsFaltan?` · faltan ${semsFaltan} semana(s) del periodo por cargar`:''}.
+      Comparando <b>${metaTxt}</b> contra venta real en las <b>${semsDato.length} semana(s) con dato</b> (S${semsDato[0]}–S${semsDato[semsDato.length-1]})${enc?` · <b>S${enc.semana} va en curso: ${enc.dias_con_dato} de ${enc.dias||7} días</b>, su meta se prorrateó a la fecha`:''}${semsFaltan?` · faltan ${semsFaltan} semana(s) del periodo por cargar`:''}.
       <b>${Math.round(pctT)}%</b> de cumplimiento a la fecha, faltan <b>${fmtNum(Math.max(0,metaT-realT))} pzas</b>. "Pesa en el rezago" = qué parte del hueco total explica cada renglón: ahí es donde más vale la pena actuar primero.</div></div>
     <h3 style="font-size:14px; color:var(--brand-dark); margin:6px 0 8px;">🚨 Alertas y qué hacer</h3>${alertasHtml}
     <h3 style="font-size:14px; color:var(--brand-dark); margin:16px 0 8px;">¿Dónde se está atorando?</h3>
