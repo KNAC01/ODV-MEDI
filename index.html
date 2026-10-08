@@ -2097,6 +2097,8 @@ let _capturasCache = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 /* Limpieza de lo que YA se había acumulado en este celular ANTES de este arreglo (el filtro de arriba
    solo evita que seguir creciendo hacia adelante — los celulares que ya llevaban meses juntando fotos
    de todo el equipo necesitan que esto se les quite una sola vez para que la memoria se libere de verdad). */
+const DIAS_FOTOS_EN_MEMORIA = 3;   // fotos completas en memoria (equipo completo)
+const DIAS_VENTANA_CAPTURAS_EQUIPO = 14; // cuántos días de capturas del equipo se escuchan en vivo desde la nube
 function limpiarCacheCapturasAntiguo(){
   let cambio = false;
   if(currentUser && currentUser.perfil === 'Embajador'){
@@ -2108,9 +2110,15 @@ function limpiarCacheCapturasAntiguo(){
   // hacen falta para consulta reciente. Esto evita que, con el tiempo, hasta el cache "propio" de una
   // sola persona (o el de un Supervisor/Admin viendo a todo su equipo) vuelva a crecer sin límite.
   const limite = new Date(Date.now() - 45*86400000).toISOString();
+  // Supervisor/Coordinador/Admin cargan las capturas de TODO el equipo: con 2 fotos obligatorias por persona al día,
+  // guardar todas completas en memoria tumba la pestaña ("Out of Memory"). Aquí solo se conservan completas las de
+  // los últimos días; las más viejas se aligeran (la foto sigue en la nube y se baja al darle clic en Reportes).
+  const limiteCorto = new Date(Date.now() - DIAS_FOTOS_EN_MEMORIA*86400000).toISOString();
+  const verTodoElEquipo = !!(currentUser && currentUser.perfil !== 'Embajador');
   const aligerado = _capturasCache.map(d=>{
     const f = d && (d.fecha_registro || d.fecha);
     if(f && f < limite && !d._fotos_solo_en_la_nube){ cambio = true; return aligerarRegistro(d); }
+    if(verTodoElEquipo && f && f < limiteCorto && !d._fotos_solo_en_la_nube && d._en_nube===true){ cambio = true; return aligerarRegistro(d); }
     return d;
   });
   _capturasCache = aligerado;
@@ -2119,7 +2127,11 @@ function limpiarCacheCapturasAntiguo(){
 function iniciarSincronizacionCapturas(){
   limpiarCacheCapturasAntiguo();
   const soloMias = currentUser && currentUser.perfil === 'Embajador';
-  const query = (soloMias && db) ? db.collection('capturas_medi').where('usuario','==', currentUser.usuario) : null;
+  // Embajador: solo sus documentos. Resto de perfiles: solo los últimos DIAS_VENTANA_CAPTURAS_EQUIPO días del equipo
+  // (antes se bajaba TODA la historia con todas sus fotos y el navegador se quedaba sin memoria).
+  const desdeVentana = new Date(Date.now() - DIAS_VENTANA_CAPTURAS_EQUIPO*86400000).toISOString();
+  const query = !db ? null : (soloMias ? db.collection('capturas_medi').where('usuario','==', currentUser.usuario)
+                                        : db.collection('capturas_medi').where('fecha_registro','>=', desdeVentana));
   // La primera vez que se conecta (o tras varios días sin abrir la app), Firestore puede entregar de
   // golpe cientos de documentos "nuevos" en el mismo instante — antes cada uno disparaba POR SEPARADO
   // un guardado completo a localStorage (serializando cada vez TODO el arreglo, fotos incluidas) más
@@ -2151,6 +2163,10 @@ function iniciarSincronizacionCapturas(){
     }
     _idsConocidos.add(doc.id);
     doc._en_nube = true; // vino de la nube, así que ya está allá
+    if(!soloMias){
+      const fd = doc.fecha_registro || doc.fecha;
+      if(fd && fd < new Date(Date.now() - DIAS_FOTOS_EN_MEMORIA*86400000).toISOString()) doc = aligerarRegistro(doc);
+    }
     _pendientes.push(doc);
     programarFlush();
   }, null, query);
@@ -5557,15 +5573,26 @@ function celdaFotosReporte(c){
     const col = c.geo_estado==='ok' ? '#2e8b57' : c.geo_estado==='lejos' ? 'var(--bad)' : c.geo_estado ? 'var(--warn)' : 'var(--line)';
     return `<div style="display:flex; gap:3px; align-items:center; cursor:pointer;" onclick="verFotosCaptura('${c.id}')" title="Ver fotos">${f.slice(0,2).map(src=>`<img src="${src}" loading="lazy" decoding="async" alt="foto" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:2px solid ${col};">`).join('')}${f.length>2?`<b style="font-size:11px;">+${f.length-2}</b>`:''}</div>`;
   }
-  if(c._fotos_solo_en_la_nube) return '<small style="color:var(--ink-soft);">☁️ foto antigua: solo en la nube</small>';
+  if(c._fotos_solo_en_la_nube) return `<small style="color:var(--brand-dark); cursor:pointer; text-decoration:underline;" onclick="verFotosCaptura('${c.id}')">☁️ ver foto (se baja de la nube)</small>`;
   if(c._fotos_omitidas_por_tamano) return '<small style="color:var(--warn);">⚠️ foto omitida (muy pesada)</small>';
   if(c.tipo==='entrada_tienda' || c.tipo==='salida_tienda') return '<small style="color:var(--bad); font-weight:700;">⚠️ sin foto</small>';
   return '<span style="color:var(--ink-soft);">—</span>';
 }
-function verFotosCaptura(id){
+async function verFotosCaptura(id){
   const c = getCapturas().find(x=>x.id===id); if(!c) return;
-  const f = fotosDeCaptura(c);
+  let f = fotosDeCaptura(c);
   const body = document.getElementById('modalBody');
+  if(!f.length && c._fotos_solo_en_la_nube){
+    // Foto antigua: no se guarda en memoria; se baja de la nube solo para mostrarla ahora.
+    body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button><h3>📷 ${TIPO_LABEL[c.tipo]||c.tipo} — ${c.tienda||''}</h3><p style="font-size:13px; color:var(--ink-soft);">☁️ Bajando la foto de la nube…</p>`;
+    document.getElementById('modalBg').classList.add('open');
+    try{
+      const snap = await db.collection('capturas_medi').doc(id).get();
+      const dd = snap && snap.exists ? snap.data() : null;
+      f = dd ? fotosDeCaptura(dd) : [];
+    }catch(err){ f = []; }
+    if(!f.length){ body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button><h3>📷 ${TIPO_LABEL[c.tipo]||c.tipo} — ${c.tienda||''}</h3><p style="font-size:13px; color:var(--bad);">No pude bajar la foto de la nube (revisa tu internet o intenta de nuevo).</p>`; return; }
+  }
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>📷 ${TIPO_LABEL[c.tipo]||c.tipo} — ${c.tienda||''}</h3>
     <p style="font-size:12.5px; color:var(--ink-soft); margin:0 0 8px;">${c.persona||''} · ${fechaHoraLocal(c.fecha_registro)}${badgeGeo(c)}</p>
