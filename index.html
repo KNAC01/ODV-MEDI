@@ -670,7 +670,7 @@
         <button class="mdi-tile" onclick="openGastoTicket()"><div class="icon">🧾</div><div class="t">Gasto (ticket)</div><div class="d">Un solo ticket, varias líneas: producto Delico, insumos, material.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="openForm('precio_delico')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">💲</div><div class="t">Precio Delico</div><div class="d">Precio en piso de nuestro producto.</div></button>
         <button class="mdi-tile" onclick="openForm('precio_competencia')"><div class="icon">🏷️</div><div class="t">Precio competencia</div><div class="d">Marca, producto, precio, promos, fotos/videos de activaciones de otras marcas y comentarios.</div></button>
-        <button class="mdi-tile" onclick="openForm('incidencia')"><div class="icon">⚠️</div><div class="t">Incidencias</div><div class="d">Inventario, calidad, tienda/instalaciones, refrigeración, otro.</div></button>
+        <button class="mdi-tile" onclick="openForm('incidencia')"><div class="icon">⚠️</div><div class="t">Incidencias de producto / tienda</div><div class="d">Maltrato, calidad, tienda/instalaciones, refrigeración, otro.</div></button>
         <button class="mdi-tile" onclick="abrirCargaAnaquel()"><div class="icon">📐</div><div class="t">Carga de anaquel</div><div class="d">Frentes y profundidad por producto — como tabla, con foto de cada SKU.</div></button>
         <button class="mdi-tile" onclick="openForm('foto')"><div class="icon">📷</div><div class="t">Categoría</div><div class="d">Tipo de exhibición (refri, barco, búnker, otro) y foto.</div></button>
         <button class="mdi-tile hidden" id="tileOnboarding" onclick="abrirOnboarding()"><div class="icon">🧭</div><div class="t">Onboarding</div><div class="d">Checklist completo de onboarding — lo llenan juntas Supervisor y la persona nueva.</div></button>
@@ -830,7 +830,7 @@
           <option value="entrada_tienda">Registro — Check-in</option>
           <option value="mercadeo">Mercadeo</option>
           <option value="caducidad">Caducidades</option>
-          <option value="incidencia">Incidencias</option>
+          <option value="incidencia">Incidencias de producto / tienda</option>
           <option value="incapacidad">Incapacidad</option>
           <option value="inasistencia">Inasistencia</option>
           <option value="degustacion">Degustación</option>
@@ -859,11 +859,12 @@
           <button type="button" class="tienda-dd-btn" onclick="toggleObjDropdown('repMesDd')" id="repMesDdBtn">Selecciona...</button>
           <div class="tienda-dd-panel hidden" id="repMesDdPanel"></div>
         </div>
-        <button class="btn btn-ghost" onclick="exportCSV()">Exportar CSV</button>
+        <button class="btn btn-ghost" onclick="exportCSV()" title="Exporta el reporte elegido en Tipo (o todos, una hoja por reporte)">📊 Exportar Excel</button>
         <button class="btn btn-ghost" onclick="exportImagenesReporte()">🖼️ Exportar imágenes</button>
         <button class="btn btn-ghost" onclick="exportPDFReporte()">📄 Exportar PDF reporte</button>
         <button class="btn btn-ghost" onclick="exportarDetalleFormularios()">📝 Exportar detalle de formularios</button>
       </div>
+      <div id="repExportPanel" class="card" style="padding:12px 14px; margin-bottom:12px;"></div>
       <p style="font-size:11px; color:var(--ink-soft); margin:-6px 0 12px;">"Exportar detalle de formularios" saca, para lo que esté filtrado, la respuesta real de cada pregunta/campo de cualquier tipo de captura (Mercadeo, Onboarding, Gasto/ticket, Degustación, Caducidades, Incidencias, Carga de anaquel, etc.) — no solo si se hizo o se cumplió. Filtra por Tipo arriba para exportar solo uno en específico.</p>
       <div class="row" style="margin-bottom:14px;">
         <div class="card kpi"><div class="label">Total capturas</div><div class="value" id="repTotal">0</div></div>
@@ -3898,7 +3899,7 @@ const FORM_DEFS = {
     ]
   },
   incidencia: {
-    title:'Incidencias', icon:'⚠️',
+    title:'Incidencias de producto / tienda', icon:'⚠️',
     fields:[
       ['tienda','tienda_select','Tienda',true],
       ['tipo_incidencia','select','Tipo de incidencia',true,['Maltrato de producto','Calidad (olor/consistencia/objeto ajeno)','Tienda / instalaciones (remodelación, accesos)','Refrigeración (gotea, no enfría)','Otro']],
@@ -5596,7 +5597,7 @@ function detalleCaptura(c){
     default: return '';
   }
 }
-const TIPO_LABEL = {entrada_tienda:'Registro — Check-in',salida_tienda:'Registro — Check-out',mercadeo:'Mercadeo',caducidad:'Caducidad',incidencia:'Incidencia',incapacidad:'Incapacidad',inasistencia:'Inasistencia',degustacion:'Degustación',precio_delico:'Precio Delico',precio_competencia:'Precio competencia',foto:'Categoría',factores_ambiente:'Factores ambiente',gasto_ticket:'Gasto (ticket)',carga_anaquel:'Carga de anaquel',onboarding:'Onboarding'};
+const TIPO_LABEL = {entrada_tienda:'Registro — Check-in',salida_tienda:'Registro — Check-out',mercadeo:'Mercadeo',caducidad:'Caducidad',incidencia:'Incidencia producto / tienda',incapacidad:'Incapacidad',inasistencia:'Inasistencia',degustacion:'Degustación',precio_delico:'Precio Delico',precio_competencia:'Precio competencia',foto:'Categoría',factores_ambiente:'Factores ambiente',gasto_ticket:'Gasto (ticket)',carga_anaquel:'Carga de anaquel',onboarding:'Onboarding'};
 
 function renderMisCapturas(){
   const arr = getCapturas().filter(c=>c.usuario===currentUser.usuario).sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,30)
@@ -5608,7 +5609,7 @@ function renderMisCapturas(){
     if(head) head.innerHTML = `${colHead('misCapturasBody','tipo_label','Tipo',false)}${colHead('misCapturasBody','fecha_registro','Fecha',false)}${colHead('misCapturasBody','tienda','Tienda',false)}${colHead('misCapturasBody','detalle','Detalle',false)}`;
     const filas = ordenarFilas('misCapturasBody', rows2, 'fecha_registro');
     const tbody = document.getElementById('misCapturasBody');
-    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${TIPO_LABEL[c.tipo]}</span></td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}${badgeGeo(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
+    tbody.innerHTML = filas.map(c=>`<tr><td><span class="pill pill-${c.tipo}">${etiquetaTipoReporte(c)}</span></td><td>${fechaHoraLocal(c.fecha_registro)}</td><td>${c.tienda||''}</td><td>${detalleCaptura(c)}${badgeGeo(c)}</td></tr>`).join('') || `<tr><td colspan="4" class="empty-state">Aún no tienes capturas. Usa las tarjetas de arriba para registrar tu primera visita.</td></tr>`;
   };
   window.render_misCapturasBody();
   try{ pintarEstadoNube(); }catch(e){}
@@ -5694,8 +5695,8 @@ function populateRepFiltrosExtra(){
   }
   registrarFiltroMesesCompletos('rep','repMesDdPanel','repMesDdBtn','repDesde','repHasta',renderReportes);
 }
-function capturasFiltradasReporte(){
-  const tipo = document.getElementById('repTipo').value;
+function capturasFiltradasReporte(ignorarTipo){
+  const tipo = ignorarTipo ? '' : document.getElementById('repTipo').value;
   const persona = document.getElementById('repPersona').value;
   const cadena = document.getElementById('repCadena').value;
   const region = document.getElementById('repRegion').value;
@@ -5703,7 +5704,7 @@ function capturasFiltradasReporte(){
   const desde = (document.getElementById('repDesde')||{}).value;
   const hasta = (document.getElementById('repHasta')||{}).value;
   let arr = getCapturas();
-  if(tipo) arr = arr.filter(c=>c.tipo===tipo);
+  if(tipo) arr = arr.filter(c=>c.tipo===tipo && !(tipo==='incidencia' && esIncidenciaVisita(c)));
   if(persona) arr = arr.filter(c=>c.usuario===persona);
   if(cadena) arr = arr.filter(c=>c.cadena===cadena);
   if(region) arr = arr.filter(c=>{ const u = APP_DATA.equipo.find(x=>x.usuario===c.usuario); return u && u.region===region; });
@@ -5775,10 +5776,11 @@ function renderReportes(){
   }
   try{ pintarEstadoNube(); }catch(e){}
   let arr = capturasFiltradasReporte();
+  try{ renderPanelExportReportes(); }catch(e){ console.error(e); }
 
   document.getElementById('repTotal').textContent = arr.length;
   document.getElementById('repPersonas').textContent = new Set(arr.map(c=>c.usuario)).size;
-  document.getElementById('repIncidencias').textContent = arr.filter(c=>c.tipo==='incidencia').length;
+  document.getElementById('repIncidencias').textContent = arr.filter(c=>c.tipo==='incidencia' && !esIncidenciaVisita(c)).length;
   document.getElementById('repCaducidades').textContent = arr.filter(c=>c.tipo==='caducidad').length;
   const repFuera = document.getElementById('repFueraZona'); if(repFuera) repFuera.textContent = arr.filter(c=>c.geo_estado==='lejos').length;
 
@@ -10441,24 +10443,145 @@ function exportarDetalleFormularios(){
   if(!rows.length){ toast('No hay detalle capturado para exportar en este filtro.'); return; }
   exportarCSV(`detalle_formularios_${todayISO()}.csv`, headers, rows);
 }
-function exportCSV(){
-  const arr = capturasFiltradasReporte();
-  if(!arr.length){ toast('No hay capturas para exportar'); return; }
-  const cols = ['geo_estado','geo_dist_m','tipo','persona','usuario','fecha_registro','tienda','clave','clave2','clave3','fecha_caducidad','piezas','tipo_incidencia','descripcion','lote','fecha','comentarios','producto','con_que','reacciones','sku_delico','precio_delico','competencia','precio_competencia','promo_competencia','seccion','notas','producto_comprado','costo','motivo'];
-  let csv = cols.join(',') + '\n';
-  arr.forEach(c=>{
-    csv += cols.map(k=>{
-      let v = (c[k] ?? '').toString().replace(/"/g,'""');
-      if(v.includes(',')||v.includes('\n')) v = `"${v}"`;
-      return v;
-    }).join(',') + '\n';
+/* ---------- EXPORTAR REPORTES DEL EQUIPO — un Excel por reporte, cada uno con SUS columnas (v112) ----------
+   Todas las hojas empiezan con las mismas columnas: Cadena, Núm. tienda, Tienda, Usuario, Persona, Fecha, Hora,
+   Tipo de reporte, Geolocalización y Distancia; después van las columnas propias de ese reporte, y al final
+   los comentarios que haya escrito el equipo. */
+const REP_EXPORT_ORDEN = ['entrada_tienda','salida_tienda','mercadeo','onboarding','caducidad','incidencia','incapacidad','inasistencia','degustacion','precio_delico','precio_competencia','foto','factores_ambiente','gasto_ticket','carga_anaquel'];
+const REP_EXPORT_NOMBRE = {entrada_tienda:'Check-in', salida_tienda:'Check-out', mercadeo:'Mercadeo', onboarding:'Onboarding', caducidad:'Caducidades', incidencia:'Incidencias producto-tienda', incapacidad:'Incapacidad', inasistencia:'Inasistencia', degustacion:'Degustación', precio_delico:'Precio Delico', precio_competencia:'Precio competencia', foto:'Categoría (fotos)', factores_ambiente:'Factores ambiente', gasto_ticket:'Gasto (ticket)', carga_anaquel:'Carga de anaquel'};
+const REP_EXPORT_TIPO_LABEL = {entrada_tienda:'Check-in', salida_tienda:'Check-out', mercadeo:'Mercadeo', onboarding:'Onboarding', caducidad:'Caducidad', incidencia:'Incidencia de producto / tienda', incapacidad:'Incapacidad', inasistencia:'Inasistencia', degustacion:'Degustación', precio_delico:'Precio Delico', precio_competencia:'Precio competencia', foto:'Categoría (fotos)', factores_ambiente:'Factores ambiente', gasto_ticket:'Gasto (ticket)', carga_anaquel:'Carga de anaquel'};
+const TIPO_INC_VISITA = 'Visita fuera de ruta asignada';
+function esIncidenciaVisita(c){ return !!c && c.tipo==='incidencia' && c.tipo_incidencia===TIPO_INC_VISITA; }
+function etiquetaTipoReporte(c){ return esIncidenciaVisita(c) ? 'Incidencia de visita' : (c.tipo==='incidencia' ? 'Incidencia producto / tienda' : (TIPO_LABEL[c.tipo]||c.tipo)); }
+const REP_BASE_HEADERS = ['Cadena','Núm. tienda','Tienda','Usuario','Persona','Fecha','Hora','Tipo de reporte','Geolocalización','Distancia a la tienda (m)'];
+function repExportContexto(){
+  const stores = APP_DATA.stores || [];
+  const porCadTienda = new Map(), porTienda = new Map();
+  stores.forEach(s=>{ porCadTienda.set(s.cadena+'|'+s.tienda, s); if(!porTienda.has(s.tienda)) porTienda.set(s.tienda, s); });
+  const equipo = new Map((APP_DATA.equipo||[]).map(e=>[e.usuario, e]));
+  const cat = new Map((APP_DATA.catalogo_productos||[]).map(p=>[p.clave, p]));
+  const visita = new Map();
+  getCapturas().forEach(c=>{ if(esIncidenciaVisita(c)) visita.set([c.usuario, fechaLocal(c.fecha_registro), c.tienda].join('|'), c.descripcion||'(sin motivo)'); });
+  return {
+    tienda: c => porCadTienda.get((c.cadena||'')+'|'+(c.tienda||'')) || porTienda.get(c.tienda||'') || null,
+    persona: u => equipo.get(u) || null,
+    prod: clave => cat.get(clave) || null,
+    visita: c => visita.get([c.usuario, fechaLocal(c.fecha_registro), c.tienda].join('|')),
+  };
+}
+function repExportBase(c, X, tipoLabel){
+  const st = X.tienda(c);
+  const num = st && st.num_tienda!=null ? Math.round(st.num_tienda) : '';
+  return [c.cadena || (st?st.cadena:''), num, c.tienda||'', c.usuario||'', c.persona||'', c.fecha_registro?fechaLocal(c.fecha_registro):'', c.fecha_registro?horaLocal(c.fecha_registro):'', tipoLabel, c.geo_estado ? (GEO_ETIQUETA[c.geo_estado]||c.geo_estado).replace(/^[^\wÁÉÍÓÚÑáéíóú]+/,'') : '', c.geo_dist_m!=null ? c.geo_dist_m : ''];
+}
+function repExportProd(X, clave){ const p = X.prod(clave); return p ? [clave, p.nombre, p.familia] : [clave||'', clave?nombreProducto(clave):'', '']; }
+const _sn = v => v ? 'Sí' : 'No';
+/* Cada constructor recibe las capturas de ese tipo y devuelve {headers (SIN las columnas base), rows: [[extras..., comentarios]]} por captura (puede dar varias filas) */
+const REP_EXPORT_DEF = {
+  entrada_tienda: { extra:['Perfil','Rol','¿Incidencia de visita?','Motivo de la incidencia'], coment:'Notas del equipo',
+    filas:(c,X)=>{ const p = X.persona(c.usuario)||{}; const inc = X.visita(c); return [[[p.perfil||'', p.rol||'', inc?'Sí':'No', inc||''], c.notas||'']]; } },
+  salida_tienda: { extra:['Perfil','Rol'], coment:'Notas del equipo',
+    filas:(c,X)=>{ const p = X.persona(c.usuario)||{}; return [[[p.perfil||'', p.rol||''], c.notas||'']]; } },
+  caducidad: { extra:['Clave','Producto','Familia','Fecha de caducidad','Piezas'], coment:'Comentarios del equipo',
+    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.fecha_caducidad||'', c.piezas!=null&&c.piezas!==''?Number(c.piezas):''], c.notas||c.comentarios||'']] },
+  incidencia: { extra:['Tipo de incidencia','Lote'], coment:'Descripción de la incidencia',
+    filas:(c,X)=>[[[c.tipo_incidencia||'', c.lote||''], c.descripcion||'']] },
+  incapacidad: { extra:['Fecha de la incapacidad','# fotos'], coment:'Comentarios del equipo',
+    filas:(c,X)=>[[[c.fecha||'', (c.fotos||[]).length], c.comentarios||'']] },
+  inasistencia: { extra:['Fecha de la inasistencia','# fotos'], coment:'Comentarios del equipo',
+    filas:(c,X)=>[[[c.fecha||'', (c.fotos||[]).length], c.comentarios||'']] },
+  degustacion: { extra:['Claves degustadas','Producto(s) degustado(s)','Familia(s)','¿Con qué se degustó?'], coment:'Reacciones / comentarios del shopper',
+    filas:(c,X)=>{ const cl=[c.clave,c.clave2,c.clave3].filter(Boolean); const ps=cl.map(k=>X.prod(k)); return [[[cl.join(' + '), cl.map((k,i)=>ps[i]?ps[i].nombre:nombreProducto(k)).join(' + '), [...new Set(ps.filter(Boolean).map(p=>p.familia))].join(' + '), String(c.con_que||'').split('|').filter(Boolean).join(', ')], c.reacciones||'']]; } },
+  precio_delico: { extra:['Clave','Producto','Familia','Precio en piso ($)'], coment:'Notas del equipo',
+    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.precio_delico!==undefined&&c.precio_delico!==''?Number(c.precio_delico):''], c.notas||'']] },
+  precio_competencia: { extra:['Marca / producto de competencia','Precio competencia ($)','Promoción o degustación de competencia','# fotos'], coment:'Comentarios de activación de otra marca',
+    filas:(c,X)=>[[[c.marca_competencia||'', c.precio_competencia!==undefined&&c.precio_competencia!==''?Number(c.precio_competencia):'', c.promo_competencia||'', Array.isArray(c.foto)?c.foto.length:(c.foto?1:0)], c.activacion_comentario||'']] },
+  foto: { extra:['Tipo de exhibición','# fotos'], coment:'Notas del equipo',
+    filas:(c,X)=>[[[c.seccion||'', Array.isArray(c.foto)?c.foto.length:(c.foto?1:0)], c.notas||'']] },
+  factores_ambiente: { extra:['Clima','Afluencia de gente','¿Qué vio? (tendencias, temporada…)'], coment:'Comentarios generales',
+    filas:(c,X)=>[[[c.clima||'', c.afluencia||'', c.tendencia||''], c.comentarios||'']] },
+  gasto_ticket: { extra:['Núm. de línea','Tipo de gasto','Detalle','Piezas','Origen','Costo de la línea ($)','Total del ticket ($)'], coment:'Comentarios del equipo',
+    filas:(c,X)=>{ const L=c.lineas||[]; if(!L.length) return [[['', '', '', '', '', '', c.total!=null?Number(c.total):''], '']];
+      return L.map((l,i)=>[[i+1, l.tipo||'', l.detalle||'', l.piezas!=null&&l.piezas!==''?Number(l.piezas):'', l.origen||'', l.costo!=null&&l.costo!==''?Number(l.costo):'', c.total!=null?Number(c.total):''], '']); } },
+  carga_anaquel: { extra:['Clave','Producto','Familia','Frentes','Profundidad','Categoría de ubicación','Tipo de exhibición','Planograma','Exhibición de marca','Tienda de (pisos)','Categorías aledañas','Muros interfieren','Muros cercanos','Tienda en plaza comercial','# fotos'], coment:'Comentarios del equipo',
+    filas:(c,X)=>{ const x=c.contexto||{}; const ctx=[x.categoria_ubicacion||'', x.tipo_exhibicion||'', x.planograma||'', x.bloque_marca||'', x.pisos||'', (x.categorias_aledanas||[]).join(' / '), _sn(x.muros_interfieren), _sn(x.muros_cercanos), _sn(x.plaza_comercial), (c.fotos||[]).length];
+      const F=c.frentes||[]; if(!F.length) return [[['', '', '', '', '', ...ctx], x.comentarios||'']];
+      return F.map(f=>[[...repExportProd(X,f.clave), f.frentes!=null?Number(f.frentes):'', f.profundidad!=null?Number(f.profundidad):'', ...ctx], x.comentarios||'']); } },
+};
+/* Mercadeo / Onboarding: una fila por visita con una columna por cada punto del checklist (Sí / No) + hoja aparte con la distribución por SKU */
+function repExportChecklist(arr, X, tipo){
+  const SECC = [['Preparación','preparacion'],['Cámara','camara'],['Degustación','degustacion_checklist'],['Mercadeo','mercadeo']];
+  const items = []; const vistos = new Set();
+  arr.forEach(c=>SECC.forEach(([lab,key])=>(c[key]||[]).forEach(it=>{ const k=lab+': '+it.item; if(!vistos.has(k)){ vistos.add(k); items.push(k); } })));
+  const extra = tipo==='onboarding' ? ['Con quién (persona nueva)','Perfil de la forma','Puntos cumplidos','Total de puntos','% cumplimiento'] : ['Perfil de la forma','Puntos cumplidos','Total de puntos','% cumplimiento'];
+  const headers = [...REP_BASE_HEADERS, ...extra, ...items, 'Comentarios del equipo'];
+  const rows = arr.map(c=>{
+    const mapa = {}; const coms = [];
+    SECC.forEach(([lab,key])=>(c[key]||[]).forEach(it=>{ mapa[lab+': '+it.item] = it.cumple ? 'Sí' : 'No'; if(it.comentario) coms.push(`${it.item}: ${it.comentario}`); }));
+    const all = SECC.flatMap(([l,k])=>c[k]||[]); const ok = all.filter(x=>x.cumple).length;
+    const ex = tipo==='onboarding' ? [c.persona_nueva||'', c.perfil_forma||'', ok, all.length, all.length?Math.round(ok/all.length*100)/100:''] : [c.perfil_forma||'', ok, all.length, all.length?Math.round(ok/all.length*100)/100:''];
+    return [...repExportBase(c,X,REP_EXPORT_TIPO_LABEL[tipo]), ...ex, ...items.map(k=>mapa[k]||''), [c.comentarios_generales||'', ...coms].filter(Boolean).join(' | ')];
   });
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'delico_odv_capturas_' + todayISO() + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  const hojas = [{nombre:REP_EXPORT_NOMBRE[tipo], headers, rows, pct:headers.indexOf('% cumplimiento')}];
+  const dist = [];
+  arr.forEach(c=>(c.distribucion||[]).forEach(d=>{ dist.push([...repExportBase(c,X,REP_EXPORT_TIPO_LABEL[tipo]+' — distribución'), ...repExportProd(X,d.sku).slice(0,1), (X.prod(d.sku)||{}).nombre||'', (X.prod(d.sku)||{}).familia||d.familia||'', d.req!=null?Number(d.req):'', d.real!=null?Number(d.real):'']); }));
+  if(dist.length) hojas.push({nombre:REP_EXPORT_NOMBRE[tipo]+' - distribución', headers:[...REP_BASE_HEADERS,'Clave','Producto','Familia','Requerido','Real'], rows:dist});
+  return hojas;
+}
+function repExportHojas(tipo, arr, X){
+  if(tipo==='mercadeo' || tipo==='onboarding') return repExportChecklist(arr, X, tipo);
+  const def = REP_EXPORT_DEF[tipo]; if(!def) return [];
+  const rows = [];
+  arr.forEach(c=>{ def.filas(c,X).forEach(([ex, com])=>rows.push([...repExportBase(c,X,REP_EXPORT_TIPO_LABEL[tipo]), ...ex, com])); });
+  return [{nombre:REP_EXPORT_NOMBRE[tipo], headers:[...REP_BASE_HEADERS, ...def.extra, def.coment], rows}];
+}
+/* Capturas a exportar: respeta persona / cadena / región / supervisor / fechas, y el Tipo solo si se pide uno en específico */
+function repExportCapturas(tipo){
+  const arr = capturasFiltradasReporte(true);
+  return tipo ? arr.filter(c=> c.tipo===tipo && !esIncidenciaVisita(c)) : arr.filter(c=>!esIncidenciaVisita(c));
+}
+function repExportDescargarCSV(nombre, h){
+  const esc = v => { let s = String(v ?? '').replace(/"/g,'""'); return /[",\n]/.test(s) ? `"${s}"` : s; };
+  const csv = '﻿' + [h.headers, ...h.rows].map(r=>r.map(esc).join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'})); a.download = nombre + '.csv'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+async function exportarReporteExcel(tipo){
+  const X = repExportContexto();
+  const tipos = tipo ? [tipo] : REP_EXPORT_ORDEN;
+  let hojas = [];
+  tipos.forEach(t=>{ const arr = repExportCapturas(t); if(arr.length) hojas.push(...repExportHojas(t, arr, X)); });
+  if(!hojas.length){ toast('No hay capturas de ese reporte con los filtros actuales.'); return; }
+  const fechaArch = todayISO();
+  const base = tipo ? 'ODV_' + REP_EXPORT_NOMBRE[tipo].replace(/[^\wÁÉÍÓÚÑáéíóúñ]+/g,'_') + '_' + fechaArch : 'ODV_Reportes_del_equipo_' + fechaArch;
+  const ok = await cargarXLSX();
+  if(!ok){ hojas.forEach(h=>repExportDescargarCSV(base + (hojas.length>1?'_'+h.nombre.replace(/[^\wÁÉÍÓÚÑáéíóúñ]+/g,'_'):''), h)); toast('Sin conexión para armar el Excel: se descargó en CSV.'); return; }
+  const wb = XLSX.utils.book_new();
+  if(!tipo){
+    const res = [['Reporte','Registros'], ...hojas.map(h=>[h.nombre, h.rows.length])];
+    const wsR = XLSX.utils.aoa_to_sheet(res); wsR['!cols'] = [{wch:36},{wch:12}]; XLSX.utils.book_append_sheet(wb, wsR, 'Resumen');
+  }
+  const usados = new Set(['Resumen']);
+  hojas.forEach(h=>{
+    const ws = XLSX.utils.aoa_to_sheet([h.headers, ...h.rows]);
+    ws['!cols'] = h.headers.map((t,i)=>{ let w = String(t).length+2; h.rows.slice(0,200).forEach(r=>{ w = Math.max(w, Math.min(60, String(r[i]??'').length+2)); }); return {wch:Math.max(10,w)}; });
+    ws['!freeze'] = {xSplit:0, ySplit:1}; ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:h.rows.length, c:h.headers.length-1}})};
+    let nom = h.nombre.replace(/[\\\/\?\*\[\]:]/g,'').slice(0,31); let n=2; while(usados.has(nom)){ nom = nom.slice(0,28)+' '+(n++); } usados.add(nom);
+    XLSX.utils.book_append_sheet(wb, ws, nom);
+  });
+  XLSX.writeFile(wb, base + '.xlsx');
+  toast(`Excel listo ✓ — ${hojas.length} hoja(s), ${hojas.reduce((s,h)=>s+h.rows.length,0)} fila(s)`);
+}
+function exportCSV(){ exportarReporteExcel((document.getElementById('repTipo')||{}).value || ''); }
+/* Panel "Exportar por reporte": un botón por cada tipo, con cuántos registros trae con los filtros actuales */
+function renderPanelExportReportes(){
+  const box = document.getElementById('repExportPanel'); if(!box) return;
+  const arrTodo = capturasFiltradasReporte(true).filter(c=>!esIncidenciaVisita(c));
+  const n = {}; arrTodo.forEach(c=>{ n[c.tipo] = (n[c.tipo]||0)+1; });
+  const botones = REP_EXPORT_ORDEN.filter(t=>n[t]).map(t=>`<button class="btn btn-ghost" style="padding:6px 12px; font-size:12.5px;" onclick="exportarReporteExcel('${t}')">${REP_EXPORT_NOMBRE[t]} <b>(${n[t]})</b></button>`).join(' ');
+  box.innerHTML = `<div style="font-weight:700; font-size:13px; margin-bottom:6px;">📤 Exportar por reporte <span style="font-weight:400; color:var(--ink-soft); font-size:11.5px;">— cada uno trae solo sus columnas; respeta Persona, Cadena, Región, Supervisor y Fechas de arriba (no el Tipo).</span></div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">${botones || '<span style="font-size:12px; color:var(--ink-soft);">No hay capturas con estos filtros.</span>'}
+    ${botones ? `<button class="btn btn-brand" style="padding:6px 12px; font-size:12.5px;" onclick="exportarReporteExcel('')">📚 Todos en un Excel (una hoja por reporte)</button>` : ''}</div>
+    <p style="font-size:11px; color:var(--ink-soft); margin:8px 0 0;">Todos incluyen: cadena, núm. de tienda, tienda, usuario, fecha y hora (separadas), tipo de reporte, geolocalización y distancia, y los comentarios del equipo. <b>Check-in</b> agrega perfil, rol e incidencia de visita (fuera de ruta) con su motivo. <b>Caducidades</b> agrega clave, producto, familia, fecha de caducidad y piezas. Las <b>incidencias de visita</b> van dentro del Check-in; en "Incidencias producto-tienda" solo están las del cuadro de MEDI.</p>`;
 }
 /* Reduce una imagen base64 a un tamaño chico (para exportar sin pesar tanto) */
 function reducirImagen(dataUrl, maxW){
