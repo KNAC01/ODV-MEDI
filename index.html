@@ -1895,6 +1895,7 @@ function saveCapturas(arr){
   // Guardado local PRIMERO, siempre — así una captura nunca se pierde aunque la nube (Firestore)
   // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
   const idsPrevios = new Set(_capturasCache.map(d=>d.id));
+  arr = deduplicarCapturas(arr);
   _capturasCache = arr;
   guardarLocalStorageSeguro(STORAGE_KEY, arr);
   arr.forEach(d=>{
@@ -2103,7 +2104,27 @@ function crearDocumentoSincronizado(nombreColeccion, idDocumento, storageKey, va
    a currentUser.usuario (ver renderMisCapturas) — así que para ese perfil escuchamos solo SUS documentos.
    Supervisor/Coordinador/Admin sí necesitan ver a todo su equipo (Reportes del equipo), así que para ellos
    se mantiene la colección completa — son muchos menos celulares, y ahí aplica el recorte por fecha de abajo. */
-let _capturasCache = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+/* Quita capturas repetidas con el MISMO id (bug: la nube devolvía al instante la captura recién guardada y
+   se volvía a agregar como si fuera nueva, por eso aparecían "dobles" en Degustación). Si alguna copia tenía
+   comentarios del shopper, se juntan en la que se queda — no se pierde nada. */
+function deduplicarCapturas(arr){
+  if(!Array.isArray(arr)) return [];
+  const porId = new Map(); const out = [];
+  arr.forEach(d=>{
+    if(!d || !d.id){ out.push(d); return; }
+    const ya = porId.get(d.id);
+    if(!ya){ porId.set(d.id, d); out.push(d); return; }
+    if(d._en_nube) ya._en_nube = true;
+    const r1 = ya.retro_shopper || [], r2 = d.retro_shopper || [];
+    if(r2.length){
+      const vistos = new Set(r1.map(r=>r.texto+'|'+r.fecha));
+      ya.retro_shopper = [...r1, ...r2.filter(r=>!vistos.has(r.texto+'|'+r.fecha))];
+    }
+  });
+  return out;
+}
+let _capturasCache = deduplicarCapturas(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+try{ if(_capturasCache.length !== JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').length) guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache); }catch(e){}
 /* Limpieza de lo que YA se había acumulado en este celular ANTES de este arreglo (el filtro de arriba
    solo evita que seguir creciendo hacia adelante — los celulares que ya llevaban meses juntando fotos
    de todo el equipo necesitan que esto se les quite una sola vez para que la memoria se libere de verdad). */
@@ -2156,7 +2177,7 @@ function iniciarSincronizacionCapturas(){
     Promise.resolve().then(()=>{
       _flushProgramado = false;
       if(!_pendientes.length) return;
-      _capturasCache = [..._capturasCache, ..._pendientes];
+      _capturasCache = deduplicarCapturas([..._capturasCache, ..._pendientes]);
       _pendientes = [];
       guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache);
       try{ renderMisCapturas(); }catch(e){}
@@ -2166,7 +2187,8 @@ function iniciarSincronizacionCapturas(){
     });
   };
   iniciarSincronizacion('capturas_medi', (doc)=>{
-    if(_idsConocidos.has(doc.id)){
+    if(_idsConocidos.has(doc.id) || _capturasCache.some(d=>d && d.id===doc.id) || _pendientes.some(d=>d && d.id===doc.id)){
+      _idsConocidos.add(doc.id);
       // Ya la teníamos local: si llegó de vuelta desde la nube, quedó confirmada como subida.
       try{ marcarCapturaEnNube(doc.id); }catch(e){}
       return;
@@ -4934,7 +4956,10 @@ function precioSospechoso(clave, precioIngresado){
   }
   return null;
 }
+let _guardandoForm = false;
 function submitForm(type){
+  if(_guardandoForm) return; // evita doble guardado si tocan "Guardar" dos veces rápido
+  _guardandoForm = true; setTimeout(()=>{ _guardandoForm = false; }, 1500);
   try{
     if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
     const def = FORM_DEFS[type];
