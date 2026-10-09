@@ -2912,7 +2912,21 @@ function tabsVisiblesParaMi(){
   return ALL_TABS.filter(t => t.perfiles.includes(currentUser.perfil) && t.vista[vista]);
 }
 
+function retomarCheckinInterrumpido(){
+  try{
+    const raw = localStorage.getItem('delico_odv_retomar_checkin'); if(!raw) return;
+    const d = JSON.parse(raw);
+    if(d && d.ts >= performance.timeOrigin) return; // lo abrió esta misma sesión: no hay nada que retomar
+    localStorage.removeItem('delico_odv_retomar_checkin');
+    if(!d || !currentUser || d.u!==currentUser.usuario || Date.now()-d.ts > 20*60000) return;
+    if(typeof getCheckin==='function' && getCheckin()) return;
+    toast('Tu celular cerró la app mientras tomabas la foto. Te reabro el check-in — vuelve a tomarla.');
+    if(typeof showView==='function') showView('captura');
+    setTimeout(()=>abrirCheckinConFoto(d.tienda, d.cadena, d.rol, d.fueraRuta), 400);
+  }catch(e){}
+}
 function boot(keepView){
+  if(!window._retomarProgramado){ window._retomarProgramado = true; setTimeout(retomarCheckinInterrumpido, 2500); }
   try{ setTimeout(iniciarVigilanteUbicacion, 1200); }catch(e){}
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -3683,6 +3697,8 @@ function renderCheckinBar(){
    "Check-in aquí" y "Salir de la tienda") abren el MISMO formulario, que exige foto de cómo encontraste / dejaste la tienda. */
 function abrirCheckinConFoto(tienda, cadena, rol, fueraRuta){
   window._prefillCheckin = {tienda, cadena, rol: rol||'', fueraRuta: fueraRuta||null};
+  /* si el celular cierra la app mientras se toma la foto (poca memoria), al volver se reabre este check-in solo */
+  try{ localStorage.setItem('delico_odv_retomar_checkin', JSON.stringify({u:currentUser&&currentUser.usuario, tienda, cadena, rol:rol||'', fueraRuta:fueraRuta||null, ts:Date.now()})); }catch(e){}
   openForm('entrada_tienda');
 }
 function hacerCheckin(){
@@ -4603,6 +4619,7 @@ function renderFilasCaducidad(key){
     </div>`).join('');
 }
 function closeModal(){
+  try{ localStorage.removeItem('delico_odv_retomar_checkin'); }catch(e){}
   document.querySelectorAll('[id^="scan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('scan_',''); closeScanner(key); } });
   document.querySelectorAll('[id^="tscan_"]').forEach(w=>{ if(!w.classList.contains('hidden')){ const key=w.id.replace('tscan_',''); closeScannerLinea(key); } });
   document.getElementById('modalBg').classList.remove('open');
@@ -4629,6 +4646,35 @@ function comprimirImagen(dataUrl, maxDim, calidad){
     img.src = dataUrl;
   });
 }
+/* ---------- Fotos con poca memoria (v111) ----------
+   Antes: FileReader -> texto base64 de TODA la foto (12-20 MB) -> <img> a resolución completa (una foto de 50 MP
+   ocupa ~200 MB al decodificarse) -> canvas. En celulares con poca RAM, Chrome mataba la pestaña ("Memoria insuficiente
+   para completar la operación anterior") y se perdía el formulario.
+   Ahora: createImageBitmap con redimensión AL DECODIFICAR (nunca se carga la foto completa en memoria), y las fotos
+   se procesan de una en una. Si el navegador no lo soporta, se usa el método anterior como respaldo. */
+let _colaFotos = Promise.resolve();
+function encolarFoto(tarea){
+  const r = _colaFotos.then(tarea, tarea);
+  _colaFotos = r.catch(()=>{});
+  return r;
+}
+async function comprimirArchivo(file, maxDim, calidad){
+  if(window.createImageBitmap){
+    try{
+      const bmp = await createImageBitmap(file, {resizeWidth:maxDim, resizeQuality:'medium'});
+      let w = bmp.width, h = bmp.height;
+      if(h > maxDim){ w = Math.round(w*maxDim/h); h = maxDim; }
+      const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+      try{ bmp.close(); }catch(e){}
+      const out = canvas.toDataURL('image/jpeg', calidad);
+      canvas.width = canvas.height = 1; // libera memoria del canvas
+      return out;
+    }catch(e){ /* cae al método anterior */ }
+  }
+  const dataUrl = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ev=>res(ev.target.result); r.onerror = ()=>rej(new Error('lectura')); r.readAsDataURL(file); });
+  return comprimirImagen(dataUrl, maxDim, calidad);
+}
 function previewFile(key){
   // el id real del <input> puede venir como "f_"+key (formularios estándar) o ya venir completo (ej. prioridades)
   const input = document.getElementById('f_'+key) || document.getElementById(key);
@@ -4643,23 +4689,16 @@ function previewFile(key){
   const note = input.parentElement ? input.parentElement.querySelector('.file-note') : null;
   const notaOriginal = note ? note.textContent : null;
   if(note) note.textContent = 'Procesando foto, espera un segundo antes de guardar…';
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    comprimirImagen(e.target.result, 1280, 0.72).then((comprimida) => {
-      if(img){ img.src = comprimida; img.classList.remove('hidden'); }
-      input.dataset.b64 = comprimida;
-      clearTimeout(seguro);
-      window._fotosPendientes.delete(key);
-      if(note) note.textContent = notaOriginal || 'Foto lista ✓';
-    }).catch(() => {
-      input.dataset.b64 = e.target.result;
-      clearTimeout(seguro);
-      window._fotosPendientes.delete(key);
-      if(note) note.textContent = notaOriginal || 'Foto lista ✓';
-    });
-  };
-  reader.onerror = () => { clearTimeout(seguro); window._fotosPendientes.delete(key); if(note) note.textContent = 'No se pudo leer la foto, intenta de nuevo.'; };
-  reader.readAsDataURL(file);
+  encolarFoto(()=>comprimirArchivo(file, 1280, 0.72)).then((comprimida) => {
+    if(img){ img.src = comprimida; img.classList.remove('hidden'); }
+    input.dataset.b64 = comprimida;
+    clearTimeout(seguro);
+    window._fotosPendientes.delete(key);
+    if(note) note.textContent = notaOriginal || 'Foto lista ✓';
+  }).catch(() => {
+    clearTimeout(seguro); window._fotosPendientes.delete(key);
+    if(note) note.textContent = 'No se pudo procesar la foto, intenta de nuevo.';
+  });
 }
 /* ---------- SELLO DE FOTO: fecha, hora, ubicación (GPS) y distancia a la tienda ----------
    Cada foto que se toma/sube se "sella" con fecha y hora de México, coordenadas y la distancia a la tienda
@@ -4843,7 +4882,6 @@ function previewFileMulti(key){
     const pendKey = key+'_'+localId;
     window._fotosPendientes.add(pendKey);
     const seguro = setTimeout(() => { window._fotosPendientes.delete(pendKey); }, 25000);
-    const reader = new FileReader();
     const terminar = (b64) => {
       sellarConGeo(b64).then(r=>r, () => ({b64, meta:null})).then(({b64:b64s, meta})=>{
         window._fotosMulti[key].push({id:localId, b64:b64s, meta});
@@ -4852,11 +4890,7 @@ function previewFileMulti(key){
         renderFotosMultiPreview(key);
       });
     };
-    reader.onload = (e) => {
-      comprimirImagen(e.target.result, 1280, 0.72).then(terminar).catch(() => terminar(e.target.result));
-    };
-    reader.onerror = () => { clearTimeout(seguro); window._fotosPendientes.delete(pendKey); };
-    reader.readAsDataURL(file);
+    encolarFoto(()=>comprimirArchivo(file, 1280, 0.72)).then(terminar).catch(() => { clearTimeout(seguro); window._fotosPendientes.delete(pendKey); toast('No se pudo procesar una foto, vuelve a tomarla.'); });
   });
   input.value = ''; // limpia el input para poder volver a abrir el selector y seguir agregando
 }
@@ -4961,7 +4995,7 @@ function submitForm(type){
   if(_guardandoForm) return; // evita doble guardado si tocan "Guardar" dos veces rápido
   _guardandoForm = true; setTimeout(()=>{ _guardandoForm = false; }, 1500);
   try{
-    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); _guardandoForm=false; return; }
     const def = FORM_DEFS[type];
     const rec = { id: uid(), tipo: type, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString() };
     let missing = false;
@@ -5028,7 +5062,7 @@ function submitForm(type){
       if(!rec.lote){ missing = true; faltantes.push('Número de lote'); }
       if(!(rec.foto && rec.foto.length)){ missing = true; faltantes.push('Foto del lote'); }
     }
-    if(missing){ toast('Falta: ' + faltantes.join(', ')); return; }
+    if(missing){ toast('Falta: ' + faltantes.join(', ')); _guardandoForm=false; return; }
     const continuarGuardado = () => {
       try{
         const arr = getCapturas();
@@ -5064,7 +5098,7 @@ function submitForm(type){
     };
     if(rec.clave && (rec.precio_delico || rec.costo)){
       const advertencia = precioSospechoso(rec.clave, parseFloat(rec.precio_delico || rec.costo));
-      if(advertencia){ confirmarPersonalizado(advertencia + '\n\n¿Guardar de todas formas? "Cancelar" para corregir el precio.', continuarGuardado); return; }
+      if(advertencia){ confirmarPersonalizado(advertencia + '\n\n¿Guardar de todas formas? "Cancelar" para corregir el precio.', continuarGuardado); _guardandoForm=false; return; }
     }
     continuarGuardado();
   }catch(e){ toast('⚠️ No se pudo guardar: ' + e.message, 6500); }
