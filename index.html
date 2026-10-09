@@ -936,7 +936,7 @@
         </div>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Persona</th><th>Usuario</th><th>Último acceso</th><th>Estado</th><th>Plataforma</th></tr></thead>
+            <thead><tr><th>Persona</th><th>Usuario</th><th>Último acceso</th><th>Estado</th><th>Plataforma</th><th>Ubicación</th></tr></thead>
             <tbody id="instalacionBody"></tbody>
           </table>
         </div>
@@ -2259,7 +2259,10 @@ function iniciarSincronizacionAccesos(){
     try{ renderInstalacionEquipo(); }catch(e){}
   });
 }
-function registrarAcceso(){
+async function registrarAcceso(){
+  if(!currentUser) return;
+  let ubic = 'desconocido';
+  try{ ubic = await estadoPermisoUbicacion(); }catch(e){}
   if(!currentUser) return;
   const doc = {
     id: currentUser.usuario,
@@ -2268,6 +2271,7 @@ function registrarAcceso(){
     ultimo_acceso: new Date().toISOString(),
     instalada: estaInstaladaComoApp(),
     plataforma: plataformaDispositivo(),
+    ubicacion: ubic,
   };
   _guardarAccesoLocal(doc);
   subirAColeccion('accesos_equipo', doc);
@@ -2285,7 +2289,12 @@ function renderInstalacionEquipo(){
     else { estadoHtml = '<span style="color:var(--warn); font-weight:600;">⚠️ Solo navegador</span>'; nav++; orden=1; }
     const ultimo = a ? fechaHoraLocal(a.ultimo_acceso) : '—';
     const plataforma = a ? a.plataforma : '—';
-    return {orden, html: `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${ultimo}</td><td>${estadoHtml}</td><td>${plataforma}</td></tr>`};
+    const ub = a ? (a.ubicacion || 'desconocido') : '';
+    const ubicHtml = !a ? '—' : ub==='granted' ? '<span style="color:var(--good); font-weight:600;">✅ Permitida</span>'
+      : ub==='denied' ? '<span style="color:var(--bad); font-weight:600;">🚫 Bloqueada</span>'
+      : ub==='prompt' ? '<span style="color:var(--warn); font-weight:600;">⚠️ Sin responder</span>'
+      : '<span style="color:var(--ink-soft);">— sin dato</span>';
+    return {orden, html: `<tr><td>${u.nombre}</td><td>${u.usuario}</td><td>${ultimo}</td><td>${estadoHtml}</td><td>${plataforma}</td><td>${ubicHtml}</td></tr>`};
   });
   filas.sort((x,y)=>x.orden-y.orden);
   body.innerHTML = filas.map(f=>f.html).join('');
@@ -2313,6 +2322,7 @@ function doLogin(){
 }
 function doLogout(){
   auth.signOut();
+  try{ ubicCerrarGuia(); const _b=document.getElementById('ubicBanner'); if(_b) _b.remove(); }catch(e){}
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -2881,6 +2891,7 @@ function tabsVisiblesParaMi(){
 }
 
 function boot(keepView){
+  try{ setTimeout(iniciarVigilanteUbicacion, 1200); }catch(e){}
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('whoName').textContent = currentUser.nombre;
@@ -4632,6 +4643,75 @@ function previewFile(key){
    Cada foto que se toma/sube se "sella" con fecha y hora de México, coordenadas y la distancia a la tienda
    (coordenadas del catálogo de tiendas). Dentro de GEO_RADIO_OK_M metros = OK; más lejos = FUERA DE ZONA.
    Si no hay permiso/GPS la foto se guarda igual, marcada "sin ubicación" (no se bloquea la captura). */
+/* ---------- Permiso de ubicación: detectar y volver a pedirlo ----------
+   Estados: granted (permitida), prompt (nunca respondió / cerró el aviso), denied (bloqueada).
+   - prompt  -> la app SÍ puede volver a mostrar el aviso nativo (botón "Permitir ubicación").
+   - denied  -> el navegador NO deja que la app lo vuelva a pedir; solo la persona lo reactiva en Ajustes (se le explica cómo). */
+function estadoPermisoUbicacion(){
+  return new Promise(res=>{
+    try{
+      if(!navigator.geolocation){ res('sin_gps'); return; }
+      if(!navigator.permissions || !navigator.permissions.query){ res('desconocido'); return; }
+      navigator.permissions.query({name:'geolocation'}).then(r=>res(r.state||'desconocido')).catch(()=>res('desconocido'));
+      setTimeout(()=>res('desconocido'), 2500);
+    }catch(e){ res('desconocido'); }
+  });
+}
+let _ubicBannerCerradoSesion = false, _ubicPermObj = null;
+function ubicInstruccionesHtml(){
+  const plat = plataformaDispositivo(), inst = estaInstaladaComoApp();
+  const android = '<b>Android (app instalada o Chrome):</b><ol style="margin:6px 0 10px 18px; padding:0;"><li>Mantén presionado el ícono de la app (o abre <i>Ajustes → Apps</i>) y entra a <b>Información de la app</b>.</li><li>Toca <b>Permisos → Ubicación</b>.</li><li>Elige <b>Permitir solo mientras se usa la app</b> y activa <b>Usar ubicación precisa</b>.</li><li>Regresa a la app: este aviso desaparece solo.</li></ol><b>Si la abres desde Chrome:</b> toca el candado 🔒 junto a la dirección → <i>Permisos</i> → <i>Ubicación</i> → <b>Permitir</b>, y recarga la página.';
+  const ios = '<b>iPhone:</b><ol style="margin:6px 0 10px 18px; padding:0;"><li>Abre <i>Ajustes → Privacidad y seguridad → Localización</i> y verifica que esté <b>activada</b>.</li><li>Baja a <b>Safari Sitios web</b> (o el nombre de la app si la instalaste) y elige <b>Mientras se usa la app</b>.</li><li>Regresa a la app y recárgala.</li></ol>';
+  const pc = '<b>Computadora:</b> clic en el candado 🔒 junto a la dirección → <i>Configuración del sitio</i> → <i>Ubicación</i> → <b>Permitir</b>, y recarga la página.';
+  return plat==='iOS' ? ios+'<br>'+android.replace(/<b>Android.*?<\/b>/,'<b>Android:</b>') : plat==='Android' ? android : pc;
+}
+function ubicCerrarGuia(){ const m=document.getElementById('ubicGuia'); if(m) m.remove(); }
+function ubicMostrarGuia(){
+  ubicCerrarGuia();
+  const d=document.createElement('div'); d.id='ubicGuia';
+  d.style.cssText='position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:100000; display:flex; align-items:center; justify-content:center; padding:16px;';
+  d.innerHTML='<div style="background:#fff; color:#222; max-width:440px; width:100%; max-height:88vh; overflow:auto; border-radius:14px; padding:18px 18px 14px; font-size:14px; line-height:1.45;">'
+   +'<h3 style="margin:0 0 8px; font-size:17px;">📍 Activa tu ubicación</h3>'
+   +'<p style="margin:0 0 10px;">Tu celular tiene la ubicación <b>bloqueada</b> para esta app, y por seguridad el navegador no deja que la app la vuelva a pedir. La tienes que activar tú, es en 20 segundos:</p>'
+   + ubicInstruccionesHtml()
+   +'<div style="display:flex; gap:8px; margin-top:14px;"><button class="btn btn-brand" onclick="ubicRevisar(true)" style="flex:1;">Ya la activé, revisar</button><button class="btn btn-ghost" onclick="ubicCerrarGuia()" style="flex:1;">Cerrar</button></div></div>';
+  document.body.appendChild(d);
+}
+function ubicPintarBanner(estado){
+  let b=document.getElementById('ubicBanner');
+  const requiere = currentUser && estado!=='granted' && estado!=='sin_gps' && !_ubicBannerCerradoSesion;
+  if(!requiere){ if(b) b.remove(); return; }
+  if(!b){
+    b=document.createElement('div'); b.id='ubicBanner';
+    b.style.cssText='position:fixed; left:8px; right:8px; bottom:8px; z-index:99990; background:#fff3cd; color:#5c4400; border:1px solid #e0a800; border-radius:12px; padding:10px 12px; font-size:13.5px; line-height:1.35; box-shadow:0 4px 16px rgba(0,0,0,.25); display:flex; gap:10px; align-items:center;';
+    document.body.appendChild(b);
+  }
+  const bloqueada = estado==='denied';
+  b.innerHTML='<div style="flex:1;">📍 <b>'+(bloqueada?'Tu ubicación está bloqueada.':'Falta permitir tu ubicación.')+'</b> Se necesita para sellar tus fotos de visita con lugar y hora.</div>'
+    +'<button class="btn btn-brand" style="white-space:nowrap;" onclick="'+(bloqueada?'ubicMostrarGuia()':'ubicPermitir()')+'">'+(bloqueada?'Cómo activarla':'Permitir ubicación')+'</button>'
+    +'<button onclick="_ubicBannerCerradoSesion=true; ubicPintarBanner(\'granted\')" aria-label="Cerrar" style="background:none; border:0; font-size:20px; color:#5c4400; padding:0 4px;">×</button>';
+}
+async function ubicRevisar(abrirGuiaSiBloqueada){
+  const e = await estadoPermisoUbicacion();
+  if(e==='granted'){ ubicCerrarGuia(); _geoUltima=null; }
+  ubicPintarBanner(e);
+  if(e==='denied' && abrirGuiaSiBloqueada===true && !document.getElementById('ubicGuia')) ubicMostrarGuia();
+  return e;
+}
+async function ubicPermitir(){
+  /* si sigue en "prompt", esto vuelve a mostrar el aviso nativo del navegador */
+  const r = await pedirUbicacion(true);
+  const e = await ubicRevisar();
+  if(r && r.error==='permiso' || e==='denied') ubicMostrarGuia();
+  try{ registrarAcceso(); }catch(x){}
+}
+function iniciarVigilanteUbicacion(){
+  if(window._ubicVigilando) { ubicRevisar(); return; }
+  window._ubicVigilando = true;
+  ubicRevisar().then(e=>{ if(e==='prompt') { /* primer arranque sin respuesta: el banner invita a permitirla */ } });
+  try{ navigator.permissions.query({name:'geolocation'}).then(r=>{ _ubicPermObj=r; r.onchange=()=>{ ubicRevisar(); try{registrarAcceso();}catch(x){} }; }).catch(()=>{}); }catch(e){}
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) ubicRevisar(); });
+}
 const GEO_RADIO_OK_M = 300;
 let _geoUltima = null, _geoPromesa = null;
 function pedirUbicacion(forzar){
@@ -11708,7 +11788,7 @@ function iniciarApp(){
         if(fbUser && fbUser.email){
           const usuarioDesdeEmail = fbUser.email.split('@')[0];
           const found = APP_DATA.equipo.find(x => x.usuario.toLowerCase() === usuarioDesdeEmail);
-          if(found){ currentUser = found; boot(); return; }
+          if(found){ currentUser = found; boot(); try{ registrarAcceso(); }catch(e){} return; }
         }
         currentUser = null;
         document.getElementById('app').style.display = 'none';
