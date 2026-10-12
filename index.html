@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DELICO . ODV</title>
+<title>ODV Delico</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#3a3e19">
+<meta name="theme-color" content="#aca241">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="ODV Délico">
+<meta name="apple-mobile-web-app-title" content="ODV Delico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- html2canvas, jsPDF y XLSX (~1.2MB entre las tres) ya NO se cargan aquí de entrada — solo las
@@ -67,9 +67,19 @@
   #loginScreen .error-msg{color:#4a0f0f; font-weight:700; margin-top:12px; font-size:14px;}
   #loginScreen .lg-logo{display:block; width:38%; max-width:140px; height:auto; margin:46px auto 0; color:#fcf8e7; --dot:#3a3e19;}
   #loginScreen .lg-install{display:block; width:100%; margin:22px 0 0; background:transparent; border:2px solid #3a3e19; border-radius:999px; color:#3a3e19; font-size:14px; font-weight:800; padding:12px 18px; cursor:pointer;}
+  #loginScreen .lg-upd.hidden{display:none !important;}
   #loginScreen .lg-upd{display:block; margin:14px auto 0; background:none; border:0; color:#3a3e19; font-size:13px; font-weight:700; text-decoration:underline; cursor:pointer;}
   #loginScreen .lg-install.hidden{display:none !important;}
-  #loadingScreen .ld-logo{width:min(70vw,300px); height:auto; color:#fcf8e7; --dot:#b3aa36;}
+  #loadingScreen video, #loadingScreen .ld-poster{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#aca241;}
+  #loadingScreen #loadingTexto{position:absolute; left:0; right:0; bottom:4px; text-align:center; color:#3a3e19; font-size:13px; font-weight:600; opacity:.8; z-index:2;}
+  #loadingScreen #loadingError{position:relative; z-index:3; background:#fcf8e7; color:#3a3e19; border-radius:16px; padding:18px; box-shadow:0 6px 24px rgba(0,0,0,.25);}
+  #actualizacionMayor{position:fixed; inset:0; z-index:100001; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:28px; background:#aca241; color:#3a3e19;}
+  #actualizacionMayor .am-logo{width:44%; max-width:170px; height:auto; color:#fcf8e7; --dot:#3a3e19; margin-bottom:26px;}
+  #actualizacionMayor h2{font-size:26px; font-weight:900; margin:0 0 10px; color:#3a3e19;}
+  #actualizacionMayor p{font-size:15px; line-height:1.45; margin:0 0 22px; max-width:320px;}
+  #actualizacionMayor .am-btn{border:0; border-radius:999px; background:#3a3e19; color:#fcf8e7; font-size:17px; font-weight:800; padding:15px 34px; cursor:pointer;}
+  #actualizacionMayor .am-btn2{border:2px solid #3a3e19; background:transparent; color:#3a3e19; margin-top:12px;}
+  #actualizacionMayor ol{text-align:left; font-size:14px; line-height:1.6; max-width:320px; margin:0 0 20px; padding-left:20px;}
   .login-card{background:var(--surface); border-radius:20px; box-shadow:var(--shadow); padding:36px 32px; width:100%; max-width:380px;}
   .login-card h1{font-size:22px; margin:0 0 4px; color:var(--brand-dark);}
   .login-card p.sub{margin:0 0 24px; color:var(--ink-soft); font-size:14px;}
@@ -398,12 +408,34 @@
 </div>
 
 <!-- ============ CARGANDO ============ -->
-<div id="loadingScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:18px;background:#3a3e19;z-index:9999;padding:24px;text-align:center;">
-  <svg class="ld-logo" viewBox="505 528 2217 583" role="img" aria-label="DELICO"><use href="#logoDelico" width="3024" height="1728"/></svg>
-  <div id="loadingTexto" style="color:#fcf8e7;opacity:.85;font-size:14px;">Cargando información…</div>
-  <div id="loadingError" style="display:none;color:#fcf8e7;max-width:320px;">
+<div id="loadingScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;background:#aca241;z-index:9999;overflow:hidden;">
+  <img class="ld-poster" src="splash_poster.jpg" alt="">
+  <video id="splashVideo" src="splash.mp4" poster="splash_poster.jpg" muted playsinline autoplay loop preload="auto" aria-hidden="true"></video>
+  <div id="loadingTexto">Cargando información…</div>
+  <div id="loadingError" style="display:none;max-width:320px;margin:24px;">
     No se pudo cargar la información. Revisa tu conexión a internet e intenta de nuevo.
     <br><button class="btn btn-brand" onclick="location.reload()" style="margin-top:12px;">Reintentar</button>
+  </div>
+</div>
+
+<!-- ============ ACTUALIZACIÓN IMPORTANTE (solo cuando se sube un cambio grande: version.json) ============ -->
+<div id="actualizacionMayor">
+  <svg class="am-logo" viewBox="1815 528 910 583" role="img" aria-label="CO."><use href="#logoDelico" width="3024" height="1728"/></svg>
+  <div id="amPaso1">
+    <h2 id="amTitulo">¡Actualiza tu App!</h2>
+    <p id="amMensaje">Hay una versión nueva con cambios importantes. Toca el botón para seguir usando la app.</p>
+    <button class="am-btn" onclick="actualizarAhoraMayor()">Actualizar ahora</button>
+  </div>
+  <div id="amPaso2" style="display:none;">
+    <h2>Último paso</h2>
+    <p>Para ver el <b>ícono nuevo</b> en tu pantalla, quita la app y vuelve a instalarla:</p>
+    <ol>
+      <li>Mantén presionado el ícono de la app.</li>
+      <li>Toca <b>Desinstalar</b> (o <b>Quitar</b>).</li>
+      <li>Abre otra vez el link de la app en <b>Chrome</b>.</li>
+      <li>Toca <b>Instalar la app en tu celular</b>.</li>
+    </ol>
+    <button class="am-btn" onclick="location.reload()">Entendido, continuar</button>
   </div>
 </div>
 
@@ -419,8 +451,8 @@
     <div class="error-msg" id="loginError"></div>
     <svg class="lg-logo" viewBox="1815 528 910 583" role="img" aria-label="CO."><use href="#logoDelico" width="3024" height="1728"/></svg>
     <button type="button" class="lg-install btnInstalarApp" onclick="intentarInstalarApp()">📲 Instalar la app en tu celular</button>
-    <button type="button" class="lg-upd" onclick="actualizarApp()">🔄 Actualizar app</button>
-    <script>try{if((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true){document.currentScript.previousElementSibling.classList.add("hidden");}}catch(e){}</script>
+    <button type="button" class="lg-upd btnActualizarApp hidden" onclick="actualizarApp()">🔄 Actualizar app</button>
+    <script>try{if((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true){var _w=document.currentScript.parentNode;_w.querySelector(".btnInstalarApp").classList.add("hidden");_w.querySelector(".btnActualizarApp").classList.remove("hidden");}}catch(e){}</script>
   </div>
 </div>
 
@@ -442,7 +474,6 @@
         <span class="perfil-badge" id="whoPerfil"></span>
       </div>
       <button class="btn btn-ghost hidden" id="btnMigrarFirebase" onclick="migrarCuentasFirebase()" title="Crea la cuenta real de acceso (Firebase) para cada persona del equipo que todavía no la tenga.">🔐 Migrar cuentas</button>
-      <button class="btn btn-ghost" onclick="actualizarApp()" title="Baja la versión más reciente de la app">🔄 Actualizar</button>
       <button class="btn btn-ghost" onclick="doLogout()">Salir</button>
     </div>
   </header>
@@ -12147,12 +12178,18 @@ function aplicarEquipoODV(){
   });
 }
 /* ---------- Carga de datos (app_data.json) + sesión persistente (validada por Firebase, no por localStorage a ciegas) ---------- */
+const SPLASH_MIN_MS = 2500;   // tiempo mínimo que se ve la animación al abrir (cámbialo si quieres más o menos)
+let _splashInicio = Date.now();
 function iniciarApp(){
+  _splashInicio = Date.now();
+  try{ const v = document.getElementById('splashVideo'); if(v){ v.currentTime = 0; const pp = v.play(); if(pp && pp.catch) pp.catch(()=>{}); } }catch(e){}
   fetch('app_data.json', {cache:'no-store'})
     .then(r => { if(!r.ok) throw new Error('http '+r.status); return r.json(); })
     .then(data => {
       APP_DATA = data;
       aplicarEquipoODV();
+      const _espera = Math.max(0, SPLASH_MIN_MS - (Date.now() - _splashInicio));
+      setTimeout(() => {
       document.getElementById('loadingScreen').style.display = 'none';
       // onAuthStateChanged es la fuente de verdad de la sesión: Firebase ya trae su propia
       // persistencia entre recargas, así que ya no confiamos en un valor de localStorage editable a mano.
@@ -12166,6 +12203,7 @@ function iniciarApp(){
         document.getElementById('app').style.display = 'none';
         document.getElementById('loginScreen').style.display = 'flex';
       });
+      }, _espera);
     })
     .catch(() => {
       document.getElementById('loadingTexto').style.display = 'none';
@@ -12268,24 +12306,68 @@ async function actualizarApp(){
   location.reload();
 }
 if('serviceWorker' in navigator){
-  const _teniaControlador = !!navigator.serviceWorker.controller;
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then((reg) => {
       _swReg = reg;
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if(!nw) return;
-        nw.addEventListener('statechange', () => {
-          if(nw.state === 'installed' && navigator.serviceWorker.controller) mostrarAvisoActualizar();
-        });
-      });
+      // Las actualizaciones normales (información, ajustes) se bajan solas en silencio: la app se abre y listo.
       const buscar = () => { try{ reg.update(); }catch(e){} };
       document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') buscar(); });
       setInterval(buscar, 30*60*1000);
     }).catch(()=>{ /* si falla (ej. abierta como archivo local), la app sigue funcionando igual */ });
   });
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if(_teniaControlador) mostrarAvisoActualizar(); });
 }
+
+/* ---------- Actualización IMPORTANTE (cambio de imagen, ícono, etc.) ----------
+   Se controla con el archivo version.json del repositorio: {"mayor":2, "reinstalar":true, ...}
+   Solo cuando se SUBE un "mayor" más alto se muestra la pantalla "¡Actualiza tu App!" antes del login.
+   Para actualizaciones normales (inventarios, información) NO se toca version.json y nadie ve nada. */
+const MAYOR_KEY = 'delico_mayor_visto';
+let _mayorPendiente = null;
+async function revisarActualizacionMayor(){
+  try{
+    if(navigator.onLine === false) return;
+    const ctl = new AbortController(); const t = setTimeout(()=>ctl.abort(), 4000);
+    const r = await fetch('version.json?t=' + Date.now(), {cache:'no-store', signal: ctl.signal});
+    clearTimeout(t);
+    if(!r.ok) return;
+    const v = await r.json();
+    const mayor = Number(v.mayor) || 0;
+    const visto = Number(localStorage.getItem(MAYOR_KEY) || 0);
+    let dispositivoNuevo = false;
+    try{ dispositivoNuevo = localStorage.getItem(GATE_KEY) !== '1' && !visto; }catch(e){}
+    if(dispositivoNuevo){ localStorage.setItem(MAYOR_KEY, String(mayor)); return; } // instalación nueva: ya trae lo último
+    if(mayor > visto){
+      _mayorPendiente = v;
+      if(v.titulo) document.getElementById('amTitulo').textContent = v.titulo;
+      if(v.mensaje) document.getElementById('amMensaje').textContent = v.mensaje;
+      document.getElementById('actualizacionMayor').style.display = 'flex';
+    }
+  }catch(e){ /* sin red o archivo no existe: se sigue normal */ }
+}
+async function actualizarAhoraMayor(){
+  if(navigator.onLine === false){ alert('Necesitas internet para actualizar. Conéctate a WiFi o datos e inténtalo de nuevo.'); return; }
+  try{
+    const r = await fetch('index.html?v=' + Date.now(), {cache:'reload'});
+    if(!r.ok) throw new Error('sin red');
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(g => g.unregister().catch(()=>{})));
+    }
+    if(window.caches){ const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); }
+    if(_mayorPendiente) localStorage.setItem(MAYOR_KEY, String(Number(_mayorPendiente.mayor) || 0));
+  }catch(e){
+    alert('No se pudo actualizar. Revisa tu internet e inténtalo de nuevo.');
+    return;
+  }
+  // Si la app está instalada y el cambio incluye ícono nuevo, se explica cómo reinstalarla (el navegador no deja desinstalarse solo)
+  if(_mayorPendiente && _mayorPendiente.reinstalar && appYaInstalada()){
+    document.getElementById('amPaso1').style.display = 'none';
+    document.getElementById('amPaso2').style.display = 'block';
+  } else {
+    location.reload();
+  }
+}
+revisarActualizacionMayor();
 
 /* ---------- Instalar la app en el celular ----------
    Android/Chrome/Edge disparan "beforeinstallprompt" — lo capturamos para poder mostrar el botón
@@ -12304,6 +12386,7 @@ function appYaInstalada(){
 function mostrarBotonesInstalar(){
   const ocultar = appYaInstalada();
   document.querySelectorAll('.btnInstalarApp').forEach(b=> b.classList.toggle('hidden', ocultar));
+  document.querySelectorAll('.btnActualizarApp').forEach(b=> b.classList.toggle('hidden', !ocultar)); // 'Actualizar app' solo se ve dentro de la app instalada (no en navegador/escritorio)
 }
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -12338,7 +12421,7 @@ function abrirGuiaInstalacion(){
         <li>Baja en el menú que se abre y toca <b>"Agregar a pantalla de inicio"</b>.</li>
         <li>Toca <b>"Agregar"</b> arriba a la derecha.</li>
       </ol>
-      <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">Ya te va a quedar el ícono de Délico ODV en tu pantalla, como cualquier otra app.</p>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:8px 0 0;">Ya te va a quedar el ícono de ODV Delico en tu pantalla, como cualquier otra app.</p>
     </div>` : `
     <div class="card" style="margin-top:6px;">
       <p style="font-weight:700; font-size:13px; margin:0 0 8px;">🤖 Android (Chrome) / computadora (Chrome o Edge)</p>
@@ -12350,7 +12433,7 @@ function abrirGuiaInstalacion(){
       `}
       <ol style="font-size:13px; line-height:1.8; margin:0; padding-left:18px;">
         <li>Celular: toca los <b>3 puntitos</b> (⋮) arriba a la derecha de Chrome → <b>"Instalar app"</b> o <b>"Agregar a pantalla de inicio"</b> → <b>"Instalar"</b>.</li>
-        <li>Computadora: busca el ícono de <b>instalar</b> ⊕ al final de la barra de direcciones, o los 3 puntitos → <b>"Instalar Délico ODV..."</b>.</li>
+        <li>Computadora: busca el ícono de <b>instalar</b> ⊕ al final de la barra de direcciones, o los 3 puntitos → <b>"Instalar ODV Delico..."</b>.</li>
       </ol>
       ${!_deferredInstallPrompt ? `
       <p style="font-size:11.5px; color:var(--ink-soft); margin:10px 0 0;">¿No te aparece "Instalar app" en ese menú? Es porque Chrome en ese celular necesita que Play Store esté actualizado y con sesión iniciada. Si sigue sin aparecer, usa <b>"Agregar a pantalla de inicio"</b> normal — te deja el ícono igual y la app funciona exactamente igual.</p>
