@@ -1,12 +1,12 @@
 {
-  "name": "Délico ODV",
-  "short_name": "ODV Délico",
+  "name": "ODV Delico",
+  "short_name": "ODV Delico",
   "description": "App de campo para el equipo ODV de Délico — captura, KPIs y Pipeline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#b6ad49",
-  "theme_color": "#3a3e19",
+  "background_color": "#aca241",
+  "theme_color": "#aca241",
   "orientation": "portrait-primary",
   "icons": [
     {
