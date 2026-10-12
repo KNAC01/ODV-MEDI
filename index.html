@@ -394,6 +394,265 @@
 .buscador-tienda-lista .bt-opt:last-child{ border-bottom:none; }
 .buscador-tienda-lista .bt-opt:hover{ background:var(--brand-soft); }
 .buscador-tienda-lista .bt-vacio{ padding:9px 12px; font-size:12px; color:var(--ink-soft); }
+
+/* ============================================================
+   NUEVA INTERFAZ DE CELULAR (hub: Inicio · Planear · Ejecutar · Comunicar)
+   Solo se activa con body.hub-on (vista celular). Escritorio no cambia.
+   Las pantallas que ya existían NO se tocan: solo cambia el color de fondo y se agrega botón "Atrás".
+   ============================================================ */
+:root{--h-cream:#fbf6e4;--h-dark:#3a3e19;--h-olive:#b6ad49;--h-olive2:#a79f3e;--h-orange:#dd6b3a;--h-orange2:#eebb9f;--h-lilac:#c4a1cf;--h-lilac2:#a176b1;--hs:1;--hic:1;--mz:1}
+#hubRoot,#hubBar,#hubModBar,#hubFiesta{display:none}
+body.hub-on #hubRoot{display:block}
+body.hub-on header.topbar, body.hub-on nav.tabs, body.hub-on .nav-overlay{display:none !important}
+body.hub-on{background:var(--h-cream)}
+body.hub-on.hub-plan{background:var(--h-orange)} body.hub-on.hub-eje{background:var(--h-olive)} body.hub-on.hub-com{background:var(--h-lilac)}
+body.hub-on main{padding:0 0 92px !important;max-width:none}
+body.hub-on main > .view:not(.hubv){padding:10px 12px 20px}
+
+body.hub-on .view:not(.hubv) .bloque-tag{display:none}
+body.hub-on main > .view:not(.hubv){zoom:var(--mz)}
+body.hub-on .modal{zoom:var(--mz)}
+body.hub-on #hubBar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:90;background:var(--h-cream);border-top:1px solid #e3dcc0;padding:6px 4px calc(8px + env(safe-area-inset-bottom,0px))}
+#hubBar button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;color:#7b7a5e;font-family:inherit;font-size:calc(10.5px*var(--hs))}
+#hubBar button svg{width:calc(24px*var(--hic));height:calc(24px*var(--hic));stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#hubBar button.on{color:var(--c);font-weight:700}
+body.hub-on.hub-mod #hubModBar{display:flex}
+#hubModBar{position:fixed;top:0;left:0;right:0;z-index:80;align-items:center;gap:8px;padding:10px 12px;background:var(--h-cream);border-bottom:1px solid #e3dcc0;color:var(--h-dark)}
+#hubModBar button{border:none;background:var(--h-dark);color:var(--h-cream);border-radius:20px;padding:8px 14px;font-family:inherit;font-weight:700;font-size:13.5px}
+#hubModBar b{font-size:15px;font-family:"Oswald","Poppins",sans-serif;font-weight:600}
+/* pantallas hub */
+#hubRoot .hubv{min-height:100vh;min-height:100dvh;color:var(--ink)}
+#hubRoot .h-head{display:flex;align-items:center;justify-content:center;position:relative;padding:14px 14px 10px;background:var(--h-cream)}
+#hubRoot .h-head .h-back{position:absolute;left:10px;border:none;background:none;font-size:30px;line-height:1;color:inherit;padding:2px 10px}
+#hubRoot .h-head h1{font-weight:500;font-size:calc(22px*var(--hs));margin:0;font-family:"Poppins",sans-serif}
+#hubRoot .h-sec{padding:16px 16px 20px}
+#hubRoot .h-sec h2{font-size:calc(16px*var(--hs));font-weight:700;margin:6px 4px 12px;font-family:"Poppins",sans-serif}
+#hubRoot .h-inicio{padding:12px 14px 20px;background:var(--h-cream);min-height:100vh;min-height:100dvh}
+#hubRoot .h-hola{background:var(--h-dark);color:var(--h-cream);padding:12px 14px;display:flex;align-items:center;gap:12px;border-radius:18px}
+#hubRoot .h-avatar{width:calc(52px*var(--hic));height:calc(52px*var(--hic));border-radius:50%;background:var(--h-cream);flex:none;display:flex;align-items:center;justify-content:center;overflow:hidden;border:none;position:relative;padding:0}
+#hubRoot .h-avatar svg{width:70%;height:70%;fill:var(--h-dark)}
+#hubRoot .h-avatar img{width:100%;height:100%;object-fit:cover}
+#hubRoot .h-avatar i{position:absolute;right:-1px;bottom:-1px;background:var(--h-orange);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;font-style:normal;display:flex;align-items:center;justify-content:center;border:2px solid var(--h-dark)}
+#hubRoot .h-hola b{display:block;font-size:calc(17px*var(--hs))}#hubRoot .h-hola small{font-size:calc(12.5px*var(--hs));opacity:.85}
+#hubRoot .h-co{margin-left:auto;font-weight:900;font-size:34px;color:#e9dd91;letter-spacing:-1px;font-family:"Arial Narrow","Helvetica Neue",Arial,sans-serif}#hubRoot .h-co::after{content:".";color:#b9a741}
+#hubRoot .h-inicio h3{font-size:calc(14px*var(--hs));font-weight:700;margin:16px 0 8px;color:var(--h-dark);font-family:"Poppins",sans-serif}
+#hubRoot .h-tdark{background:var(--h-dark);color:var(--h-cream);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;border:none;width:100%;font-family:inherit;text-align:left}
+#hubRoot .h-tdark .h-logo{width:calc(46px*var(--hic));height:calc(46px*var(--hic));border-radius:50%;background:var(--h-cream);flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--h-dark);font-size:13px}
+#hubRoot .h-tdark b{font-size:calc(14.5px*var(--hs));display:block}#hubRoot .h-tdark small{display:block;font-size:calc(12px*var(--hs));opacity:.9}
+#hubRoot .h-tdark .h-go{margin-left:auto;font-size:26px;opacity:.8}
+#hubRoot .h-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+#hubRoot .h-mm{border:none;border-radius:12px;padding:calc(12px*var(--hic)) 4px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--h-cream);font-family:inherit;font-size:calc(12.5px*var(--hs));font-weight:600}
+#hubRoot .h-mm svg{width:calc(34px*var(--hic));height:calc(34px*var(--hic));stroke:var(--h-cream);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#hubRoot .h-sq{border:none;background:var(--h-cream);color:var(--ink);border-radius:12px;padding:calc(10px*var(--hic)) 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-family:inherit;font-size:calc(12px*var(--hs));min-height:calc(78px*var(--hic));position:relative}
+#hubRoot .h-sq svg{width:calc(36px*var(--hic));height:calc(36px*var(--hic));stroke:var(--h-dark);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#hubRoot .h-sq small{text-align:center;line-height:1.15;font-size:inherit}
+#hubRoot .h-inicio .h-sq{background:var(--h-dark);color:var(--h-cream)}#hubRoot .h-inicio .h-sq svg{stroke:var(--h-cream)}
+#hubRoot .h-news{background:var(--h-dark);color:var(--h-cream);border-radius:12px;min-height:calc(112px*var(--hic));padding:14px 16px 24px;position:relative;overflow:hidden;background-size:cover;background-position:center}
+#hubRoot .h-news.foto::before{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(38,38,15,.88),rgba(38,38,15,.35))}
+#hubRoot .h-news > *{position:relative}
+#hubRoot .h-news .h-tag{font-size:calc(10.5px*var(--hs));text-transform:uppercase;letter-spacing:.06em;color:#e9dd91;font-weight:700}
+#hubRoot .h-news .h-tt{font-size:calc(17px*var(--hs));font-weight:700;line-height:1.2;margin:4px 0}
+#hubRoot .h-news .h-tx{font-size:calc(12.5px*var(--hs));opacity:.9}
+#hubRoot .h-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px}#hubRoot .h-dots i{width:6px;height:6px;border-radius:50%;background:#6f7340}#hubRoot .h-dots i.on{background:var(--h-cream)}
+#hubRoot .h-pub{float:right;border:none;background:var(--h-orange);color:#fff;border-radius:14px;padding:3px 10px;font-size:11px;font-family:inherit;font-weight:600}
+#hubRoot .h-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:20px}
+#hubRoot .h-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:20px}
+#hubRoot .h-grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;margin-bottom:20px}
+#hubRoot .h-plan{background:var(--h-orange);min-height:100vh;min-height:100dvh}#hubRoot .h-plan h2{color:var(--h-cream)}
+#hubRoot .h-plan .h-sq{font-size:calc(11.5px*var(--hs))}
+#hubRoot .h-eje{background:var(--h-olive);min-height:100vh;min-height:100dvh}#hubRoot .h-eje h2{color:var(--h-cream);text-align:center}
+#hubRoot .h-com{background:var(--h-lilac);min-height:100vh;min-height:100dvh}#hubRoot .h-com h2{color:var(--h-dark)}
+#hubRoot .h-com .h-sq{min-height:calc(96px*var(--hic));font-size:calc(13px*var(--hs))}#hubRoot .h-com .h-sq svg{width:calc(44px*var(--hic));height:calc(44px*var(--hic))}
+#hubRoot .h-dk{border:none;background:var(--h-dark);color:var(--h-cream);border-radius:12px;padding:calc(12px*var(--hic)) 4px;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;font-size:calc(11.5px*var(--hs));min-height:calc(88px*var(--hic));justify-content:center;text-align:center;position:relative}
+#hubRoot .h-dk svg{width:calc(38px*var(--hic));height:calc(38px*var(--hic));stroke:var(--h-cream);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#hubRoot .h-badge{position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;border-radius:11px;min-width:22px;height:22px;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 5px;border:2px solid var(--h-cream);font-style:normal}
+#hubRoot .h-badge.ok{background:#3c7a22}
+#hubRoot .h-big{width:100%;border:none;border-radius:14px;background:var(--h-dark);color:var(--h-cream);padding:calc(22px*var(--hic)) 10px;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit;font-weight:700;font-size:calc(18px*var(--hs))}
+#hubRoot .h-big svg{width:calc(78px*var(--hic));height:calc(78px*var(--hic));stroke:var(--h-cream);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#hubRoot .h-wide{width:100%;border:none;border-radius:14px;background:var(--h-dark);color:var(--h-cream);padding:calc(16px*var(--hic)) 14px;display:flex;align-items:center;justify-content:center;gap:14px;font-family:inherit;font-weight:700;font-size:calc(16px*var(--hs));margin-top:4px}
+#hubRoot .h-wide svg{width:calc(44px*var(--hic));height:calc(44px*var(--hic));stroke:var(--h-cream);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#hubRoot .h-soft{width:100%;border:none;border-radius:12px;background:#cbc68a;color:#3b3b1a;padding:14px;font-family:inherit;font-size:calc(15px*var(--hs));margin-top:12px;text-align:center;font-weight:600}
+#hubRoot .h-frase{text-align:center;color:var(--h-cream);font-weight:700;margin:4px 8px 14px;font-size:calc(18px*var(--hs));line-height:1.3;min-height:3.2em;display:flex;align-items:center;justify-content:center}
+#hubRoot .h-tienda{background:var(--h-cream);border-radius:16px;padding:12px;margin-bottom:12px;color:var(--ink)}
+#hubRoot .h-tienda .h-tp{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+#hubRoot .h-tienda .h-logo{width:calc(56px*var(--hic));height:calc(56px*var(--hic));border-radius:50%;background:#fff;border:3px solid var(--h-dark);display:flex;align-items:center;justify-content:center;color:var(--h-dark);font-weight:800;flex:none}
+#hubRoot .h-tienda b{font-size:calc(15px*var(--hs))}#hubRoot .h-tienda small{display:block;font-size:calc(12px*var(--hs));color:#6b6a50}
+#hubRoot .h-tienda select{width:100%;margin-top:6px;border:2px solid #e4dcb4;border-radius:10px;padding:8px;background:#fff;font-size:15px}
+#hubRoot .h-pg{margin:7px 0}#hubRoot .h-pg .l{display:flex;justify-content:space-between;font-size:calc(12.5px*var(--hs));font-weight:600;color:var(--h-dark)}
+#hubRoot .h-pg .b{height:10px;background:#e4dcb4;border-radius:6px;overflow:hidden;margin-top:3px}#hubRoot .h-pg .b i{display:block;height:100%;background:var(--h-dark);border-radius:6px}
+#hubRoot .h-plandia{background:rgba(255,255,255,.4);border-radius:12px;padding:10px 12px;margin-bottom:14px;color:var(--h-dark);font-size:calc(12.5px*var(--hs))}
+#hubRoot .h-plandia b{display:block;margin-bottom:4px;font-size:calc(13px*var(--hs))}
+#hubRoot .h-capt{background:var(--h-cream);border-radius:12px;padding:10px 12px;margin:2px 0 18px;color:var(--ink);font-size:calc(12.5px*var(--hs))}
+#hubRoot .h-capt b{display:block;margin-bottom:4px;font-size:calc(13px*var(--hs))}#hubRoot .h-capt .r{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid #eadfba}
+#hubRoot .h-capt a{display:block;text-align:center;margin-top:8px;font-weight:700;color:var(--h-dark);text-decoration:underline}
+#hubRoot details.h-mas{background:rgba(255,255,255,.35);border-radius:12px;padding:10px 12px;margin-top:12px;color:var(--h-dark)}
+#hubRoot details.h-mas summary{font-weight:700;font-size:calc(14px*var(--hs))}
+#hubRoot details.h-mas .card{margin-top:10px}
+#hubRoot .h-notis .card{margin-bottom:10px}
+#hubRoot .h-aj{padding:14px 18px 30px;background:var(--h-cream);min-height:100vh;min-height:100dvh}
+#hubRoot .h-aj .h-perfil{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 18px}
+#hubRoot .h-aj .h-perfil .h-avatar{width:96px;height:96px;background:var(--h-dark)}#hubRoot .h-aj .h-perfil .h-avatar svg{fill:var(--h-cream)}
+#hubRoot .h-bloq{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);color:var(--ink)}
+#hubRoot .h-bloq h4{font-size:calc(14px*var(--hs));margin:0 0 4px}#hubRoot .h-bloq p{font-size:calc(12.5px*var(--hs));color:#6b6a50;margin:0 0 8px}
+#hubRoot .h-seg{display:flex;gap:6px}#hubRoot .h-seg button{flex:1;border:2px solid #d8d1ae;background:var(--h-cream);border-radius:12px;padding:10px 2px;font-family:inherit;font-weight:700;color:var(--ink)}
+#hubRoot .h-seg button.on{background:var(--h-dark);color:var(--h-cream);border-color:var(--h-dark)}
+#hubRoot .h-dato{display:flex;justify-content:space-between;font-size:calc(13.5px*var(--hs));padding:7px 0;border-bottom:1px solid #eee6c6}#hubRoot .h-dato:last-child{border:none}
+#hubRoot .h-salirb{width:100%;border:none;background:#e8e2c4;border-radius:12px;padding:13px;font-family:inherit;font-weight:700;font-size:calc(14px*var(--hs));color:#6a2d1a;margin-top:6px}
+#hubRoot .h-p{font-size:calc(13px*var(--hs));color:#5b5a40;margin:2px 4px 12px}
+#hubRoot .h-alerta{background:#f3d3c8;color:#6a2d1a;border-radius:12px;padding:12px;font-size:calc(14px*var(--hs));margin-bottom:14px;line-height:1.4}
+#hubRoot .h-nop{background:#fff;border:2px solid #e3b3a3;border-radius:14px;padding:14px 6px;text-align:center;font-size:calc(13px*var(--hs));font-weight:600;position:relative;color:var(--ink)}
+#hubRoot .h-nop span{display:block;font-size:calc(38px*var(--hic));margin-bottom:4px}
+#hubRoot .h-nop::after{content:"✕";position:absolute;top:6px;right:8px;color:#b3361b;font-weight:900}
+#hubRoot .h-pcard{display:flex;gap:12px;align-items:center;background:var(--h-dark);color:var(--h-cream);border:none;border-radius:14px;padding:10px;font-family:inherit;text-align:left;width:100%}
+#hubRoot .h-pcard svg.th{width:calc(92px*var(--hic));height:calc(70px*var(--hic));flex:none;border-radius:10px;background:var(--h-cream)}
+#hubRoot .h-pcard b{display:block;font-size:calc(15px*var(--hs))}#hubRoot .h-pcard small{font-size:calc(12px*var(--hs));opacity:.85}
+#hubRoot .h-step{display:flex;gap:12px;align-items:flex-start;background:#fff;border-radius:12px;padding:10px 12px;margin:8px 0;font-size:calc(13.5px*var(--hs));line-height:1.35;color:var(--ink)}
+#hubRoot .h-step i{flex:none;width:30px;height:30px;border-radius:50%;background:var(--h-dark);color:var(--h-cream);font-style:normal;font-weight:700;display:flex;align-items:center;justify-content:center}
+#hubRoot .h-escena{background:#fff;border-radius:16px;padding:8px;margin-bottom:10px}#hubRoot .h-escena svg{width:100%;height:auto;display:block}
+#hubRoot .h-serv{background:var(--h-olive);color:var(--h-cream);border-radius:12px;padding:10px 14px;font-weight:700;font-size:calc(15px*var(--hs));text-align:center;margin-bottom:6px}
+#hubRoot details.h-rec{background:var(--h-dark);color:var(--h-cream);border-radius:14px;padding:12px 14px;margin-bottom:10px;font-size:calc(13.5px*var(--hs))}
+#hubRoot details.h-rec summary{font-weight:700;font-size:calc(15px*var(--hs));cursor:pointer}#hubRoot details.h-rec ul,#hubRoot details.h-rec ol{padding-left:20px;margin:6px 0}
+#hubRoot .h-tut .h-bigi{width:130px;height:130px;margin:6px auto 10px;background:var(--h-dark);border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:56px}
+#hubRoot .h-tut h2{color:var(--h-dark);font-size:calc(19px*var(--hs))}#hubRoot .h-tut p{font-size:calc(14.5px*var(--hs));color:#4b4a36;line-height:1.45;margin:6px 6px 12px}
+#hubRoot .h-tutnav{display:flex;gap:10px;margin-top:8px}#hubRoot .h-tutnav button{flex:1;border:none;background:var(--h-dark);color:var(--h-cream);border-radius:12px;padding:13px;font-family:inherit;font-weight:700;font-size:calc(14px*var(--hs))}#hubRoot .h-tutnav button.g{background:#e4dcb4;color:var(--h-dark)}
+#hubRoot .h-tdots{display:flex;gap:6px;justify-content:center;margin:6px 0}#hubRoot .h-tdots i{width:8px;height:8px;border-radius:50%;background:#cfc89a}#hubRoot .h-tdots i.on{background:var(--h-dark)}
+#hubRoot .h-guia{background:rgba(255,255,255,.5);border-radius:14px;padding:14px;color:var(--h-dark);font-size:calc(13.5px*var(--hs));line-height:1.45}
+#hubFiesta{position:fixed;inset:0;z-index:99990;background:rgba(251,246,228,.97);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+#hubFiesta.on{display:flex}
+#hubFiesta canvas{position:absolute;inset:0;width:100%;height:100%}
+#hubFiesta h1{font-size:30px;color:var(--h-dark);position:relative;margin:0 0 10px;font-family:"Poppins",sans-serif;font-weight:800}
+#hubFiesta p{font-size:16px;color:#4b4a36;position:relative;line-height:1.5;margin:0 0 8px}
+#hubFiesta button{position:relative;margin-top:22px;border:none;background:var(--h-dark);color:var(--h-cream);border-radius:30px;padding:14px 34px;font-family:inherit;font-weight:700;font-size:16px}
+
+
+/* ===== v122: pantallas de siempre dentro de una tarjeta crema (se leen bien sobre cualquier color) ===== */
+:root{--navh:64px}
+body.hub-on.hub-mod main > .view.active:not(.hubv){background:var(--h-cream);color:var(--ink);margin:70px 8px 0;border-radius:18px;padding:14px 12px 22px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+body.hub-on main > .view:not(.hubv){padding:14px 12px 22px}
+/* nada se mueve de lado */
+html:has(body.hub-on), body.hub-on{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none}
+body.hub-on #app, body.hub-on main, body.hub-on #hubRoot{max-width:100%;overflow-x:hidden}
+body.hub-on main > .view{max-width:100%;overflow-x:hidden}
+body.hub-on main > .view img{max-width:100%}
+/* barra de abajo SIEMPRE visible (también con formularios abiertos) */
+body.hub-on #hubBar{z-index:130;min-height:var(--navh)}
+body.hub-on .modal-bg{bottom:var(--navh) !important}
+body.hub-on .modal-bg .modal{max-height:none}
+#hubFiesta{bottom:var(--navh)}
+body.hub-on #ubicBanner{bottom:calc(var(--navh) + 8px) !important}
+body.hub-on .toast{bottom:calc(var(--navh) + 12px)}
+/* filtros plegables */
+body.hub-on details.h-filtros{background:#efe7c8;border-radius:12px;margin:0 0 14px;padding:0;color:var(--h-dark)}
+body.hub-on details.h-filtros > summary{list-style:none;padding:12px 14px;font-weight:700;font-size:calc(15px*var(--hs));display:flex;align-items:center;gap:8px;cursor:pointer}
+body.hub-on details.h-filtros > summary::-webkit-details-marker{display:none}
+body.hub-on details.h-filtros > summary::after{content:"▾";margin-left:auto;font-size:16px}
+body.hub-on details.h-filtros[open] > summary::after{content:"▴"}
+body.hub-on .h-fres{font-weight:500;font-size:calc(12px*var(--hs));color:#6b6a50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52%}
+body.hub-on .h-fbody{padding:0 10px 10px}
+body.hub-on .h-fbody .controls-bar{display:flex;flex-direction:column;align-items:stretch;gap:6px;background:none !important;padding:6px 0;margin:0 !important;border-radius:0}
+body.hub-on .h-fbody .controls-bar > label, body.hub-on .h-fbody .controls-bar label{font-weight:700;font-size:13px}
+body.hub-on .h-fbody select, body.hub-on .h-fbody .tienda-dd, body.hub-on .h-fbody .tienda-dd-btn, body.hub-on .h-fbody input:not([type=checkbox]):not([type=radio]){width:100%;max-width:100%}
+/* resumen para supervisión */
+#hubRoot .h-kpi{border:none;background:var(--h-dark);color:var(--h-cream);border-radius:12px;padding:10px 12px;text-align:left;font-family:inherit}
+#hubRoot .h-kpi small{display:block;font-size:calc(11.5px*var(--hs));opacity:.85;line-height:1.2}
+#hubRoot .h-kpi b{display:block;font-size:calc(22px*var(--hs));margin-top:2px}
+#hubRoot .h-grid2.tight{gap:10px;margin-bottom:6px}
+#hubRoot .h-grid2x2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+/* recetas / indicaciones */
+#hubRoot .h-add{width:100%;border:2px dashed var(--h-dark);background:transparent;color:var(--h-dark);border-radius:14px;padding:13px;font-family:inherit;font-weight:700;font-size:calc(14.5px*var(--hs));margin-bottom:14px}
+#hubRoot .h-item-acc{display:flex;gap:8px;margin-top:10px}
+#hubRoot .h-item-acc button{border:none;border-radius:10px;padding:8px 12px;font-family:inherit;font-weight:700;background:#e4dcb4;color:var(--h-dark);font-size:13px}
+#hubRoot .h-item-acc button.r{background:#f3d3c8;color:#6a2d1a}
+#hubRoot .h-chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+#hubRoot .h-chips span{background:var(--h-dark);color:var(--h-cream);border-radius:20px;padding:6px 12px;font-size:calc(12.5px*var(--hs));font-weight:600}
+#hubRoot .h-bloq.dark{background:var(--h-dark);color:var(--h-cream)}#hubRoot .h-bloq.dark p{color:#e8e2c4}
+#hubRoot .h-fotorec{width:100%;border-radius:12px;margin:8px 0;display:block}
+#hubRoot .h-tag2{display:inline-block;background:var(--h-orange);color:#fff;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px}
+
+/* ===== v123 ===== */
+.pipe-sint{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.pipe-sint > div{border-radius:12px;padding:8px 2px;text-align:center;background:#f1f2e6;border:1.5px solid var(--line)}
+.pipe-sint > div span{display:block;font-size:24px;line-height:1.1}
+.pipe-sint > div b{display:block;font-size:20px;margin:2px 0}
+.pipe-sint > div small{display:block;font-size:10.5px;line-height:1.15;color:var(--ink-soft)}
+.pipe-sint > div.bad{background:#f7e2df;border-color:var(--bad)} .pipe-sint > div.warn{background:#faf0dd;border-color:var(--warn)} .pipe-sint > div.good{background:#e7f3df;border-color:#7fb069}
+.campo-falta{outline:2.5px solid var(--bad);outline-offset:3px;border-radius:10px;background:#fdecea;animation:cfSh .35s}
+.campo-falta label{color:var(--bad) !important;font-weight:800}
+@keyframes cfSh{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+#hubRoot .h-sttag{display:flex;align-items:center;gap:12px;background:var(--h-cream);border-radius:14px;padding:10px 12px;margin-bottom:14px;color:var(--ink)}
+#hubRoot .h-sttag .h-logo{width:calc(48px*var(--hic));height:calc(48px*var(--hic));border-radius:50%;background:#fff;border:3px solid var(--h-dark);display:flex;align-items:center;justify-content:center;color:var(--h-dark);font-weight:800;flex:none;font-size:13px}
+#hubRoot .h-sttag b{display:block;font-size:calc(15px*var(--hs))}#hubRoot .h-sttag small{font-size:calc(12.5px*var(--hs));color:#5b5a40}
+#hubRoot .h-capt .h-lista{max-height:190px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:4px 0;padding-right:4px}
+#hubRoot .h-capt .h-nube{font-size:calc(11.5px*var(--hs));color:#6b6a50;margin-top:6px;border-top:1px solid #eadfba;padding-top:6px}
+#hubRoot .h-otra{background:rgba(255,255,255,.55);border-radius:14px;padding:12px;margin-top:12px;color:var(--h-dark)}
+#hubRoot .h-otra label{display:block;font-weight:700;font-size:calc(13px*var(--hs));margin:10px 0 4px}
+#hubRoot .h-otra input[type=text],#hubRoot .h-otra textarea{width:100%;border:2px solid #e4dcb4;border-radius:10px;padding:10px;font-family:inherit;font-size:15px;background:#fff;box-sizing:border-box}
+#hubRoot .h-otra .h-tabs2{display:flex;gap:8px}
+#hubRoot .h-otra .h-tabs2 button{flex:1;border:2px solid var(--h-dark);background:transparent;color:var(--h-dark);border-radius:12px;padding:10px 4px;font-family:inherit;font-weight:700;font-size:calc(13px*var(--hs))}
+#hubRoot .h-otra .h-tabs2 button.on{background:var(--h-dark);color:var(--h-cream)}
+#hubRoot .h-foto{width:100%;border:2px dashed var(--h-dark);background:#fff;border-radius:14px;padding:16px;font-family:inherit;font-weight:700;color:var(--h-dark);font-size:calc(15px*var(--hs));display:flex;flex-direction:column;align-items:center;gap:6px}
+#hubRoot .h-foto span{font-size:44px;line-height:1}
+#hubRoot .h-otra .h-go2{width:100%;margin-top:12px;border:none;border-radius:12px;background:var(--h-dark);color:var(--h-cream);padding:14px;font-family:inherit;font-weight:700;font-size:calc(16px*var(--hs))}
+/* formularios de check-in / check-out: tienda fija arriba, ícono grande de foto */
+.h-ficha{display:flex;align-items:center;gap:12px;background:#f1f2e6;border-radius:14px;padding:10px 12px;margin:2px 0 12px}
+.h-ficha .lg{width:46px;height:46px;border-radius:50%;background:#fff;border:3px solid #3a3e19;display:flex;align-items:center;justify-content:center;font-weight:800;color:#3a3e19;font-size:13px;flex:none}
+.h-ficha b{display:block;font-size:15px}.h-ficha small{color:#5b5a40;font-size:12.5px}
+.h-fotobtn{width:100%;border:3px dashed #3a3e19;background:#fff;border-radius:18px;padding:22px 10px;font-family:inherit;font-weight:800;color:#3a3e19;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0}
+.h-fotobtn span{font-size:60px;line-height:1}
+.h-guardarbtn{width:100%;border:none;border-radius:16px;background:#3a3e19;color:#fbf6e4;padding:18px;font-family:inherit;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
+.h-guardarbtn span{font-size:30px;line-height:1}
+/* revisión al salir */
+.h-rev h4{margin:12px 0 6px;font-size:15px}.h-rev .ok,.h-rev .no,.h-rev .dd{display:flex;gap:8px;padding:6px 0;border-top:1px solid #eee6c6;font-size:14px;line-height:1.3}
+.h-rev .ok i{color:#2e9e45;font-style:normal;font-weight:900}.h-rev .no i,.h-rev .dd i{color:#c0392b;font-style:normal;font-weight:900}.h-rev .dd i{color:#d68910}
+body.hub-on.hub-mod main > .view.active:not(.hubv){min-height:calc(100vh - 170px)}
+
+/* ===== v124: formularios limpios, caducidad, ley silla ===== */
+.h-oblig{background:#fff1e0 !important;border:2px solid #f0b27a !important;border-radius:12px;padding:8px 10px !important}
+.h-oblig > label{color:#9a4a0a !important;font-weight:800}
+body.hub-on .modal .field label{font-size:14px}
+.ls-card{border-radius:18px;padding:18px 12px;text-align:center;margin:8px 0 12px}
+.ls-en{background:#3a3e19;color:#fbf6e4}.ls-ok{background:#e7f3df;color:#2b5d1a}
+.ls-lbl{font-weight:700;font-size:15px}
+.ls-crono{font-size:58px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:1px;margin:4px 0}
+.ls-crono.listo{color:#9ee27d}
+.ls-bar{height:10px;background:rgba(255,255,255,.25);border-radius:8px;overflow:hidden;margin:6px 10px}.ls-bar i{display:block;height:100%;width:0;background:#e9dd91}
+.ls-sub{font-size:13px;opacity:.9;margin-top:6px}
+.ls-btn{width:100%;border:none;border-radius:18px;padding:22px 10px;font-family:inherit;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;margin:6px 0}
+.ls-btn span{font-size:34px;line-height:1}
+.ls-ini{background:#2e9e45}.ls-fin{background:#c0392b}
+.ls-paso{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.ls-paso > i{flex:none;width:34px;height:34px;border-radius:50%;background:#3a3e19;color:#fbf6e4;font-style:normal;font-weight:800;display:flex;align-items:center;justify-content:center}
+.ls-paso b{display:block;font-size:16px;margin:4px 0 6px}
+.ls-foto{width:100%;border:3px dashed #3a3e19;background:#fff;border-radius:16px;padding:16px;font-family:inherit;font-weight:800;color:#3a3e19;font-size:16px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.ls-foto span{font-size:48px;line-height:1}
+.ls-hist{margin-top:12px;font-size:14px}.ls-hist div{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #e7e0c3}
+.hc-head{font-size:19px;font-weight:800;margin:0 0 10px;color:#6b7a14}
+.hc-card{background:#fff;border:2px solid #e4dcb4;border-radius:16px;padding:10px;margin-bottom:12px}
+.hc-top{display:flex;gap:10px;align-items:center}
+.hc-top img{width:56px;height:56px;object-fit:contain;border-radius:10px;background:#f6f1de;flex:none}
+.hc-top b{font-size:14px;line-height:1.2}
+.hc-lot{margin-top:10px;background:#fff6e0;border:2px solid #e0a800;border-radius:14px;padding:10px}
+.hc-date{font-size:28px;font-weight:800;line-height:1;color:#3a3e19}
+.hc-chip{display:inline-block;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:6px;vertical-align:middle;background:#e4dcb4}
+.hc-chip.r{background:#f3d3c8;color:#8b2e1a}.hc-chip.a{background:#fbe6b0;color:#7a5b00}
+.hc-had{font-size:14px;margin:4px 0 8px}
+.hc-q{display:flex;gap:8px;align-items:center}.hc-q label{font-weight:700;font-size:14px;flex:1;line-height:1.15}
+.hc-q input{width:90px;font-size:22px;font-weight:800;text-align:center;padding:8px 4px;border:2px solid #3a3e19;border-radius:12px}
+.hc-q button{border:2px solid #3a3e19;background:#fff;border-radius:12px;font-weight:800;font-size:18px;padding:8px 12px}
+.hc-new{display:flex;gap:8px;align-items:center;margin-top:10px}
+.hc-new input{flex:1;min-width:0;font-size:17px;padding:10px 6px;border:2px solid #3a3e19;border-radius:12px}
+.hc-new input.p{flex:0 0 84px;text-align:center;font-weight:800;font-size:20px}
+.hc-new button{border:none;background:#f3d3c8;color:#8b2e1a;border-radius:10px;font-size:18px;padding:8px 10px;font-weight:800}
+.hc-add{width:100%;margin-top:10px;border:2px dashed #3a3e19;background:transparent;color:#3a3e19;border-radius:12px;padding:12px;font-family:inherit;font-weight:800;font-size:15px}
+.hc-otro{width:100%;border:none;background:#3a3e19;color:#fbf6e4;border-radius:14px;padding:16px;font-family:inherit;font-weight:800;font-size:16px;margin:6px 0 4px}
+.hc-pick{position:fixed;left:0;right:0;top:0;bottom:var(--navh);background:#fbf6e4;z-index:300;overflow-y:auto;padding:12px}
+.hc-pick .g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hc-pick .g button{border:2px solid #e4dcb4;background:#fff;border-radius:12px;padding:6px 4px;font-family:inherit;font-size:11px;line-height:1.15}
+.hc-pick .g img{width:100%;height:64px;object-fit:contain}
+body.hub-on #view-kpis.h-solo > details.h-filtros, body.hub-on #view-kpis.h-solo > p{display:none}
+body.hub-on #modalBody:has(#hubCadForm) > .modal-actions{position:sticky;bottom:0;background:#fff;padding:10px 0;margin-top:0;z-index:5;border-top:1px solid #e7e0c3}
+
+#hubRoot .h-logo{color:#fcf8e7;--dot:#e9dd91;height:40px;width:auto;margin-left:auto;display:block;flex:none}#hubRoot .h-logo.big{height:92px;margin:0 auto 6px}#hubRoot .h-logo.sq{height:calc(34px*var(--hs));margin:0}
 </style>
 </head>
 <body>
@@ -487,6 +746,7 @@
   <div class="nav-overlay" id="navOverlay" onclick="toggleMobileNav(false)"></div>
 
   <main>
+    <div id="hubRoot"></div>
     <!-- ---------- INICIO ---------- -->
     <section class="view" id="view-inicio">
       <h2 class="section-title" id="inicioSaludo">Hola</h2>
@@ -2275,7 +2535,7 @@ const _leySillaSync = crearColeccionSincronizada('ley_silla', 'delico_odv_leysil
       // registró su descanso y hay que actualizar la tabla en vivo). Nunca abrir el modal solo.
       const bg = document.getElementById('modalBg');
       const body = document.getElementById('modalBody');
-      if(bg && bg.classList.contains('open') && body && body.innerHTML.includes('🪑 Ley Silla')){
+      if(bg && bg.classList.contains('open') && body && body.innerHTML.includes('data-ley-silla')){
         renderLeySillaModal();
       }
     }catch(e){}
@@ -3746,7 +4006,7 @@ function renderCheckinBar(){
     <span style="font-size:12.5px; color:var(--ink-soft);">¿Vas a una tienda fuera de tu ruta de hoy (cambio, cobertura, vacaciones de alguien más, etc.)?</span>
     <input type="text" id="checkinOtraSelect" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off" style="flex:1; min-width:180px; padding:8px; border:1px solid var(--line); border-radius:8px;">
     <button class="btn btn-outline" onclick="hacerCheckinOtraTienda()">Check-in aquí</button>
-    <button class="btn btn-ghost" onclick="abrirIncidenciaPersonal()">Otro (inasistencia / incapacidad)</button>
+    <button class="btn btn-ghost" onclick="abrirIncidenciaPersonal()">Inasistencia / permiso</button>
   </div>`;
   box.innerHTML = html;
   poblarDatalistTiendas();
@@ -3974,7 +4234,6 @@ const FORM_DEFS = {
       ['clave2','producto','Producto degustado #2 (opcional — si en la charola van varios)',false],
       ['clave3','producto','Producto degustado #3 (opcional)',false],
       ['con_que','icon_multi','¿Con qué se degustó?',false,['Baguette/Bolillo','Galletas','Pan artesanal Delico','En vaso','Bastones de verdura','Fruta dulce','Palitos de pan','Espagueti','Cebollín','Aceite de oliva','Totopos','Papas','Otro']],
-      ['reacciones','textarea','Reacciones / comentarios del shopper (puedes agregarlas después)',false],
       ['foto','file_multi','Foto de la charola — obligatoria, puedes subir varias',true],
     ]
   },
@@ -3988,16 +4247,10 @@ const FORM_DEFS = {
     ]
   },
   precio_competencia:{
-    title:'Precio competencia', icon:'🏷️',
+    title:'Competencia', icon:'🏷️',
     fields:[
       ['tienda','tienda_select','Tienda',true],
-      ['marca_competencia','text','Marca / producto de competencia',true],
-      ['precio_competencia','decimal','Precio competencia ($)',true],
-      ['promo_competencia','textarea','Promoción o degustación de competencia vista',false],
-      ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
-      ['activacion_comentario','textarea','¿Viste alguna activación de otra marca? Comentarios',false],
-      ['activacion_foto','file_multi','Foto(s) de la activación — opcional, puedes subir varias',false],
-      ['activacion_video','file_video','Video de la activación (opcional)',false],
+      ['foto','file_multi','Fotos de la competencia (precios, promociones, activaciones)',true],
     ]
   },
   foto:{
@@ -4057,6 +4310,7 @@ function resolverTiendaEscrita(inputId){
    simple sugerencia de teclado, no como una lista clara para elegir con el dedo — de ahí la queja.
    Esta versión dibuja su propia lista (un <div> flotante) debajo del campo, filtrada mientras
    escribes, para que SIEMPRE se vea igual sin depender del navegador/teclado de cada celular. */
+function _normBusca(t){ return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
 let _buscadorTiendaEl = null;
 function _buscadorTiendaDiv(){
   if(!_buscadorTiendaEl){
@@ -4068,12 +4322,12 @@ function _buscadorTiendaDiv(){
 }
 function mostrarSugerenciasTienda(input){
   const dd = _buscadorTiendaDiv();
-  const q = (input.value||'').trim().toLowerCase();
-  const terminos = q.split(/\s+/).filter(Boolean);
+  const q = _normBusca(input.value);
+  const terminos = q.split(' ').filter(Boolean);
   const todas = [...APP_DATA.stores].sort((a,b)=>a.tienda.localeCompare(b.tienda));
   // cada palabra escrita debe aparecer en algún lado (tienda o cadena), sin importar el orden —
   // así "walmart narvarte" encuentra "WE NARVARTE (WALMART)" aunque el nombre no las traiga en ese orden.
-  const filtradas = terminos.length ? todas.filter(s => { const hay = (s.tienda+' '+s.cadena).toLowerCase(); return terminos.every(t=>hay.includes(t)); }) : todas;
+  const filtradas = terminos.length ? todas.filter(s => { const hay = _normBusca(s.tienda+' '+s.cadena), hay2 = hay.replace(/ /g,''); return terminos.every(t=>hay.includes(t) || hay2.includes(t)); }) : todas;
   const LIMITE = 60;
   const mostrar = filtradas.slice(0, LIMITE);
   dd.innerHTML = mostrar.length
@@ -4135,7 +4389,6 @@ function abrirPipeline(){
   body.classList.add('modal-wide');
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>📦 Pipeline — Inventario de tu tienda</h3>
-    <p class="d">Datos del Pipeline ODV (inventario, distribución y venta) para la tienda a la que diste entrada. Aquí también puedes capturar tu conteo real y dar seguimiento a las alertas.</p>
     ${checkin ? `<p style="font-size:13px; font-weight:700; color:var(--brand-dark); margin:-4px 0 10px;">📍 ${checkin.tienda}${checkin.cadena?' · '+checkin.cadena:''}</p>` : `<div class="form-grid"><div class="field full"><label>Tienda</label>
       <select id="pipeTiendaSel" onchange="renderPipelineTabla()">
         <option value="">Selecciona tienda...</option>
@@ -4205,14 +4458,15 @@ function renderPipelineTabla(){
   const excCount = filas.filter(f=>f.excedente).length;
   const ESTADOS_ALERTA = [['pendiente','Pendiente'],['en_revision','En revisión'],['solucionado','Solucionado']];
   box.innerHTML = `
-    <div style="font-size:11px; color:var(--ink-soft); margin:8px 0 4px;">📅 Corte del Pipeline: <b>${corte}</b>. Es una sola foto — puede no coincidir exactamente con la fecha de otros datos (cuotas/sell out). Esto va en el radar para alinear todos los cortes.</div>
     ${!filas.length ? `<div class="card" style="margin-top:8px;"><p style="font-size:12.5px; color:var(--ink-soft); margin:0;">Sin datos de Pipeline para esta tienda.</p></div>` : `
-    <div class="row" style="margin:10px 0;">
-      <div class="card kpi ${ventaCeroCount?'bad':'good'}"><div class="label">Venta cero</div><div class="value">${ventaCeroCount}</div></div>
-      <div class="card kpi ${negCount?'bad':'good'}"><div class="label">Inventario negativo</div><div class="value">${negCount}</div></div>
-      <div class="card kpi ${excCount?'warn':'good'}"><div class="label">Excedente</div><div class="value">${excCount}</div></div>
-      <div class="card kpi"><div class="label">Códigos activos</div><div class="value">${filas.filter(f=>f.comb_activa).length}</div></div>
+    <div style="font-weight:800; font-size:14px; margin:10px 0 6px; color:var(--brand-dark);">Síntomas</div>
+    <div class="pipe-sint">
+      <div class="${ventaCeroCount?'bad':'good'}"><span>🚫</span><b>${ventaCeroCount}</b><small>Venta cero</small></div>
+      <div class="${negCount?'bad':'good'}"><span>👻</span><b>${negCount}</b><small>Inventario negativo</small></div>
+      <div class="${excCount?'warn':'good'}"><span>📦</span><b>${excCount}</b><small>Excedente</small></div>
+      <div class="neutro"><span>✅</span><b>${filas.filter(f=>f.comb_activa).length}</b><small>Códigos activos</small></div>
     </div>
+    <div style="font-size:11px; color:var(--ink-soft); margin:8px 0 4px;">📅 Corte del Pipeline: <b>${corte}</b>. Es una sola foto — puede no coincidir exactamente con la fecha de otros datos (cuotas/sell out). Esto va en el radar para alinear todos los cortes.</div>
     <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:10.5px; color:var(--ink-soft); margin-bottom:10px;">
       <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#f7e2df; border:1px solid var(--bad); vertical-align:-1px;"></span> Inventario fantasma (negativo)</span>
       <span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:#faf0dd; border:1px solid var(--warn); vertical-align:-1px;"></span> Venta cero</span>
@@ -5098,10 +5352,11 @@ function renderFotosMultiPreview(key){
   const box = document.getElementById('prev_'+key);
   if(!box) return;
   const fotos = window._fotosMulti[key] || [];
-  box.innerHTML = fotos.map(f=>`<div style="position:relative;"><img src="${f.b64}" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:2px solid ${f.meta ? (f.meta.estado==='ok'?'#4caf50':f.meta.estado==='lejos'?'#e53935':'#e0a800') : 'var(--line)'};" title="${f.meta ? (GEO_ETIQUETA[f.meta.estado]||'')+(f.meta.dist_m!=null?' · a '+fmtDistancia(f.meta.dist_m):'') : ''}"><button type="button" onclick="quitarFotoMulti('${key}','${f.id}')" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:var(--bad); color:#fff; border:none; cursor:pointer; font-size:12px; line-height:1;">✕</button></div>`).join('')
+  box.innerHTML = fotos.map(f=>`<div style="position:relative;"><img src="${f.b64}" style="width:78px; height:78px; object-fit:cover; border-radius:8px; border:2px solid ${f.meta ? (f.meta.estado==='ok'?'#4caf50':f.meta.estado==='lejos'?'#e53935':'#e0a800') : 'var(--line)'};" title="${f.meta ? (GEO_ETIQUETA[f.meta.estado]||'')+(f.meta.dist_m!=null?' · a '+fmtDistancia(f.meta.dist_m):'') : ''}"><span style="position:absolute; top:-7px; right:-7px; width:24px; height:24px; border-radius:50%; background:#2e9e45; color:#fff; font-size:15px; line-height:24px; text-align:center; font-weight:900; border:2px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.3);">✓</span><button type="button" onclick="quitarFotoMulti('${key}','${f.id}')" title="Quitar esta foto" aria-label="Quitar esta foto" style="position:absolute; bottom:3px; right:3px; width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,.93); border:1px solid #c9c9c9; cursor:pointer; font-size:16px; line-height:1; padding:0;">🗑️</button></div>`).join('')
     + (fotos.length ? `<div style="font-size:11px; color:var(--ink-soft); align-self:center;">${fotos.length} foto(s)</div>` : '');
 }
 function quitarFotoMulti(key, id){
+  if(!confirm('¿Quitar esta foto?')) return;
   window._fotosMulti[key] = (window._fotosMulti[key]||[]).filter(f=>f.id!==id);
   renderFotosMultiPreview(key);
 }
@@ -5111,6 +5366,46 @@ function notaArchivoVideo(key){
   const file = input.files[0];
   if(!file || !note) return;
   note.textContent = `Video adjunto: ${file.name} (se guarda solo en este dispositivo, demo).`;
+}
+
+/* ---------- Si falta algo al guardar: se marca en rojo EXACTAMENTE lo que no se capturó ---------- */
+function marcarCamposFaltantes(faltantes){
+  document.querySelectorAll('.campo-falta').forEach(e=>e.classList.remove('campo-falta'));
+  let primero = null;
+  const campos = [...document.querySelectorAll('#modalBody .field')];
+  faltantes.forEach(f=>{
+    let base = String(f).split(' (')[0].replace(/[*:]+/g,'').trim().toLowerCase();
+    if(base.indexOf('seguimiento')===0) base = 'seguimiento';
+    campos.forEach(c=>{
+      const l = c.querySelector('label'); if(!l) return;
+      const t = l.textContent.replace(/[*:]+/g,'').trim().toLowerCase();
+      if(t && (t===base || t.startsWith(base) || base.startsWith(t.slice(0,18)))){ c.classList.add('campo-falta'); if(!primero) primero = c; }
+    });
+  });
+  document.querySelectorAll('#modalBody [id^="cseg_"]').forEach(i=>{ if(i.value.trim()===''){ i.style.borderColor='var(--bad)'; i.style.background='#fdecea'; i.addEventListener('input',()=>{ i.style.borderColor=''; i.style.background=''; },{once:true}); if(!primero) primero = i; } });
+  if(primero) primero.scrollIntoView({behavior:'smooth', block:'center'});
+}
+document.addEventListener('input', e=>{ const f = e.target && e.target.closest && e.target.closest('.campo-falta'); if(f) f.classList.remove('campo-falta'); });
+/* ---------- Verificador de caducidades: cuestiona lo que no parezca lógico (ceros de más, fechas raras) ---------- */
+function verificarCaducidad(rec){
+  const dudas = [];
+  const hoy = todayISO();
+  const st = APP_DATA.stores.find(s=>s.tienda===rec.tienda && (!rec.cadena || s.cadena===rec.cadena));
+  const comb = (st && rec.clave) ? (APP_DATA.combinaciones||[]).find(c=>c.clave===rec.clave && c.cadena===st.cadena && c.tienda===st.tienda && (st.num_tienda==null || c.num_tienda===st.num_tienda)) : null;
+  const prod = rec.clave ? nombreProducto(rec.clave) : '';
+  (rec._caducidadPares||[]).forEach(p=>{
+    const dias = pcDiasEntre(hoy, p.fecha_caducidad);
+    if(p.piezas>=300) dudas.push(`${p.piezas} piezas de ${prod} es muchísimo — ¿no sobró un cero?`);
+    else if(comb && comb.inv_actual!=null && comb.inv_actual>=0 && p.piezas > Math.max(comb.inv_actual*2, comb.inv_actual+12)) dudas.push(`Capturaste ${p.piezas} piezas de ${prod} que caducan el ${p.fecha_caducidad}, pero el sistema (Pipeline) solo muestra ${Math.round(comb.inv_actual)} en inventario. ¿Es correcto?`);
+    if(dias<0) dudas.push(`La fecha ${p.fecha_caducidad} ya pasó (venció hace ${-dias} día(s)). ¿Es correcta?`);
+    else if(dias>548) dudas.push(`La fecha ${p.fecha_caducidad} está a más de año y medio (${dias} días). ¿Escribiste bien el año?`);
+  });
+  (rec._seguimiento||[]).forEach(r=>{
+    const l = r.lote || {};
+    if(l.piezas!=null && r.piezas > l.piezas) dudas.push(`En ${nombreProducto(l.clave)} (caduca ${l.fecha_caducidad}) dices que hoy quedan ${r.piezas}, pero el último conteo fue ${l.piezas}. Normalmente no suben. ¿Es correcto?`);
+    if(r.piezas>=300) dudas.push(`${r.piezas} piezas en seguimiento de ${nombreProducto(l.clave)} es muchísimo — ¿no sobró un cero?`);
+  });
+  return dudas;
 }
 function mostrarProyeccionCaducidad(rec){
   const store = APP_DATA.stores.find(s=>s.cadena===rec.cadena && s.tienda===rec.tienda);
@@ -5276,7 +5571,11 @@ function submitForm(type){
       if(!rec.lote){ missing = true; faltantes.push('Número de lote'); }
       if(!(rec.foto && rec.foto.length)){ missing = true; faltantes.push('Foto del lote'); }
     }
-    if(missing){ toast('Falta: ' + faltantes.join(', ')); _guardandoForm=false; return; }
+    if(missing){ toast('Falta: ' + faltantes.join(', '), 5500); try{ marcarCamposFaltantes(faltantes); }catch(e){} _guardandoForm=false; return; }
+    if(type==='caducidad'){
+      const dudas = verificarCaducidad(rec);
+      if(dudas.length && !confirm('⚠️ Revisa estos datos antes de guardar:\n\n' + dudas.map(d=>'• '+d).join('\n') + '\n\nAceptar = están bien, guardar así.\nCancelar = voy a corregir.')){ _guardandoForm=false; return; }
+    }
     const continuarGuardado = () => {
       try{
         const arr = getCapturas();
@@ -5312,7 +5611,7 @@ function submitForm(type){
             if(pre && pre.fueraRuta && pre.tienda===rec.tienda) registrarIncidenciaFueraRuta(rec.tienda, rec.cadena, pre.fueraRuta.motivo);
             window._prefillCheckin = null;
           }
-          if(type==='salida_tienda'){ setCheckin(null); }
+          if(type==='salida_tienda'){ setCheckin(null); try{ if(typeof hubFiesta==='function') hubFiesta(rec.tienda); }catch(e){} }
         }
         renderMisCapturas();
         renderCheckinBar();
@@ -5340,12 +5639,12 @@ function abrirIncidenciaPersonal(){
       <div class="field full"><label>Tipo *</label>
         <select id="incpTipo">
           <option value="">Selecciona...</option>
-          <option value="incapacidad">Incapacidad</option>
           <option value="inasistencia">Inasistencia</option>
+          <option value="permiso">Permiso</option>
         </select>
       </div>
-      <div class="field full"><label>Comentarios *</label><textarea id="incpComentarios" rows="3" placeholder="Explica el motivo..."></textarea></div>
-      <div class="field full"><label>Foto(s) — opcional, puedes subir varias</label>
+      <div class="field full"><label>Motivo *</label><textarea id="incpComentarios" rows="3" placeholder="Explica el motivo..."></textarea></div>
+      <div class="field full"><label>Foto o comprobante (si aplica)</label>
         <input type="file" id="f_incidenciaPersonal" accept="image/*" capture="environment" multiple onchange="previewFileMulti('incidenciaPersonal')">
         <div id="prev_incidenciaPersonal" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
       </div>
@@ -5359,12 +5658,13 @@ function abrirIncidenciaPersonal(){
 function submitIncidenciaPersonal(){
   try{
     if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
-    const tipo = document.getElementById('incpTipo').value;
+    let tipo = document.getElementById('incpTipo').value;
     const comentarios = document.getElementById('incpComentarios').value.trim();
     if(!tipo){ toast('Falta: Tipo'); return; }
-    if(!comentarios){ toast('Falta: Comentarios'); return; }
+    if(!comentarios){ toast('Falta: Motivo'); return; }
     const fotos = ((window._fotosMulti||{}).incidenciaPersonal||[]).map(f=>f.b64);
-    const rec = { id: uid(), tipo, usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), fecha: todayISO(), comentarios, fotos };
+    const esPermiso = tipo==='permiso'; if(esPermiso){ tipo = 'inasistencia'; }
+    const rec = { id: uid(), tipo, subtipo: esPermiso?'permiso':'', usuario: currentUser.usuario, persona: currentUser.nombre, fecha_registro: new Date().toISOString(), fecha: todayISO(), comentarios: (esPermiso?'Permiso — ':'')+comentarios, fotos };
     const continuarGuardado = () => {
       const arr = getCapturas();
       arr.push(rec);
@@ -5517,33 +5817,61 @@ function renderLeySillaModal(){
   const body = document.getElementById('modalBody');
   const hoy = todayISO();
   const mios = getLeySilla().filter(r=>r.usuario===currentUser.usuario && fechaLocal(r.fecha_registro)===hoy).sort((a,b)=>a.fecha_registro.localeCompare(b.fecha_registro));
-  const abierto = mios.length && mios[mios.length-1].tipo==='entrada';
-  const descansosCompletos = Math.floor(mios.filter(r=>r.tipo==='salida').length);
+  const ult = mios[mios.length-1];
+  const abierto = !!ult && ult.tipo==='entrada';
+  const yaTomado = mios.some(r=>r.tipo==='salida');
+  window._fotosMulti = window._fotosMulti || {};
+  if(!abierto) window._fotosMulti.leySilla = [];
+  clearInterval(window._lsTimer);
+  let cuerpo = '';
+  if(abierto){
+    cuerpo = `<div class="ls-card ls-en"><div class="ls-lbl">Llevas en descanso</div><div class="ls-crono" id="lsCrono">00:00</div><div class="ls-bar"><i id="lsBar"></i></div><div class="ls-sub" id="lsSub">Descansas 15 minutos</div></div>
+      <button class="ls-btn ls-fin" onclick="registrarLeySilla('salida')"><span>⏹</span>Registrar fin del descanso</button>`;
+  } else if(yaTomado){
+    cuerpo = `<div class="ls-card ls-ok"><div style="font-size:54px">✅</div><div class="ls-lbl">Ya tomaste tu descanso de hoy</div></div>`;
+  } else {
+    cuerpo = `<div class="ls-paso"><i>1</i><div><b>Tómate una selfie</b>
+        <button type="button" class="ls-foto" id="lsFotoBtn" onclick="document.getElementById('f_leySilla').click()"><span>🤳</span>Tomar selfie</button>
+        <input type="file" id="f_leySilla" accept="image/*" capture="user" hidden onchange="previewFileMulti('leySilla')">
+        <div id="prev_leySilla" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;"></div></div></div>
+      <div class="ls-paso"><i>2</i><div><b>Toca para empezar tu descanso</b></div></div>
+      <button class="ls-btn ls-ini" onclick="registrarLeySilla('entrada')"><span>▶️</span>Registrar inicio del descanso</button>`;
+  }
+  const hist = mios.length ? `<div class="ls-hist">${mios.map(r=>`<div><span>${r.tipo==='entrada'?'▶️ Inicio':'⏹ Fin'}</span><b>${horaLocal(r.fecha_registro)}</b></div>`).join('')}</div>` : '';
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
-    <h3>🪑 Ley Silla</h3>
-    <p class="d">Registro de tus descansos de 15 minutos (obligación y derecho — Ley Silla en México). Délico da 2 descansos al día.</p>
-    <div style="display:flex; gap:10px; margin:12px 0;">
-      <button class="btn btn-brand" style="flex:1;" ${abierto?'disabled':''} onclick="registrarLeySilla('entrada')">▶️ Registrar entrada de descanso</button>
-      <button class="btn btn-ghost" style="flex:1;" ${!abierto?'disabled':''} onclick="registrarLeySilla('salida')">⏹ Registrar salida de descanso</button>
-    </div>
-    ${descansosCompletos>=2 ? `<p style="font-size:12px; color:var(--good);">✓ Ya registraste tus 2 descansos de hoy.</p>` : ''}
-    <div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:10px 0 4px;">Hoy</div>
-    <div class="table-scroll">
-      <table><thead><tr><th>Tipo</th><th>Hora</th></tr></thead><tbody>
-        ${mios.map(r=>`<tr><td>${r.tipo==='entrada'?'▶️ Entrada':'⏹ Salida'}</td><td>${horaLocal(r.fecha_registro)}</td></tr>`).join('') || `<tr><td colspan="2" class="empty-state">Aún no registras descansos hoy.</td></tr>`}
-      </tbody></table>
-    </div>
+    <h3 data-ley-silla="1">🪑 Descanso</h3>
+    <p class="d" style="font-size:14px; font-weight:600;">Tienes 15 minutos de descanso al día.</p>
+    ${cuerpo}${hist}
     <div class="modal-actions">
       ${['Supervisor','Coordinador','Admin'].includes(currentUser.perfil) ? `<button class="btn btn-ghost" onclick="exportLeySilla()">📊 Exportar registros (todos)</button>` : ''}
       <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
     </div>`;
   document.getElementById('modalBg').classList.add('open');
+  if(abierto){
+    const t0 = new Date(ult.fecha_registro).getTime();
+    const tick = ()=>{
+      const c = document.getElementById('lsCrono'); if(!c){ clearInterval(window._lsTimer); return; }
+      const sec = Math.max(0, Math.floor((Date.now()-t0)/1000));
+      c.textContent = String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+      const b = document.getElementById('lsBar'); if(b) b.style.width = Math.min(100, sec/9)+'%';
+      const sb = document.getElementById('lsSub'); if(sb) sb.textContent = sec>=900 ? '✅ Ya cumpliste tus 15 minutos' : 'Faltan '+Math.ceil((900-sec)/60)+' min';
+      c.classList.toggle('listo', sec>=900);
+    };
+    tick(); window._lsTimer = setInterval(tick, 1000);
+  }
 }
 function registrarLeySilla(tipo){
   const arr = getLeySilla();
-  arr.push({id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, tipo, fecha_registro:new Date().toISOString()});
+  const rec = {id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, tipo, fecha_registro:new Date().toISOString()};
+  if(tipo==='entrada'){
+    if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un segundo, tu selfie se está guardando…'); return; }
+    const f = ((window._fotosMulti||{}).leySilla||[]);
+    if(!f.length){ toast('Primero tómate la selfie 🤳'); const b = document.getElementById('lsFotoBtn'); if(b){ b.classList.add('campo-falta'); b.scrollIntoView({behavior:'smooth',block:'center'}); } return; }
+    rec.foto = f[0].b64; if(f[0].meta) rec.foto_geo = f[0].meta;
+  }
+  arr.push(rec);
   saveLeySilla(arr);
-  toast(tipo==='entrada' ? 'Entrada de descanso registrada' : 'Salida de descanso registrada');
+  toast(tipo==='entrada' ? 'Descanso iniciado ✓' : 'Descanso terminado ✓');
   renderLeySillaModal();
 }
 /* ---------- Alerta de Ley Silla: aviso a los 14 minutos de un descanso abierto (falta 1 minuto para los 15) ---------- */
@@ -5590,7 +5918,6 @@ const INSUMOS = ['Galletas','Pan','Totopos','Palitos','Verdura','Fruta','Otros']
 function openGastoTicket(){
   ticketLineas = [{id:uid(), tipo:'producto', clave:'', piezas:'', origen:'Comprado en tienda', costo:'', detalle:''}];
   window._fotosMulti = window._fotosMulti || {};
-  window._fotosMulti['ticketFoto'] = [];
   renderGastoTicketModal();
 }
 function renderGastoTicketModal(){
@@ -5608,10 +5935,6 @@ function renderGastoTicketModal(){
           ${opts.map(s=>`<option value="${s.tienda}" data-cadena="${s.cadena}" ${checkin && checkin.tienda===s.tienda?'selected':''}>${s.tienda} (${s.cadena})</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label>Foto(s) del ticket — puedes subir varias (opcional, o de cada producto)</label>
-        <input type="file" id="f_ticketFoto" accept="image/*" capture="environment" multiple onchange="previewFileMulti('ticketFoto')">
-        <div id="prev_ticketFoto" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;"></div>
-      </div>
     </div>
     <div id="ticketLineasWrap" style="margin-top:14px;"></div>
     <button type="button" class="btn btn-ghost" style="margin-top:8px;" onclick="agregarLineaTicket()">+ Agregar línea</button>
@@ -5622,7 +5945,6 @@ function renderGastoTicketModal(){
     </div>`;
   body.innerHTML = html;
   renderTicketLineas();
-  renderFotosMultiPreview('ticketFoto');
   document.getElementById('modalBg').classList.add('open');
 }
 function renderTicketLineas(){
@@ -5635,25 +5957,17 @@ function renderTicketLineas(){
         <div style="width:100%; display:flex; flex-direction:column; gap:6px;">
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
             ${prodSel && prodSel.imagen ? `<img src="${prodSel.imagen}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; background:#fff; border:1px solid var(--line);">` : ''}
-            <span style="font-size:12px; font-weight:600;">${prodSel ? prodSel.nombre : 'Elige el producto abajo (foto o escáner)'}</span>
+            <span style="font-size:12px; font-weight:600;">${prodSel ? prodSel.nombre : 'Elige el producto'}</span>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
             <select id="tfam_${l.id}" onchange="renderTarjetasProductoLinea('${l.id}')" style="min-width:130px; font-size:11.5px;">
               <option value="">Todas las familias</option>
               ${familiasProducto().map(f=>`<option ${prodSel && prodSel.familia===f?'selected':''}>${f}</option>`).join('')}
             </select>
-            <button type="button" class="btn btn-ghost" style="font-size:11.5px; padding:3px 8px;" onclick="toggleScannerLinea('${l.id}')" title="Escanear código de barras">📷 Escanear</button>
-          </div>
-          <div id="tscan_${l.id}" class="hidden">
-            <video id="tvid_${l.id}" style="width:100%; max-width:260px; border-radius:8px; background:#000;" muted playsinline></video>
-            <button type="button" class="btn btn-ghost" style="margin-top:4px; font-size:11px;" onclick="closeScannerLinea('${l.id}')">Cerrar cámara</button>
           </div>
           <div id="tcards_${l.id}"></div>
         </div>
-        <input type="number" step="1" min="0" placeholder="Piezas" value="${l.piezas}" style="width:80px;" oninput="this.value=this.value.replace(/[^0-9]/g,''); updLineaTicket('${l.id}','piezas',this.value)">
-        <select onchange="updLineaTicket('${l.id}','origen',this.value)" style="min-width:150px;">
-          ${['Comprado en tienda','Sobrante de otro día','Enviado de planta'].map(o=>`<option ${l.origen===o?'selected':''}>${o}</option>`).join('')}
-        </select>`;
+        <input type="number" step="1" min="0" placeholder="Piezas" value="${l.piezas}" style="width:80px;" oninput="this.value=this.value.replace(/[^0-9]/g,''); updLineaTicket('${l.id}','piezas',this.value)">`;
     } else if(l.tipo === 'insumo'){
       camposExtra = `<select onchange="updLineaTicket('${l.id}','detalle',this.value)" style="min-width:150px;">
         <option value="">Insumo...</option>
@@ -5761,7 +6075,7 @@ function submitGastoTicket(){
     const cadena = checkin ? checkin.cadena : (tiendaSel && tiendaSel.selectedOptions[0]?.dataset.cadena || '');
     const lineasValidas = ticketLineas.filter(l=> l.costo!=='' && ((l.tipo==='producto' && l.clave) || (l.tipo!=='producto' && l.detalle)));
     if(!lineasValidas.length){ toast('Agrega al menos una línea completa (producto/insumo/material + costo)'); return; }
-    const fotos = ((window._fotosMulti||{})['ticketFoto']||[]).map(f=>f.b64);
+    const fotos = [];
     const total = lineasValidas.reduce((s,l)=> s + (parseFloat(l.costo)||0), 0);
     const resumenLineas = lineasValidas.map(l=>{
       const nombreLinea = l.tipo==='producto' ? nombreProducto(l.clave) : l.detalle;
@@ -5811,7 +6125,7 @@ function detalleCaptura(c){
     case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
     case 'degustacion': return `${nombreProductosDegustacion(c)} — ${c.reacciones}`;
     case 'precio_delico': return `${nombreProducto(c.clave)} — $${c.precio_delico}`;
-    case 'precio_competencia': return `${c.marca_competencia} — $${c.precio_competencia}${c.promo_competencia? ' · '+c.promo_competencia:''}`;
+    case 'precio_competencia': if(!c.marca_competencia) return `Fotos de competencia (${(c.foto||[]).length})${c.interpretacion?' · '+c.interpretacion:''}`; return `${c.marca_competencia} — $${c.precio_competencia}${c.promo_competencia? ' · '+c.promo_competencia:''}`;
     case 'foto': return `${c.seccion} — ${c.notas||''}`;
     case 'factores_ambiente': return `${c.clima||''} · afluencia ${c.afluencia||'—'} — ${c.tendencia||''}`;
     case 'gasto_ticket': return `${(c.lineas||[]).length} línea(s) — total $${c.total}`;
@@ -5859,32 +6173,49 @@ function renderDegustacionesRecientes(){
         <button class="btn btn-outline" style="font-size:11px; padding:4px 10px; white-space:nowrap;" onclick="abrirRetroShopper('${c.id}')">+ Agregar comentario</button>
       </div>
       ${retros.length ? `<div style="margin-top:10px; border-top:1px solid var(--line); padding-top:8px; display:flex; flex-direction:column; gap:5px;">
-        ${retros.map(r=>`<div style="font-size:12px;">${r.texto} <span style="color:var(--ink-soft);">(${fechaHoraLocal(r.fecha)})</span></div>`).join('')}
+        ${retros.map(r=>`<div style="font-size:12px;">${r.texto||''} <span style="color:var(--ink-soft);">(${fechaHoraLocal(r.fecha)})</span>${(r.fotos&&r.fotos.length)?`<div style="display:flex; gap:6px; margin-top:4px;">${r.fotos.map(f=>`<img src="${f}" style="width:60px; height:60px; object-fit:cover; border-radius:8px;">`).join('')}</div>`:''}</div>`).join('')}
       </div>` : ''}
     </div>`;
   }).join('');
 }
 function abrirRetroShopper(capturaId){
   const body = document.getElementById('modalBody');
+  window._fotosMulti = window._fotosMulti || {}; window._fotosMulti.retroShopper = [];
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>🥄 Comentario del shopper</h3>
-    <p class="d">Se agrega como un comentario nuevo — no cambia lo que ya guardaste al momento de la degustación.</p>
-    <div class="field full"><label>Comentario</label><textarea id="retroShopperTexto" rows="3" placeholder="Reacción del shopper..."></textarea></div>
+    <div class="field full"><label>¿Qué le pareció?</label><textarea id="retroShopperTexto" rows="3" placeholder="Reacción del shopper..."></textarea></div>
+    <div class="field full"><label>Fotos (opcional)</label>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-outline" style="flex:1; padding:14px 6px; font-size:14px;" onclick="document.getElementById('f_retroCam').click()">📷 Tomar foto</button>
+        <button type="button" class="btn btn-outline" style="flex:1; padding:14px 6px; font-size:14px;" onclick="document.getElementById('f_retroGal').click()">🖼️ Del carrete</button>
+      </div>
+      <input type="file" id="f_retroCam" accept="image/*" capture="environment" hidden onchange="retroFotoElegida(this)">
+      <input type="file" id="f_retroGal" accept="image/*" multiple hidden onchange="retroFotoElegida(this)">
+      <div id="prev_retroShopper" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;"></div>
+    </div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" onclick="guardarRetroShopper('${capturaId}')">Guardar comentario</button></div>`;
   document.getElementById('modalBg').classList.add('open');
 }
+function retroFotoElegida(inp){
+  const key = 'retroShopper'; window._fotosMulti[key] = window._fotosMulti[key] || [];
+  [...inp.files].slice(0,4).forEach(file=>{
+    const id = uid(), pk = key+'_'+id; window._fotosPendientes.add(pk);
+    encolarFoto(()=>comprimirArchivo(file, 900, 0.65)).then(b64=>{ if(window._fotosMulti[key].length<4) window._fotosMulti[key].push({id, b64, meta:null}); window._fotosPendientes.delete(pk); renderFotosMultiPreview(key); }).catch(()=>{ window._fotosPendientes.delete(pk); });
+  });
+  inp.value = '';
+}
 function guardarRetroShopper(capturaId){
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un segundo, la foto se está guardando…'); return; }
   const input = document.getElementById('retroShopperTexto');
   const texto = input ? input.value.trim() : '';
-  if(!texto){ toast('Escribe el comentario'); return; }
+  const fotos = ((window._fotosMulti||{}).retroShopper||[]).map(f=>f.b64);
+  if(!texto && !fotos.length){ toast('Escribe el comentario o agrega una foto'); return; }
   const arr = getCapturas();
   const c = arr.find(x=>x.id===capturaId);
   if(!c){ toast('No se encontró la captura original'); return; }
   c.retro_shopper = c.retro_shopper || [];
-  c.retro_shopper.push({texto, autor:currentUser.nombre, fecha:new Date().toISOString()});
+  c.retro_shopper.push({texto, fotos, autor:currentUser.nombre, fecha:new Date().toISOString()});
   saveCapturas(arr);
-  // saveCapturas solo sube capturas NUEVAS; este comentario se agrega a una ya existente, así que se sube aparte
-  // (solo el campo retro_shopper, con merge, para no pisar fotos ni nada más de la captura en la nube).
   try{ subirAColeccion('capturas_medi', {id:c.id, retro_shopper:c.retro_shopper}); }catch(e){}
   closeModal();
   toast('Comentario del shopper agregado ✓');
@@ -12446,6 +12777,830 @@ function abrirGuiaInstalacion(){
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
   document.getElementById('modalBg').classList.add('open');
 }
+</script>
+
+<script>
+const HP={
+home:'<path d="M6 22 24 7l18 15v18H6z"/><path d="M19 40V28h10v12"/>',
+calendar:'<rect x="7" y="10" width="34" height="31" rx="4"/><path d="M7 19h34M16 6v8M32 6v8M15 26h4M22 26h4M29 26h4M15 33h4M22 33h4"/>',
+store:'<path d="M7 20 10 8h28l3 12M7 20h34v21H7zM7 20c0 4 6 4 6 0 0 4 7 4 7 0 0 4 7 4 7 0 0 4 7 4 7 0 0 4 7 4 7 0"/><rect x="19" y="29" width="10" height="12"/>',
+chat:'<path d="M8 10h32v22H22l-9 8v-8H8z"/><path d="M15 18h18M15 25h12"/>',
+target:'<circle cx="22" cy="26" r="15"/><circle cx="22" cy="26" r="9"/><circle cx="22" cy="26" r="3"/><path d="m24 24 14-14M34 8l.5 5.5L40 14"/>',
+clip:'<rect x="10" y="8" width="28" height="34" rx="4"/><path d="M18 8V5h12v3M17 20h14M17 28h14M17 35h8"/>',
+clipPen:'<rect x="10" y="8" width="28" height="34" rx="4"/><path d="M18 8V5h12v3M18 33l12-12 4 4-12 12-5 1z"/>',
+cloche:'<path d="M6 33h36M10 33a14 14 0 0 1 28 0M24 15v-3M20 12h8M4 39h40"/>',
+doc:'<path d="M12 5h17l9 9v29H12z"/><path d="M29 5v9h9M18 22h14M18 29h14M18 36h9"/>',
+book:'<path d="M8 8h14a4 4 0 0 1 4 4v28a4 4 0 0 0-4-4H8zM40 8H26M40 8v28H26M14 16h6M14 22h6"/>',
+bulb:'<path d="M24 6a12 12 0 0 0-6 22v5h12v-5a12 12 0 0 0-6-22zM19 38h10M21 43h6M24 1v1M10 12l2 2M38 12l-2 2"/>',
+box:'<path d="m24 6 16 7v22l-16 7-16-7V13zM8 13l16 7 16-7M24 20v22"/>',
+exp:'<rect x="5" y="12" width="38" height="24" rx="3"/><path d="M30 12v24M14 20h8M14 26h8M14 32h8"/><path d="M30 18h0M30 24h0M30 30h0" stroke-dasharray="2 3"/>',
+dollar:'<circle cx="24" cy="24" r="17"/><path d="M24 12v24M30 18c0-3-12-4-12 1s12 3 12 9-12 5-12 1"/>',
+vs:'<rect x="6" y="6" width="36" height="36" rx="4"/><path d="m13 15 6 16 4-8M27 17l8 14M35 17l-8 14"/>',
+shelf:'<rect x="6" y="6" width="36" height="36" rx="3"/><path d="M6 16h36M6 27h36M6 38h36M13 12v-3M13 23v-3M13 34v-3M24 12v-3M24 23v-3M24 34v-3M35 12v-3M35 23v-3M35 34v-3"/>',
+hand:'<path d="M6 34c6-2 10-1 14-1h8c3 0 3 4 0 4h-8M20 37l14-2 8-6M10 30v10M24 8l2 5 5 .5-4 3.5 1 5-4-3-4 3 1-5-4-3.5 5-.5z"/>',
+shopper:'<circle cx="16" cy="9" r="4"/><path d="M12 15h8l2 10-3 16M12 15l-4 12M22 25l8-4M26 24l-4 17M32 20h12l-2 14H34zM33 38h1M40 38h1"/>',
+star:'<path d="m24 6 5.5 11 12 1.8-8.7 8.5 2 12-10.8-5.7-10.8 5.7 2-12L6.5 18.8l12-1.8z"/><path d="m16 25 5 5 10-11"/>',
+lock:'<path d="M9 42V6h22v36M31 42H5M26 26h2M32 22v-4a5 5 0 0 1 10 0v4M30 22h14v12H30z"/>',
+receipt:'<path d="M10 6h28v36l-4-3-5 3-5-3-5 3-5-3-4 3z"/><circle cx="24" cy="18" r="6"/><path d="M16 30h16M16 35h10"/>',
+chair:'<path d="M14 6h22v18H14zM12 24h26v7H12zM15 31v12M35 31v12M14 6l-2 18"/>',
+doorIn:'<path d="M26 6h14v36H26M26 6v36L12 40V10zM5 24h13m-4-4 4 4-4 4M32 24h2" />',
+doorOut:'<path d="M8 6h14v36H8zM22 6l14 4v30l-14 2M26 24h16m-4-4 4 4-4 4M16 24h2"/>',
+spin:'<g stroke-width="3"><path d="M24 7v7M24 34v7M7 24h7M34 24h7M12 12l5 5M31 31l5 5M12 36l5-5M31 17l5-5"/></g>',
+bono:'<rect x="5" y="12" width="38" height="24" rx="3"/><circle cx="24" cy="24" r="6"/><path d="M24 20v8M26.5 21.5c-1-1.5-5-1-5 .8s5 1.4 5 3.3-4 2.2-5.200.5M11 18v.01M37 30v.01"/>',
+umb:'<path d="M8 24a16 16 0 0 1 32 0zM24 24v16a4 4 0 0 0 8 0M6 41h14"/><circle cx="9" cy="10" r="3"/>',
+check:'<rect x="8" y="6" width="32" height="36" rx="4"/><path d="m15 17 3 3 5-6M15 29l3 3 5-6M28 18h6M28 30h6"/>',
+chef:'<path d="M14 28a7 7 0 1 1 3-13 8 8 0 0 1 14 0 7 7 0 1 1 3 13v10H14zM14 34h20"/>',
+eye:'<path d="M3 24s8-14 21-14 21 14 21 14-8 14-21 14S3 24 3 24z"/><circle cx="24" cy="24" r="7"/><circle cx="24" cy="24" r="2.5"/>',
+user:'<circle cx="24" cy="16" r="9"/><path d="M6 44c0-11 8-16 18-16s18 5 18 16z"/>'
+};
+
+HP.route='<circle cx="12" cy="12" r="4"/><circle cx="36" cy="36" r="4"/><path d="M16 12h12a6 6 0 0 1 0 12H20a6 6 0 0 0 0 12h12"/>';
+HP.route2='<path d="M24 42s-12-10-12-20a12 12 0 0 1 24 0c0 10-12 20-12 20z"/><circle cx="24" cy="22" r="4"/>';
+HP.shirt='<path d="M17 6 6 12l5 9 5-3v24h16V18l5 3 5-9-11-6c-1 4-4 6-7 6s-6-2-7-6z"/>';
+HP.dots='<circle cx="24" cy="24" r="17"/><circle cx="16" cy="24" r="1.5"/><circle cx="24" cy="24" r="1.5"/><circle cx="32" cy="24" r="1.5"/>';
+HP.chart='<path d="M7 41V7M7 41h34M14 34V25M22 34V17M30 34V22M38 34V12"/>';
+HP.pie='<circle cx="24" cy="24" r="17"/><path d="M24 7v17h17M24 24 12 36"/>';
+
+
+/* ============================================================
+   NUEVA INTERFAZ DE CELULAR — Inicio · Planear · Ejecutar · Comunicar
+   (solo vista celular; las pantallas que ya existían se abren tal cual, con su misma lógica)
+   ============================================================ */
+function hubIc(n){ return '<svg viewBox="0 0 48 48">'+(HP[n]||'')+'</svg>'; }
+function hubOn(){ return document.body.classList.contains('hub-on'); }
+function hubEsc(t){ return String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function hubEsSup(){ return !!currentUser && currentUser.perfil!=='Embajador'; }
+function hubPuede(k){ try{ return tabsVisiblesParaMi().some(t=>t.key===k); }catch(e){ return true; } }
+const HUB_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const _recetasSync = crearColeccionSincronizada('recetas','delico_odv_recetas_v1',()=>{ try{ if(currentUser && hubOn()) hubPintarRecetas(); }catch(e){} });
+const HUB_UI_KEY = 'delico_odv_ui_v1';
+let _hubSec = 'ini', _hubFrom = 'hubinicio', _hubBuilt = false, _hubCartasSec = null;
+
+/* ---- tamaño de letra / iconos ---- */
+function hubUILeer(){ try{ return Object.assign({s:1, ic:1}, JSON.parse(localStorage.getItem(HUB_UI_KEY)||'{}')); }catch(e){ return {s:1, ic:1}; } }
+function hubUIAplicar(){
+  const u = hubUILeer(), r = document.documentElement.style;
+  r.setProperty('--hs', u.s); r.setProperty('--hic', u.ic); r.setProperty('--mz', u.s);
+  document.querySelectorAll('#hubSegS button').forEach(b=>b.classList.toggle('on', +b.dataset.v===+u.s));
+  document.querySelectorAll('#hubSegI button').forEach(b=>b.classList.toggle('on', +b.dataset.v===+u.ic));
+  setTimeout(()=>{ const bar=document.getElementById('hubBar'); if(bar && bar.offsetHeight) r.setProperty('--navh', bar.offsetHeight+'px'); },50);
+}
+function hubUIGuardar(k, v){ const u = hubUILeer(); u[k] = v; try{ localStorage.setItem(HUB_UI_KEY, JSON.stringify(u)); }catch(e){} hubUIAplicar(); }
+
+/* ---- foto de perfil (se guarda en este celular) ---- */
+function hubFotoKey(){ return 'delico_odv_foto_'+(currentUser?currentUser.usuario:''); }
+function hubFotoPintar(){
+  let f = ''; try{ f = localStorage.getItem(hubFotoKey())||''; }catch(e){}
+  const svg = '<svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="9"/><path d="M6 44c0-11 8-16 18-16s18 5 18 16z"/></svg>';
+  document.querySelectorAll('.hubAv').forEach(e=>{ e.innerHTML = f ? '<img src="'+f+'" alt="">' : svg; });
+}
+function hubFotoElegida(inp){
+  const file = inp.files && inp.files[0]; if(!file) return;
+  const rd = new FileReader();
+  rd.onload = e => comprimirImagen(e.target.result, 240, 0.8).then(c=>{ try{ localStorage.setItem(hubFotoKey(), c); }catch(err){} hubFotoPintar(); toast('Foto actualizada ✓'); });
+  rd.readAsDataURL(file);
+}
+
+/* ---- construcción de las pantallas ---- */
+function hubTile(cls, icon, label, js, badge){
+  return `<button class="${cls}" onclick="${js}">${badge||''}${icon?hubIc(icon):''}${cls==='h-sq'?'<small>'+label+'</small>':label}</button>`;
+}
+function hubBuild(){
+  if(_hubBuilt) return;
+  _hubBuilt = true;
+  const root = document.getElementById('hubRoot');
+  root.innerHTML = `
+  <section class="view hubv" id="view-hubinicio"><div class="h-inicio" id="hubIniBody"></div></section>
+  <section class="view hubv" id="view-hubplanear"><div class="h-head" style="color:var(--h-orange)"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1>Planear</h1></div><div class="h-sec h-plan" id="hubPlanBody"></div></section>
+  <section class="view hubv" id="view-hubsugerencias"><div class="h-head" style="color:var(--h-orange)"><button class="h-back" onclick="hubIr('planear')">‹</button><h1 style="font-size:calc(20px*var(--hs))">Sugerencias de rol</h1></div><div class="h-sec h-plan"><div class="h-guia"><b>Próximamente</b><br>Aquí vas a poder compartir tus sugerencias para mejorar el rol, paso a paso.</div></div></section>
+  <section class="view hubv" id="view-hubejecutar">
+    <div class="h-head"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1 id="hubEjTitulo">Ejecutar</h1></div>
+    <div class="h-sec h-eje">
+      <div id="hubEjHoy">
+        <div class="h-frase" id="hubFrase"></div>
+        <div class="h-tienda" id="hubTiendaCard"></div>
+        <div class="h-plandia" id="hubPlanDia"></div>
+        <button class="h-big" onclick="hubIngreso()">${hubIc('doorIn')}Ingreso a tienda</button>
+        <button class="h-soft" onclick="hubPanelOtra()">Ingresar con incidencia / otra tienda</button>
+        <div class="h-otra" id="hubOtra" style="display:none">
+          <div class="h-tabs2"><button id="hoT1" class="on" onclick="hubOtraTab(1)">🏬 Otra tienda</button><button id="hoT2" onclick="hubOtraTab(2)">🧍 Inasistencia / permiso</button></div>
+          <div id="hoP1">
+            <label>¿A qué tienda vas?</label>
+            <input type="text" id="hubOtraTienda" placeholder="Escribe: sams, walmart, la comer…" oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off">
+            <label id="hubOtraMotL">Motivo *</label>
+            <textarea id="hubOtraMotivo" rows="2" placeholder="Ej. cubro vacaciones de…, cambio de última hora…"></textarea>
+            <label>Foto de cómo encontraste la tienda *</label>
+            <button type="button" class="h-foto" onclick="document.getElementById('f_hubOtra').click()"><span>📷</span>Tomar o subir foto</button>
+            <input type="file" id="f_hubOtra" accept="image/*" capture="environment" multiple hidden onchange="previewFileMulti('hubOtra')">
+            <div id="prev_hubOtra" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+            <button class="h-go2" onclick="hubOtraCheckin()">Ingresar a esta tienda</button>
+          </div>
+          <div id="hoP2" style="display:none">
+            <p class="h-p" style="margin-top:12px">Si hoy no vas a poder asistir o tienes un permiso, regístralo aquí con su motivo.</p>
+            <button class="h-go2" onclick="abrirIncidenciaPersonal()">Registrar inasistencia o permiso</button>
+          </div>
+        </div>
+      </div>
+      <div id="hubEjDentro" style="display:none">
+        <div class="h-sttag" id="hubStTag"></div>
+        <h2>Reviso qué tengo en tienda</h2>
+        <div class="h-grid3" id="hubRevisa"></div>
+        <h2>Registro mi labor</h2>
+        <div class="h-grid3" id="hubLabor"></div>
+        <div id="hubEqWrap" style="display:none"><h2>Con mi equipo</h2><div class="h-grid3" id="hubEquipo"></div></div>
+        <div class="h-capt" id="hubCapt"></div>
+        <h2>Todo por hoy</h2>
+        <button class="h-wide" onclick="hubSalida()">${hubIc('doorOut')}Registrar salida de tienda</button>
+      </div>
+    </div>
+  </section>
+  <section class="view hubv" id="view-hubcomunicar"><div class="h-head"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1>Comunicar</h1></div><div class="h-sec h-com" id="hubComBody"></div></section>
+  <section class="view hubv" id="view-hubajustes"><div class="h-head"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1 style="font-size:calc(21px*var(--hs))">Mi perfil y ajustes</h1></div>
+    <div class="h-aj">
+      <div class="h-perfil"><button class="h-avatar" onclick="document.getElementById('hubFotoIn').click()"><span class="hubAv" style="display:contents"></span><i>📷</i></button><input type="file" id="hubFotoIn" accept="image/*" hidden onchange="hubFotoElegida(this)"><small style="color:#6b6a50;font-size:calc(12px*var(--hs))">Toca la foto para cambiarla</small></div>
+      <div class="h-bloq" id="hubDatos"></div>
+      <div class="h-bloq"><h4>Tamaño de letra</h4><p>Elige el que se te haga más fácil de leer.</p>
+        <div class="h-seg" id="hubSegS"><button data-v="1" onclick="hubUIGuardar('s',1)"><span style="font-size:13px">A</span></button><button data-v="1.15" onclick="hubUIGuardar('s',1.15)"><span style="font-size:17px">A</span></button><button data-v="1.3" onclick="hubUIGuardar('s',1.3)"><span style="font-size:21px">A</span></button><button data-v="1.5" onclick="hubUIGuardar('s',1.5)"><span style="font-size:26px">A</span></button></div>
+        <div class="h-seg" style="margin-top:4px;font-size:10.5px;color:#7b7a5e;text-align:center"><span style="flex:1">Normal</span><span style="flex:1">Grande</span><span style="flex:1">Muy grande</span><span style="flex:1">Máxima</span></div></div>
+      <div class="h-bloq"><h4>Tamaño de iconos</h4><p>Botones más grandes para tocar con facilidad.</p>
+        <div class="h-seg" id="hubSegI"><button data-v="1" onclick="hubUIGuardar('ic',1)">Normal</button><button data-v="1.2" onclick="hubUIGuardar('ic',1.2)">Grande</button><button data-v="1.4" onclick="hubUIGuardar('ic',1.4)">Muy grande</button></div></div>
+      <button class="h-salirb" onclick="doLogout()">Cerrar sesión</button>
+    </div></section>
+  <section class="view hubv" id="view-hubrecetas" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1>Recetas</h1></div><div class="h-sec" style="padding-top:6px"><div id="hubRecAdd"></div><div style="display:grid;gap:12px">
+    <button class="h-tdark" onclick="hubIr('degustar')"><div class="h-logo" style="font-size:24px">👩‍🍳</div><div><b>Cómo degustar</b><small>Guía visual paso a paso por producto</small></div><span class="h-go">›</span></button>
+    <button class="h-tdark" onclick="hubIr('noperm')" style="background:#8b2e1a"><div class="h-logo" style="font-size:24px">🚫</div><div><b>Objetos no permitidos</b><small>Lo que NO se usa en una degustación</small></div><span class="h-go">›</span></button>
+    <button class="h-tdark" onclick="hubIr('recetario')" style="background:var(--h-orange)"><div class="h-logo" style="font-size:24px">🥖</div><div><b>Recetas Délico</b><small id="hubRecCnt">Ideas fáciles para recomendar</small></div><span class="h-go">›</span></button>
+    <button class="h-tdark" onclick="hubIr('indicaciones')" style="background:var(--h-lilac2)"><div class="h-logo" style="font-size:24px">📋</div><div><b>Indicaciones del equipo</b><small id="hubIndCnt">Instrucciones de tu supervisión</small></div><span class="h-go">›</span></button></div></div></section>
+  <section class="view hubv" id="view-hubindicaciones" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('recetas')">‹</button><h1>Indicaciones</h1></div><div class="h-sec" style="padding-top:6px"><div id="hubIndAdd"></div><div id="hubIndLista"></div></div></section>
+  <section class="view hubv" id="view-hubproductos" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1>Nuestros productos</h1></div><div class="h-sec" style="padding-top:6px"><div class="h-bloq dark"><h4>📘 Capacitación de producto</h4><p>Conoce a fondo cada producto Délico: qué es, cómo se presenta y cómo se recomienda.</p><button class="h-soft" style="margin-top:4px" onclick="hubAbrirPDF()">Abrir el PDF de productos</button></div></div></section>
+  <section class="view hubv" id="view-hubsobre" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1>Sobre Délico</h1></div><div class="h-sec" style="padding-top:6px">
+    <div class="h-bloq dark" style="text-align:center"><svg class="h-logo big" viewBox="1815 528 910 583" role="img" aria-label="Délico"><use href="#logoDelico" width="3024" height="1728"/></svg><h4 style="font-size:calc(17px*var(--hs))">Cumplimos 20 años en Guadalajara</h4><p>Somos una pyme mexicana que hace alimentos gourmet artesanales con mucho cariño.</p></div>
+    <div class="h-bloq"><h4>Quiénes somos</h4><p>Nacimos en Guadalajara y hoy llevamos nuestros dips, jocoque, chimichurri y yogurt premium a las mejores tiendas del país. Cada persona del equipo en tienda es la cara de Délico.</p></div>
+    <div class="h-bloq"><h4>Dónde nos encuentras</h4><div class="h-chips" style="margin-top:2px"><span>Costco</span><span>Sam's Club</span><span>Walmart</span><span>La Comer</span><span>H-E-B</span><span>Calimax</span><span>Alsuper</span><span>Casa Ley</span></div></div>
+    <div class="h-bloq"><h4>Lo que nos hace diferentes</h4><p>Recetas artesanales, ingredientes de calidad y un equipo que se preocupa por que cada cliente pruebe y se enamore de Délico.</p></div></div></section>
+  <section class="view hubv" id="view-hubdegustar" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('recetas')">‹</button><h1>Cómo degustar</h1></div><div class="h-sec" style="padding-top:6px"><p class="h-p">Toca un producto para ver la guía.</p><div id="hubDegLista" style="display:grid;gap:12px"></div></div></section>
+  <section class="view hubv" id="view-hubdegdet" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('degustar')">‹</button><h1 id="hubDegT"></h1></div><div class="h-sec" style="padding-top:6px" id="hubDegD"></div></section>
+  <section class="view hubv" id="view-hubnoperm" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('recetas')">‹</button><h1 style="font-size:calc(20px*var(--hs))">No permitido</h1></div><div class="h-sec" style="padding-top:6px"><div class="h-alerta">🚫 En una degustación Délico <b>NO</b> se ofrece ni se mezcla con:</div><div class="h-grid2" id="hubNoLista"></div></div></section>
+  <section class="view hubv" id="view-hubrecetario" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('recetas')">‹</button><h1>Recetas Délico</h1></div><div class="h-sec" style="padding-top:6px" id="hubRecLista"></div></section>
+  <section class="view hubv" id="view-hubtutorial" style="background:var(--h-cream)"><div class="h-head"><button class="h-back" onclick="hubIr('inicio')">‹</button><h1>Tutorial</h1></div><div class="h-sec" style="padding-top:6px;text-align:center" id="hubTutBody"></div></section>`;
+  /* barra de abajo, barra "Atrás" y celebración */
+  const app = document.getElementById('app');
+  const bar = document.createElement('div'); bar.id = 'hubBar';
+  bar.innerHTML = [['inicio','home','Inicio','var(--h-dark)'],['planear','calendar','Planear','var(--h-orange)'],['ejecutar','store','Ejecutar','var(--h-olive2)'],['comunicar','chat','Comunicar','var(--h-lilac2)']]
+    .map(b=>`<button data-k="${b[0]}" style="--c:${b[3]}" onclick="hubIr('${b[0]}')">${hubIc(b[1])}<span>${b[2]}</span></button>`).join('');
+  app.appendChild(bar);
+  const mb = document.createElement('div'); mb.id = 'hubModBar';
+  mb.innerHTML = `<button onclick="hubBack()">‹ Atrás</button><b id="hubModTitulo"></b>`;
+  app.appendChild(mb);
+  const fi = document.createElement('div'); fi.id = 'hubFiesta';
+  fi.innerHTML = `<canvas id="hubCv"></canvas><div style="font-size:64px;position:relative">✅</div><h1 id="hubFiestaTit">Buen trabajo</h1><p id="hubFiestaTxt"></p><p id="hubFiestaRuta"></p><button onclick="hubFiestaCerrar()">Listo</button>`;
+  document.body.appendChild(fi);
+  /* el panel de check-in que ya existía (con todas sus opciones) se muestra dentro de "Más opciones" */
+  hubBuildRecetas(); hubTut(); hubUIAplicar();
+}
+
+/* ---- navegación ---- */
+function hubIr(k){ if(!_hubBuilt) hubBuild(); _hubFrom = 'hubinicio'; showView('hub'+k); }
+function hubMod(key, sec, cartasSec){
+  _hubCaptModo = (key==='captura' && cartasSec==='shopper') ? 'shopper' : null;
+  _hubKpiModo = (key==='kpis' && cartasSec==='tienda') ? 'tienda' : null;
+  const act = document.querySelector('.view.active'); _hubFrom = act ? act.id.replace('view-','') : 'hubinicio';
+  _hubSec = sec; _hubCartasSec = cartasSec || null;
+  showView(key);
+}
+function hubBack(){ showView(_hubFrom || 'hubinicio'); }
+const HUB_SEC_VISTA = {hubinicio:'ini',hubplanear:'plan',hubsugerencias:'plan',hubejecutar:'eje',hubcomunicar:'com'};
+const HUB_PLAN = ['planeacion','calendario','cartas','catalogo','inventario','preplan','ruta'];
+const HUB_EJE = ['captura','auditoria','eval360'];
+const HUB_TIT = {planeacion:'Objetivos',calendario:'Rutas',catalogo:'Catálogo',inventario:'Inventario de materiales',captura:'Mis capturas',kpis:'Kárdex',cumpventa:'Cumplimiento de venta',distribucion:'Distribución',cumplimiento:'Cumplimiento de ruta',cumpprioridades:'Prioridades y tareas',bono:'Bono',vacaciones:'Vacaciones',evaluaciones:'Evaluaciones',escucha:'Délico te escucha',noticias:'Deli News',auditoria:'Registrar supervisión',eval360:'Evaluación 360°',reportes:'Reportes del equipo',proxcaducar:'Próximos a caducar'};
+function hubOnShow(key){
+  const b = document.body; if(!b.classList.contains('hub-on')) return;
+  const esHub = key.indexOf('hub')===0;
+  let sec = esHub ? (HUB_SEC_VISTA[key]||'ini') : _hubSec;
+  if(!esHub && !sec) sec = 'ini';
+  if(!esHub && !b.dataset.hubSecFijo){ /* si se llegó a una pantalla sin pasar por el hub, deducir color */
+    if(_hubFrom===null || _hubFrom===undefined) _hubFrom='hubinicio';
+  }
+  b.classList.remove('hub-ini','hub-plan','hub-eje','hub-com'); b.classList.add('hub-'+sec);
+  b.classList.toggle('hub-mod', !esHub);
+  document.querySelectorAll('#hubBar button').forEach(x=>x.classList.toggle('on', x.dataset.k === ({ini:'inicio',plan:'planear',eje:'ejecutar',com:'comunicar'})[sec] && (esHub ? (key==='hubinicio' || !/^hub(ajustes|deg|recetas|noperm|recetario|tutorial|indicaciones|productos|sobre)/.test(key)) : true)));
+  if(!esHub){
+    const v = document.getElementById('view-'+key); const h = v && v.querySelector('.section-title');
+    const t = document.getElementById('hubModTitulo'); if(t) t.textContent = HUB_TIT[key] || (h ? h.textContent.replace(/[^\wÁÉÍÓÚÜÑáéíóúüñ ,.\/()-]/g,'').trim() : '');
+    if(key==='cartas') hubAplicarCartas();
+    if(key==='captura') hubAplicarCaptura();
+    if(key==='kpis') hubAplicarKpis();
+    try{ hubFiltros(key); hubMesDefault(key); }catch(e){ console.error(e); }
+    if(key==='noticias'){ const f = document.querySelector('#view-noticias > .card'); if(f) f.style.display = hubEsSup() ? '' : 'none'; }
+  }
+  try{ window.scrollTo(0,0); }catch(e){}
+  if(key==='hubinicio') renderHubInicio();
+  if(key==='hubplanear') renderHubPlanear();
+  if(key==='hubejecutar') renderHubEjecutar();
+  if(key==='hubcomunicar') renderHubComunicar();
+  if(key==='hubajustes') renderHubAjustes();
+  if(key==='hubrecetas'||key==='hubindicaciones'||key==='hubrecetario') hubPintarRecetas();
+  if(key==='hubdegustar'||key==='hubdegdet') {}
+}
+function hubAplicarCartas(){
+  const v = document.getElementById('view-cartas'); if(!v) return;
+  const mapa = {'Solicitud de cartas':'cartas','Solicitud de materiales':'materiales','Solicitud de uniformes / equipo':'uniformes'};
+  let grupo = null;
+  [...v.children].forEach(el=>{
+    if(el.tagName==='H2' && el.classList.contains('section-title')){ grupo = mapa[el.textContent.trim()] || 'otro'; }
+    const mostrar = !_hubCartasSec || grupo===_hubCartasSec;
+    el.style.display = (el.classList.contains('bloque-tag')) ? 'none' : (mostrar ? '' : 'none');
+  });
+  const tit = {cartas:'Cartas',materiales:'Material',uniformes:'Uniformes'}[_hubCartasSec];
+  const t = document.getElementById('hubModTitulo'); if(t && tit) t.textContent = tit;
+}
+
+/* ---- FILTROS plegables (se juntan los filtros que ya existían en un solo "Filtros") ---- */
+function hubFResumen(v){
+  const r = v.querySelector('.h-fres'); if(!r) return;
+  const b = v.querySelector('[id$="MesDdBtn"]'); let t = '';
+  if(b) t = b.textContent.trim();
+  else { const sl = v.querySelector('select[id*="Mes"]'); if(sl && sl.selectedOptions[0]) t = sl.selectedOptions[0].textContent.trim(); }
+  r.textContent = t && !/Selecciona/.test(t) ? '· '+t : '';
+}
+function hubFiltros(key){
+  const v = document.getElementById('view-'+key); if(!v || v.dataset.hubF) return;
+  const bars = [...v.children].filter(el=>el.classList && el.classList.contains('controls-bar') && el.querySelector('select,.tienda-dd,input:not([type=button]):not([type=checkbox])'));
+  if(!bars.length){ v.dataset.hubF = '1'; return; }
+  v.dataset.hubF = '1';
+  const d = document.createElement('details'); d.className = 'h-filtros';
+  d.innerHTML = '<summary>🔎 Filtros <span class="h-fres"></span></summary><div class="h-fbody"></div>';
+  v.insertBefore(d, bars[0]);
+  const body = d.querySelector('.h-fbody'); bars.forEach(b=>body.appendChild(b));
+  d.addEventListener('toggle', ()=>hubFResumen(v));
+}
+function hubMesDefault(key){
+  const v = document.getElementById('view-'+key); if(!v || v.dataset.hubM) return;
+  const mes = HUB_MESES[new Date().getMonth()];
+  const intentar = (n)=>{
+    if(v.dataset.hubM) return;
+    const pan = v.querySelector('.tienda-dd-panel[id$="MesDdPanel"]');
+    if(pan){
+      const lab = [...pan.querySelectorAll('label.tienda-dd-item')].find(l=>l.textContent.trim().toLowerCase().indexOf(mes.toLowerCase())===0);
+      if(lab){
+        v.dataset.hubM = '1';
+        const ning = [...pan.querySelectorAll('.tienda-dd-accion button')].find(b=>/ninguno/i.test(b.textContent)); if(ning) ning.click();
+        const p2 = v.querySelector('.tienda-dd-panel[id$="MesDdPanel"]');
+        const l2 = [...p2.querySelectorAll('label.tienda-dd-item')].find(l=>l.textContent.trim().toLowerCase().indexOf(mes.toLowerCase())===0);
+        const inp = l2 && l2.querySelector('input'); if(inp && !inp.checked) inp.click();
+        hubFResumen(v); return;
+      }
+    }
+    const sl = v.querySelector('select[id*="Mes"]:not([multiple])');
+    if(sl){ const o = [...sl.options].find(o=>o.textContent.trim().toLowerCase().indexOf(mes.toLowerCase())===0); if(o){ v.dataset.hubM='1'; sl.value = o.value; sl.dispatchEvent(new Event('change')); hubFResumen(v); return; } }
+    if(n<3) setTimeout(()=>intentar(n+1), 700); else hubFResumen(v);
+  };
+  setTimeout(()=>intentar(0), 500);
+}
+
+/* ---- RECETAS e INDICACIONES: las ve todo el equipo, las suben Supervisor / Coordinador / Admin ---- */
+function hubRecGet(){ return _recetasSync.get().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')); }
+function hubRecTarjeta(r, base){
+  const esSup = hubEsSup();
+  const ing = (r.ingredientes||[]), pas = (r.pasos||[]);
+  let h = `<details class="h-rec"><summary>${hubEsc(r.emoji||'🥣')} ${hubEsc(r.titulo)}${r.tipo==='guia'?'':''}</summary>`;
+  if(r.foto) h += `<img class="h-fotorec" src="${r.foto}" alt="">`;
+  if(r.tipo==='guia'){ h += `<div style="margin-top:8px;white-space:pre-line">${hubEsc(r.texto||'')}</div>`; }
+  else {
+    if(ing.length) h += `<b style="display:block;margin-top:8px">Ingredientes</b><ul>${ing.map(x=>'<li>'+hubEsc(x)+'</li>').join('')}</ul>`;
+    if(pas.length) h += `<b>Preparación</b><ol>${pas.map(x=>'<li>'+hubEsc(x)+'</li>').join('')}</ol>`;
+    if(r.texto) h += `<div style="margin-top:6px;white-space:pre-line">${hubEsc(r.texto)}</div>`;
+  }
+  if(!base){
+    h += `<div style="font-size:11px;opacity:.75;margin-top:8px">Subida por ${hubEsc(nombreCorto(r.persona||''))} · ${hubEsc((r.fecha||'').slice(0,10))}</div>`;
+    if(esSup) h += `<div class="h-item-acc"><button onclick="hubRecEditar('${r.id}')">✎ Editar</button><button class="r" onclick="hubRecBorrar('${r.id}')">🗑 Borrar</button></div>`;
+  }
+  return h + '</details>';
+}
+function hubPintarRecetas(){
+  const todas = hubRecGet(); const rec = todas.filter(r=>r.tipo!=='guia'), gui = todas.filter(r=>r.tipo==='guia');
+  const esSup = hubEsSup();
+  const L = document.getElementById('hubRecLista');
+  if(L){
+    const base = (window._hubRECS||[]).map(r=>({titulo:r[0],emoji:r[1],ingredientes:r[2],pasos:r[3],tipo:'receta'}));
+    L.innerHTML = (rec.length ? '<div class="h-p"><b>Subidas por tu equipo</b></div>'+rec.map(r=>hubRecTarjeta(r,false)).join('') : '') + (base.length ? '<div class="h-p"><b>Recetas Délico</b></div>'+base.map(r=>hubRecTarjeta(r,true)).join('') : '');
+  }
+  const G = document.getElementById('hubIndLista');
+  if(G) G.innerHTML = gui.length ? gui.map(r=>hubRecTarjeta(r,false)).join('') : '<div class="h-guia">Aún no hay indicaciones. Cuando tu supervisión suba una, la verás aquí.</div>';
+  const add = (tipo)=> esSup ? `<button class="h-add" onclick="hubRecEditar('', '${tipo}')">＋ Subir ${tipo==='guia'?'indicación':'receta o indicación'}</button>` : '';
+  const A = document.getElementById('hubRecAdd'); if(A) A.innerHTML = add('receta');
+  const B = document.getElementById('hubIndAdd'); if(B) B.innerHTML = add('guia');
+  const c1 = document.getElementById('hubRecCnt'); if(c1) c1.textContent = rec.length ? (rec.length+' receta(s) nuevas + ideas Délico') : 'Ideas fáciles para recomendar';
+  const c2 = document.getElementById('hubIndCnt'); if(c2) c2.textContent = gui.length ? (gui.length+' indicación(es)') : 'Instrucciones de tu supervisión';
+}
+let _hubRecFoto = null;
+function hubRecEditar(id, tipoDef){
+  if(!hubEsSup()) return;
+  const r = id ? (_recetasSync.get().find(x=>x.id===id)||{}) : {};
+  const tipo = r.tipo || tipoDef || 'receta'; _hubRecFoto = r.foto || null;
+  document.getElementById('modalBody').innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>${id?'Editar':'Subir'} receta o indicación</h3>
+    <div class="form-grid">
+      <div class="field full"><label>¿Qué vas a subir? *</label><select id="hrTipo" onchange="document.getElementById('hrIngW').style.display=this.value==='guia'?'none':''"><option value="receta" ${tipo==='receta'?'selected':''}>Receta</option><option value="guia" ${tipo==='guia'?'selected':''}>Indicación</option></select></div>
+      <div class="field full"><label>Título *</label><input id="hrTit" value="${hubEsc(r.titulo||'')}" placeholder="Ej. Canapé de jocoque y pesto"></div>
+      <div class="field full" id="hrIngW" style="${tipo==='guia'?'display:none':''}"><label>Ingredientes (uno por renglón)</label><textarea id="hrIng" rows="4">${hubEsc((r.ingredientes||[]).join('\n'))}</textarea></div>
+      <div class="field full"><label id="hrTxtL">Preparación o indicación (un paso por renglón) *</label><textarea id="hrTxt" rows="5">${hubEsc(r.tipo==='guia' ? (r.texto||'') : ((r.pasos||[]).join('\n')||r.texto||''))}</textarea></div>
+      <div class="field full"><label>Foto (opcional)</label><input type="file" id="hrFoto" accept="image/*" onchange="hubRecFotoElegida(this)"><img id="hrFotoPrev" class="thumb ${r.foto?'':'hidden'}" ${r.foto?'src="'+r.foto+'"':''}></div>
+    </div>
+    <button class="btn btn-brand" style="margin-top:12px" onclick="hubRecGuardar('${id||''}')">Guardar</button>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function hubRecFotoElegida(inp){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = e => comprimirImagen(e.target.result, 900, 0.7).then(c=>{ _hubRecFoto = c; const p = document.getElementById('hrFotoPrev'); if(p){ p.src = c; p.classList.remove('hidden'); } });
+  rd.readAsDataURL(f);
+}
+function hubRecGuardar(id){
+  const tipo = document.getElementById('hrTipo').value, tit = document.getElementById('hrTit').value.trim();
+  const txt = document.getElementById('hrTxt').value.trim(); const ing = document.getElementById('hrIng').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  if(!tit || !txt){ toast('Pon el título y la preparación o indicación'); return; }
+  const arr = _recetasSync.get(); const ex = id ? arr.find(x=>x.id===id) : null;
+  const rec = Object.assign(ex||{id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, fecha:new Date().toISOString()}, {tipo, titulo:tit, emoji: tipo==='guia'?'📋':'🥣', foto:_hubRecFoto||'', ingredientes: tipo==='guia'?[]:ing, pasos: tipo==='guia'?[]:txt.split('\n').map(x=>x.trim()).filter(Boolean), texto: tipo==='guia'?txt:''});
+  if(!ex) arr.push(rec);
+  _recetasSync.save(arr); closeModal(); toast('Guardado ✓'); hubPintarRecetas();
+}
+function hubRecBorrar(id){
+  if(!hubEsSup() || !confirm('¿Borrar esto para todo el equipo?')) return;
+  _recetasSync.save(_recetasSync.get().filter(x=>x.id!==id)); hubPintarRecetas(); toast('Borrado');
+}
+function hubAbrirPDF(){
+  fetch('nuestros_productos.pdf',{method:'HEAD',cache:'no-cache'}).then(r=>{ if(r.ok) window.open('nuestros_productos.pdf','_blank'); else toast('Estamos preparando el PDF de productos. ¡Pronto estará aquí!'); }).catch(()=>toast('Estamos preparando el PDF de productos. ¡Pronto estará aquí!'));
+}
+
+/* ---- Kárdex dentro de una tienda: se abre directo con la tienda de tu check-in (sin filtros) ---- */
+function hubAplicarKpis(){
+  const v = document.getElementById('view-kpis'); if(!v) return;
+  const solo = _hubKpiModo==='tienda' && !!getCheckin();
+  v.classList.toggle('h-solo', solo);
+  const t = document.getElementById('hubModTitulo'); if(t) t.textContent = solo ? 'Kárdex de mi tienda' : 'Kárdex';
+  if(!solo) return;
+  const ci = getCheckin(); const cs = document.getElementById('kpiCadena'), ts = document.getElementById('kpiTienda'); if(!cs||!ts) return;
+  if(![...cs.options].some(o=>o.value===ci.cadena)){ const o = document.createElement('option'); o.value = ci.cadena; o.textContent = ci.cadena; cs.appendChild(o); }
+  cs.value = ci.cadena; if(cs.onchange) cs.onchange();
+  if(![...ts.options].some(o=>o.value===ci.tienda || o.textContent===ci.tienda)){ const o = document.createElement('option'); o.textContent = ci.tienda; ts.appendChild(o); }
+  ts.value = ci.tienda; renderKpis();
+}
+
+/* ---- Limpieza de formularios (ya dentro de una tienda: nada de "tienda precargada", todo con menos texto) ---- */
+function hubLimpiarModal(){
+  const body = document.getElementById('modalBody'); if(!body || !hubOn() || body.querySelector('.h-mk')) return;
+  const mk = document.createElement('i'); mk.className='h-mk'; mk.hidden = true; body.appendChild(mk);
+  body.querySelectorAll('p.d').forEach(p=>{ if(!p.closest('.h-rev')) p.remove(); });
+  const ci = getCheckin();
+  const campos = [...body.querySelectorAll('.field')];
+  if(ci){
+    campos.forEach(f=>{ const l = f.querySelector('label'); if(l && /^tienda\b/i.test(l.textContent.trim())){ f.style.display='none'; } });
+    body.querySelectorAll('.file-note').forEach(n=>{ if(/Bloqueada por tu check-in/i.test(n.textContent)) n.remove(); });
+  }
+  campos.forEach(f=>{ const l = f.querySelector('label'); if(l && /\*\s*$/.test(l.textContent.trim()) && f.style.display!=='none') f.classList.add('h-oblig'); });
+  /* fotos: botón grande "Tomar foto" (siempre cámara) */
+  if(!body.querySelector('.h-fotobtn') && !body.querySelector('.ls-foto')){
+    body.querySelectorAll('input[type=file][capture]').forEach(inp=>{
+      if(inp.hidden || inp.style.display==='none') return;
+      const bt = document.createElement('button'); bt.type='button'; bt.className='h-fotobtn'; bt.innerHTML='<span>📷</span>Tomar foto'; bt.onclick = ()=>inp.click();
+      inp.style.display='none'; inp.parentNode.insertBefore(bt, inp);
+      inp.parentNode.querySelectorAll('.file-note').forEach(n=>n.remove());
+    });
+  }
+  /* incidencias: si es Calidad, lote y foto se marcan como obligatorios */
+  const tipoI = body.querySelector('#f_tipo_incidencia');
+  if(tipoI){
+    const marca = ()=>{ const cal = /^Calidad/.test(tipoI.value); ['#f_lote','#f_foto'].forEach(sel=>{ const e = body.querySelector(sel); const f = e && e.closest('.field'); if(f) f.classList.toggle('h-oblig', cal); }); };
+    tipoI.addEventListener('change', marca); marca();
+  }
+}
+new MutationObserver(()=>{ try{ hubLimpiarModal(); }catch(e){ console.error(e); } }).observe(document.getElementById('modalBody') || document.body, {childList:true});
+
+/* ---- CADUCIDADES (dentro de tienda): foto del producto, fecha grande, ¿cuántas quedan hoy? ---- */
+function hubFechaGrande(iso){ const m = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']; const p = String(iso).slice(0,10).split('-'); return (+p[2])+' '+m[+p[1]-1]+' '+p[0]; }
+async function hubCaducidadAbrir(){
+  const ci = getCheckin(); if(!ci){ openForm('caducidad'); return; }
+  const st = APP_DATA.stores.find(s=>s.tienda===ci.tienda && (!ci.cadena || s.cadena===ci.cadena)) || {tienda:ci.tienda, cadena:ci.cadena||''};
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '<button class="close-x" onclick="closeModal()">✕</button><h3>⏳ Caducidades</h3><div class="file-note">⏳ Un segundo…</div>';
+  document.getElementById('modalBg').classList.add('open');
+  let lotes = [];
+  try{ const locales = lotesLocalesTienda(st.cadena, st.tienda); const nube = await cargarLotesNube(st.cadena, st.tienda, locales.filter(l=>l.piezas>0).map(l=>l.key)); lotes = fusionarLotes(locales, nube); }catch(e){ console.warn(e); }
+  const combos = (APP_DATA.combinaciones||[]).filter(c=>c.tienda===st.tienda && c.cadena===st.cadena && (st.num_tienda==null || c.num_tienda===st.num_tienda) && (c.comb_activa || c.objetivo)).map(c=>c.clave);
+  const conLote = [...new Set(lotes.map(l=>l.clave))];
+  const prods = [...conLote, ...[...new Set(combos)].filter(c=>!conLote.includes(c)).sort()];
+  window._hubCad = {st, lotes, prods, filas:{}, n:0};
+  hubCadPintar();
+}
+function hubCadGuardarEstado(){
+  const d = window._hubCad; if(!d) return; d.vals = d.vals || {};
+  document.querySelectorAll('#hubCadForm input').forEach(i=>{ if(i.id) d.vals[i.id] = i.value; });
+}
+function hubCadPintar(){
+  const d = window._hubCad; if(!d) return; hubCadGuardarEstado();
+  const hoy = todayISO();
+  const card = clave=>{
+    const p = claveAProducto(clave); const ls = d.lotes.filter(l=>l.clave===clave);
+    let h = `<div class="hc-card"><div class="hc-top">${p&&p.imagen?`<img src="${p.imagen}" alt="">`:'<div style="width:56px;height:56px;border-radius:10px;background:#f1f2e6;flex:none"></div>'}<b>${hubEsc(p?p.nombre:clave)}</b></div>`;
+    ls.forEach(l=>{ const i = d.lotes.indexOf(l); const dias = pcDiasEntre(hoy, l.fecha_caducidad);
+      const chip = dias<0 ? `<span class="hc-chip r">VENCIÓ</span>` : dias===0 ? `<span class="hc-chip r">HOY</span>` : dias<=7 ? `<span class="hc-chip a">${dias} días</span>` : `<span class="hc-chip">${dias} días</span>`;
+      h += `<div class="hc-lot"><div class="hc-date">${hubFechaGrande(l.fecha_caducidad)}${chip}</div><div class="hc-had">Había <b>${l.piezas}</b> pza</div><div class="hc-q" id="hcq_${i}"><label>¿Cuántas quedan hoy?</label><input type="number" inputmode="numeric" id="hcl_${i}" min="0" placeholder="0"><button type="button" onclick="document.getElementById('hcl_${i}').value='0'">0</button></div></div>`; });
+    (d.filas[clave]||[]).forEach(id=>{ h += `<div class="hc-new" id="hcn_${id}"><input type="date" id="hcf_${id}"><input type="number" inputmode="numeric" class="p" id="hcp_${id}" min="1" placeholder="Pzas"><button type="button" onclick="hubCadQuitaFila('${clave}',${id})">✕</button></div>`; });
+    return h + `<button type="button" class="hc-add" onclick="hubCadFila('${clave}')">＋ Agregar fecha de caducidad</button></div>`;
+  };
+  document.getElementById('modalBody').innerHTML = `<button class="close-x" onclick="closeModal()">✕</button><h3>⏳ Caducidades</h3><div id="hubCadForm">`
+    + (d.prods.length ? d.prods.map(card).join('') : '<div class="file-note">No hay productos precargados para esta tienda. Agrega uno abajo.</div>')
+    + `<button type="button" class="hc-otro" onclick="hubCadCatalogo()">＋ Agregar otro producto</button></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" style="flex:1" onclick="hubCadGuardar()">Guardar</button></div>`;
+  Object.keys(d.vals||{}).forEach(k=>{ const e = document.getElementById(k); if(e) e.value = d.vals[k]; });
+}
+function hubCadFila(clave){ const d = window._hubCad; d.filas[clave] = d.filas[clave]||[]; d.filas[clave].push(++d.n); hubCadPintar(); }
+function hubCadQuitaFila(clave,id){ const d = window._hubCad; hubCadGuardarEstado(); d.filas[clave] = (d.filas[clave]||[]).filter(x=>x!==id); hubCadPintar(); }
+function hubCadCatalogo(){
+  const d = window._hubCad; hubCadGuardarEstado();
+  const cat = (APP_DATA.catalogo_productos||[]).slice().sort((a,b)=>a.familia.localeCompare(b.familia)||a.nombre.localeCompare(b.nombre));
+  const ov = document.createElement('div'); ov.className='hc-pick'; ov.id='hcPick';
+  const pintar = q=>{ const n = _normBusca(q); ov.querySelector('.g').innerHTML = cat.filter(p=>!n || _normBusca(p.nombre+' '+p.familia).includes(n)).map(p=>`<button type="button" onclick="hubCadElegir('${p.clave}')">${p.imagen?`<img src="${p.imagen}" loading="lazy">`:''}${hubEsc(p.nombre)}</button>`).join(''); };
+  ov.innerHTML = `<div style="display:flex;gap:8px;margin-bottom:10px"><input type="text" id="hcBus" placeholder="Buscar producto…" style="flex:1;padding:12px;font-size:16px;border:2px solid #3a3e19;border-radius:12px"><button type="button" class="btn btn-ghost" onclick="document.getElementById('hcPick').remove()">Cerrar</button></div><div class="g"></div>`;
+  document.body.appendChild(ov); pintar('');
+  ov.querySelector('#hcBus').addEventListener('input', e=>pintar(e.target.value));
+}
+function hubCadElegir(clave){
+  const d = window._hubCad; const o = document.getElementById('hcPick'); if(o) o.remove();
+  if(!d.prods.includes(clave)) d.prods.push(clave);
+  d.filas[clave] = d.filas[clave]||[]; if(!d.filas[clave].length) d.filas[clave].push(++d.n);
+  hubCadPintar();
+}
+function hubCadGuardar(){
+  const d = window._hubCad; if(!d) return;
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un segundo…'); return; }
+  document.querySelectorAll('#hubCadForm .campo-falta').forEach(e=>e.classList.remove('campo-falta'));
+  let primero = null; const marca = el=>{ el.classList.add('campo-falta'); if(!primero) primero = el; };
+  const respuestas = [], nuevos = [];
+  d.lotes.forEach((l,i)=>{ const e = document.getElementById('hcl_'+i); const v = e ? e.value.trim() : ''; if(v===''){ marca(document.getElementById('hcq_'+i)); } else respuestas.push({lote:l, piezas: parseInt(v)||0}); });
+  d.prods.forEach(clave=>{ (d.filas[clave]||[]).forEach(id=>{ const f = document.getElementById('hcf_'+id), p = document.getElementById('hcp_'+id); const fv = f?f.value:'', pv = p?(parseInt(p.value)||0):0;
+    if(fv && pv>0) nuevos.push({clave, fecha_caducidad:fv, piezas:pv});
+    else if(fv || (p && p.value)){ marca(document.getElementById('hcn_'+id)); } }); });
+  if(primero){ toast('Falta llenar lo marcado en rojo'); primero.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  if(!respuestas.length && !nuevos.length){ toast('Agrega al menos una fecha de caducidad'); return; }
+  const dudas = [];
+  const claves = [...new Set([...nuevos.map(n=>n.clave), ...respuestas.map(r=>r.lote.clave)])];
+  claves.forEach(clave=>{ verificarCaducidad({tienda:d.st.tienda, cadena:d.st.cadena, clave, _caducidadPares:nuevos.filter(n=>n.clave===clave).map(n=>({fecha_caducidad:n.fecha_caducidad,piezas:n.piezas})), _seguimiento:respuestas.filter(r=>r.lote.clave===clave)}).forEach(x=>dudas.push(x)); });
+  if(dudas.length && !confirm('⚠️ Revisa estos datos antes de guardar:\n\n' + dudas.map(x=>'• '+x).join('\n') + '\n\nAceptar = están bien, guardar así.\nCancelar = voy a corregir.')) return;
+  const ahora = new Date().toISOString();
+  const base = {tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||'', foto:[], seg_v:1};
+  const registros = nuevos.map(n=>({...base, id:uid(), clave:n.clave, fecha_caducidad:n.fecha_caducidad, piezas:n.piezas}));
+  const regsSeg = respuestas.map(x=>({id:uid(), tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||x.lote.cadena||'', clave:x.lote.clave, fecha_caducidad:x.lote.fecha_caducidad, piezas:x.piezas, piezas_previas:x.lote.piezas, seguimiento:true, seg_v:1}));
+  try{
+    const arr = getCapturas(); [...registros, ...regsSeg].forEach(r=>arr.push(r)); saveCapturas(arr);
+    registros.forEach(r=>registrarLoteCaducidad(r,'captura')); regsSeg.forEach(r=>registrarLoteCaducidad(r,'seguimiento'));
+    closeModal(); window._hubCad = null;
+    toast('Caducidades guardadas ✓');
+    if(registros.length) mostrarProyeccionCaducidadMultiple(registros);
+    renderMisCapturas(); renderCheckinBar();
+  }catch(e){ toast('⚠️ No se pudo guardar: '+e.message, 6500); }
+}
+
+/* ---- INICIO ---- */
+const HUB_FRASES = ['¡Hoy va a ser un gran día! 🌞','Otro día, otra moneda 💰','Con Délico todo sabe mejor 🧀','Hoy tu tienda se ve increíble ✨','Sonríe: tu sonrisa vende más que cualquier exhibidor 😄','Un jocoque a la vez, ¡tú puedes! 💪','Hoy toca cubrir la tienda completa 🎯','Eres la cara de Délico, ¡luce! 🌟','Los dips no se venden solos… ¡pero contigo sí! 🥑','Hoy rompemos la cuota 🚀','Buen ánimo, buen resultado ☀️','La mejor exhibición la haces tú 🏆','Que no falte producto en el anaquel 📦','Hoy es un excelente día para vender rico 😋','Tu energía se contagia: ¡a contagiar a los clientes! ⚡','Paso a paso, tienda por tienda 👣','Hoy sí, y mañana también 💚','¡Qué rico trabajar con gente tan chida como tú! 🤝','Haz que cada cliente se lleve algo Délico 🛒','Un día más para brillar con tu tienda 🌈'];
+let _hubNi = 0, _hubNTimer = null, _hubNoticias = [];
+function hubTiendasHoy(){
+  const hoy = todayISO();
+  const l = misTiendasHoy().filter(a=>a.fecha===hoy);
+  return l;
+}
+function renderHubInicio(){
+  const el = document.getElementById('hubIniBody'); if(!el || !currentUser) return;
+  const n = nombreCorto(currentUser.nombre).split(' ')[0]; const nombre = n.charAt(0)+n.slice(1).toLowerCase();
+  const hoy = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+  const ci = getCheckin();
+  const ths = hubTiendasHoy();
+  const t = ci ? {tienda:ci.tienda, cadena:ci.cadena} : ths[0];
+  const sinRuta = !t;
+  let tarjeta = '';
+  if(t){
+    const st = hubStats(t);
+    tarjeta = `<button class="h-tdark" onclick="hubIr('ejecutar')"><div class="h-logo">${(t.cadena||t.tienda||'').slice(0,2).toUpperCase()}</div><div><b>${t.tienda}</b><small>${ci?'Ya estás en tienda · toca para continuar':'Toca para ver tu plan de hoy'}</small>${st.cuota!=null?`<small>★ Cuota ${st.cuota}%</small>`:''}</div><span class="h-go">›</span></button>`;
+  } else {
+    tarjeta = `<button class="h-tdark" onclick="hubIr('ejecutar')"><div class="h-logo">—</div><div><b>Sin tienda asignada hoy</b><small>Toca para ver más opciones</small></div><span class="h-go">›</span></button>`;
+  }
+  const esEmb = currentUser.perfil==='Embajador';
+  _hubNoticias = getNoticias().slice(0,5);
+  el.innerHTML = `
+    <div class="h-hola"><button class="h-avatar" onclick="hubIr('ajustes')" aria-label="Mi perfil y ajustes"><span class="hubAv" style="display:contents"></span><i>⚙</i></button><div><b>¡Hola ${nombre}!</b><small>${hoy.charAt(0).toUpperCase()+hoy.slice(1)}</small></div><svg class="h-logo" viewBox="1815 528 910 583" role="img" aria-label="Délico"><use href="#logoDelico" width="3024" height="1728"/></svg></div>
+    <h3>Tu tienda de hoy</h3>${tarjeta}
+    ${esEmb?'':'<h3>Resumen de mi equipo</h3><div class="h-grid2 tight" id="hubKpis"></div>'}
+    <h3>Modo Medi</h3>
+    <div class="h-row3">
+      <button class="h-mm" style="background:var(--h-orange)" onclick="hubIr('planear')">${hubIc('calendar')}Planear</button>
+      <button class="h-mm" style="background:var(--h-olive2)" onclick="hubIr('ejecutar')">${hubIc('store')}Ejecutar</button>
+      <button class="h-mm" style="background:var(--h-lilac2)" onclick="hubIr('comunicar')">${hubIc('chat')}Comunicar</button>
+    </div>
+    <h3>Deli News ${esEmb?'':`<button class="h-pub" onclick="hubMod('noticias','ini')">+ Publicar</button>`}</h3>
+    <div class="h-news" id="hubNews" onclick="hubMod('noticias','ini')"></div>
+    <div class="h-notis" id="hubAlertas" style="margin-top:14px"></div>
+    <h3>Aprende y conoce</h3>
+    <div class="h-grid2x2">
+      <button class="h-sq" onclick="hubIr('recetas')">${hubIc('chef')}<small>Recetas</small></button>
+      <button class="h-sq" onclick="hubIr('productos')">${hubIc('book')}<small>Nuestros productos</small></button>
+      <button class="h-sq" onclick="hubIr('sobre')"><svg class="h-logo sq" viewBox="1815 528 910 583" role="img" aria-label="Délico"><use href="#logoDelico" width="3024" height="1728"/></svg><small>Sobre Délico</small></button>
+      <button class="h-sq" onclick="hubIr('tutorial')">${hubIc('eye')}<small>Tutorial</small></button>
+    </div>`;
+  hubFotoPintar(); hubNewsPintar();
+  clearInterval(_hubNTimer); _hubNTimer = setInterval(()=>{ if(document.getElementById('hubNews') && _hubNoticias.length>1){ _hubNi=(_hubNi+1)%_hubNoticias.length; hubNewsPintar(); } }, 4500);
+  /* Alertas y notificaciones: se reutiliza lo que ya calcula la pantalla de Inicio de siempre */
+  try{
+    renderInicio();
+    const a = document.getElementById('inicioNotificaciones'), b = document.getElementById('inicioAlertas');
+    let html = '';
+    if(a && a.innerHTML.trim()) html += a.innerHTML.replace(/ id="[^"]*"/g,'');
+    if(b && b.innerHTML.trim()) html += b.innerHTML.replace(/ id="[^"]*"/g,'');
+    const box = document.getElementById('hubAlertas');
+    if(box){ box.innerHTML = html; }
+    const kp = document.getElementById('hubKpis');
+    if(kp){
+      const defs = [['inicioCardRutas','',"hubMod('calendario','plan')"],['inicioCardVacPendientes','',"hubMod('vacaciones','com')"],['inicioCardVacProximas','',"hubMod('vacaciones','com')"],['inicioCardCaducidad','',"hubIr('ejecutar')"]];
+      kp.innerHTML = defs.map(d=>{ const c = document.getElementById(d[0]); if(!c || c.classList.contains('hidden') || c.style.display==='none') return ''; const l = c.querySelector('.label'), v = c.querySelector('.value'); return `<button class="h-kpi" onclick="${d[2]}"><small>${hubEsc(l?l.textContent:'')}</small><b>${hubEsc(v?v.textContent:'—')}</b></button>`; }).join('');
+    }
+  }catch(e){}
+}
+function hubNewsPintar(){
+  const box = document.getElementById('hubNews'); if(!box) return;
+  const n = _hubNoticias[_hubNi];
+  if(!n){ box.classList.remove('foto'); box.style.backgroundImage=''; box.innerHTML = `<div class="h-tag">Deli News</div><div class="h-tt">Aún no hay noticias</div><div class="h-tx">Aquí verás avisos y novedades del equipo.</div>`; return; }
+  const txt = (n.texto||'').trim(); const partes = txt.split(/\n|\. /); const titulo = (partes[0]||'Noticia').slice(0,90); const resto = txt.slice(partes[0].length).replace(/^[\n. ]+/,'').slice(0,110);
+  box.classList.toggle('foto', !!n.foto); box.style.backgroundImage = n.foto ? 'url('+n.foto+')' : '';
+  box.innerHTML = `<div class="h-tag">${nombreCorto(n.persona||'')} · ${fechaHoraLocal(n.fecha)}</div><div class="h-tt">${titulo}</div><div class="h-tx">${resto}</div><div class="h-dots">${_hubNoticias.map((_,i)=>'<i class="'+(i===_hubNi?'on':'')+'"></i>').join('')}</div>`;
+}
+function hubStats(t){
+  const st = (APP_DATA.stores||[]).find(s=>s.tienda===t.tienda && (!t.cadena || s.cadena===t.cadena));
+  if(!st) return {};
+  const rows = (APP_DATA.cumplimiento_semanal||[]).filter(c=>c.cadena===st.cadena && c.num_tienda===st.num_tienda);
+  const cu = rows.reduce((a,r)=>a+(r.cuota_uni||0),0), re = rows.reduce((a,r)=>a+(r.real_uni||0),0), es = rows.reduce((a,r)=>a+(r.escalon_uni||0),0);
+  const filas = (APP_DATA.combinaciones||[]).filter(c=>c.tienda===t.tienda && c.cadena===st.cadena && c.num_tienda===st.num_tienda);
+  return {cuota: cu? Math.round(re/cu*100):null, escalon: es? Math.round(re/es*100):null, dist: filas.length? Math.round(filas.filter(f=>f.con_venta).length/filas.length*100):null};
+}
+
+/* ---- PLANEAR ---- */
+function renderHubPlanear(){
+  const el = document.getElementById('hubPlanBody'); if(!el) return;
+  const esEmb = currentUser.perfil==='Embajador';
+  const sq = (ic, lb, js)=>`<button class="h-sq" onclick="${js}">${hubIc(ic)}<small>${lb}</small></button>`;
+  let h = `<h2>¿Cuáles son mis objetivos?</h2><div class="h-grid3" style="grid-template-columns:repeat(2,1fr);padding:0 30px">${hubPuede('planeacion')?sq('target','Objetivos',"hubMod('planeacion','plan')"):''}${hubPuede('calendario')?sq('calendar','Rutas',"hubMod('calendario','plan')"):''}</div>`;
+  h += `<h2>${esEmb?'¿Qué necesito para cumplir?':'Solicitar y autorizar'}</h2><div class="h-grid3">${sq('cloche','Material',"hubMod('cartas','plan','materiales')")}${sq('doc','Cartas',"hubMod('cartas','plan','cartas')")}${sq('shirt','Uniformes',"hubMod('cartas','plan','uniformes')")}</div>`;
+  h += `<div class="h-grid3" style="grid-template-columns:repeat(2,1fr);padding:0 30px">${sq('bulb','Sugerencias de rol',"hubIr('sugerencias')")}${hubPuede('catalogo')?sq('book','Catálogo',"hubMod('catalogo','plan')"):''}${hubPuede('inventario')?sq('box','Inventario de materiales',"hubMod('inventario','plan')"):''}</div>`;
+  el.innerHTML = h;
+}
+
+/* ---- COMUNICAR ---- */
+function renderHubComunicar(){
+  const el = document.getElementById('hubComBody'); if(!el) return;
+  const sq = (ic, lb, k)=>hubPuede(k)?`<button class="h-sq" onclick="hubMod('${k}','com')">${hubIc(ic)}<small>${lb}</small></button>`:'';
+  el.innerHTML = `<h2>Cómo voy</h2><div class="h-grid3">${sq('chart','Cumplimiento de venta','cumpventa')}${sq('pie','Distribución','distribucion')}${sq('route','Cumplimiento de ruta','cumplimiento')}${sq('clipPen','Prioridades y tareas','cumpprioridades')}${sq('bono','Bono','bono')}${sq('store','Kárdex','kpis')}</div>
+  <h2>Platico con Délico</h2><div class="h-grid3">${sq('umb','Vacaciones','vacaciones')}${sq('check','Evaluaciones','evaluaciones')}${sq('chat','Délico te escucha','escucha')}</div>`;
+}
+
+/* ---- AJUSTES ---- */
+function renderHubAjustes(){
+  const d = document.getElementById('hubDatos'); if(!d||!currentUser) return;
+  d.innerHTML = `<div class="h-dato"><span>Nombre</span><b>${currentUser.nombre}</b></div><div class="h-dato"><span>Usuario</span><b>${currentUser.usuario}</b></div><div class="h-dato"><span>Perfil</span><b>${currentUser.perfil}${currentUser.rol?' · '+currentUser.rol:''}</b></div>`;
+  hubFotoPintar(); hubUIAplicar();
+}
+
+/* ---- EJECUTAR ---- */
+let _hubFraseI = Math.floor(Math.random()*20);
+function hubPanelOtra(abrir){
+  const p = document.getElementById('hubOtra'); if(!p) return;
+  const mostrar = abrir===true ? true : p.style.display==='none';
+  p.style.display = mostrar ? '' : 'none';
+  if(mostrar){ window._fotosMulti = window._fotosMulti || {}; window._fotosMulti.hubOtra = []; try{ renderFotosMultiPreview('hubOtra'); }catch(e){} hubOtraTab(1); setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'center'}),60); }
+}
+function hubMasOpciones(){ hubPanelOtra(true); }
+function hubOtraTab(n){ document.getElementById('hoT1').classList.toggle('on', n===1); document.getElementById('hoT2').classList.toggle('on', n===2); document.getElementById('hoP1').style.display = n===1?'':'none'; document.getElementById('hoP2').style.display = n===2?'':'none'; }
+function hubOtraCheckin(){
+  try{ ocultarSugerenciasTienda(); }catch(e){}
+  const m = resolverTiendaEscrita('hubOtraTienda');
+  if(!m){ toast('Escribe tu tienda y elígela de la lista que aparece.'); document.getElementById('hubOtraTienda').focus(); return; }
+  const enRuta = misTiendasHoy().find(o=>o.tienda===m.tienda && o.fecha===todayISO());
+  const motivo = document.getElementById('hubOtraMotivo').value.trim();
+  if(!enRuta && !motivo){ toast('Falta el motivo de la visita'); document.getElementById('hubOtraMotivo').focus(); return; }
+  const fotos = (window._fotosMulti||{}).hubOtra || [];
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un segundo, tu foto se está guardando…'); return; }
+  if(!fotos.length){ toast('Falta la foto de la tienda'); return; }
+  abrirCheckinConFoto(m.tienda, m.cadena, enRuta ? (enRuta.rol||'') : '', enRuta ? null : {motivo});
+  window._fotosMulti.foto = fotos.slice();
+  try{ renderFotosMultiPreview('foto'); }catch(e){}
+  setTimeout(()=>submitForm('entrada_tienda'), 60);
+}
+function hubIngreso(){
+  const sel = document.getElementById('hubTiendaSel'); const l = window._hubTiendasHoy || [];
+  const t = sel ? l[+sel.value] : l[0];
+  if(!t){ toast('No tienes tienda asignada hoy: usa “Ingresar con incidencia / otra tienda”.'); hubMasOpciones(); return; }
+  abrirCheckinConFoto(t.tienda, t.cadena, t.rol);
+}
+function hubSalida(){
+  const ci = getCheckin(); if(!ci){ salirCheckin(); return; }
+  const hoy = todayISO();
+  const mias = getCapturas().filter(c=>c.usuario===currentUser.usuario && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && c.tienda===ci.tienda && c.tipo!=='entrada_tienda');
+  const cont = {}; mias.forEach(c=>cont[c.tipo]=(cont[c.tipo]||0)+1);
+  const OBL = [['mercadeo','Auto evaluación'],['caducidad','Caducidad'],['precio_delico','Precio Delico']];
+  const OPC = [['degustacion','Degustación'],['precio_competencia','Precio competencia'],['foto','Exhibiciones adicionales'],['incidencia','Incidencias'],['gasto_ticket','Gasto'],['carga_anaquel','Carga de anaquel']];
+  const desc = getLeySilla().filter(r=>r.usuario===currentUser.usuario && fechaLocal(r.fecha_registro)===hoy && r.tipo==='salida').length;
+  const dudas = [];
+  mias.filter(c=>c.tipo==='caducidad' && c.clave && c.fecha_caducidad).forEach(c=>{ try{ verificarCaducidad({tienda:c.tienda,cadena:c.cadena,clave:c.clave,_caducidadPares:[{fecha_caducidad:c.fecha_caducidad,piezas:Number(c.piezas)||0}]}).forEach(d=>dudas.push(d)); }catch(e){} });
+  const hechos = [...OBL,...OPC].filter(x=>cont[x[0]]).map(x=>`<div class="ok"><i>✔</i><span>${x[1]} (${cont[x[0]]})</span></div>`).join('') + (desc? `<div class="ok"><i>✔</i><span>Descanso de 15 minutos</span></div>`:'');
+  const faltan = OBL.filter(x=>!cont[x[0]]).map(x=>`<div class="no"><i>✖</i><span>${x[1]}</span></div>`).join('') + (desc<1 ? `<div class="no"><i>✖</i><span>Descanso de 15 minutos: sin registrar</span></div>`:'');
+  document.getElementById('modalBody').innerHTML = `<button class="close-x" onclick="closeModal()">✕</button><div class="h-rev"><h3>Antes de salir de ${hubEsc(ci.tienda)}</h3>
+    <h4>Lo que registraste hoy</h4>${hechos || '<div class="no"><i>—</i><span>Aún no hay capturas en esta tienda.</span></div>'}
+    <h4>Lo que faltó capturar</h4>${faltan || '<div class="ok"><i>✔</i><span>Todo lo obligatorio está registrado.</span></div>'}
+    ${dudas.length ? '<h4>Revisa si cuadra</h4>'+dudas.map(d=>`<div class="dd"><i>⚠</i><span>${hubEsc(d)}</span></div>`).join('') : ''}
+    </div><div class="modal-actions" style="flex-direction:column;gap:8px"><button class="btn btn-ghost" style="width:100%" onclick="closeModal()">Seguir capturando</button><button class="btn btn-brand" style="width:100%" onclick="closeModal();salirCheckin()">Continuar con la salida</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+/* formularios de check-in / check-out: sin tienda editable, ícono grande de foto y botón grande de guardar */
+function hubEstiloFoto(type){
+  if(!hubOn() || (type!=='entrada_tienda' && type!=='salida_tienda')) return;
+  const body = document.getElementById('modalBody'); const grid = body.querySelector('.form-grid'); if(!grid) return;
+  body.querySelectorAll('p.d').forEach(p=>p.remove());
+  const ci = getCheckin(), pf = window._prefillCheckin;
+  const tienda = type==='salida_tienda' ? (ci&&ci.tienda) : (pf&&pf.tienda), cadena = type==='salida_tienda' ? (ci&&ci.cadena) : (pf&&pf.cadena);
+  [...grid.children].forEach(fl=>{ if(fl.querySelector('[id^="f_tienda"]')) fl.style.display='none'; });
+  const h3 = body.querySelector('h3'); if(h3) h3.textContent = type==='salida_tienda' ? 'Salida de tienda' : 'Entrada a tienda';
+  const ficha = document.createElement('div'); ficha.className='h-ficha';
+  ficha.innerHTML = `<div class="lg">${hubEsc((cadena||tienda||'').slice(0,2).toUpperCase())}</div><div><b>${hubEsc(tienda||'')}</b><small>${hubEsc(cadena||'')}</small></div>`;
+  grid.parentNode.insertBefore(ficha, grid);
+  const inp = body.querySelector('#f_foto');
+  if(inp){
+    const fl = inp.closest('.field'); const lb = fl && fl.querySelector('label'); if(lb) lb.textContent = type==='salida_tienda' ? 'Foto de cómo dejaste la tienda *' : 'Foto de cómo encontraste la tienda *';
+    fl.querySelectorAll('.file-note').forEach(n=>n.remove()); inp.style.display='none';
+    const bt = document.createElement('button'); bt.type='button'; bt.className='h-fotobtn'; bt.innerHTML='<span>📷</span>Tomar o subir foto'; bt.onclick=()=>inp.click();
+    inp.parentNode.insertBefore(bt, inp);
+  }
+  const notas = body.querySelector('#f_notas'); if(notas){ const fl = notas.closest('.field'); const lb = fl.querySelector('label'); if(lb) lb.style.display='none'; notas.rows = 2; notas.placeholder = 'Notas (opcional)'; }
+  const act = body.querySelector('.modal-actions');
+  if(act) act.innerHTML = `<button class="h-guardarbtn" onclick="submitForm('${type}')"><span>💾</span>Guardar</button><button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="closeModal()">Cancelar</button>`;
+}
+function renderHubEjecutar(){
+  const ci = getCheckin();
+  const hoy = document.getElementById('hubEjHoy'), dentro = document.getElementById('hubEjDentro');
+  if(!hoy||!dentro) return;
+  hoy.style.display = ci ? 'none' : ''; dentro.style.display = ci ? '' : 'none';
+  document.getElementById('hubEjTitulo').textContent = 'Ejecutar';
+  if(ci){ const tg = document.getElementById('hubStTag'); if(tg) tg.innerHTML = `<div class="h-logo">${hubEsc((ci.cadena||ci.tienda||'').slice(0,2).toUpperCase())}</div><div><b>${hubEsc(ci.tienda)}</b><small>${hubEsc(ci.cadena||'')} · Entraste a las ${hubEsc(ci.hora||'')}</small></div>`; }
+  if(!ci){
+    _hubFraseI = (_hubFraseI + 1 + Math.floor(Math.random()*5)) % HUB_FRASES.length;
+    document.getElementById('hubFrase').textContent = HUB_FRASES[_hubFraseI];
+    const l = hubTiendasHoy(); window._hubTiendasHoy = l;
+    const card = document.getElementById('hubTiendaCard');
+    if(!l.length){
+      card.innerHTML = `<div class="h-tp"><div class="h-logo">—</div><div><b>Sin tienda asignada hoy</b><small>Si vas a otra tienda o tienes una incidencia, usa el botón de abajo.</small></div></div>`;
+    } else {
+      const st = hubStats(l[0]);
+      const pg = (lb, v)=> v==null ? `<div class="h-pg"><div class="l"><span>${lb}</span><span>—</span></div></div>` : `<div class="h-pg"><div class="l"><span>${lb}</span><span>${v}%</span></div><div class="b"><i style="width:${Math.min(100,v)}%"></i></div></div>`;
+      card.innerHTML = `<div class="h-tp"><div class="h-logo">${(l[0].cadena||'').slice(0,2).toUpperCase()}</div><div><b>${l[0].tienda}</b><small>Tu tienda de hoy · ${l[0].cadena||''}</small></div></div>`
+        + (l.length>1 ? `<select id="hubTiendaSel" onchange="hubCambiaTienda()">${l.map((x,i)=>`<option value="${i}">${x.tienda}</option>`).join('')}</select>` : '')
+        + `<div id="hubPct">${pg('Escalón sueldo', st.escalon)}${pg('Cobertura de cuota', st.cuota)}${pg('Distribución', st.dist)}</div>`;
+    }
+    /* plan de hoy */
+    const tareas = getTareas().filter(t=>t.asignado_a===currentUser.usuario && t.estado==='abierta');
+    let prio = []; try{ prio = getPrioridades().filter(p=>(p.requiere_foto||p.requiere_confirmacion) && (currentUser.perfil!=='Embajador' || !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario))); }catch(e){}
+    let pl = '<b>📌 Tu plan de hoy</b>';
+    tareas.slice(0,3).forEach(t=>{ pl += `<div>• ${t.texto}</div>`; });
+    if(tareas.length>3) pl += `<div>• …y ${tareas.length-3} tarea(s) más</div>`;
+    if(prio.length) pl += `<div>• ${prio.length} prioridad(es) del mes por confirmar</div>`;
+    if(!tareas.length && !prio.length) pl += '<div>• Sin tareas pendientes. ¡A disfrutar la visita!</div>';
+    document.getElementById('hubPlanDia').innerHTML = pl;
+    window._hubR = true; try{ renderCheckinBar(); }finally{ window._hubR = false; }
+    return;
+  }
+  /* dentro de tienda */
+  const t = (js, ic, lb, k)=>`<button class="h-dk" onclick="${js}" data-k="${k||''}">${hubIc(ic)}${lb}</button>`;
+  document.getElementById('hubRevisa').innerHTML =
+    t('abrirPipeline()','box','Pipeline')+t("openForm('caducidad')",'exp','Caducidad','caducidad')+t("openForm('precio_delico')",'dollar','Precios','precio_delico')+t("openForm('precio_competencia')",'vs','Competencia','precio_competencia')+t("hubMod('kpis','eje','tienda')",'store','Kárdex (mi tienda)');
+  document.getElementById('hubLabor').innerHTML =
+    t('abrirMercadeo()','shelf','Auto evaluación','mercadeo')+t("openForm('degustacion')",'hand','Degustación','degustacion')+t("hubShopper()",'shopper','Shopper')+t('abrirPrioridadesCaptura()','clipPen','Prioridades y tareas')+t("openForm('foto')",'star','Exh adicionales','foto')+t("openForm('incidencia')",'lock','Incidencias','incidencia')+t('openGastoTicket()','receipt','Registrar gasto','gasto_ticket')+t('abrirLeySilla()','chair','Registrar Ley silla')+t('abrirCargaAnaquel()','shelf','Carga de anaquel','carga_anaquel');
+  const eqw = document.getElementById('hubEqWrap'); if(eqw){ eqw.style.display = hubEsSup() ? '' : 'none';
+    if(hubEsSup()) document.getElementById('hubEquipo').innerHTML = t('abrirOnboarding()','clip','Onboarding')+t("hubMod('auditoria','eje')",'eye','Registrar supervisión')+t("hubMod('eval360','eje')",'star','Evaluación 360°'); }
+  hubPintarCapturasHoy();
+}
+function hubCambiaTienda(){
+  const sel = document.getElementById('hubTiendaSel'); const l = window._hubTiendasHoy||[]; const t = l[+sel.value]; if(!t) return;
+  const st = hubStats(t);
+  const pg = (lb, v)=> v==null ? `<div class="h-pg"><div class="l"><span>${lb}</span><span>—</span></div></div>` : `<div class="h-pg"><div class="l"><span>${lb}</span><span>${v}%</span></div><div class="b"><i style="width:${Math.min(100,v)}%"></i></div></div>`;
+  document.getElementById('hubPct').innerHTML = pg('Escalón sueldo', st.escalon)+pg('Cobertura de cuota', st.cuota)+pg('Distribución', st.dist);
+}
+let _hubCaptModo = null, _hubKpiModo = null;
+function hubShopper(){ hubMod('captura','eje','shopper'); }
+function hubAplicarCaptura(){
+  const v = document.getElementById('view-captura'); if(!v) return;
+  const kids = [...v.children]; kids.forEach(el=>{ if(!el.classList.contains('bloque-tag')) el.style.display=''; });
+  if(_hubCaptModo==='shopper'){
+    const h = kids.find(e=>e.tagName==='H2' && /shopper/i.test(e.textContent));
+    const keep = new Set();
+    const bx = document.getElementById('degustacionesRecientesBox'); if(bx) keep.add(bx);
+    kids.forEach(el=>{ if(!keep.has(el)) el.style.display='none'; });
+    const t = document.getElementById('hubModTitulo'); if(t) t.textContent = 'Comentarios del shopper';
+    if(h) h.style.display='none';
+  }
+}
+function hubPintarCapturasHoy(){
+  const ci = getCheckin(); const hoy = todayISO();
+  const mias = getCapturas().filter(c=>c.usuario===currentUser.usuario && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy && (!ci || c.tienda===ci.tienda));
+  const cont = {}; mias.forEach(c=>cont[c.tipo]=(cont[c.tipo]||0)+1);
+  document.querySelectorAll('#hubEjDentro .h-dk[data-k]').forEach(b=>{
+    const k = b.dataset.k; const old = b.querySelector('.h-badge'); if(old) old.remove();
+    if(k && cont[k]){ const s = document.createElement('i'); s.className='h-badge ok'; s.textContent = cont[k]; b.appendChild(s); }
+  });
+  try{ pintarEstadoNube(); }catch(e){}
+  const recientes = mias.filter(c=>c.tipo!=='entrada_tienda').sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,40);
+  const nube = document.getElementById('nubePendientesMis'); const nubeH = nube ? nube.innerHTML.trim() : '';
+  document.getElementById('hubCapt').innerHTML = '<b>Mis últimas capturas</b><div class="h-lista">' + (recientes.length
+    ? recientes.map(c=>`<div class="r"><span>✔ ${TIPO_LABEL[c.tipo]||c.tipo}</span><span style="color:#7b7a5e">${fechaHoraLocal(c.fecha_registro).slice(-5)}</span></div>`).join('')
+    : '<div class="r" style="color:#7b7a5e">Aún nada — lo que registres aparece aquí.</div>') + '</div>'
+    + (nubeH ? '<div class="h-nube">'+nubeH+'</div>' : '');
+}
+/* se llama desde renderCheckinBar (al entrar o salir de una tienda) */
+function hubRefrescar(){
+  if(!hubOn()) return;
+  const act = document.querySelector('.view.active');
+  if(act && act.id==='view-hubejecutar') renderHubEjecutar();
+  if(act && act.id==='view-hubinicio') renderHubInicio();
+}
+/* ---- celebración al registrar la salida de tienda ---- */
+function hubFiesta(tienda){
+  if(!hubOn()) return;
+  const hoy = todayISO();
+  const ruta = misTiendasHoy().filter(a=>a.fecha===hoy);
+  const salidas = new Set(getCapturas().filter(c=>c.usuario===currentUser.usuario && c.tipo==='salida_tienda' && c.fecha_registro && fechaLocal(c.fecha_registro)===hoy).map(c=>c.tienda));
+  const pendientes = ruta.filter(a=>!salidas.has(a.tienda));
+  const FR = ['Buen trabajo','Bien hecho','Vamos bien','Así se hace','Tienda cerrada'];
+  const completa = ruta.length && !pendientes.length;
+  document.getElementById('hubFiestaTit').textContent = completa ? 'Ruta completada' : FR[Math.floor(Math.random()*FR.length)];
+  document.getElementById('hubFiestaTxt').innerHTML = 'Cerraste<br><b>'+(tienda||'')+'</b>';
+  document.getElementById('hubFiestaRuta').innerHTML = completa ? 'Cubriste todas las tiendas de tu ruta de hoy.' : (pendientes.length ? 'Te faltan '+pendientes.length+' tienda(s) de tu ruta de hoy.' : '');
+  document.getElementById('hubFiesta').classList.add('on'); hubConfeti();
+}
+let _hubStopC = false;
+function hubFiestaCerrar(){ document.getElementById('hubFiesta').classList.remove('on'); _hubStopC = true; hubIr('inicio'); }
+function hubConfeti(){
+  const c = document.getElementById('hubCv'), x = c.getContext('2d'); c.width = c.offsetWidth; c.height = c.offsetHeight; _hubStopC = false;
+  const cols = ['#dd6b3a','#b6ad49','#c4a1cf','#3a3e19','#e9dd91','#f4a259'];
+  const ps = Array.from({length:130},()=>({x:Math.random()*c.width,y:-Math.random()*c.height,w:6+Math.random()*7,h:8+Math.random()*10,v:2+Math.random()*3.5,r:Math.random()*6,vr:(Math.random()-.5)*.3,c:cols[Math.floor(Math.random()*cols.length)],s:Math.random()*2-1}));
+  (function f(){ if(_hubStopC) return; x.clearRect(0,0,c.width,c.height); ps.forEach(p=>{ p.y+=p.v; p.x+=p.s; p.r+=p.vr; if(p.y>c.height){ p.y=-10; p.x=Math.random()*c.width; } x.save(); x.translate(p.x,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.w/2,-p.h/2,p.w,p.h); x.restore(); }); requestAnimationFrame(f); })();
+}
+
+/* ---- RECETAS / DEGUSTAR / TUTORIAL ---- */
+function hubBuildRecetas(){
+  const tub=(c,l)=>`<g><rect x="14" y="40" width="62" height="64" rx="8" fill="#fff" stroke="#3a3e19" stroke-width="3"/><rect x="14" y="40" width="62" height="14" rx="6" fill="#3a3e19"/><ellipse cx="45" cy="76" rx="22" ry="14" fill="${c}"/><text x="45" y="97" font-size="8" font-weight="800" text-anchor="middle" fill="#3a3e19">${l}</text></g>`;
+  const cracker=(x,c)=>`<g><rect x="${x}" y="70" width="64" height="48" rx="7" fill="#e7b865" stroke="#b07a2a" stroke-width="2.5"/>${[0,1,2,3,4,5].map(i=>`<circle cx="${x+12+(i%3)*20}" cy="${82+Math.floor(i/3)*20}" r="1.8" fill="#b07a2a"/>`).join('')}<ellipse cx="${x+32}" cy="90" rx="19" ry="10" fill="${c}" stroke="rgba(0,0,0,.2)"/></g>`;
+  const bread=(x,c)=>`<g><path d="M${x} 108 q-4-36 20-40 q20-6 40 4 q22 6 6 40z" fill="#d9a85d" stroke="#8a5a1d" stroke-width="2.5"/><path d="M${x+6} 106 q-2-26 18-30 q18-4 34 3 q16 5 6 30z" fill="#f2dfb3"/>${c?`<path d="M${x+14} 94 q14-12 30-2 q10 6 0 14 q-14 6-30-2z" fill="${c}"/>`:''}</g>`;
+  const inner=(c,l,kind)=>`<rect width="300" height="140" fill="#fbf6e4"/>${tub(c,l)}<path d="M92 80h46m-10-10 10 10-10 10" fill="none" stroke="#3a3e19" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${kind==='c'?cracker(160,c):bread(150,kind==='b'?c:null)}`;
+  const PROD=[['Dips','#8fae3b','DIP','c','Galleta Ritz'],['Hummus','#e2c58c','HUMMUS','c','Galleta Ritz'],['Chimichurri','#4f7a2a','CHIMI','b','Pan de masa madre'],['Pesto','#6a9a35','PESTO','b','Pan de masa madre'],['Panadería','#d9a85d','PAN','p','Pan de masa madre, tal cual (sin untar)']];
+  window._hubProd = PROD; window._hubInner = inner;
+  document.getElementById('hubDegLista').innerHTML = PROD.map((p,i)=>`<button class="h-pcard" onclick="hubVerDeg(${i})"><svg class="th" viewBox="0 0 300 140">${inner(p[1],p[2],p[3])}</svg><div><b>${p[0]}</b><small>Con: ${p[4]}</small></div></button>`).join('');
+  document.getElementById('hubNoLista').innerHTML = [['🥒','Pepino'],['🍎','Fruta'],['🥕','Verduras crudas'],['🍟','Totopos o papitas'],['🥤','Bebidas'],['🧀','Otras marcas']].map(a=>`<div class="h-nop"><span>${a[0]}</span>${a[1]}</div>`).join('');
+  const RECS=[['Canapé de jocoque y pesto','🥖',['Pan de masa madre','Jocoque Délico','Pesto Délico','Un toque de aceite de oliva'],['Corta el pan en rebanadas y tuéstalo.','Unta una capa de jocoque.','Agrega una cucharadita de pesto.','Sirve de inmediato.']],['Bruschetta con chimichurri','🌿',['Pan de masa madre','Chimichurri Délico','Jitomate picado'],['Tuesta el pan.','Pon el jitomate picado.','Termina con chimichurri encima.']],['Crostini de hummus','🧆',['Galletas Ritz','Hummus Délico','Pizca de paprika'],['Acomoda las galletas.','Pon una cucharadita de hummus.','Espolvorea paprika.']],['Tabla Délico para compartir','🧀',['Dips surtidos','Hummus','Pan de masa madre','Galletas Ritz'],['Pon cada dip en un tazón.','Rodea con pan y galletas.','Sirve y comparte.']]];
+  window._hubRECS = RECS; hubPintarRecetas();
+}
+function hubVerDeg(i){
+  const p = window._hubProd[i]; document.getElementById('hubDegT').textContent = p[0];
+  const n = p[0].toLowerCase();
+  const steps = p[3]==='c' ? ['Lávate las manos y ponte guantes.','Coloca las galletas Ritz en el plato de degustación.','Pon media cucharadita de '+n+' sobre cada galleta.','Ofrece con una sonrisa y cuéntales qué es y dónde encontrarlo.']
+    : p[3]==='b' ? ['Lávate las manos y ponte guantes.','Corta el pan de masa madre en cuadros pequeños.','Pon una pequeña porción de '+n+' encima de cada trozo.','Ofrece con una sonrisa y cuéntales qué es y dónde encontrarlo.']
+    : ['Lávate las manos y ponte guantes.','Corta el pan de masa madre en cuadros pequeños.','Se ofrece tal cual, sin untar nada.','Ofrece con una sonrisa y cuéntales qué es y dónde encontrarlo.'];
+  document.getElementById('hubDegD').innerHTML = `<div class="h-escena"><svg viewBox="0 0 300 140">${window._hubInner(p[1],p[2],p[3])}</svg></div><div class="h-serv">Se sirve con: ${p[4]}</div>` + steps.map((t,j)=>`<div class="h-step"><i>${j+1}</i><span>${t}</span></div>`).join('') + `<button class="h-soft" style="background:#8b2e1a;color:#fff" onclick="hubIr('noperm')">🚫 Ver objetos no permitidos</button>`;
+  _hubFrom='hubdegustar'; showView('hubdegdet');
+}
+const HUB_TUT = [['👤','Pon tu foto','Toca tu foto arriba en Inicio. Ahí también cambias el tamaño de letra y de iconos.'],['🏠','Tu tienda de hoy','En Inicio ves la tienda que te toca. Tócala para empezar tu día.'],['📅','Planear','Aquí ves tus objetivos, tus rutas y puedes pedir material, cartas o uniformes.'],['🚪','Ingreso a tienda','En Ejecutar toca “Ingreso a tienda” al llegar. Si hay un problema, usa “Ingresar con incidencia”.'],['✅','Registro mi labor','Ya adentro, registra lo que haces: degustación, auto evaluación, gastos… Lo que guardes se marca en verde.'],['🎉','Salida de tienda','Al terminar toca “Registrar salida de tienda”. ¡Y celebramos tu día!'],['💬','Comunicar','Aquí revisas cómo vas: cumplimiento, bono, vacaciones, evaluaciones y puedes escribirnos.']];
+let _hubTp = 0;
+function hubTut(){ const t = HUB_TUT[_hubTp], b = document.getElementById('hubTutBody'); if(!b) return;
+  b.innerHTML = `<div class="h-tut"><div class="h-bigi">${t[0]}</div><h2>${t[1]}</h2><p>${t[2]}</p><div class="h-tdots">${HUB_TUT.map((_,i)=>'<i class="'+(i===_hubTp?'on':'')+'"></i>').join('')}</div><div class="h-tutnav">${_hubTp>0?'<button class="g" onclick="_hubTp--;hubTut()">‹ Atrás</button>':''}<button onclick="${_hubTp<HUB_TUT.length-1?'_hubTp++;hubTut()':'_hubTp=0;hubTut();hubIr(\'inicio\')'}">${_hubTp<HUB_TUT.length-1?'Siguiente ›':'¡Listo!'}</button></div></div>`; }
+
+/* ---- activar / desactivar según vista ---- */
+function hubAplicar(){
+  const on = (typeof getVista==='function') && getVista()==='celular';
+  document.body.classList.toggle('hub-on', on);
+  if(!on){ document.body.classList.remove('hub-mod','hub-ini','hub-plan','hub-eje','hub-com'); return false; }
+  hubBuild(); hubUIAplicar();
+  if(!window._recSyncOk){ window._recSyncOk = true; try{ _recetasSync.iniciarSync(); }catch(e){ console.error(e); } }
+  return true;
+}
+
+/* --- enganches con el código existente (se envuelven las funciones, su lógica no cambia) --- */
+(function(){
+  const _sv = showView;
+  showView = function(key, btnEl){ try{ ocultarSugerenciasTienda(); }catch(e){} _sv(key, btnEl); try{ hubOnShow(key); }catch(e){ console.error(e); } };
+  const _rc = renderCheckinBar;
+  renderCheckinBar = function(){ _rc(); if(window._hubR) return; try{ hubRefrescar(); }catch(e){} };
+  const _of = openForm;
+  openForm = function(type){ try{ ocultarSugerenciasTienda(); }catch(e){} if(type==='caducidad' && hubOn() && getCheckin()){ hubCaducidadAbrir(); return; } _of(type); try{ hubEstiloFoto(type); }catch(e){ console.error(e); } };
+  const _bt = boot;
+  boot = function(keepView){
+    try{ _bt(keepView); }
+    finally{ try{ if(hubAplicar()) hubIr('inicio'); }catch(e){ console.error(e); } }
+  };
+})();
 </script>
 </body>
 </html>
