@@ -67,6 +67,7 @@
   #loginScreen .error-msg{color:#4a0f0f; font-weight:700; margin-top:12px; font-size:14px;}
   #loginScreen .lg-logo{display:block; width:38%; max-width:140px; height:auto; margin:46px auto 0; color:#fcf8e7; --dot:#3a3e19;}
   #loginScreen .lg-install{display:block; width:100%; margin:22px 0 0; background:transparent; border:2px solid #3a3e19; border-radius:999px; color:#3a3e19; font-size:14px; font-weight:800; padding:12px 18px; cursor:pointer;}
+  #loginScreen .lg-upd{display:block; margin:14px auto 0; background:none; border:0; color:#3a3e19; font-size:13px; font-weight:700; text-decoration:underline; cursor:pointer;}
   #loginScreen .lg-install.hidden{display:none !important;}
   #loadingScreen .ld-logo{width:min(70vw,300px); height:auto; color:#fcf8e7; --dot:#b3aa36;}
   .login-card{background:var(--surface); border-radius:20px; box-shadow:var(--shadow); padding:36px 32px; width:100%; max-width:380px;}
@@ -418,6 +419,7 @@
     <div class="error-msg" id="loginError"></div>
     <svg class="lg-logo" viewBox="1815 528 910 583" role="img" aria-label="CO."><use href="#logoDelico" width="3024" height="1728"/></svg>
     <button type="button" class="lg-install btnInstalarApp" onclick="intentarInstalarApp()">📲 Instalar la app en tu celular</button>
+    <button type="button" class="lg-upd" onclick="actualizarApp()">🔄 Actualizar app</button>
     <script>try{if((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true){document.currentScript.previousElementSibling.classList.add("hidden");}}catch(e){}</script>
   </div>
 </div>
@@ -440,6 +442,7 @@
         <span class="perfil-badge" id="whoPerfil"></span>
       </div>
       <button class="btn btn-ghost hidden" id="btnMigrarFirebase" onclick="migrarCuentasFirebase()" title="Crea la cuenta real de acceso (Firebase) para cada persona del equipo que todavía no la tenga.">🔐 Migrar cuentas</button>
+      <button class="btn btn-ghost" onclick="actualizarApp()" title="Baja la versión más reciente de la app">🔄 Actualizar</button>
       <button class="btn btn-ghost" onclick="doLogout()">Salir</button>
     </div>
   </header>
@@ -12232,10 +12235,56 @@ function abrirTrasClaveAcceso(){
 })();
 
 /* ---------- PWA: registrar service worker para poder instalar la app en el celular ---------- */
+/* v115: aviso "Actualizar" — cuando se sube una versión nueva, aparece una barra para que bajen la nueva sin desinstalar */
+let _swReg = null;
+function mostrarAvisoActualizar(){
+  if(document.getElementById('avisoActualizar')) return;
+  const d = document.createElement('div');
+  d.id = 'avisoActualizar';
+  d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:14px;z-index:99995;background:#3a3e19;color:#fcf8e7;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);font-size:14px;';
+  d.innerHTML = '<div style="flex:1;line-height:1.3;"><b>🔄 Hay una versión nueva de la app</b><br><span style="opacity:.85;font-size:12px;">Toca Actualizar para tener lo más reciente.</span></div>'
+    + '<button type="button" onclick="actualizarApp()" style="border:0;border-radius:999px;background:#b3aa36;color:#3a3e19;font-weight:800;font-size:14px;padding:10px 18px;cursor:pointer;">Actualizar</button>';
+  document.body.appendChild(d);
+}
+async function actualizarApp(){
+  if(navigator.onLine === false){ alert('Necesitas internet para actualizar. Conéctate a WiFi o datos e inténtalo de nuevo.'); return; }
+  try{
+    // 1) confirmar que sí hay red y que se puede bajar la versión nueva ANTES de borrar nada
+    const r = await fetch('index.html?v=' + Date.now(), {cache:'reload'});
+    if(!r.ok) throw new Error('sin red');
+    // 2) pedir al service worker que se actualice y limpiar copias viejas
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(g => g.update().catch(()=>{})));
+    }
+    if(window.caches){
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  }catch(e){
+    alert('No se pudo actualizar. Revisa tu internet e inténtalo de nuevo.');
+    return;
+  }
+  location.reload();
+}
 if('serviceWorker' in navigator){
+  const _teniaControlador = !!navigator.serviceWorker.controller;
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{ /* si falla (ej. abierta como archivo local), la app sigue funcionando igual */ });
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      _swReg = reg;
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if(!nw) return;
+        nw.addEventListener('statechange', () => {
+          if(nw.state === 'installed' && navigator.serviceWorker.controller) mostrarAvisoActualizar();
+        });
+      });
+      const buscar = () => { try{ reg.update(); }catch(e){} };
+      document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') buscar(); });
+      setInterval(buscar, 30*60*1000);
+    }).catch(()=>{ /* si falla (ej. abierta como archivo local), la app sigue funcionando igual */ });
   });
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if(_teniaControlador) mostrarAvisoActualizar(); });
 }
 
 /* ---------- Instalar la app en el celular ----------
