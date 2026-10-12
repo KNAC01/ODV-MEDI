@@ -2,7 +2,7 @@
 // IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
 // también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
 // celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v116';
+const CACHE_NAME = 'delico-odv-v117';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png', './splash.mp4', './splash_poster.jpg'];
 // El SDK de Firebase se carga desde gstatic.com cada vez que arranca la app. Si no se guarda también
 // aquí, un celular que abre la app SIN internet (o con el caché del navegador ya vencido) se puede
@@ -66,7 +66,10 @@ self.addEventListener('fetch', (event) => {
   }
   const esNavegacion = event.request.mode === 'navigate';
   const esMismoOrigen = event.request.url.startsWith(self.location.origin);
-  const desdeRed = fetch(event.request).then((resp) => {
+  // v117: los archivos propios se piden con "no-cache" (revalidar siempre). Antes la red podía contestar con la copia
+  // vieja que el navegador guarda ~10 min (GitHub Pages), y por eso a veces tardaba en verse la versión nueva.
+  const peticionRed = esMismoOrigen ? new Request(event.request.url, {cache:'no-cache', credentials:'same-origin'}) : event.request;
+  const desdeRed = fetch(peticionRed).then((resp) => {
     if (esMismoOrigen || resp.type === 'opaque') {
       const copy = resp.clone();
       caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
