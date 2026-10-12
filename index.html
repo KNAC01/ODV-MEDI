@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DELICO . ODV</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#a7ab27">
+<meta name="theme-color" content="#3a3e19">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -51,9 +52,23 @@
   .hidden{display:none !important;}
 
   /* ---- Login ---- */
-  #loginScreen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:
-    radial-gradient(1200px 600px at 10% -10%, var(--brand-soft), transparent),
-    var(--bg);}
+  #loginScreen{min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:24px; background:#b7ae4a;}
+  #loginScreen .lg-wrap{width:100%; max-width:340px; display:flex; flex-direction:column; align-items:stretch; text-align:left;}
+  #loginScreen .lg-title{font-size:44px; line-height:1; font-weight:900; letter-spacing:.5px; color:#fcf8e7; margin:0 0 34px; text-align:center; font-family:"Arial Narrow","Helvetica Neue",Arial,sans-serif; text-transform:uppercase;}
+  #loginScreen .lg-sub{font-size:20px; font-weight:800; color:#3a3e19; margin:0 0 14px;}
+  #loginScreen .lg-pill{position:relative; margin-bottom:14px;}
+  #loginScreen .lg-pill input{width:100%; box-sizing:border-box; border:0; outline:0; border-radius:999px; background:#fcf8e7; color:#3a3e19; font-size:16px; padding:16px 22px; box-shadow:none;}
+  #loginScreen .lg-pill input::placeholder{color:#8d8a4a;}
+  #loginScreen .lg-pill input:focus{box-shadow:0 0 0 3px #3a3e19;}
+  #loginScreen .lg-eye svg{width:22px;height:22px;display:block;}
+  #loginScreen .lg-eye{position:absolute; right:8px; top:50%; transform:translateY(-50%); border:0; background:transparent; color:#3a3e19; padding:8px 12px; cursor:pointer; font-size:18px; line-height:1;}
+  #loginScreen .lg-enter{width:100%; border:0; border-radius:999px; background:#3a3e19; color:#fcf8e7; font-size:17px; font-weight:800; padding:16px 22px; margin-top:6px; cursor:pointer;}
+  #loginScreen .lg-enter:active{transform:scale(.98);}
+  #loginScreen .error-msg{color:#4a0f0f; font-weight:700; margin-top:12px; font-size:14px;}
+  #loginScreen .lg-logo{display:block; width:38%; max-width:140px; height:auto; margin:46px auto 0; color:#fcf8e7; --dot:#3a3e19;}
+  #loginScreen .lg-install{display:block; width:100%; margin:22px 0 0; background:transparent; border:2px solid #3a3e19; border-radius:999px; color:#3a3e19; font-size:14px; font-weight:800; padding:12px 18px; cursor:pointer;}
+  #loginScreen .lg-install.hidden{display:none !important;}
+  #loadingScreen .ld-logo{width:min(70vw,300px); height:auto; color:#fcf8e7; --dot:#b3aa36;}
   .login-card{background:var(--surface); border-radius:20px; box-shadow:var(--shadow); padding:36px 32px; width:100%; max-width:380px;}
   .login-card h1{font-size:22px; margin:0 0 4px; color:var(--brand-dark);}
   .login-card p.sub{margin:0 0 24px; color:var(--ink-soft); font-size:14px;}
@@ -365,6 +380,7 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="logoDelico" viewBox="0 0 3024 1728"><defs><clipPath id="dl92d435c029"><path d="M 515.335938 546.03125 L 831 546.03125 L 831 1093.53125 L 515.335938 1093.53125 Z M 515.335938 546.03125 " clip-rule="nonzero"/></clipPath><clipPath id="dl642b4b3b3d"><path d="M 889.195312 546.03125 L 1152.164062 546.03125 L 1152.164062 641.511719 L 889.195312 641.511719 Z M 889.195312 641.511719 L 1004.242188 641.511719 L 1004.242188 772.996094 L 889.195312 772.996094 Z M 889.195312 772.996094 L 1141.988281 772.996094 L 1141.988281 868.476562 L 889.195312 868.476562 Z M 889.195312 868.476562 L 1004.242188 868.476562 L 1004.242188 998.394531 L 889.195312 998.394531 Z M 889.195312 998.394531 L 1160.765625 998.394531 L 1160.765625 1093.875 L 889.195312 1093.875 Z M 889.195312 998.394531 " clip-rule="nonzero"/></clipPath><clipPath id="dlba0120bd9f"><path d="M 0.195312 0.03125 L 263.164062 0.03125 L 263.164062 95.511719 L 0.195312 95.511719 Z M 0.195312 95.511719 L 115.242188 95.511719 L 115.242188 226.996094 L 0.195312 226.996094 Z M 0.195312 226.996094 L 252.988281 226.996094 L 252.988281 322.476562 L 0.195312 322.476562 Z M 0.195312 322.476562 L 115.242188 322.476562 L 115.242188 452.394531 L 0.195312 452.394531 Z M 0.195312 452.394531 L 271.765625 452.394531 L 271.765625 547.875 L 0.195312 547.875 Z M 0.195312 452.394531 " clip-rule="nonzero"/></clipPath><clipPath id="dlcfc944ef42"><rect x="0" width="272" y="0" height="548"/></clipPath><clipPath id="dld9934a1212"><path d="M 1216.539062 546.03125 L 1331.585938 546.03125 L 1331.585938 998.394531 L 1216.539062 998.394531 Z M 1216.539062 998.394531 L 1468.546875 998.394531 L 1468.546875 1093.875 L 1216.539062 1093.875 Z M 1216.539062 998.394531 " clip-rule="nonzero"/></clipPath><clipPath id="dlce305e4a69"><path d="M 0.539062 0.03125 L 115.585938 0.03125 L 115.585938 452.394531 L 0.539062 452.394531 Z M 0.539062 452.394531 L 252.546875 452.394531 L 252.546875 547.875 L 0.539062 547.875 Z M 0.539062 452.394531 " clip-rule="nonzero"/></clipPath><clipPath id="dl60326ffac8"><rect x="0" width="253" y="0" height="548"/></clipPath><clipPath id="dl2148052148"><path d="M 1533.828125 546.03125 L 1648.875 546.03125 L 1648.875 1093.875 L 1533.828125 1093.875 Z M 1533.828125 546.03125 " clip-rule="nonzero"/></clipPath><clipPath id="dle3707f9c91"><path d="M 0.828125 0.03125 L 115.875 0.03125 L 115.875 547.875 L 0.828125 547.875 Z M 0.828125 0.03125 " clip-rule="nonzero"/></clipPath><clipPath id="dl7225d89f32"><rect x="0" width="116" y="0" height="548"/></clipPath><clipPath id="dl4fabdb633c"><path d="M 2209.808594 537.914062 L 2530 537.914062 L 2530 1101.914062 L 2209.808594 1101.914062 Z M 2209.808594 537.914062 " clip-rule="nonzero"/></clipPath><clipPath id="dld43d6bf930"><path d="M 2576.0625 963.769531 L 2712.5625 963.769531 L 2712.5625 1101 L 2576.0625 1101 Z M 2576.0625 963.769531 " clip-rule="nonzero"/></clipPath><clipPath id="dl129b39ae02"><path d="M 1829.464844 537.914062 L 2149 537.914062 L 2149 1102 L 1829.464844 1102 Z M 1829.464844 537.914062 " clip-rule="nonzero"/></clipPath><clipPath id="dl14d84d6dba"><path d="M 2034.265625 862.777344 C 2032.5 976.996094 2020.78125 1005.929688 1990.683594 1005.929688 C 1957.8125 1005.929688 1943.726562 973.84375 1943.726562 821.226562 C 1943.726562 667.050781 1957.8125 633.398438 1990.683594 633.398438 C 2021.464844 633.398438 2032.59375 660.945312 2034.273438 775.808594 L 2148.691406 775.808594 C 2146.910156 625.957031 2088.539062 537.914062 1990.683594 537.914062 C 1888.941406 537.914062 1829.464844 642 1829.464844 821.226562 C 1829.464844 998.105469 1888.941406 1101.410156 1989.121094 1101.410156 C 2087.902344 1101.410156 2147.066406 1012.332031 2148.703125 862.777344 Z M 2034.265625 862.777344 " clip-rule="nonzero"/></clipPath><clipPath id="dlf07e01be03"><path d="M 0.464844 0.914062 L 319.71875 0.914062 L 319.71875 564.601562 L 0.464844 564.601562 Z M 0.464844 0.914062 " clip-rule="nonzero"/></clipPath><clipPath id="dlc18ec7629e"><path d="M 205.265625 325.777344 C 203.5 439.996094 191.78125 468.929688 161.683594 468.929688 C 128.8125 468.929688 114.726562 436.84375 114.726562 284.226562 C 114.726562 130.050781 128.8125 96.398438 161.683594 96.398438 C 192.464844 96.398438 203.59375 123.945312 205.273438 238.808594 L 319.691406 238.808594 C 317.910156 88.957031 259.539062 0.914062 161.683594 0.914062 C 59.941406 0.914062 0.464844 105 0.464844 284.226562 C 0.464844 461.105469 59.941406 564.410156 160.121094 564.410156 C 258.902344 564.410156 318.066406 475.332031 319.703125 325.777344 Z M 205.265625 325.777344 " clip-rule="nonzero"/></clipPath><clipPath id="dl6c6a503934"><rect x="0" width="320" y="0" height="565"/></clipPath></defs><g clip-path="url(#dl92d435c029)"><path fill="currentColor" d="M 645.984375 998.066406 C 690.574219 998.066406 716.390625 955.835938 716.390625 819.753906 C 716.390625 684.457031 691.355469 641.441406 645.984375 641.441406 L 630.335938 641.441406 L 630.335938 998.066406 Z M 628.773438 546.03125 C 765.675781 546.03125 830.605469 632.054688 830.605469 819.753906 C 830.605469 1005.101562 767.242188 1093.476562 628.773438 1093.476562 L 515.339844 1093.476562 L 515.339844 546.03125 Z M 628.773438 546.03125 " fill-rule="nonzero"/></g><g clip-path="url(#dl642b4b3b3d)"><g transform="matrix(1, 0, 0, 1, 889, 546)"><g clip-path="url(#dlcfc944ef42)"><g clip-path="url(#dlba0120bd9f)"><path fill="currentColor" d="M 0.195312 0.03125 L 271.765625 0.03125 L 271.765625 547.90625 L 0.195312 547.90625 Z M 0.195312 0.03125 " fill-rule="nonzero"/></g></g></g></g><g clip-path="url(#dld9934a1212)"><g transform="matrix(1, 0, 0, 1, 1216, 546)"><g clip-path="url(#dl60326ffac8)"><g clip-path="url(#dlce305e4a69)"><path fill="currentColor" d="M 0.539062 0.03125 L 252.546875 0.03125 L 252.546875 547.960938 L 0.539062 547.960938 Z M 0.539062 0.03125 " fill-rule="nonzero"/></g></g></g></g><g clip-path="url(#dl2148052148)"><g transform="matrix(1, 0, 0, 1, 1533, 546)"><g clip-path="url(#dl7225d89f32)"><g clip-path="url(#dle3707f9c91)"><path fill="currentColor" d="M 0.828125 0.03125 L 115.875 0.03125 L 115.875 547.855469 L 0.828125 547.855469 Z M 0.828125 0.03125 " fill-rule="nonzero"/></g></g></g></g><g clip-path="url(#dl4fabdb633c)"><path fill="currentColor" d="M 2415.050781 821.160156 C 2415.050781 679.535156 2402.519531 633.375 2369.617188 633.375 C 2336.710938 633.375 2324.183594 679.535156 2324.183594 821.160156 C 2324.183594 960.433594 2336.710938 1005.816406 2369.617188 1005.816406 C 2402.519531 1005.816406 2415.050781 960.433594 2415.050781 821.160156 M 2209.808594 821.160156 C 2209.808594 641.976562 2269.347656 537.914062 2369.617188 537.914062 C 2470.671875 537.914062 2529.425781 641.976562 2529.425781 821.160156 C 2529.425781 997.992188 2470.671875 1101.273438 2369.617188 1101.273438 C 2269.347656 1101.273438 2209.808594 997.992188 2209.808594 821.160156 " fill-rule="nonzero"/></g><g clip-path="url(#dld43d6bf930)"><path style="fill:var(--dot,#b3aa36)" d="M 2576.0625 1032.605469 C 2576.0625 991.929688 2603.421875 963.769531 2644.082031 963.769531 C 2684.746094 963.769531 2712.101562 991.929688 2712.101562 1032.605469 C 2712.101562 1074.066406 2684.746094 1100.667969 2644.082031 1100.667969 C 2603.421875 1100.667969 2576.0625 1074.066406 2576.0625 1032.605469 " fill-rule="nonzero"/></g><g clip-path="url(#dl129b39ae02)"><g clip-path="url(#dl14d84d6dba)"><g transform="matrix(1, 0, 0, 1, 1829, 537)"><g clip-path="url(#dl6c6a503934)"><g clip-path="url(#dlf07e01be03)"><g clip-path="url(#dlc18ec7629e)"><path fill="currentColor" d="M 0.464844 0.914062 L 319.375 0.914062 L 319.375 564.410156 L 0.464844 564.410156 Z M 0.464844 0.914062 " fill-rule="nonzero"/></g></g></g></g></g></g></symbol></svg>
 
 <!-- ============ ACCESO (barrera temporal — se retira cuando esté el login real con backend) ============ -->
 <div id="gateScreen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#faf3d7;z-index:10000;padding:24px;text-align:center;">
@@ -381,10 +397,10 @@
 </div>
 
 <!-- ============ CARGANDO ============ -->
-<div id="loadingScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:#faf3d7;z-index:9999;padding:24px;text-align:center;">
-  <div class="delico-logo lg">DELICO . ODV</div>
-  <div id="loadingTexto" style="color:#4a4a2a;">Cargando información…</div>
-  <div id="loadingError" style="display:none;color:#8a1f1f;max-width:320px;">
+<div id="loadingScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:18px;background:#3a3e19;z-index:9999;padding:24px;text-align:center;">
+  <svg class="ld-logo" viewBox="505 528 2217 583" role="img" aria-label="DELICO"><use href="#logoDelico" width="3024" height="1728"/></svg>
+  <div id="loadingTexto" style="color:#fcf8e7;opacity:.85;font-size:14px;">Cargando información…</div>
+  <div id="loadingError" style="display:none;color:#fcf8e7;max-width:320px;">
     No se pudo cargar la información. Revisa tu conexión a internet e intenta de nuevo.
     <br><button class="btn btn-brand" onclick="location.reload()" style="margin-top:12px;">Reintentar</button>
   </div>
@@ -392,22 +408,17 @@
 
 <!-- ============ LOGIN ============ -->
 <div id="loginScreen" style="display:none;">
-  <div class="login-card">
-    <div class="delico-logo lg" style="margin-bottom:10px;">DELICO . ODV</div>
-    <h1 class="vivemedi-word" style="font-size:22px;">#modoMEDI</h1>
-    <p class="sub">Inicia sesión con tu usuario</p>
-    <div class="field">
-      <label for="loginUser">Usuario</label>
-      <input id="loginUser" type="text" placeholder="Ej. DCDM01" autocomplete="username">
-    </div>
-    <div class="field">
-      <label for="loginPass">Contraseña</label>
-      <input id="loginPass" type="password" placeholder="••••••" autocomplete="current-password">
-    </div>
-    <button class="btn btn-brand btn-block" onclick="doLogin()">Entrar</button>
+  <div class="lg-wrap">
+    <h1 class="lg-title">ODV MEDI</h1>
+    <div class="lg-sub">Ingresa</div>
+    <div class="lg-pill"><input id="loginUser" type="text" placeholder="Usuario" autocomplete="username" autocapitalize="characters"></div>
+    <div class="lg-pill"><input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password" style="padding-right:56px;">
+      <button type="button" class="lg-eye" id="loginEye" aria-label="Mostrar contraseña" onclick="var i=document.getElementById('loginPass');var v=i.type==='password';i.type=v?'text':'password';this.querySelector('.ojo-x').style.display=v?'none':'';this.setAttribute('aria-label',v?'Ocultar contraseña':'Mostrar contraseña');"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/><path class="ojo-x" d="M4 4l16 16"/></svg></button></div>
+    <button class="lg-enter" onclick="doLogin()">Entrar</button>
     <div class="error-msg" id="loginError"></div>
-    <div class="login-hint">Tu información se guarda en este dispositivo. La sincronización en vivo entre todo el equipo llega en la siguiente fase.</div>
-    <button type="button" class="btn btn-ghost btn-block btnInstalarApp hidden" style="margin-top:10px;" onclick="intentarInstalarApp()">📲 Instalar la app en tu celular</button>
+    <svg class="lg-logo" viewBox="1815 528 910 583" role="img" aria-label="CO."><use href="#logoDelico" width="3024" height="1728"/></svg>
+    <button type="button" class="lg-install btnInstalarApp" onclick="intentarInstalarApp()">📲 Instalar la app en tu celular</button>
+    <script>try{if((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true){document.currentScript.previousElementSibling.classList.add("hidden");}}catch(e){}</script>
   </div>
 </div>
 
