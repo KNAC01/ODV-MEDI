@@ -2009,7 +2009,7 @@ function borrarDeColeccion(coleccion, id){
   }
 }
 
-function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
+function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar, consultaFn){
   const estado = { cache: JSON.parse(localStorage.getItem(storageKey) || '[]'), iniciado:false };
   function get(){ return JSON.parse(JSON.stringify(estado.cache)); }
   function save(arrNuevo){
@@ -2050,6 +2050,8 @@ function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
   function iniciarSync(){
     if(estado.iniciado) return;
     estado.iniciado = true;
+    let consulta = null;
+    try{ consulta = consultaFn ? consultaFn() : null; }catch(e){ consulta = null; }
     iniciarSincronizacion(nombreColeccion,
       (doc)=>{
         const idx = estado.cache.findIndex(d=>d.id===doc.id);
@@ -2064,7 +2066,8 @@ function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar){
         estado.cache = estado.cache.filter(d=>d.id!==idBorrado);
         guardarLocalStorageSeguro(storageKey, estado.cache);
         if(alRefrescar) alRefrescar();
-      }
+      },
+      consulta
     );
   }
   return {get, save, iniciarSync};
@@ -2236,7 +2239,10 @@ const _auditoriasSync = crearColeccionSincronizada('auditorias', 'delico_odv_aud
 const _notificacionesSync = crearColeccionSincronizada('notificaciones', 'delico_odv_notificaciones_v1', ()=>{ if(currentUser) renderInicio(); });
 const _eval360Sync = crearColeccionSincronizada('eval360', 'delico_odv_eval360_v1', ()=>{ if(currentUser) renderEval360(); });
 const _noticiasSync = crearColeccionSincronizada('noticias', 'delico_odv_noticias_v1', ()=>{ if(currentUser) renderNoticias(); });
-const _rutasSync = crearColeccionSincronizada('rutas', 'delico_odv_rutas_v1', ()=>{ if(currentUser){ renderRuta(); renderPreplan(); renderCalendario(); } });
+/* v113 — menos lecturas: una Embajadora solo necesita SUS rutas (antes cada celular bajaba las ~250 rutas de todo el equipo
+   cada vez que abría la app). Supervisor/Coordinador/Admin siguen viendo todo. */
+const _rutasSync = crearColeccionSincronizada('rutas', 'delico_odv_rutas_v1', ()=>{ if(currentUser){ renderRuta(); renderPreplan(); renderCalendario(); } },
+  ()=> (currentUser && currentUser.perfil==='Embajador' && db) ? db.collection('rutas').where('usuario','==',currentUser.usuario) : null);
 const _escuchaSync = crearColeccionSincronizada('delico_escucha', 'delico_odv_escucha_v1', ()=>{ if(currentUser) renderEscucha(); });
 const _pipelineAjustesSync = crearColeccionSincronizada('pipeline_ajustes', 'delico_odv_pipeline_ajustes_v1', ()=>{ if(currentUser){ try{ renderPipelineTabla(); }catch(e){} } });
 
@@ -2245,7 +2251,8 @@ function iniciarTodaLaSincronizacion(){
   if(_syncIniciado) return;
   _syncIniciado = true;
   iniciarSincronizacionCapturas();
-  iniciarSincronizacionAccesos();
+  /* v113: la tabla de instalación solo la ve la gente de oficina — una Embajadora no necesita bajar los accesos de todo el equipo */
+  if(currentUser && currentUser.perfil!=='Embajador') iniciarSincronizacionAccesos();
   [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
    _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
    _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync, _pipelineAjustesSync].forEach(s=>s.iniciarSync());
@@ -3893,6 +3900,7 @@ const FORM_DEFS = {
     title: 'Caducidades', icon:'⏳',
     fields: [
       ['tienda','tienda_select','Tienda',true],
+      ['seguimiento','caducidad_seguimiento','Seguimiento de lo capturado antes',false],
       ['clave','producto','Producto',true],
       ['fechas_caducidad','caducidad_multi','Fecha(s) de caducidad y piezas en riesgo',true],
       ['foto','file_multi','Foto(s) — opcional, puedes subir varias',false],
@@ -4539,6 +4547,8 @@ function openForm(type){
           ? `<input type="text" id="f_${key}" value="${window._prefillCheckin.tienda} — ${window._prefillCheckin.cadena}" readonly>
              <div class="file-note">Tienda elegida${window._prefillCheckin.fueraRuta?' (fuera de tu ruta — se registrará la incidencia al guardar)':''}. Para cambiarla, cierra y elige otra.</div>`
           : `<input type="text" id="f_${key}" placeholder="Escribe para buscar tu tienda..." oninput="mostrarSugerenciasTienda(this)" onfocus="mostrarSugerenciasTienda(this)" onblur="setTimeout(ocultarSugerenciasTienda,150)" autocomplete="off">`);
+    } else if(type_==='caducidad_seguimiento'){
+      html += `<div id="cadSeg"><div class="file-note">Elige la tienda para ver lo que ya se capturó ahí.</div></div>`;
     } else if(type_==='caducidad_multi'){
       html += `<div id="fcadrows_${key}"></div>
         <button type="button" class="btn btn-ghost" style="margin-top:2px;" onclick="agregarFilaCaducidad('${key}')">+ Agregar otra fecha de caducidad</button>
@@ -4582,6 +4592,145 @@ function openForm(type){
   document.getElementById('modalBg').classList.add('open');
   def.fields.forEach(([key,type_])=>{ if(type_==='producto') renderTarjetasProducto(key); });
   def.fields.forEach(([key,type_])=>{ if(type_==='caducidad_multi'){ window._caducidadFilas = window._caducidadFilas || {}; window._caducidadFilas[key] = []; agregarFilaCaducidad(key); } });
+  if(type==='caducidad') iniciarSeguimientoCaducidad();
+}
+/* ---------- Caducidades: SEGUIMIENTO por tienda (v113) ----------
+   Idea: lo que una persona captura en una tienda queda como "lote abierto" (tienda + código + fecha de caducidad + piezas),
+   sin importar quién lo capturó. La siguiente persona que abra Caducidades en esa tienda ve esos lotes y está OBLIGADA a
+   anotar cuántas piezas quedan hoy de cada uno (0 = ya no hay; ahí el lote se cierra). Además puede capturar fechas nuevas.
+   - Cada respuesta se guarda como un registro normal de "caducidad" (con seguimiento:true y piezas_previas), así que los
+     reportes, el Kardex y las alertas ya lo ven.
+   - Para que una Embajadora vea lo que capturó OTRA persona (su celular solo baja sus propias capturas), el estado
+     actual de cada lote vive también en la colección ligera "caducidad_lotes" (sin fotos); se consulta solo al abrir
+     el formulario y solo de la tienda elegida. */
+const COL_LOTES = 'caducidad_lotes';
+function claveLote(cadena, tienda, clave, fecha){ return [cadena||'', tienda||'', clave||'', String(fecha||'').slice(0,10)].join('|').replace(/\//g,'-'); }
+/* Estado de cada lote según las capturas que ESTE celular conoce (las propias, o todas si es oficina). Incluye los cerrados (piezas 0). */
+function lotesLocalesTienda(cadena, tienda){
+  const hoy = todayISO();
+  const caps = getCapturas().filter(c=>c.tipo==='caducidad' && c.clave && c.fecha_caducidad && c.tienda===tienda && (!cadena || !c.cadena || c.cadena===cadena));
+  const ultDia = new Map();
+  caps.forEach(c=>{ const d=fechaSoloDia(c.fecha_registro); if(!ultDia.has(c.clave) || d>ultDia.get(c.clave)) ultDia.set(c.clave, d); });
+  const mapa = new Map();
+  caps.forEach(c=>{
+    const k = claveLote(cadena||c.cadena, tienda, c.clave, c.fecha_caducidad);
+    const prev = mapa.get(k);
+    if(!prev || String(c.fecha_registro) >= String(prev.t)) mapa.set(k, {key:k, cadena:c.cadena||cadena||'', tienda, clave:c.clave, fecha_caducidad:String(c.fecha_caducidad).slice(0,10), piezas:parseInt(c.piezas)||0, t:c.fecha_registro||'', por:c.persona||c.usuario||'', seg_v:!!c.seg_v, diaCap:fechaSoloDia(c.fecha_registro), fuente:'local'});
+  });
+  return [...mapa.values()].filter(l=>{
+    if(l.seg_v) return true;                                   // capturas del modelo nuevo: siguen abiertas hasta que alguien las cierre
+    // capturas de ANTES de esta función: solo cuentan las de la última visita de ese código, recientes y no vencidas hace mucho
+    if(l.diaCap !== ultDia.get(l.clave)) return false;
+    if(pcDiasEntre(l.diaCap, hoy) > 21) return false;
+    return l.fecha_caducidad >= fechaMas(hoy,-14);
+  });
+}
+function fechaMas(iso, dias){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+dias); return isoDate(d); }
+/* Lotes de la tienda en la nube: los abiertos con UNA consulta, y los que este celular cree abiertos pero la nube no
+   devolvió (probablemente alguien los cerró) se verifican uno por uno. Devuelve null si no hay conexión. */
+function cargarLotesNube(cadena, tienda, claves){
+  return new Promise(res=>{
+    if(!db){ res(null); return; }
+    let hecho = false; const fin = v=>{ if(hecho) return; hecho = true; res(v); };
+    setTimeout(()=>fin(null), 7000);
+    try{
+      db.collection(COL_LOTES).where('tienda','==',tienda).where('estado','==','abierto').get().then(snap=>{
+        const out = new Map();
+        snap.forEach(d=>{ const x = d.data(); if(!cadena || !x.cadena || x.cadena===cadena) out.set(d.id, {...x, key:d.id}); });
+        const faltan = (claves||[]).filter(k=>!out.has(k));
+        return Promise.all(faltan.map(k=>db.collection(COL_LOTES).doc(k).get().then(d=>{ if(d && d.exists) out.set(k, {...d.data(), key:k}); }).catch(()=>{}))).then(()=>fin([...out.values()]));
+      }).catch(()=>fin(null));
+    }catch(e){ fin(null); }
+  });
+}
+/* junta lo local y lo de la nube: para cada lote gana el conteo más reciente */
+function fusionarLotes(locales, nube){
+  const mapa = new Map();
+  const poner = l=>{ const prev = mapa.get(l.key); if(!prev || String(l.t) >= String(prev.t)) mapa.set(l.key, l); };
+  locales.forEach(poner);
+  (nube||[]).forEach(x=> poner({key:x.key, cadena:x.cadena||'', tienda:x.tienda, clave:x.clave, fecha_caducidad:String(x.fecha_caducidad).slice(0,10), piezas:parseInt(x.piezas)||0, t:x.ultimo_conteo_en||'', por:x.ultimo_por||'', fuente:'nube'}));
+  return [...mapa.values()].filter(l=>l.piezas>0).sort((a,b)=> a.fecha_caducidad.localeCompare(b.fecha_caducidad) || nombreProducto(a.clave).localeCompare(nombreProducto(b.clave)));
+}
+function tiendaCaducidadActual(){
+  const locked = document.getElementById('f_tienda_locked');
+  const ci = getCheckin();
+  if(locked && locked.value && ci) return {tienda: locked.value, cadena: ci.cadena||''};
+  const m = resolverTiendaEscrita('f_tienda');
+  return m ? {tienda:m.tienda, cadena:m.cadena} : null;
+}
+function iniciarSeguimientoCaducidad(){
+  window._cadSegLotes = []; window._cadSegListo = true; window._cadSegTienda = null;
+  renderSeguimientoCaducidad();
+  clearInterval(window._cadSegTimer);
+  window._cadSegTimer = setInterval(()=>{ if(!document.getElementById('cadSeg')){ clearInterval(window._cadSegTimer); return; } renderSeguimientoCaducidad(); }, 700);
+}
+async function renderSeguimientoCaducidad(){
+  const box = document.getElementById('cadSeg'); if(!box) return;
+  const st = tiendaCaducidadActual();
+  const ktienda = st ? st.cadena+'|'+st.tienda : '';
+  if(window._cadSegTienda === ktienda) return;
+  window._cadSegTienda = ktienda; window._cadSegLotes = [];
+  if(!st){ window._cadSegListo = true; box.innerHTML = '<div class="file-note">Elige la tienda para ver lo que ya se capturó ahí.</div>'; return; }
+  window._cadSegListo = false;
+  box.innerHTML = '<div class="file-note">⏳ Revisando lo que se capturó antes en esta tienda…</div>';
+  const locales = lotesLocalesTienda(st.cadena, st.tienda);
+  const nube = await cargarLotesNube(st.cadena, st.tienda, locales.filter(l=>l.piezas>0).map(l=>l.key));
+  if(window._cadSegTienda !== ktienda || !document.getElementById('cadSeg')) return; // cambiaron de tienda mientras buscaba
+  const lotes = fusionarLotes(locales, nube);
+  window._cadSegLotes = lotes; window._cadSegListo = true; window._cadSegSinNube = (nube===null);
+  pintarSeguimientoCaducidad(st);
+}
+function pintarSeguimientoCaducidad(st){
+  const box = document.getElementById('cadSeg'); if(!box) return;
+  const lotes = window._cadSegLotes || [];
+  if(!lotes.length){
+    box.innerHTML = `<div class="file-note">✓ No hay caducidades pendientes de seguimiento en ${st.tienda}.${window._cadSegSinNube?' <b>(Sin conexión: solo se revisó lo que hay en este celular.)</b>':''}</div>`;
+    return;
+  }
+  const hoy = todayISO();
+  const filas = lotes.map((l,i)=>{
+    const dias = pcDiasEntre(hoy, l.fecha_caducidad);
+    const estado = dias<0 ? `<b style="color:var(--bad);">VENCIÓ hace ${-dias} día(s)</b>` : dias===0 ? '<b style="color:var(--bad);">vence HOY</b>' : dias<=7 ? `<b style="color:var(--warn);">vence en ${dias} día(s)</b>` : `vence en ${dias} días`;
+    const cuando = l.t ? fechaSoloDia(l.t).slice(5).split('-').reverse().join('-') : '';
+    return `<div style="padding:8px 0; border-top:1px solid var(--line); display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <div style="flex:1; min-width:170px;">
+        <div style="font-weight:700; font-size:13px;">${nombreProducto(l.clave)}</div>
+        <div style="font-size:12px;">Caduca <b>${l.fecha_caducidad}</b> · ${estado}</div>
+        <div style="font-size:11px; color:var(--ink-soft);">Último conteo: <b>${l.piezas}</b> pza(s)${l.por?' · '+l.por:''}${cuando?' · '+cuando:''}</div>
+      </div>
+      <div style="width:150px;">
+        <label style="font-size:11px; color:var(--ink-soft); display:block; margin-bottom:2px;">¿Cuántas quedan hoy? *</label>
+        <div style="display:flex; gap:4px;"><input type="number" id="cseg_${i}" step="1" min="0" inputmode="numeric" placeholder="0, 5, 12…" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="flex:1; min-width:0;">
+        <button type="button" class="btn btn-ghost" style="padding:4px 8px;" onclick="document.getElementById('cseg_${i}').value='0'" title="Ya no hay piezas de esta fecha">0</button></div>
+      </div>
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div class="card" style="padding:10px 12px; background:var(--warn-soft,#fff6e0); border:1px solid var(--warn,#e0a800);">
+      <div style="font-weight:700; font-size:13.5px;">📋 Seguimiento — esto ya se había capturado en ${st.tienda}</div>
+      <div style="font-size:12px; margin:2px 0 4px;">Antes de capturar fechas nuevas, anota cuántas piezas quedan HOY de cada fecha (pon <b>0</b> si ya no hay). Es obligatorio. Después, si hay fechas nuevas, captúralas abajo (Producto y fechas son opcionales cuando hay seguimiento).${window._cadSegSinNube?' <b>(Sin conexión: solo se muestra lo capturado desde este celular.)</b>':''}</div>
+      ${filas}
+    </div>`;
+}
+/* Deja constancia del conteo en la colección ligera de lotes (la que ven todos). Nunca debe romper el guardado. */
+function registrarLoteCaducidad(c, movimiento){
+  try{
+    if(!db || !c || !c.clave || !c.fecha_caducidad) return;
+    const piezas = Number(c.piezas)||0;
+    const ahora = new Date().toISOString();
+    const key = claveLote(c.cadena, c.tienda, c.clave, c.fecha_caducidad);
+    const hist = {t:ahora, u:c.usuario||'', p:c.persona||'', n:piezas, m:movimiento};
+    const FV = (typeof firebase!=='undefined' && firebase.firestore && firebase.firestore.FieldValue) || null;
+    const datos = {cadena:c.cadena||'', tienda:c.tienda||'', clave:c.clave, fecha_caducidad:String(c.fecha_caducidad).slice(0,10), piezas, estado: piezas>0?'abierto':'cerrado', ultimo_conteo_en:ahora, ultimo_por:c.persona||c.usuario||'', historial: (FV && FV.arrayUnion) ? FV.arrayUnion(hist) : [hist]};
+    db.collection(COL_LOTES).doc(key).set(datos, {merge:true}).catch(err=>console.warn('No se pudo registrar el lote de caducidad en la nube:', err));
+  }catch(e){ console.warn('registrarLoteCaducidad:', e); }
+}
+/* Lotes que siguen abiertos con la información que tiene ESTE celular (para alertas y riesgo del plan) */
+function lotesAbiertosLocales(){
+  const tiendas = new Map();
+  getCapturas().forEach(c=>{ if(c.tipo==='caducidad' && c.tienda && c.clave && c.fecha_caducidad){ const k=(c.cadena||'')+'|'+c.tienda; if(!tiendas.has(k)) tiendas.set(k, {cadena:c.cadena||'', tienda:c.tienda}); } });
+  const out = [];
+  tiendas.forEach(t=> lotesLocalesTienda(t.cadena, t.tienda).filter(l=>l.piezas>0).forEach(l=>out.push(l)));
+  return out;
 }
 /* ---------- Caducidades: varias fechas (y piezas) para el mismo código, en una sola captura ---------- */
 window._caducidadFilas = window._caducidadFilas || {};
@@ -4745,7 +4894,7 @@ function ubicPintarBanner(estado){
   if(!requiere){ if(b) b.remove(); return; }
   if(!b){
     b=document.createElement('div'); b.id='ubicBanner';
-    b.style.cssText='position:fixed; left:8px; right:8px; bottom:8px; z-index:99990; background:#fff3cd; color:#5c4400; border:1px solid #e0a800; border-radius:12px; padding:10px 12px; font-size:13.5px; line-height:1.35; box-shadow:0 4px 16px rgba(0,0,0,.25); display:flex; gap:10px; align-items:center;';
+    b.style.cssText='position:fixed; left:8px; right:8px; bottom:8px; z-index:90; background:#fff3cd; color:#5c4400; border:1px solid #e0a800; border-radius:12px; padding:10px 12px; font-size:13.5px; line-height:1.35; box-shadow:0 4px 16px rgba(0,0,0,.25); display:flex; gap:10px; align-items:center;';
     document.body.appendChild(b);
   }
   const bloqueada = estado==='denied';
@@ -5002,7 +5151,9 @@ function submitForm(type){
     let missing = false;
     let faltantes = [];
     const geoMetasTodas = [];
-    def.fields.forEach(([key,type_,label,req])=>{
+    const segHay = type==='caducidad' && (window._cadSegLotes||[]).length>0;
+    def.fields.forEach(([key,type_,label,req0])=>{
+      const req = req0 && !(segHay && (key==='clave' || key==='fechas_caducidad')); // con seguimiento pendiente, capturar fechas nuevas es opcional
       if(type_==='file'){
         const input = document.getElementById('f_'+key) || document.getElementById(key);
         rec[key] = input ? (input.dataset.b64 || '') : '';
@@ -5032,6 +5183,13 @@ function submitForm(type){
           rec[key] = match ? match.tienda : '';
           rec.cadena = match ? match.cadena : '';
         }
+      } else if(type_==='caducidad_seguimiento'){
+        const lotes = window._cadSegLotes || [];
+        if(!window._cadSegListo){ missing = true; faltantes.push('Espera un segundo: sigo revisando lo capturado antes en la tienda'); }
+        const resp = []; let sinResponder = 0;
+        lotes.forEach((l,i)=>{ const el = document.getElementById('cseg_'+i); const v = el ? el.value.trim() : ''; if(v===''){ sinResponder++; } else resp.push({lote:l, piezas: parseInt(v)||0}); });
+        if(sinResponder){ missing = true; faltantes.push(`Seguimiento: faltan ${sinResponder} fecha(s) por responder cuántas piezas quedan (pon 0 si ya no hay)`); }
+        rec._seguimiento = resp;
       } else if(type_==='caducidad_multi'){
         const filas = window._caducidadFilas[key] || [];
         const pares = [];
@@ -5044,7 +5202,7 @@ function submitForm(type){
           if(fecha && piezas>0) pares.push({fecha_caducidad: fecha, piezas});
           else if(fecha || (p && p.value)) filaAMedias = true; // dejaron una fila con solo fecha o solo piezas
         });
-        if(!pares.length){ missing = true; faltantes.push(label); }
+        if(!pares.length && !segHay){ missing = true; faltantes.push(label); }
         if(filaAMedias){ missing = true; faltantes.push(label + ' (hay una fila incompleta — pon fecha Y piezas, o quítala con ✕)'); }
         rec._caducidadPares = pares;
       } else {
@@ -5058,6 +5216,11 @@ function submitForm(type){
         rec[key] = val;
       }
     });
+    if(segHay){
+      const nPares = (rec._caducidadPares||[]).length;
+      if(rec.clave && !nPares){ missing = true; faltantes.push('Fecha(s) de caducidad y piezas del producto que elegiste (o quita el producto)'); }
+      if(!rec.clave && nPares){ missing = true; faltantes.push('Producto de las fechas nuevas'); }
+    }
     { const rg = resumenGeo(geoMetasTodas); if(rg){ rec.geo_estado = rg.estado; if(rg.dist_m!=null) rec.geo_dist_m = rg.dist_m; } }
     if(type==='incidencia' && rec.tipo_incidencia==='Calidad (olor/consistencia/objeto ajeno)'){
       if(!rec.lote){ missing = true; faltantes.push('Número de lote'); }
@@ -5072,13 +5235,22 @@ function submitForm(type){
           // (para no tocar reportes/alertas que ya asumen 1 registro = 1 fecha), pero el usuario
           // solo llena tienda/producto/foto UNA vez.
           const pares = rec._caducidadPares || [];
-          const base = {...rec}; delete base._caducidadPares; delete base.fechas_caducidad;
+          const seg = rec._seguimiento || [];
+          const base = {...rec}; delete base._caducidadPares; delete base._seguimiento; delete base.fechas_caducidad; delete base.seguimiento;
+          base.seg_v = 1;
           const registros = pares.map(par => ({...base, id: uid(), fecha_caducidad: par.fecha_caducidad, piezas: par.piezas}));
-          registros.forEach(r=>arr.push(r));
+          // respuestas del seguimiento: un registro por lote, con las piezas que quedan hoy (0 = cerrado)
+          const regsSeg = seg.map(x => ({id: uid(), tipo:'caducidad', usuario: rec.usuario, persona: rec.persona, fecha_registro: rec.fecha_registro,
+            tienda: rec.tienda, cadena: rec.cadena || x.lote.cadena || '', clave: x.lote.clave, fecha_caducidad: x.lote.fecha_caducidad,
+            piezas: x.piezas, piezas_previas: x.lote.piezas, seguimiento: true, seg_v: 1}));
+          [...registros, ...regsSeg].forEach(r=>arr.push(r));
           saveCapturas(arr);
+          registros.forEach(r=>registrarLoteCaducidad(r, 'captura'));
+          regsSeg.forEach(r=>registrarLoteCaducidad(r, 'seguimiento'));
           closeModal();
-          toast(`Captura guardada ✓ (${registros.length} fecha${registros.length>1?'s':''} de caducidad)`);
-          mostrarProyeccionCaducidadMultiple(registros);
+          const cerrados = regsSeg.filter(r=>r.piezas===0).length;
+          toast(`Captura guardada ✓${registros.length?` (${registros.length} fecha${registros.length>1?'s':''} nueva${registros.length>1?'s':''})`:''}${regsSeg.length?` · seguimiento de ${regsSeg.length} lote(s)${cerrados?`, ${cerrados} cerrado(s)`:''}`:''}`);
+          if(registros.length) mostrarProyeccionCaducidadMultiple(registros);
         } else {
           arr.push(rec);
           saveCapturas(arr);
@@ -5583,7 +5755,7 @@ function detalleCaptura(c){
       const ok = all.filter(x=>x.cumple).length;
       return `${c.persona_nueva?'Con '+c.persona_nueva+' · ':''}${ok}/${all.length} cumplidos`;
     }
-    case 'caducidad': return `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
+    case 'caducidad': return c.seguimiento ? `Seguimiento · ${nombreProducto(c.clave)} · quedan ${c.piezas} pzas${c.piezas_previas!=null?' (antes '+c.piezas_previas+')':''} · cad. ${c.fecha_caducidad}` : `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
     case 'incidencia': return `${c.tipo_incidencia}: ${c.descripcion}${c.lote?' · Lote: '+c.lote:''}`;
     case 'incapacidad': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
     case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
@@ -6861,9 +7033,9 @@ function calcularPreplan(refStartISO, refEndISO){
   const visitasPorTienda = {};
   planRef.forEach(a=>{ const k=a.cadena+'|'+a.tienda; visitasPorTienda[k]=(visitasPorTienda[k]||0)+1; });
 
-  const caducidadesRecientes = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_registro && fechaLocal(c.fecha_registro)>=refStartISO);
+  /* v113: riesgo = piezas de los lotes que siguen ABIERTOS en cada tienda (último conteo > 0), no la suma de todas las capturas */
   const riesgoPorTienda = {};
-  caducidadesRecientes.forEach(c=>{ const k=c.cadena+'|'+c.tienda; riesgoPorTienda[k]=(riesgoPorTienda[k]||0)+(parseInt(c.piezas)||0); });
+  lotesAbiertosLocales().filter(l=>l.fecha_caducidad >= fechaMas(refStartISO,-14)).forEach(l=>{ const k=l.cadena+'|'+l.tienda; riesgoPorTienda[k]=(riesgoPorTienda[k]||0)+(l.piezas||0); });
 
   // Inventario (días de inventario / excedente) — por SKU dentro de "alertas_venta_cero" (a pesar del nombre trae dias_inventario por tienda-SKU)
   const invPorTienda = {}; // 'cadena|num_tienda' -> {maxDias, excedentes}
@@ -7121,6 +7293,7 @@ function pcFilasBase(f){
       region:reg, supervisor:sup, usuario:c.usuario||'', persona, fecha_registro:c.fecha_registro||'', diaCap,
       clave:c.clave, producto: prod.nombre || c.clave, familia:fam, precio: Number(prod.precio_promedio)||0,
       fecha_caducidad: String(c.fecha_caducidad).slice(0,10), piezas: parseInt(c.piezas)||0,
+      seg_v: c.seg_v?1:0, seguimiento: !!c.seguimiento, piezas_previas: c.piezas_previas!=null ? parseInt(c.piezas_previas)||0 : null,
     });
   });
   return out;
@@ -7133,18 +7306,21 @@ function pcAplicarModo(filas, modo){
   const porLote = new Map();
   filas.forEach(r=>{
     const k = r.cadena+'|'+r.tienda+'|'+r.clave;
-    if(r.diaCap !== ultimoDia.get(k)) return;
+    // v113: las capturas del modelo con seguimiento siguen vigentes hasta que alguien las cierra (0 piezas);
+    // las anteriores conservan la regla de siempre (solo cuenta la visita más reciente de ese código).
+    if(!r.seg_v && r.diaCap !== ultimoDia.get(k)) return;
     const kl = k+'|'+r.fecha_caducidad;
     const prev = porLote.get(kl);
     if(!prev || String(r.fecha_registro) >= String(prev.fecha_registro)) porLote.set(kl, r);
   });
-  return [...porLote.values()];
+  // un lote cuyo último conteo es 0 ya está cerrado: no es riesgo
+  return [...porLote.values()].filter(r=>r.piezas>0).map(r=>{ r.grpUlt = true; return r; });
 }
 /* Riesgo por FIFO dentro de cada (tienda, código, día de captura). Agrega r.vel, r.fuente, r.dias (desde HOY), r.riesgo, r.valor, etc. */
 function pcCalcularRiesgo(filas, colchon){
   const hoy = todayISO();
   const grupos = new Map();
-  filas.forEach(r=>{ const k = r.cadena+'|'+r.tienda+'|'+r.clave+'|'+r.diaCap; (grupos.get(k) || grupos.set(k,[]).get(k)).push(r); });
+  filas.forEach(r=>{ const k = r.cadena+'|'+r.tienda+'|'+r.clave+'|'+(r.grpUlt ? 'vigente' : r.diaCap); (grupos.get(k) || grupos.set(k,[]).get(k)).push(r); });
   grupos.forEach(lotes=>{
     lotes.sort((a,b)=>a.fecha_caducidad.localeCompare(b.fecha_caducidad));
     const v = pcVelocidadDe(lotes[0].cadena, lotes[0].tienda, lotes[0].clave);
@@ -7651,7 +7827,7 @@ function renderInicio(){
 
   const en7dias = new Date(hoy); en7dias.setDate(en7dias.getDate()+7);
   const finVentanaCaducidad = isoDate(en7dias) < inicioMesEndISO ? isoDate(en7dias) : inicioMesEndISO;
-  const caducidades = getCapturas().filter(c=>c.tipo==='caducidad' && c.fecha_caducidad && c.fecha_caducidad>=todayISO() && c.fecha_caducidad<=finVentanaCaducidad);
+  const caducidades = lotesAbiertosLocales().filter(l=>l.fecha_caducidad>=todayISO() && l.fecha_caducidad<=finVentanaCaducidad);
   document.getElementById('inicioCardCaducidad').querySelector('.value').textContent = caducidades.length;
 
   const alertas = [];
@@ -10482,8 +10658,8 @@ const REP_EXPORT_DEF = {
     filas:(c,X)=>{ const p = X.persona(c.usuario)||{}; const inc = X.visita(c); return [[[p.perfil||'', p.rol||'', inc?'Sí':'No', inc||''], c.notas||'']]; } },
   salida_tienda: { extra:['Perfil','Rol'], coment:'Notas del equipo',
     filas:(c,X)=>{ const p = X.persona(c.usuario)||{}; return [[[p.perfil||'', p.rol||''], c.notas||'']]; } },
-  caducidad: { extra:['Clave','Producto','Familia','Fecha de caducidad','Piezas'], coment:'Comentarios del equipo',
-    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.fecha_caducidad||'', c.piezas!=null&&c.piezas!==''?Number(c.piezas):''], c.notas||c.comentarios||'']] },
+  caducidad: { extra:['Clave','Producto','Familia','Fecha de caducidad','Tipo de registro','Piezas previas','Piezas (conteo de ese día)'], coment:'Comentarios del equipo',
+    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.fecha_caducidad||'', c.seguimiento?'Seguimiento':'Captura nueva', c.piezas_previas!=null?Number(c.piezas_previas):'', c.piezas!=null&&c.piezas!==''?Number(c.piezas):''], c.notas||c.comentarios||'']] },
   incidencia: { extra:['Tipo de incidencia','Lote'], coment:'Descripción de la incidencia',
     filas:(c,X)=>[[[c.tipo_incidencia||'', c.lote||''], c.descripcion||'']] },
   incapacidad: { extra:['Fecha de la incapacidad','# fotos'], coment:'Comentarios del equipo',
