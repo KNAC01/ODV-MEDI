@@ -2,8 +2,8 @@
 // IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
 // también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
 // celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v115';
-const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'delico-odv-v116';
+const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-192.png', './icon-512.png', './splash.mp4', './splash_poster.jpg'];
 // El SDK de Firebase se carga desde gstatic.com cada vez que arranca la app. Si no se guarda también
 // aquí, un celular que abre la app SIN internet (o con el caché del navegador ya vencido) se puede
 // quedar en pantalla en blanco porque nunca terminó de cargar "firebase" y todo lo demás depende de eso.
@@ -45,6 +45,25 @@ self.addEventListener('activate', (event) => {
 const ESPERA_RED_MS = 4000;
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const _url = new URL(event.request.url);
+  // version.json (aviso de actualización importante) siempre va directo a la red, nunca de caché
+  if (_url.pathname.endsWith('/version.json')) return;
+  // El video de carga pide "pedacitos" (Range): se responden desde el caché para que también funcione sin internet
+  if (event.request.headers.has('range') && _url.pathname.endsWith('.mp4')) {
+    event.respondWith(
+      caches.match('./splash.mp4').then(async (cached) => {
+        if (!cached) return fetch(event.request);
+        const buf = await cached.arrayBuffer();
+        const m = /bytes=(\d+)-(\d*)/.exec(event.request.headers.get('range')) || [0, 0, ''];
+        const ini = parseInt(m[1], 10) || 0;
+        const fin = m[2] ? Math.min(parseInt(m[2], 10), buf.byteLength - 1) : buf.byteLength - 1;
+        return new Response(buf.slice(ini, fin + 1), { status: 206, headers: {
+          'Content-Type': 'video/mp4', 'Content-Range': 'bytes ' + ini + '-' + fin + '/' + buf.byteLength,
+          'Content-Length': String(fin - ini + 1), 'Accept-Ranges': 'bytes' } });
+      })
+    );
+    return;
+  }
   const esNavegacion = event.request.mode === 'navigate';
   const esMismoOrigen = event.request.url.startsWith(self.location.origin);
   const desdeRed = fetch(event.request).then((resp) => {
