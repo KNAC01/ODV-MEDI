@@ -70,8 +70,14 @@
   #loginScreen .lg-upd.hidden{display:none !important;}
   #loginScreen .lg-upd{display:block; margin:14px auto 0; background:none; border:0; color:#3a3e19; font-size:13px; font-weight:700; text-decoration:underline; cursor:pointer;}
   #loginScreen .lg-install.hidden{display:none !important;}
-  #loadingScreen video, #loadingScreen .ld-poster{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#aca241;}
-  #loadingScreen #loadingTexto{position:absolute; left:0; right:0; bottom:4px; text-align:center; color:#3a3e19; font-size:13px; font-weight:600; opacity:.8; z-index:2;}
+  #loadingScreen{background:#b6ad49 !important; justify-content:flex-start !important; padding-top:19vh;}
+  #loadingScreen .ld-co{width:min(62vw,300px); height:auto; aspect-ratio:910/583; color:#fcf8e7; --dot:#3a3e19; margin-top:0; animation:ldIn .7s ease-out both;}
+  #loadingScreen .ld-suelo{position:absolute; left:0; right:0; bottom:9vh; display:flex; justify-content:center;}
+  #loadingScreen .ld-mujer{width:min(86vw,400px); height:auto; display:block; animation:ldMujer .8s ease-out both;}
+  @keyframes ldIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  @keyframes ldMujer{from{opacity:0; transform:translateX(-36px);} to{opacity:1; transform:none;}}
+  @media (prefers-reduced-motion: reduce){ #loadingScreen .ld-co, #loadingScreen .ld-mujer{animation:none;} }
+  #loadingScreen #loadingTexto{position:absolute; left:0; right:0; bottom:3vh; text-align:center; color:#3a3e19; font-size:13px; font-weight:600; opacity:.8; z-index:2;}
   #loadingScreen #loadingError{position:relative; z-index:3; background:#fcf8e7; color:#3a3e19; border-radius:16px; padding:18px; box-shadow:0 6px 24px rgba(0,0,0,.25);}
   #actualizacionMayor{position:fixed; inset:0; z-index:100001; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:28px; background:#aca241; color:#3a3e19;}
   #actualizacionMayor .am-logo{width:44%; max-width:170px; height:auto; color:#fcf8e7; --dot:#3a3e19; margin-bottom:26px;}
@@ -409,8 +415,8 @@
 
 <!-- ============ CARGANDO ============ -->
 <div id="loadingScreen" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;flex-direction:column;background:#aca241;z-index:9999;overflow:hidden;">
-  <img class="ld-poster" src="splash_poster.jpg" alt="">
-  <video id="splashVideo" src="splash.mp4" poster="splash_poster.jpg" muted playsinline autoplay loop preload="auto" aria-hidden="true"></video>
+  <svg class="ld-co" viewBox="1815 528 910 583" role="img" aria-label="CO."><use href="#logoDelico" width="3024" height="1728"/></svg>
+  <div class="ld-suelo"><img class="ld-mujer" src="splash_mujer.svg" alt=""></div>
   <div id="loadingTexto">Cargando información…</div>
   <div id="loadingError" style="display:none;max-width:320px;margin:24px;">
     No se pudo cargar la información. Revisa tu conexión a internet e intenta de nuevo.
@@ -12178,11 +12184,10 @@ function aplicarEquipoODV(){
   });
 }
 /* ---------- Carga de datos (app_data.json) + sesión persistente (validada por Firebase, no por localStorage a ciegas) ---------- */
-const SPLASH_MIN_MS = 2500;   // tiempo mínimo que se ve la animación al abrir (cámbialo si quieres más o menos)
+const SPLASH_MIN_MS = 1800;   // tiempo mínimo que se ve la animación al abrir (cámbialo si quieres más o menos)
 let _splashInicio = Date.now();
 function iniciarApp(){
   _splashInicio = Date.now();
-  try{ const v = document.getElementById('splashVideo'); if(v){ v.currentTime = 0; const pp = v.play(); if(pp && pp.catch) pp.catch(()=>{}); } }catch(e){}
   fetch('app_data.json', {cache:'no-store'})
     .then(r => { if(!r.ok) throw new Error('http '+r.status); return r.json(); })
     .then(data => {
