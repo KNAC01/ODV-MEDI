@@ -661,14 +661,16 @@ body.hub-on #modalBody:has(#hubCadForm) > .modal-actions{position:sticky;bottom:
 .hc-rm{align-self:flex-end;background:none;border:none;color:#a33;font-weight:700;font-size:13px;padding:4px}
 .hc-expr .campo-falta,.hc-expr select.campo-falta,.hc-expr input.campo-falta{border-color:#d33 !important;background:#fff0f0 !important}
 
-/* v129: tamaño de botones proporcional al ancho de la pantalla (ícono y letra parejos en cualquier celular) */
-#hubRoot{--t3:min(calc((100vw - 50px)/3),150px);--t2:min(calc((100vw - 41px)/2),230px)}
-#hubRoot .h-grid3 .h-sq,#hubRoot .h-grid3 .h-dk{aspect-ratio:1/1;min-height:0;padding:6px 4px;gap:calc(var(--t3)*.03);font-size:clamp(12px,calc(var(--t3)*.1*var(--hs)),16px);box-sizing:border-box}
-#hubRoot .h-mm{aspect-ratio:1/.92;min-height:0;padding:6px 4px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--t3)*.06);font-size:clamp(12px,calc(var(--t3)*.09*var(--hs)),16px);font-weight:700}
-#hubRoot .h-grid2 .h-sq,#hubRoot .h-grid2 .h-dk,#hubRoot .h-grid2x2 .h-sq{aspect-ratio:1/.8;min-height:0;box-sizing:border-box;gap:calc(var(--t2)*.04);font-size:clamp(13px,calc(var(--t2)*.08*var(--hs)),18px)}
-#hubRoot .h-grid3 .h-sq svg,#hubRoot .h-grid3 .h-dk svg,#hubRoot .h-mm svg{width:calc(var(--t3)*.34*var(--hic));height:calc(var(--t3)*.34*var(--hic))}
-#hubRoot .h-grid2 .h-sq svg,#hubRoot .h-grid2 .h-dk svg,#hubRoot .h-grid2x2 .h-sq svg{width:calc(var(--t2)*.24*var(--hic));height:calc(var(--t2)*.24*var(--hic))}
-#hubRoot .h-grid2x2 .h-sq b{font-size:clamp(24px,calc(var(--t2)*.16),40px)}
+/* v131: tamaño de botones — el ícono mide un % del botón (siempre proporcional) y la letra se calcula con el ancho de su cuadrícula */
+#hubRoot .h-grid3,#hubRoot .h-grid2,#hubRoot .h-grid2x2,#hubRoot .h-row3{container-type:inline-size}
+#hubRoot .h-grid3 .h-sq,#hubRoot .h-grid3 .h-dk,#hubRoot .h-mm{min-height:0;box-sizing:border-box;padding:6px 4px;justify-content:center;align-items:center;gap:8%;font-size:clamp(12px,calc((100cqw - 22px)/3*.105*var(--hs)),17px);line-height:1.15}
+#hubRoot .h-grid3 .h-sq,#hubRoot .h-grid3 .h-dk{aspect-ratio:1/1}
+#hubRoot .h-mm{aspect-ratio:1/.92;display:flex;flex-direction:column;font-weight:700}
+#hubRoot .h-grid2 .h-sq,#hubRoot .h-grid2 .h-dk,#hubRoot .h-grid2x2 .h-sq{aspect-ratio:1/.8;min-height:0;box-sizing:border-box;gap:6%;font-size:clamp(13px,calc((100cqw - 13px)/2*.078*var(--hs)),20px)}
+#hubRoot .h-grid3 .h-sq svg,#hubRoot .h-grid3 .h-dk svg{width:calc(40%*var(--hic));max-width:68%;height:auto;aspect-ratio:1/1;flex:none}
+#hubRoot .h-mm svg{width:calc(36%*var(--hic));max-width:60%;height:auto;aspect-ratio:1/1;flex:none}
+#hubRoot .h-grid2 .h-sq svg,#hubRoot .h-grid2 .h-dk svg,#hubRoot .h-grid2x2 .h-sq svg{width:calc(28%*var(--hic));max-width:46%;height:auto;aspect-ratio:1/1;flex:none}
+#hubRoot .h-grid2x2 .h-sq b{font-size:clamp(26px,calc((100cqw - 13px)/2*.17),44px)}
 #hubBar{min-height:68px}#hubBar button{padding-top:4px}
 </style>
 </head>
@@ -3248,7 +3250,13 @@ const VISTA_KEY = 'delico_odv_vista';
 function getVista(){
   let manual = null;
   try{ manual = localStorage.getItem(VISTA_KEY+'_manual')==='1' ? localStorage.getItem(VISTA_KEY) : null; }catch(e){}
-  return manual || (window.innerWidth <= 820 ? 'celular' : 'escritorio');
+  if(manual) return manual;
+  /* v131: en un teléfono o tableta SIEMPRE la versión de celular (app). En compu: Supervisor, Coordinador y Admin ven la de escritorio; Embajador la de celular. */
+  let movil = false;
+  try{ movil = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>0 && window.matchMedia('(pointer:coarse)').matches); }catch(e){}
+  if(movil || window.innerWidth <= 820) return 'celular';
+  const perfil = (typeof currentUser!=='undefined' && currentUser) ? currentUser.perfil : null;
+  return perfil==='Embajador' ? 'celular' : 'escritorio';
 }
 function setVista(v){
   localStorage.setItem(VISTA_KEY, v);
