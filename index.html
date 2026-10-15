@@ -660,6 +660,13 @@ body.hub-on #modalBody:has(#hubCadForm) > .modal-actions{position:sticky;bottom:
 .hc-expr2{display:flex;gap:8px}.hc-expr2 label{flex:1;font-size:12px;font-weight:700;color:#5b5f3a;display:flex;flex-direction:column;gap:4px}.hc-expr2 input{padding:12px;font-size:16px;border:2px solid #d9d1b4;border-radius:12px;width:100%;box-sizing:border-box}
 .hc-rm{align-self:flex-end;background:none;border:none;color:#a33;font-weight:700;font-size:13px;padding:4px}
 .hc-expr .campo-falta,.hc-expr select.campo-falta,.hc-expr input.campo-falta{border-color:#d33 !important;background:#fff0f0 !important}
+
+/* v127: botones más cuadrados y más grandes por defecto (antes salían como rectángulos chicos si el celular no tenía guardado el tamaño) */
+#hubRoot .h-grid3 .h-sq,#hubRoot .h-grid3 .h-dk{aspect-ratio:1/1;min-height:0;padding:8px 4px}
+#hubRoot .h-grid2 .h-sq,#hubRoot .h-grid2 .h-dk,#hubRoot .h-grid2x2 .h-sq{aspect-ratio:1/.82;min-height:0}
+#hubRoot .h-grid3 .h-sq svg,#hubRoot .h-grid3 .h-dk svg{width:calc(40px*var(--hic));height:calc(40px*var(--hic))}
+#hubRoot .h-grid2 .h-sq svg,#hubRoot .h-grid2 .h-dk svg{width:calc(44px*var(--hic));height:calc(44px*var(--hic))}
+#hubBar{min-height:68px}#hubBar button{padding-top:4px}
 </style>
 </head>
 <body>
@@ -12844,7 +12851,7 @@ const HUB_UI_KEY = 'delico_odv_ui_v1';
 let _hubSec = 'ini', _hubFrom = 'hubinicio', _hubBuilt = false, _hubCartasSec = null;
 
 /* ---- tamaño de letra / iconos ---- */
-function hubUILeer(){ try{ return Object.assign({s:1, ic:1}, JSON.parse(localStorage.getItem(HUB_UI_KEY)||'{}')); }catch(e){ return {s:1, ic:1}; } }
+function hubUILeer(){ try{ return Object.assign({s:1.15, ic:1.25}, JSON.parse(localStorage.getItem(HUB_UI_KEY)||'{}')); }catch(e){ return {s:1.15, ic:1.25}; } }
 function hubUIAplicar(){
   const u = hubUILeer(), r = document.documentElement.style;
   r.setProperty('--hs', u.s); r.setProperty('--hic', u.ic); r.setProperty('--mz', u.s);
