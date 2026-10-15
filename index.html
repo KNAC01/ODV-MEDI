@@ -3242,11 +3242,17 @@ const ALL_TABS = [
 const BLOQUE_LABEL = {planeacion:'Planeación', ejecucion:'Ejecución', retro:'Retroalimentación'};
 
 const VISTA_KEY = 'delico_odv_vista';
+/* v130: la vista (celular / escritorio) se decide sola según el ancho de la pantalla: celular en teléfono, escritorio en compu.
+   Solo se respeta la que se guardó si la persona la eligió a propósito con los botones 🖥️ / 📱 (antes se quedaba pegada la vista de celular
+   en la compu de Supervisor, Coordinador y Admin aunque nadie la hubiera elegido). */
 function getVista(){
-  return localStorage.getItem(VISTA_KEY) || (window.innerWidth <= 820 ? 'celular' : 'escritorio');
+  let manual = null;
+  try{ manual = localStorage.getItem(VISTA_KEY+'_manual')==='1' ? localStorage.getItem(VISTA_KEY) : null; }catch(e){}
+  return manual || (window.innerWidth <= 820 ? 'celular' : 'escritorio');
 }
 function setVista(v){
   localStorage.setItem(VISTA_KEY, v);
+  try{ localStorage.setItem(VISTA_KEY+'_manual','1'); }catch(e){}
   if(currentUser) boot(true);
 }
 function tabsVisiblesParaMi(){
