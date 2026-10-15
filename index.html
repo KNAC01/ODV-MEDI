@@ -2005,12 +2005,19 @@ function cargarHtml2Canvas(){ return cargarLibreriaExport(()=>typeof html2canvas
 /* Red de seguridad: si algo truena en el código (por ejemplo al guardar una captura) nunca debe
    quedarse "sin hacer nada" en silencio — siempre debe avisar con un mensaje, para poder diagnosticarlo.
    Antes de esto, un error de JavaScript en medio de un guardado simplemente no hacía nada visible. */
-window.addEventListener('error', (ev)=>{
-  try{ toast('⚠️ Algo falló: ' + (ev && ev.message ? ev.message : 'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
-});
-window.addEventListener('unhandledrejection', (ev)=>{
-  try{ toast('⚠️ Algo falló: ' + (ev && ev.reason ? (ev.reason.message||ev.reason) : 'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
-});
+/* v128: errores que NO son culpa de la captura (el celular sin espacio/memoria, el service worker que no pudo
+   actualizarse por red lenta, avisos internos del navegador) ya no muestran el mensaje de "avísale a soporte". */
+function _avisoErrorGlobal(msg){
+  msg = String(msg||'');
+  if(/ServiceWorker|service worker|sw\.js|ResizeObserver|^Script error|Load failed|Failed to fetch|NetworkError/i.test(msg)) return;
+  if(/memoria insuficiente|not enough (memory|storage)|quota|out of memory|espacio/i.test(msg)){
+    try{ toast('⚠️ Tu celular tiene poca memoria o espacio. Cierra otras apps o libera espacio (fotos, descargas) y vuelve a intentar.', 7000); }catch(e){}
+    return;
+  }
+  try{ toast('⚠️ Algo falló: ' + (msg||'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
+}
+window.addEventListener('error', (ev)=>{ _avisoErrorGlobal(ev && ev.message); });
+window.addEventListener('unhandledrejection', (ev)=>{ _avisoErrorGlobal(ev && ev.reason ? (ev.reason.message||ev.reason) : ''); });
 /* Confirmación personalizada — evita usar window.confirm(), que en varios celulares con la app
    instalada como app (modo standalone/PWA) NO funciona: la llamada no hace nada visible y el código
    simplemente se detiene ahí sin guardar ni avisar nada. Esta versión usa una tarjeta propia. */
@@ -5533,9 +5540,14 @@ function submitForm(type){
         rec[key] = el ? el.checked : false;
       } else if(type_==='tienda_select'){
         const lockedInput = document.getElementById('f_'+key+'_locked');
+        const pf0 = (type==='entrada_tienda') ? window._prefillCheckin : null;
         if(lockedInput && lockedInput.value){
           rec[key] = lockedInput.value;
           rec.cadena = getCheckin()?.cadena || '';
+        } else if(pf0 && pf0.tienda){
+          /* v128: la tienda ya viene elegida desde la ruta — se usa tal cual (antes se volvía a buscar en el catálogo y si el nombre no coincidía decía "Falta: Tienda") */
+          rec[key] = pf0.tienda;
+          rec.cadena = pf0.cadena || '';
         } else {
           const match = resolverTiendaEscrita('f_'+key);
           if(req && !match){ missing = true; faltantes.push(label); }
