@@ -661,11 +661,14 @@ body.hub-on #modalBody:has(#hubCadForm) > .modal-actions{position:sticky;bottom:
 .hc-rm{align-self:flex-end;background:none;border:none;color:#a33;font-weight:700;font-size:13px;padding:4px}
 .hc-expr .campo-falta,.hc-expr select.campo-falta,.hc-expr input.campo-falta{border-color:#d33 !important;background:#fff0f0 !important}
 
-/* v127: botones más cuadrados y más grandes por defecto (antes salían como rectángulos chicos si el celular no tenía guardado el tamaño) */
-#hubRoot .h-grid3 .h-sq,#hubRoot .h-grid3 .h-dk{aspect-ratio:1/1;min-height:0;padding:8px 4px}
-#hubRoot .h-grid2 .h-sq,#hubRoot .h-grid2 .h-dk,#hubRoot .h-grid2x2 .h-sq{aspect-ratio:1/.82;min-height:0}
-#hubRoot .h-grid3 .h-sq svg,#hubRoot .h-grid3 .h-dk svg{width:calc(40px*var(--hic));height:calc(40px*var(--hic))}
-#hubRoot .h-grid2 .h-sq svg,#hubRoot .h-grid2 .h-dk svg{width:calc(44px*var(--hic));height:calc(44px*var(--hic))}
+/* v129: tamaño de botones proporcional al ancho de la pantalla (ícono y letra parejos en cualquier celular) */
+#hubRoot{--t3:min(calc((100vw - 50px)/3),150px);--t2:min(calc((100vw - 41px)/2),230px)}
+#hubRoot .h-grid3 .h-sq,#hubRoot .h-grid3 .h-dk{aspect-ratio:1/1;min-height:0;padding:6px 4px;gap:calc(var(--t3)*.03);font-size:clamp(12px,calc(var(--t3)*.1*var(--hs)),16px);box-sizing:border-box}
+#hubRoot .h-mm{aspect-ratio:1/.92;min-height:0;padding:6px 4px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--t3)*.06);font-size:clamp(12px,calc(var(--t3)*.09*var(--hs)),16px);font-weight:700}
+#hubRoot .h-grid2 .h-sq,#hubRoot .h-grid2 .h-dk,#hubRoot .h-grid2x2 .h-sq{aspect-ratio:1/.8;min-height:0;box-sizing:border-box;gap:calc(var(--t2)*.04);font-size:clamp(13px,calc(var(--t2)*.08*var(--hs)),18px)}
+#hubRoot .h-grid3 .h-sq svg,#hubRoot .h-grid3 .h-dk svg,#hubRoot .h-mm svg{width:calc(var(--t3)*.34*var(--hic));height:calc(var(--t3)*.34*var(--hic))}
+#hubRoot .h-grid2 .h-sq svg,#hubRoot .h-grid2 .h-dk svg,#hubRoot .h-grid2x2 .h-sq svg{width:calc(var(--t2)*.24*var(--hic));height:calc(var(--t2)*.24*var(--hic))}
+#hubRoot .h-grid2x2 .h-sq b{font-size:clamp(24px,calc(var(--t2)*.16),40px)}
 #hubBar{min-height:68px}#hubBar button{padding-top:4px}
 </style>
 </head>
