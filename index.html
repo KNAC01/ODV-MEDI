@@ -6,8 +6,8 @@
 <title>ODV Delico</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#aca241">
-<link rel="icon" type="image/png" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-v2-192.png">
+<link rel="apple-touch-icon" href="icon-v2-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ODV Delico">
@@ -653,6 +653,13 @@ body.hub-on #view-kpis.h-solo > details.h-filtros, body.hub-on #view-kpis.h-solo
 body.hub-on #modalBody:has(#hubCadForm) > .modal-actions{position:sticky;bottom:0;background:#fff;padding:10px 0;margin-top:0;z-index:5;border-top:1px solid #e7e0c3}
 
 #hubRoot .h-logo{color:#fcf8e7;--dot:#e9dd91;height:40px;width:auto;margin-left:auto;display:block;flex:none}#hubRoot .h-logo.big{height:92px;margin:0 auto 6px}#hubRoot .h-logo.sq{height:calc(34px*var(--hs));margin:0}
+
+.hc-exp{border:2px dashed #c9bfa0;background:#fff}.hc-exp.on{border:2px solid #dd6b3a;background:#fff4ee}
+.hc-chk{display:flex;align-items:center;gap:12px;font-weight:800;font-size:16px;color:#3a3e19;cursor:pointer}.hc-chk input{width:28px;height:28px;accent-color:#dd6b3a;flex:none}
+.hc-expr{margin-top:12px;padding-top:12px;border-top:1px solid #ecd4c6;display:flex;flex-direction:column;gap:8px}.hc-expr select,.hc-expr input[type=text]{width:100%;padding:12px;font-size:15px;border:2px solid #d9d1b4;border-radius:12px;background:#fff}
+.hc-expr2{display:flex;gap:8px}.hc-expr2 label{flex:1;font-size:12px;font-weight:700;color:#5b5f3a;display:flex;flex-direction:column;gap:4px}.hc-expr2 input{padding:12px;font-size:16px;border:2px solid #d9d1b4;border-radius:12px;width:100%;box-sizing:border-box}
+.hc-rm{align-self:flex-end;background:none;border:none;color:#a33;font-weight:700;font-size:13px;padding:4px}
+.hc-expr .campo-falta,.hc-expr select.campo-falta,.hc-expr input.campo-falta{border-color:#d33 !important;background:#fff0f0 !important}
 </style>
 </head>
 <body>
@@ -4388,7 +4395,7 @@ function abrirPipeline(){
   const body = document.getElementById('modalBody');
   body.classList.add('modal-wide');
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
-    <h3>📦 Pipeline — Inventario de tu tienda</h3>
+    <h3>📦 Inventarios de tu tienda</h3>
     ${checkin ? `<p style="font-size:13px; font-weight:700; color:var(--brand-dark); margin:-4px 0 10px;">📍 ${checkin.tienda}${checkin.cadena?' · '+checkin.cadena:''}</p>` : `<div class="form-grid"><div class="field full"><label>Tienda</label>
       <select id="pipeTiendaSel" onchange="renderPipelineTabla()">
         <option value="">Selecciona tienda...</option>
@@ -6119,7 +6126,7 @@ function detalleCaptura(c){
       const ok = all.filter(x=>x.cumple).length;
       return `${c.persona_nueva?'Con '+c.persona_nueva+' · ':''}${ok}/${all.length} cumplidos`;
     }
-    case 'caducidad': return c.seguimiento ? `Seguimiento · ${nombreProducto(c.clave)} · quedan ${c.piezas} pzas${c.piezas_previas!=null?' (antes '+c.piezas_previas+')':''} · cad. ${c.fecha_caducidad}` : `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
+    case 'caducidad': if(c.caducado) return `🚫 CADUCADO · ${nombreProducto(c.clave)} · ${c.piezas} pzas · caducó ${c.fecha_caducada} · ${c.accion||''}`; return c.seguimiento ? `Seguimiento · ${nombreProducto(c.clave)} · quedan ${c.piezas} pzas${c.piezas_previas!=null?' (antes '+c.piezas_previas+')':''} · cad. ${c.fecha_caducidad}` : `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
     case 'incidencia': return `${c.tipo_incidencia}: ${c.descripcion}${c.lote?' · Lote: '+c.lote:''}`;
     case 'incapacidad': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
     case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
@@ -11040,7 +11047,7 @@ const REP_EXPORT_DEF = {
   salida_tienda: { extra:['Perfil','Rol'], coment:'Notas del equipo',
     filas:(c,X)=>{ const p = X.persona(c.usuario)||{}; return [[[p.perfil||'', p.rol||''], c.notas||'']]; } },
   caducidad: { extra:['Clave','Producto','Familia','Fecha de caducidad','Tipo de registro','Piezas previas','Piezas (conteo de ese día)'], coment:'Comentarios del equipo',
-    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.fecha_caducidad||'', c.seguimiento?'Seguimiento':'Captura nueva', c.piezas_previas!=null?Number(c.piezas_previas):'', c.piezas!=null&&c.piezas!==''?Number(c.piezas):''], c.notas||c.comentarios||'']] },
+    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.fecha_caducidad||c.fecha_caducada||'', c.caducado?'Caducado encontrado':(c.seguimiento?'Seguimiento':'Captura nueva'), c.piezas_previas!=null?Number(c.piezas_previas):'', c.piezas!=null&&c.piezas!==''?Number(c.piezas):''], (c.caducado?('Acción: '+(c.accion||'')+(c.notas?' · ':'')):'')+(c.notas||c.comentarios||'')]] },
   incidencia: { extra:['Tipo de incidencia','Lote'], coment:'Descripción de la incidencia',
     filas:(c,X)=>[[[c.tipo_incidencia||'', c.lote||''], c.descripcion||'']] },
   incapacidad: { extra:['Fecha de la incapacidad','# fotos'], coment:'Comentarios del equipo',
@@ -13195,7 +13202,7 @@ async function hubCaducidadAbrir(){
 }
 function hubCadGuardarEstado(){
   const d = window._hubCad; if(!d) return; d.vals = d.vals || {};
-  document.querySelectorAll('#hubCadForm input').forEach(i=>{ if(i.id) d.vals[i.id] = i.value; });
+  document.querySelectorAll('#hubCadForm input,#hubCadForm select').forEach(i=>{ if(i.id && i.type!=='checkbox') d.vals[i.id] = i.value; });
 }
 function hubCadPintar(){
   const d = window._hubCad; if(!d) return; hubCadGuardarEstado();
@@ -13211,9 +13218,47 @@ function hubCadPintar(){
   };
   document.getElementById('modalBody').innerHTML = `<button class="close-x" onclick="closeModal()">✕</button><h3>⏳ Caducidades</h3><div id="hubCadForm">`
     + (d.prods.length ? d.prods.map(card).join('') : '<div class="file-note">No hay productos precargados para esta tienda. Agrega uno abajo.</div>')
-    + `<button type="button" class="hc-otro" onclick="hubCadCatalogo()">＋ Agregar otro producto</button></div>
+    + `<button type="button" class="hc-otro" onclick="hubCadCatalogo()">＋ Agregar otro producto</button>` + hubCadExpHtml() + `</div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" style="flex:1" onclick="hubCadGuardar()">Guardar</button></div>`;
   Object.keys(d.vals||{}).forEach(k=>{ const e = document.getElementById(k); if(e) e.value = d.vals[k]; });
+  try{ hubCadExpMuestraTexto(); }catch(e){}
+}
+const HUB_ACC_CAD = ['Lo retiré del anaquel y lo entregué a la tienda','Lo retiré y avisé al gerente / encargado','Lo reporté a mi supervisor','Se pidió cambio o devolución a la tienda','Se desechó con evidencia (foto)','No me permitieron retirarlo','Otra acción'];
+function hubCadExpHtml(){
+  const d = window._hubCad; const hoy = todayISO();
+  let h = `<div class="hc-card hc-exp${d.expOn?' on':''}"><label class="hc-chk"><input type="checkbox" id="hcExpOn" ${d.expOn?'checked':''} onchange="hubCadExpToggle(this.checked)"><span>🚫 Hay códigos caducados en tienda</span></label>`;
+  if(d.expOn){
+    const prods = d.prods.length ? d.prods : [];
+    (d.expRows||[]).forEach(id=>{
+      const opts = '<option value="">Producto…</option>' + prods.map(c=>{ const p = claveAProducto(c); return `<option value="${c}">${hubEsc(p?p.nombre:c)}</option>`; }).join('') + '<option value="__otro">＋ Otro producto…</option>';
+      h += `<div class="hc-expr" id="hce_${id}"><select id="hceP_${id}" onchange="hubCadExpProd(${id},this.value)">${opts}</select>
+        <div class="hc-expr2"><label>Fecha que caducó<input type="date" id="hceF_${id}" max="${hoy}"></label><label>Piezas<input type="number" inputmode="numeric" min="1" id="hceN_${id}" placeholder="0"></label></div>
+        <select id="hceA_${id}" onchange="hubCadPintar()"><option value="">¿Qué acción tomaste? *</option>${HUB_ACC_CAD.map(a=>`<option>${a}</option>`).join('')}</select>
+        <input type="text" id="hceT_${id}" class="hc-acct" placeholder="Escribe la acción" style="display:none">
+        <button type="button" class="hc-rm" onclick="hubCadExpQuita(${id})">Quitar</button></div>`;
+    });
+    h += `<button type="button" class="hc-add" onclick="hubCadExpFila()">＋ Agregar otro código caducado</button>`;
+  }
+  return h + `</div>`;
+}
+function hubCadExpToggle(on){ const d = window._hubCad; hubCadGuardarEstado(); d.expOn = on; d.expRows = d.expRows||[]; if(on && !d.expRows.length) d.expRows.push(++d.n); hubCadPintar(); hubCadExpMuestraTexto(); }
+function hubCadExpFila(){ const d = window._hubCad; hubCadGuardarEstado(); d.expRows.push(++d.n); hubCadPintar(); hubCadExpMuestraTexto(); }
+function hubCadExpQuita(id){ const d = window._hubCad; hubCadGuardarEstado(); d.expRows = d.expRows.filter(x=>x!==id); if(!d.expRows.length) d.expOn = false; hubCadPintar(); hubCadExpMuestraTexto(); }
+function hubCadExpMuestraTexto(){ const d = window._hubCad; (d.expRows||[]).forEach(id=>{ const a = document.getElementById('hceA_'+id), t = document.getElementById('hceT_'+id); if(a && t) t.style.display = a.value==='Otra acción' ? '' : 'none'; }); }
+function hubCadExpProd(id, v){
+  if(v!=='__otro') return;
+  const d = window._hubCad; hubCadGuardarEstado();
+  const cat = (APP_DATA.catalogo_productos||[]).slice().sort((a,b)=>a.familia.localeCompare(b.familia)||a.nombre.localeCompare(b.nombre));
+  const ov = document.createElement('div'); ov.className='hc-pick'; ov.id='hcPick';
+  const pintar = q=>{ const n = _normBusca(q); ov.querySelector('.g').innerHTML = cat.filter(p=>!n || _normBusca(p.nombre+' '+p.familia).includes(n)).map(p=>`<button type="button" onclick="hubCadExpElegir(${id},'${p.clave}')">${p.imagen?`<img src="${p.imagen}" loading="lazy">`:''}${hubEsc(p.nombre)}</button>`).join(''); };
+  ov.innerHTML = `<div style="display:flex;gap:8px;margin-bottom:10px"><input type="text" id="hcBus" placeholder="Buscar producto…" style="flex:1;padding:12px;font-size:16px;border:2px solid #3a3e19;border-radius:12px"><button type="button" class="btn btn-ghost" onclick="document.getElementById('hcPick').remove();hubCadPintar()">Cerrar</button></div><div class="g"></div>`;
+  document.body.appendChild(ov); pintar('');
+  ov.querySelector('#hcBus').addEventListener('input', e=>pintar(e.target.value));
+}
+function hubCadExpElegir(id, clave){
+  const d = window._hubCad; const o = document.getElementById('hcPick'); if(o) o.remove();
+  if(!d.prods.includes(clave)) d.prods.push(clave);
+  d.vals = d.vals||{}; d.vals['hceP_'+id] = clave; hubCadPintar(); hubCadExpMuestraTexto();
 }
 function hubCadFila(clave){ const d = window._hubCad; d.filas[clave] = d.filas[clave]||[]; d.filas[clave].push(++d.n); hubCadPintar(); }
 function hubCadQuitaFila(clave,id){ const d = window._hubCad; hubCadGuardarEstado(); d.filas[clave] = (d.filas[clave]||[]).filter(x=>x!==id); hubCadPintar(); }
@@ -13242,8 +13287,23 @@ function hubCadGuardar(){
   d.prods.forEach(clave=>{ (d.filas[clave]||[]).forEach(id=>{ const f = document.getElementById('hcf_'+id), p = document.getElementById('hcp_'+id); const fv = f?f.value:'', pv = p?(parseInt(p.value)||0):0;
     if(fv && pv>0) nuevos.push({clave, fecha_caducidad:fv, piezas:pv});
     else if(fv || (p && p.value)){ marca(document.getElementById('hcn_'+id)); } }); });
+  const caducados = [];
+  if(d.expOn){
+    (d.expRows||[]).forEach(id=>{
+      const g = k=>document.getElementById(k+'_'+id);
+      const pr = g('hceP'), fe = g('hceF'), nu = g('hceN'), ac = g('hceA'), tx = g('hceT');
+      const clave = pr ? pr.value : '', fecha = fe ? fe.value : '', piezas = nu ? (parseInt(nu.value)||0) : 0, accion = ac ? ac.value : '', texto = tx ? tx.value.trim() : '';
+      let ok = true;
+      if(!clave || clave==='__otro'){ marca(pr); ok = false; }
+      if(!fecha || fecha>todayISO()){ marca(fe); ok = false; }
+      if(!(piezas>0)){ marca(nu); ok = false; }
+      if(!accion){ marca(ac); ok = false; }
+      else if(accion==='Otra acción' && !texto){ marca(tx); ok = false; }
+      if(ok) caducados.push({clave, fecha, piezas, accion: accion==='Otra acción' ? 'Otra: '+texto : accion});
+    });
+  }
   if(primero){ toast('Falta llenar lo marcado en rojo'); primero.scrollIntoView({behavior:'smooth',block:'center'}); return; }
-  if(!respuestas.length && !nuevos.length){ toast('Agrega al menos una fecha de caducidad'); return; }
+  if(!respuestas.length && !nuevos.length && !caducados.length){ toast('Agrega al menos una fecha de caducidad'); return; }
   const dudas = [];
   const claves = [...new Set([...nuevos.map(n=>n.clave), ...respuestas.map(r=>r.lote.clave)])];
   claves.forEach(clave=>{ verificarCaducidad({tienda:d.st.tienda, cadena:d.st.cadena, clave, _caducidadPares:nuevos.filter(n=>n.clave===clave).map(n=>({fecha_caducidad:n.fecha_caducidad,piezas:n.piezas})), _seguimiento:respuestas.filter(r=>r.lote.clave===clave)}).forEach(x=>dudas.push(x)); });
@@ -13252,11 +13312,12 @@ function hubCadGuardar(){
   const base = {tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||'', foto:[], seg_v:1};
   const registros = nuevos.map(n=>({...base, id:uid(), clave:n.clave, fecha_caducidad:n.fecha_caducidad, piezas:n.piezas}));
   const regsSeg = respuestas.map(x=>({id:uid(), tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||x.lote.cadena||'', clave:x.lote.clave, fecha_caducidad:x.lote.fecha_caducidad, piezas:x.piezas, piezas_previas:x.lote.piezas, seguimiento:true, seg_v:1}));
+  const regsCad = caducados.map(x=>({id:uid(), tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||'', clave:x.clave, fecha_caducada:x.fecha, piezas:x.piezas, caducado:true, accion:x.accion, foto:[], seg_v:1}));
   try{
-    const arr = getCapturas(); [...registros, ...regsSeg].forEach(r=>arr.push(r)); saveCapturas(arr);
+    const arr = getCapturas(); [...registros, ...regsSeg, ...regsCad].forEach(r=>arr.push(r)); saveCapturas(arr);
     registros.forEach(r=>registrarLoteCaducidad(r,'captura')); regsSeg.forEach(r=>registrarLoteCaducidad(r,'seguimiento'));
     closeModal(); window._hubCad = null;
-    toast('Caducidades guardadas ✓');
+    toast(regsCad.length ? 'Caducidades y caducados guardados ✓' : 'Caducidades guardadas ✓');
     if(registros.length) mostrarProyeccionCaducidadMultiple(registros);
     renderMisCapturas(); renderCheckinBar();
   }catch(e){ toast('⚠️ No se pudo guardar: '+e.message, 6500); }
@@ -13477,7 +13538,7 @@ function renderHubEjecutar(){
   /* dentro de tienda */
   const t = (js, ic, lb, k)=>`<button class="h-dk" onclick="${js}" data-k="${k||''}">${hubIc(ic)}${lb}</button>`;
   document.getElementById('hubRevisa').innerHTML =
-    t('abrirPipeline()','box','Pipeline')+t("openForm('caducidad')",'exp','Caducidad','caducidad')+t("openForm('precio_delico')",'dollar','Precios','precio_delico')+t("openForm('precio_competencia')",'vs','Competencia','precio_competencia')+t("hubMod('kpis','eje','tienda')",'store','Kárdex (mi tienda)');
+    t('abrirPipeline()','box','Inventarios')+t("openForm('caducidad')",'exp','Caducidad','caducidad')+t("openForm('precio_delico')",'dollar','Precios','precio_delico')+t("openForm('precio_competencia')",'vs','Competencia','precio_competencia')+t("hubMod('kpis','eje','tienda')",'store','Kárdex (mi tienda)');
   document.getElementById('hubLabor').innerHTML =
     t('abrirMercadeo()','shelf','Auto evaluación','mercadeo')+t("openForm('degustacion')",'hand','Degustación','degustacion')+t("hubShopper()",'shopper','Shopper')+t('abrirPrioridadesCaptura()','clipPen','Prioridades y tareas')+t("openForm('foto')",'star','Exh adicionales','foto')+t("openForm('incidencia')",'lock','Incidencias','incidencia')+t('openGastoTicket()','receipt','Registrar gasto','gasto_ticket')+t('abrirLeySilla()','chair','Registrar Ley silla')+t('abrirCargaAnaquel()','shelf','Carga de anaquel','carga_anaquel');
   const eqw = document.getElementById('hubEqWrap'); if(eqw){ eqw.style.display = hubEsSup() ? '' : 'none';
