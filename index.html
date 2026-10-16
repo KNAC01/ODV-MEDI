@@ -1985,9 +1985,13 @@ let currentUser = null;
 /* ---------- Utilidades ---------- */
 function fmtNum(n){ return Math.round(n).toLocaleString('es-MX'); }
 function fmtMoney(n){ return '$' + Math.round(n).toLocaleString('es-MX'); }
-function todayISO(){ return new Date().toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // fecha de HOY en hora de México, no UTC
+const _fmtFechaMX = new Intl.DateTimeFormat('sv-SE', {timeZone:'America/Mexico_City'});
+/* v134: toLocaleDateString con zona horaria es MUY lento en el celular y se llamaba miles de veces (una por captura) cada vez que se pintaba Inicio. Se usa un formateador reutilizable y una memoria de resultados. */
+let _todayCache = {t:0, v:''};
+function todayISO(){ const n=Date.now(); if(n-_todayCache.t<20000 && _todayCache.v) return _todayCache.v; _todayCache={t:n, v:_fmtFechaMX.format(new Date())}; return _todayCache.v; } // fecha de HOY en hora de México, no UTC
 function horaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/Mexico_City'}); }
-function fechaLocal(iso){ if(!iso) return '—'; return new Date(iso).toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'}); } // 'sv-SE' da formato AAAA-MM-DD
+const _fechaLocalMemo = new Map();
+function fechaLocal(iso){ if(!iso) return '—'; let r=_fechaLocalMemo.get(iso); if(r!==undefined) return r; r=_fmtFechaMX.format(new Date(iso)); if(_fechaLocalMemo.size>20000) _fechaLocalMemo.clear(); _fechaLocalMemo.set(iso,r); return r; } // 'sv-SE' da formato AAAA-MM-DD
 function fechaHoraLocal(iso){ if(!iso) return '—'; return fechaLocal(iso) + ' ' + horaLocal(iso); } // fecha+hora ya convertidas a hora de México (antes se mostraba el UTC crudo del ISO guardado)
 // Igual que fechaLocal, pero segura para usarse en campos que a veces guardan solo 'AAAA-MM-DD' (de un <input type=date>,
 // donde NO hay que restar horas) y a veces un timestamp completo con hora ('...T...Z', UTC, donde SÍ hay que convertir
@@ -4969,9 +4973,19 @@ function openForm(type){
 const COL_LOTES = 'caducidad_lotes';
 function claveLote(cadena, tienda, clave, fecha){ return [cadena||'', tienda||'', clave||'', String(fecha||'').slice(0,10)].join('|').replace(/\//g,'-'); }
 /* Estado de cada lote según las capturas que ESTE celular conoce (las propias, o todas si es oficina). Incluye los cerrados (piezas 0). */
+/* v134: agrupa UNA vez las capturas de caducidad por tienda (antes cada tienda recorría todas las capturas del celular). */
+let _cadIdx = {ref:null, n:-1, map:null};
+function capturasCaducidadPorTienda(){
+  const arr = _capturasCache;
+  if(_cadIdx.ref===arr && _cadIdx.n===arr.length) return _cadIdx.map;
+  const m = new Map();
+  for(const c of arr){ if(c && c.tipo==='caducidad' && c.clave && c.fecha_caducidad && c.tienda){ let l=m.get(c.tienda); if(!l){ l=[]; m.set(c.tienda,l); } l.push(c); } }
+  _cadIdx = {ref:arr, n:arr.length, map:m};
+  return m;
+}
 function lotesLocalesTienda(cadena, tienda){
   const hoy = todayISO();
-  const caps = getCapturas().filter(c=>c.tipo==='caducidad' && c.clave && c.fecha_caducidad && c.tienda===tienda && (!cadena || !c.cadena || c.cadena===cadena));
+  const caps = (capturasCaducidadPorTienda().get(tienda)||[]).filter(c=>(!cadena || !c.cadena || c.cadena===cadena));
   const ultDia = new Map();
   caps.forEach(c=>{ const d=fechaSoloDia(c.fecha_registro); if(!ultDia.has(c.clave) || d>ultDia.get(c.clave)) ultDia.set(c.clave, d); });
   const mapa = new Map();
@@ -5090,7 +5104,7 @@ function registrarLoteCaducidad(c, movimiento){
 /* Lotes que siguen abiertos con la información que tiene ESTE celular (para alertas y riesgo del plan) */
 function lotesAbiertosLocales(){
   const tiendas = new Map();
-  getCapturas().forEach(c=>{ if(c.tipo==='caducidad' && c.tienda && c.clave && c.fecha_caducidad){ const k=(c.cadena||'')+'|'+c.tienda; if(!tiendas.has(k)) tiendas.set(k, {cadena:c.cadena||'', tienda:c.tienda}); } });
+  capturasCaducidadPorTienda().forEach(lista=>{ lista.forEach(c=>{ const k=(c.cadena||'')+'|'+c.tienda; if(!tiendas.has(k)) tiendas.set(k, {cadena:c.cadena||'', tienda:c.tienda}); }); });
   const out = [];
   tiendas.forEach(t=> lotesLocalesTienda(t.cadena, t.tienda).filter(l=>l.piezas>0).forEach(l=>out.push(l)));
   return out;
@@ -13475,9 +13489,9 @@ function renderHubPlanear(){
   const el = document.getElementById('hubPlanBody'); if(!el) return;
   const esEmb = currentUser.perfil==='Embajador';
   const sq = (ic, lb, js)=>`<button class="h-sq" onclick="${js}">${hubIc(ic)}<small>${lb}</small></button>`;
-  let h = `<h2>¿Cuáles son mis objetivos?</h2><div class="h-grid3" style="grid-template-columns:repeat(2,1fr);padding:0 30px">${hubPuede('planeacion')?sq('target','Objetivos',"hubMod('planeacion','plan')"):''}${hubPuede('calendario')?sq('calendar','Rutas',"hubMod('calendario','plan')"):''}</div>`;
+  let h = `<h2>¿Cuáles son mis objetivos?</h2><div class="h-grid3">${hubPuede('planeacion')?sq('target','Objetivos',"hubMod('planeacion','plan')"):''}${hubPuede('calendario')?sq('calendar','Rutas',"hubMod('calendario','plan')"):''}</div>`;
   h += `<h2>${esEmb?'¿Qué necesito para cumplir?':'Solicitar y autorizar'}</h2><div class="h-grid3">${sq('cloche','Material',"hubMod('cartas','plan','materiales')")}${sq('doc','Cartas',"hubMod('cartas','plan','cartas')")}${sq('shirt','Uniformes',"hubMod('cartas','plan','uniformes')")}</div>`;
-  h += `<div class="h-grid3" style="grid-template-columns:repeat(2,1fr);padding:0 30px">${sq('bulb','Sugerencias de rol',"hubIr('sugerencias')")}${hubPuede('catalogo')?sq('book','Catálogo',"hubMod('catalogo','plan')"):''}${hubPuede('inventario')?sq('box','Inventario de materiales',"hubMod('inventario','plan')"):''}</div>`;
+  h += `<div class="h-grid3">${sq('bulb','Sugerencias de rol',"hubIr('sugerencias')")}${hubPuede('catalogo')?sq('book','Catálogo',"hubMod('catalogo','plan')"):''}${hubPuede('inventario')?sq('box','Inventario de materiales',"hubMod('inventario','plan')"):''}</div>`;
   el.innerHTML = h;
 }
 
@@ -13486,7 +13500,15 @@ function renderHubComunicar(){
   const el = document.getElementById('hubComBody'); if(!el) return;
   const sq = (ic, lb, k)=>hubPuede(k)?`<button class="h-sq" onclick="hubMod('${k}','com')">${hubIc(ic)}<small>${lb}</small></button>`:'';
   el.innerHTML = `<h2>Cómo voy</h2><div class="h-grid3">${sq('chart','Cumplimiento de venta','cumpventa')}${sq('pie','Distribución','distribucion')}${sq('route','Cumplimiento de ruta','cumplimiento')}${sq('clipPen','Prioridades y tareas','cumpprioridades')}${sq('bono','Bono','bono')}${sq('store','Kárdex','kpis')}</div>
-  <h2>Platico con Délico</h2><div class="h-grid3">${sq('umb','Vacaciones','vacaciones')}${sq('check','Evaluaciones','evaluaciones')}${sq('chat','Délico te escucha','escucha')}</div>`;
+  <h2>Platico con Delico</h2><div class="h-grid3">${sq('umb','Vacaciones','vacaciones')}${sq('check','Evaluaciones','evaluaciones')}${sq('chat','Délico te escucha','escucha')}</div>
+  <h2>Capturas fuera de tienda</h2><div class="h-grid3"><button class="h-sq" onclick="hubFuera('caducidad')">${hubIc('exp')}<small>Caducidad</small></button><button class="h-sq" onclick="hubFuera('ticket')">${hubIc('receipt')}<small>Ticket / gasto</small></button></div>
+  <p style="font-size:12px;opacity:.85;margin:-6px 4px 0">Para lo que no alcanzaste a capturar en la tienda. Es el mismo formulario: eliges la tienda y se guarda igual.</p>`;
+}
+/* v134: capturar caducidad o ticket sin estar dentro de una tienda (mismo módulo que en Ejecutar) */
+function hubFuera(k){
+  try{
+    if(k==='caducidad') openForm('caducidad'); else openGastoTicket();
+  }catch(e){ toast('No se pudo abrir el formulario: '+(e&&e.message||e)); }
 }
 
 /* ---- AJUSTES ---- */
