@@ -2489,7 +2489,8 @@ try{ if(_capturasCache.length !== JSON.parse(localStorage.getItem(STORAGE_KEY) |
    solo evita que seguir creciendo hacia adelante — los celulares que ya llevaban meses juntando fotos
    de todo el equipo necesitan que esto se les quite una sola vez para que la memoria se libere de verdad). */
 const DIAS_FOTOS_EN_MEMORIA = 3;   // fotos completas en memoria (equipo completo)
-const DIAS_VENTANA_CAPTURAS_EQUIPO = 14; // cuántos días de capturas del equipo se escuchan en vivo desde la nube
+/* v133: antes 14 días; al instalar/reinstalar, el celular bajaba de golpe 2 semanas de fotos de TODO el equipo y se trababa ("¡Oh, no!"). Ahora solo los últimos 3 días y máximo 150 capturas. */
+const DIAS_VENTANA_CAPTURAS_EQUIPO = 3; // cuántos días de capturas del equipo se escuchan en vivo desde la nube
 function limpiarCacheCapturasAntiguo(){
   let cambio = false;
   if(currentUser && currentUser.perfil === 'Embajador'){
@@ -2522,7 +2523,7 @@ function iniciarSincronizacionCapturas(){
   // (antes se bajaba TODA la historia con todas sus fotos y el navegador se quedaba sin memoria).
   const desdeVentana = new Date(Date.now() - DIAS_VENTANA_CAPTURAS_EQUIPO*86400000).toISOString();
   const query = !db ? null : (soloMias ? db.collection('capturas_medi').where('usuario','==', currentUser.usuario)
-                                        : db.collection('capturas_medi').where('fecha_registro','>=', desdeVentana));
+                                        : db.collection('capturas_medi').where('fecha_registro','>=', desdeVentana).orderBy('fecha_registro','desc').limit(150));
   // La primera vez que se conecta (o tras varios días sin abrir la app), Firestore puede entregar de
   // golpe cientos de documentos "nuevos" en el mismo instante — antes cada uno disparaba POR SEPARADO
   // un guardado completo a localStorage (serializando cada vez TODO el arreglo, fotos incluidas) más
