@@ -10940,14 +10940,14 @@ function moverNoticia(id, dir){
   [arr[i], arr[j]] = [arr[j], arr[i]];
   arr.forEach((n,k)=>{ n.orden = k; });
   saveNoticias(arr);
-  try{ _hubNoticias = getNoticias().slice(0,5); hubNewsPintar(); }catch(e){}
+  try{ _hubNoticias = getNoticias().slice(0,10); hubNewsPintar(); }catch(e){}
   renderNoticias();
 }
 function borrarNoticia(id){
   if(!currentUser || currentUser.usuario!==RESET_TOTAL_USUARIO){ toast('Solo tú puedes eliminar noticias.'); return; }
   if(!confirm('¿Eliminar esta noticia para todo el equipo?')) return;
   const r = saveNoticias(getNoticias().filter(n=>n.id!==id));
-  try{ _hubNoticias = getNoticias().slice(0,5); if(_hubNi>=_hubNoticias.length) _hubNi=0; hubNewsPintar(); }catch(e){}
+  try{ _hubNoticias = getNoticias().slice(0,10); if(_hubNi>=_hubNoticias.length) _hubNi=0; hubNewsPintar(); }catch(e){}
   try{ renderNoticias(); }catch(e){}
   Promise.resolve(r).then(x=>{ if(x && x.fallidos) toast('⚠️ No se pudo borrar de la nube (permisos); volvió a aparecer.', 6000); else toast('Noticia eliminada ✓'); });
 }
@@ -13498,7 +13498,7 @@ function renderHubInicio(){
     tarjeta = `<button class="h-tdark" onclick="hubIr('ejecutar')"><div class="h-logo">—</div><div><b>Sin tienda asignada hoy</b><small>Toca para ver más opciones</small></div><span class="h-go">›</span></button>`;
   }
   const esEmb = currentUser.perfil==='Embajador';
-  _hubNoticias = getNoticias().slice(0,5);
+  _hubNoticias = getNoticias().slice(0,10);
   el.innerHTML = `
     <div class="h-hola"><button class="h-avatar" onclick="hubIr('ajustes')" aria-label="Mi perfil y ajustes"><span class="hubAv" style="display:contents"></span><i>⚙</i></button><div><b>¡Hola ${nombre}!</b><small>${hoy.charAt(0).toUpperCase()+hoy.slice(1)}</small></div><svg class="h-logo" viewBox="1815 528 910 583" role="img" aria-label="Délico"><use href="#logoDelico" width="3024" height="1728"/></svg></div>
     <h3>Tu tienda de hoy</h3>${tarjeta}
