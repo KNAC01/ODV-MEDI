@@ -10891,7 +10891,11 @@ function exportarKpiSkuTienda(){
 
 /* ---------- DAILY NEWS ---------- */
 const NOTICIAS_KEY = 'delico_odv_noticias_v1';
-function getNoticias(){ return _noticiasSync.get(); }
+/* v139: orden manual de Deli News. Las que no tienen "orden" (recién publicadas) salen primero, de la más nueva a la más vieja; las que ya se acomodaron a mano siguen su "orden". */
+function getNoticias(){
+  const clave = n => (typeof n.orden==='number') ? n.orden : -((Date.parse(n.fecha)||0)/1000);
+  return _noticiasSync.get().sort((a,b)=> clave(a)-clave(b));
+}
 function saveNoticias(arr){ _noticiasSync.save(arr); }
 function previewNewsFoto(){
   const input = document.getElementById('newsFoto');
@@ -10925,6 +10929,16 @@ function publicarNoticia(){
   toast('Publicado ✓');
 }
 /* v137: solo KNAC01 puede eliminar una noticia (se borra también de la nube) */
+function moverNoticia(id, dir){
+  if(!currentUser || currentUser.usuario!==RESET_TOTAL_USUARIO){ toast('Solo tú puedes cambiar el orden.'); return; }
+  const arr = getNoticias(); const i = arr.findIndex(n=>n.id===id); const j = i+dir;
+  if(i<0 || j<0 || j>=arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  arr.forEach((n,k)=>{ n.orden = k; });
+  saveNoticias(arr);
+  try{ _hubNoticias = getNoticias().slice(0,5); hubNewsPintar(); }catch(e){}
+  renderNoticias();
+}
 function borrarNoticia(id){
   if(!currentUser || currentUser.usuario!==RESET_TOTAL_USUARIO){ toast('Solo tú puedes eliminar noticias.'); return; }
   if(!confirm('¿Eliminar esta noticia para todo el equipo?')) return;
@@ -10939,12 +10953,13 @@ function renderNoticias(){
   const zona = document.getElementById('reinicioZonaNoticias');
   if(zona) zona.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
   const arr = getNoticias();
-  grid.innerHTML = arr.map(n=>`<div class="card" style="padding:0; overflow:hidden;">
+  grid.innerHTML = arr.map((n,idx)=>`<div class="card" style="padding:0; overflow:hidden;">
       ${n.foto? `<img src="${n.foto}" style="width:100%; height:150px; object-fit:cover;">` : ''}
       <div style="padding:12px;">
         <div style="font-weight:700; font-size:12.5px;">Publicó ${nombreCorto(n.persona)} <span style="font-weight:500; color:var(--ink-soft); font-size:11px;">· ${n.perfil}</span></div>
         <div style="font-size:11px; color:var(--ink-soft); margin-bottom:6px;">${fechaHoraLocal(n.fecha)}</div>
         <div style="font-size:13px;">${n.texto||''}</div>
+        ${currentUser.usuario===RESET_TOTAL_USUARIO ? `<div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;"><button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" ${idx===0?'disabled':''} onclick="moverNoticia('${n.id}',-1)">⬆️ Subir</button><button class="btn btn-ghost" style="padding:4px 10px; font-size:12px;" ${idx===arr.length-1?'disabled':''} onclick="moverNoticia('${n.id}',1)">⬇️ Bajar</button></div>` : ''}
         ${currentUser.usuario===RESET_TOTAL_USUARIO ? `<button class="btn btn-ghost" style="margin-top:8px; border-color:var(--bad); color:var(--bad); padding:4px 10px; font-size:12px;" onclick="borrarNoticia('${n.id}')">🗑️ Eliminar noticia</button>` : ''}
       </div>
     </div>`).join('') || `<div class="empty-state" style="grid-column:1/-1;">Aún no hay publicaciones. ¡Sé el primero en compartir algo!</div>`;
