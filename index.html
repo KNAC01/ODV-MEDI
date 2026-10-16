@@ -448,7 +448,7 @@ body.hub-on.hub-mod #hubModBar{display:flex}
 #hubRoot .h-sq small{text-align:center;line-height:1.15;font-size:inherit}
 #hubRoot .h-inicio .h-sq{background:var(--h-dark);color:var(--h-cream)}#hubRoot .h-inicio .h-sq svg{stroke:var(--h-cream)}
 #hubRoot .h-news{background:var(--h-dark);color:var(--h-cream);border-radius:12px;min-height:calc(112px*var(--hic));padding:14px 16px 24px;position:relative;overflow:hidden;background-size:cover;background-position:center}
-#hubRoot .h-news{padding:0}#hubRoot .h-news .h-nimg{height:calc(120px*var(--hic));background-size:cover;background-position:center}#hubRoot .h-news .h-nbody{padding:12px 16px 26px}#hubRoot .h-news > .h-ndel{position:absolute;top:8px;right:8px;z-index:3;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:15px;line-height:30px;padding:0}
+#hubRoot .h-news{padding:0}#hubRoot .h-news .h-nimg{height:calc(120px*var(--hic));background-size:cover;background-position:center}#hubRoot .h-news .h-nbody{padding:10px 16px 24px}#hubRoot .h-news .h-ntag{font-size:calc(8.5px*var(--hs));letter-spacing:.03em;text-transform:none;font-weight:600;opacity:.85;margin-bottom:2px}#hubRoot .h-news > .h-ndel{position:absolute;top:8px;right:8px;z-index:3;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:15px;line-height:30px;padding:0}
 #hubRoot .h-news > *{position:relative}
 #hubRoot .h-news .h-tag{font-size:calc(10.5px*var(--hs));text-transform:uppercase;letter-spacing:.06em;color:#e9dd91;font-weight:700}
 #hubRoot .h-news .h-tt{font-size:calc(17px*var(--hs));font-weight:700;line-height:1.2;margin:4px 0}
@@ -13525,7 +13525,7 @@ function hubNewsPintar(){
   box.classList.remove('foto'); box.style.backgroundImage = '';
   /* v137: la foto va arriba SOLA y quien publicó se lee en el texto de abajo (ya no encima de la imagen) */
   const del = (currentUser && currentUser.usuario===RESET_TOTAL_USUARIO) ? `<button class="h-ndel" title="Eliminar esta noticia" onclick="event.stopPropagation(); borrarNoticia('${n.id}')">🗑</button>` : '';
-  box.innerHTML = (n.foto ? `<div class="h-nimg" style="background-image:url(${n.foto})"></div>` : '') + del + `<div class="h-nbody"><div class="h-tag">Publicó ${nombreCorto(n.persona||'')} · ${fechaHoraLocal(n.fecha)}</div><div class="h-tt">${titulo}</div><div class="h-tx">${resto}</div></div><div class="h-dots">${_hubNoticias.map((_,i)=>'<i class="'+(i===_hubNi?'on':'')+'"></i>').join('')}</div>`;
+  box.innerHTML = (n.foto ? `<div class="h-nimg" style="background-image:url(${n.foto})"></div>` : '') + del + `<div class="h-nbody"><div class="h-tag h-ntag">Publicado el ${(()=>{const f=fechaHoraLocal(n.fecha); const m=/^(\d{4})-(\d{2})-(\d{2}) (.*)$/.exec(f); return m? m[3]+'/'+m[2]+'/'+m[1]+' · '+m[4] : f;})()}</div><div class="h-tt">${titulo}</div><div class="h-tx">${resto}</div></div><div class="h-dots">${_hubNoticias.map((_,i)=>'<i class="'+(i===_hubNi?'on':'')+'"></i>').join('')}</div>`;
 }
 function hubStats(t){
   const st = (APP_DATA.stores||[]).find(s=>s.tienda===t.tienda && (!t.cadena || s.cadena===t.cadena));
