@@ -1918,7 +1918,7 @@ body.hub-on #catalogoGrid{grid-template-columns:repeat(auto-fill,minmax(220px,1f
     <section class="view" id="view-noticias">
       <div class="bloque-tag bloque-retro">Retroalimentación</div>
       <h2 class="section-title">📰 Daily News</h2>
-      <div class="card" style="margin-bottom:18px;">
+      <div class="card" id="newsComposer" style="margin-bottom:18px;">
         <div class="form-grid">
           <div class="field full"><label>¿Qué quieres compartir con el equipo?</label><textarea id="newsTexto" rows="3" placeholder="Escribe tu noticia, tip o aviso..."></textarea></div>
           <div class="field"><label>Foto (opcional)</label><input type="file" id="newsFoto" accept="image/*" capture="environment" onchange="previewNewsFoto()"><img id="newsFotoPrev" class="thumb hidden"></div>
@@ -10913,7 +10913,11 @@ function previewNewsFoto(){
   reader.onerror = () => window._fotosPendientes.delete('newsFoto');
   reader.readAsDataURL(file);
 }
+/* v140: solo estas personas publican en Deli News (KNAC01 Alejandra, GNAC01 Fanny, MNAC01 Ingrid, CNAC01 Fabiola); el resto solo lee */
+const PUBLICAN_NOTICIAS = ['KNAC01','GNAC01','MNAC01','CNAC01'];
+function puedePublicarNoticias(){ return !!(currentUser && PUBLICAN_NOTICIAS.includes(currentUser.usuario)); }
 function publicarNoticia(){
+  if(!puedePublicarNoticias()){ toast('Solo algunas personas pueden publicar noticias.'); return; }
   if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando, vuelve a intentar en un segundo.'); return; }
   const texto = document.getElementById('newsTexto').value.trim();
   const fotoInput = document.getElementById('newsFoto');
@@ -10950,6 +10954,7 @@ function borrarNoticia(id){
 function renderNoticias(){
   const grid = document.getElementById('noticiasGrid');
   if(!grid) return;
+  const comp = document.getElementById('newsComposer'); if(comp) comp.classList.toggle('hidden', !puedePublicarNoticias());
   const zona = document.getElementById('reinicioZonaNoticias');
   if(zona) zona.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
   const arr = getNoticias();
@@ -13504,7 +13509,7 @@ function renderHubInicio(){
       <button class="h-mm" style="background:var(--h-olive2)" onclick="hubIr('ejecutar')">${hubIc('store')}Ejecutar</button>
       <button class="h-mm" style="background:var(--h-lilac2)" onclick="hubIr('comunicar')">${hubIc('chat')}Comunicar</button>
     </div>
-    <h3>Deli News ${esEmb?'':`<button class="h-pub" onclick="hubMod('noticias','ini')">+ Publicar</button>`}</h3>
+    <h3>Deli News ${!puedePublicarNoticias()?'':`<button class="h-pub" onclick="hubMod('noticias','ini')">+ Publicar</button>`}</h3>
     <div class="h-news" id="hubNews" onclick="hubMod('noticias','ini')"></div>
     <div class="h-notis" id="hubAlertas" style="margin-top:14px"></div>
     <h3>Aprende y conoce</h3>
