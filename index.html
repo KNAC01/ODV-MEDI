@@ -672,6 +672,26 @@ body.hub-on #modalBody:has(#hubCadForm) > .modal-actions{position:sticky;bottom:
 #hubRoot .h-grid2 .h-sq svg,#hubRoot .h-grid2 .h-dk svg,#hubRoot .h-grid2x2 .h-sq svg{width:calc(28%*var(--hic));max-width:46%;height:auto;aspect-ratio:1/1;flex:none}
 #hubRoot .h-grid2x2 .h-sq b{font-size:clamp(26px,calc((100cqw - 13px)/2*.17),44px)}
 #hubBar{min-height:68px}#hubBar button{padding-top:4px}
+
+/* v132: barra de abajo, encabezados y letras más grandes; encabezado fijo */
+#hubBar button{font-size:calc(12.5px*var(--hs));gap:3px;padding:4px 0;font-weight:600}
+#hubBar button svg{width:calc(28px*var(--hic));height:calc(28px*var(--hic))}
+body.hub-on #hubBar{padding-top:8px}
+#hubRoot .h-head{position:sticky;top:0;z-index:60;padding:18px 14px 14px}
+#hubRoot .h-head h1{font-size:calc(26px*var(--hs));font-weight:600}
+#hubRoot .h-head .h-back{font-size:42px;padding:0 16px;top:50%;transform:translateY(-52%)}
+#hubModBar{padding:12px 14px}
+#hubModBar button{font-size:calc(17px*var(--hs));padding:10px 20px}
+#hubModBar b{font-size:calc(20px*var(--hs))}
+body.hub-on.hub-mod main > .view.active:not(.hubv){margin-top:88px}
+body.hub-on #app,body.hub-on main,body.hub-on #hubRoot,body.hub-on main > .view{overflow-x:clip}
+body.hub-on #catalogoGrid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr)) !important}
+#hubRoot .h-grid3 .h-sq,#hubRoot .h-grid3 .h-dk,#hubRoot .h-mm{font-size:clamp(14px,calc((100cqw - 22px)/3*.115*var(--hs)),20px)}
+#hubRoot .h-grid2 .h-sq,#hubRoot .h-grid2 .h-dk,#hubRoot .h-grid2x2 .h-sq{font-size:clamp(15px,calc((100cqw - 13px)/2*.085*var(--hs)),22px)}
+.hc-q{display:flex !important;flex-direction:column;align-items:stretch !important;gap:6px}.hc-q input{width:100% !important;box-sizing:border-box}.hc-q button{display:none}
+.hc-chk2{display:flex;align-items:center;gap:12px;margin-top:10px;font-weight:800;font-size:16px;color:#8a2c22;cursor:pointer}.hc-chk2 input{width:28px;height:28px;accent-color:#dd6b3a;flex:none}
+.hc-acc{margin-top:8px}.hc-acc label{display:block;font-size:13px;font-weight:700;color:#8a2c22;margin-bottom:4px}.hc-acc input{width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:2px solid #d9d1b4;border-radius:12px}
+.hc-acc input.campo-falta,.hc-q.campo-falta{border-color:#d33;background:#fff0f0}
 </style>
 </head>
 <body>
@@ -6162,7 +6182,7 @@ function detalleCaptura(c){
       const ok = all.filter(x=>x.cumple).length;
       return `${c.persona_nueva?'Con '+c.persona_nueva+' · ':''}${ok}/${all.length} cumplidos`;
     }
-    case 'caducidad': if(c.caducado) return `🚫 CADUCADO · ${nombreProducto(c.clave)} · ${c.piezas} pzas · caducó ${c.fecha_caducada} · ${c.accion||''}`; return c.seguimiento ? `Seguimiento · ${nombreProducto(c.clave)} · quedan ${c.piezas} pzas${c.piezas_previas!=null?' (antes '+c.piezas_previas+')':''} · cad. ${c.fecha_caducidad}` : `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
+    case 'caducidad': if(c.caducado) return `🚫 CADUCADO · ${nombreProducto(c.clave)} · ${c.piezas_caducadas!=null?c.piezas_caducadas:c.piezas} pzas · caducó ${c.fecha_caducada} · ${c.accion||''}`; return c.seguimiento ? `Seguimiento · ${nombreProducto(c.clave)} · quedan ${c.piezas} pzas${c.piezas_previas!=null?' (antes '+c.piezas_previas+')':''} · cad. ${c.fecha_caducidad}` : `${nombreProducto(c.clave)} · ${c.piezas} pzas · cad. ${c.fecha_caducidad}`;
     case 'incidencia': return `${c.tipo_incidencia}: ${c.descripcion}${c.lote?' · Lote: '+c.lote:''}`;
     case 'incapacidad': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
     case 'inasistencia': return `${c.fecha||''} — ${c.comentarios||''}${(c.fotos&&c.fotos.length)?' · con foto(s)':''}`;
@@ -11083,7 +11103,7 @@ const REP_EXPORT_DEF = {
   salida_tienda: { extra:['Perfil','Rol'], coment:'Notas del equipo',
     filas:(c,X)=>{ const p = X.persona(c.usuario)||{}; return [[[p.perfil||'', p.rol||''], c.notas||'']]; } },
   caducidad: { extra:['Clave','Producto','Familia','Fecha de caducidad','Tipo de registro','Piezas previas','Piezas (conteo de ese día)'], coment:'Comentarios del equipo',
-    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.fecha_caducidad||c.fecha_caducada||'', c.caducado?'Caducado encontrado':(c.seguimiento?'Seguimiento':'Captura nueva'), c.piezas_previas!=null?Number(c.piezas_previas):'', c.piezas!=null&&c.piezas!==''?Number(c.piezas):''], (c.caducado?('Acción: '+(c.accion||'')+(c.notas?' · ':'')):'')+(c.notas||c.comentarios||'')]] },
+    filas:(c,X)=>[[[...repExportProd(X,c.clave), c.fecha_caducidad||c.fecha_caducada||'', c.caducado?'Caducado encontrado':(c.seguimiento?'Seguimiento':'Captura nueva'), c.piezas_previas!=null?Number(c.piezas_previas):'', (c.piezas_caducadas!=null?Number(c.piezas_caducadas):(c.piezas!=null&&c.piezas!==''?Number(c.piezas):''))], (c.caducado?('Acción: '+(c.accion||'')+(c.notas?' · ':'')):'')+(c.notas||c.comentarios||'')]] },
   incidencia: { extra:['Tipo de incidencia','Lote'], coment:'Descripción de la incidencia',
     filas:(c,X)=>[[[c.tipo_incidencia||'', c.lote||''], c.descripcion||'']] },
   incapacidad: { extra:['Fecha de la incapacidad','# fotos'], coment:'Comentarios del equipo',
@@ -13238,7 +13258,8 @@ async function hubCaducidadAbrir(){
 }
 function hubCadGuardarEstado(){
   const d = window._hubCad; if(!d) return; d.vals = d.vals || {};
-  document.querySelectorAll('#hubCadForm input,#hubCadForm select').forEach(i=>{ if(i.id && i.type!=='checkbox') d.vals[i.id] = i.value; });
+  d.chk = d.chk || {};
+  document.querySelectorAll('#hubCadForm input,#hubCadForm select').forEach(i=>{ if(!i.id) return; if(i.type==='checkbox') d.chk[i.id] = i.checked; else d.vals[i.id] = i.value; });
 }
 function hubCadPintar(){
   const d = window._hubCad; if(!d) return; hubCadGuardarEstado();
@@ -13248,7 +13269,9 @@ function hubCadPintar(){
     let h = `<div class="hc-card"><div class="hc-top">${p&&p.imagen?`<img src="${p.imagen}" alt="">`:'<div style="width:56px;height:56px;border-radius:10px;background:#f1f2e6;flex:none"></div>'}<b>${hubEsc(p?p.nombre:clave)}</b></div>`;
     ls.forEach(l=>{ const i = d.lotes.indexOf(l); const dias = pcDiasEntre(hoy, l.fecha_caducidad);
       const chip = dias<0 ? `<span class="hc-chip r">VENCIÓ</span>` : dias===0 ? `<span class="hc-chip r">HOY</span>` : dias<=7 ? `<span class="hc-chip a">${dias} días</span>` : `<span class="hc-chip">${dias} días</span>`;
-      h += `<div class="hc-lot"><div class="hc-date">${hubFechaGrande(l.fecha_caducidad)}${chip}</div><div class="hc-had">Había <b>${l.piezas}</b> pza</div><div class="hc-q" id="hcq_${i}"><label>¿Cuántas quedan hoy?</label><input type="number" inputmode="numeric" id="hcl_${i}" min="0" placeholder="0"><button type="button" onclick="document.getElementById('hcl_${i}').value='0'">0</button></div></div>`; });
+      h += `<div class="hc-lot"><div class="hc-date">${hubFechaGrande(l.fecha_caducidad)}${chip}</div><div class="hc-had">Había <b>${l.piezas}</b> pza</div><div class="hc-q" id="hcq_${i}"><label id="hcql_${i}">¿Cuántas quedan hoy?</label><input type="number" inputmode="numeric" id="hcl_${i}" min="0" placeholder="0"></div>
+        <label class="hc-chk2"><input type="checkbox" id="hcc_${i}" onchange="hubCadCaducadoToggle(${i},this.checked)"><span>🚫 Ya caducó</span></label>
+        <div class="hc-acc" id="hcw_${i}" style="display:none"><label>¿Qué acción tomaste? (obligatorio)</label><input type="text" id="hca_${i}" placeholder="Escribe aquí lo que hiciste"></div></div>`; });
     (d.filas[clave]||[]).forEach(id=>{ h += `<div class="hc-new" id="hcn_${id}"><input type="date" id="hcf_${id}"><input type="number" inputmode="numeric" class="p" id="hcp_${id}" min="1" placeholder="Pzas"><button type="button" onclick="hubCadQuitaFila('${clave}',${id})">✕</button></div>`; });
     return h + `<button type="button" class="hc-add" onclick="hubCadFila('${clave}')">＋ Agregar fecha de caducidad</button></div>`;
   };
@@ -13257,7 +13280,12 @@ function hubCadPintar(){
     + `<button type="button" class="hc-otro" onclick="hubCadCatalogo()">＋ Agregar otro producto</button>` + hubCadExpHtml() + `</div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cancelar</button><button class="btn btn-brand" style="flex:1" onclick="hubCadGuardar()">Guardar</button></div>`;
   Object.keys(d.vals||{}).forEach(k=>{ const e = document.getElementById(k); if(e) e.value = d.vals[k]; });
-  try{ hubCadExpMuestraTexto(); }catch(e){}
+  Object.keys(d.chk||{}).forEach(k=>{ const e = document.getElementById(k); if(e && d.chk[k]) e.checked = true; if(/^hcc_\d+$/.test(k) && d.chk[k]) hubCadCaducadoToggle(+k.slice(4), true); });
+}
+function hubCadCaducadoToggle(i, on){
+  const w = document.getElementById('hcw_'+i), l = document.getElementById('hcql_'+i);
+  if(w) w.style.display = on ? '' : 'none';
+  if(l) l.textContent = on ? '¿Cuántas piezas caducadas hay?' : '¿Cuántas quedan hoy?';
 }
 const HUB_ACC_CAD = ['Lo retiré del anaquel y lo entregué a la tienda','Lo retiré y avisé al gerente / encargado','Lo reporté a mi supervisor','Se pidió cambio o devolución a la tienda','Se desechó con evidencia (foto)','No me permitieron retirarlo','Otra acción'];
 function hubCadExpHtml(){
@@ -13269,8 +13297,7 @@ function hubCadExpHtml(){
       const opts = '<option value="">Producto…</option>' + prods.map(c=>{ const p = claveAProducto(c); return `<option value="${c}">${hubEsc(p?p.nombre:c)}</option>`; }).join('') + '<option value="__otro">＋ Otro producto…</option>';
       h += `<div class="hc-expr" id="hce_${id}"><select id="hceP_${id}" onchange="hubCadExpProd(${id},this.value)">${opts}</select>
         <div class="hc-expr2"><label>Fecha que caducó<input type="date" id="hceF_${id}" max="${hoy}"></label><label>Piezas<input type="number" inputmode="numeric" min="1" id="hceN_${id}" placeholder="0"></label></div>
-        <select id="hceA_${id}" onchange="hubCadPintar()"><option value="">¿Qué acción tomaste? *</option>${HUB_ACC_CAD.map(a=>`<option>${a}</option>`).join('')}</select>
-        <input type="text" id="hceT_${id}" class="hc-acct" placeholder="Escribe la acción" style="display:none">
+        <input type="text" id="hceA_${id}" placeholder="¿Qué acción tomaste? (obligatorio)">
         <button type="button" class="hc-rm" onclick="hubCadExpQuita(${id})">Quitar</button></div>`;
     });
     h += `<button type="button" class="hc-add" onclick="hubCadExpFila()">＋ Agregar otro código caducado</button>`;
@@ -13280,7 +13307,7 @@ function hubCadExpHtml(){
 function hubCadExpToggle(on){ const d = window._hubCad; hubCadGuardarEstado(); d.expOn = on; d.expRows = d.expRows||[]; if(on && !d.expRows.length) d.expRows.push(++d.n); hubCadPintar(); hubCadExpMuestraTexto(); }
 function hubCadExpFila(){ const d = window._hubCad; hubCadGuardarEstado(); d.expRows.push(++d.n); hubCadPintar(); hubCadExpMuestraTexto(); }
 function hubCadExpQuita(id){ const d = window._hubCad; hubCadGuardarEstado(); d.expRows = d.expRows.filter(x=>x!==id); if(!d.expRows.length) d.expOn = false; hubCadPintar(); hubCadExpMuestraTexto(); }
-function hubCadExpMuestraTexto(){ const d = window._hubCad; (d.expRows||[]).forEach(id=>{ const a = document.getElementById('hceA_'+id), t = document.getElementById('hceT_'+id); if(a && t) t.style.display = a.value==='Otra acción' ? '' : 'none'; }); }
+function hubCadExpMuestraTexto(){}
 function hubCadExpProd(id, v){
   if(v!=='__otro') return;
   const d = window._hubCad; hubCadGuardarEstado();
@@ -13319,7 +13346,11 @@ function hubCadGuardar(){
   document.querySelectorAll('#hubCadForm .campo-falta').forEach(e=>e.classList.remove('campo-falta'));
   let primero = null; const marca = el=>{ el.classList.add('campo-falta'); if(!primero) primero = el; };
   const respuestas = [], nuevos = [];
-  d.lotes.forEach((l,i)=>{ const e = document.getElementById('hcl_'+i); const v = e ? e.value.trim() : ''; if(v===''){ marca(document.getElementById('hcq_'+i)); } else respuestas.push({lote:l, piezas: parseInt(v)||0}); });
+  d.lotes.forEach((l,i)=>{ const e = document.getElementById('hcl_'+i); const v = e ? e.value.trim() : '';
+    const cb = document.getElementById('hcc_'+i), cad = !!(cb && cb.checked); const ac = document.getElementById('hca_'+i); const accion = ac ? ac.value.trim() : '';
+    if(v===''){ marca(document.getElementById('hcq_'+i)); }
+    else if(cad && accion.length<3){ marca(ac); }
+    else respuestas.push({lote:l, piezas: parseInt(v)||0, caducado:cad, accion}); });
   d.prods.forEach(clave=>{ (d.filas[clave]||[]).forEach(id=>{ const f = document.getElementById('hcf_'+id), p = document.getElementById('hcp_'+id); const fv = f?f.value:'', pv = p?(parseInt(p.value)||0):0;
     if(fv && pv>0) nuevos.push({clave, fecha_caducidad:fv, piezas:pv});
     else if(fv || (p && p.value)){ marca(document.getElementById('hcn_'+id)); } }); });
@@ -13327,27 +13358,26 @@ function hubCadGuardar(){
   if(d.expOn){
     (d.expRows||[]).forEach(id=>{
       const g = k=>document.getElementById(k+'_'+id);
-      const pr = g('hceP'), fe = g('hceF'), nu = g('hceN'), ac = g('hceA'), tx = g('hceT');
-      const clave = pr ? pr.value : '', fecha = fe ? fe.value : '', piezas = nu ? (parseInt(nu.value)||0) : 0, accion = ac ? ac.value : '', texto = tx ? tx.value.trim() : '';
+      const pr = g('hceP'), fe = g('hceF'), nu = g('hceN'), ac = g('hceA');
+      const clave = pr ? pr.value : '', fecha = fe ? fe.value : '', piezas = nu ? (parseInt(nu.value)||0) : 0, accion = ac ? ac.value.trim() : '';
       let ok = true;
       if(!clave || clave==='__otro'){ marca(pr); ok = false; }
       if(!fecha || fecha>todayISO()){ marca(fe); ok = false; }
       if(!(piezas>0)){ marca(nu); ok = false; }
-      if(!accion){ marca(ac); ok = false; }
-      else if(accion==='Otra acción' && !texto){ marca(tx); ok = false; }
-      if(ok) caducados.push({clave, fecha, piezas, accion: accion==='Otra acción' ? 'Otra: '+texto : accion});
+      if(accion.length<3){ marca(ac); ok = false; }
+      if(ok) caducados.push({clave, fecha, piezas, accion});
     });
   }
   if(primero){ toast('Falta llenar lo marcado en rojo'); primero.scrollIntoView({behavior:'smooth',block:'center'}); return; }
   if(!respuestas.length && !nuevos.length && !caducados.length){ toast('Agrega al menos una fecha de caducidad'); return; }
   const dudas = [];
   const claves = [...new Set([...nuevos.map(n=>n.clave), ...respuestas.map(r=>r.lote.clave)])];
-  claves.forEach(clave=>{ verificarCaducidad({tienda:d.st.tienda, cadena:d.st.cadena, clave, _caducidadPares:nuevos.filter(n=>n.clave===clave).map(n=>({fecha_caducidad:n.fecha_caducidad,piezas:n.piezas})), _seguimiento:respuestas.filter(r=>r.lote.clave===clave)}).forEach(x=>dudas.push(x)); });
+  claves.forEach(clave=>{ verificarCaducidad({tienda:d.st.tienda, cadena:d.st.cadena, clave, _caducidadPares:nuevos.filter(n=>n.clave===clave).map(n=>({fecha_caducidad:n.fecha_caducidad,piezas:n.piezas})), _seguimiento:respuestas.filter(r=>r.lote.clave===clave && !r.caducado)}).forEach(x=>dudas.push(x)); });
   if(dudas.length && !confirm('⚠️ Revisa estos datos antes de guardar:\n\n' + dudas.map(x=>'• '+x).join('\n') + '\n\nAceptar = están bien, guardar así.\nCancelar = voy a corregir.')) return;
   const ahora = new Date().toISOString();
   const base = {tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||'', foto:[], seg_v:1};
   const registros = nuevos.map(n=>({...base, id:uid(), clave:n.clave, fecha_caducidad:n.fecha_caducidad, piezas:n.piezas}));
-  const regsSeg = respuestas.map(x=>({id:uid(), tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||x.lote.cadena||'', clave:x.lote.clave, fecha_caducidad:x.lote.fecha_caducidad, piezas:x.piezas, piezas_previas:x.lote.piezas, seguimiento:true, seg_v:1}));
+  const regsSeg = respuestas.map(x=>({id:uid(), tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||x.lote.cadena||'', clave:x.lote.clave, fecha_caducidad:x.lote.fecha_caducidad, piezas: x.caducado ? 0 : x.piezas, piezas_previas:x.lote.piezas, seguimiento:true, seg_v:1, ...(x.caducado ? {caducado:true, piezas_caducadas:x.piezas, accion:x.accion, fecha_caducada:x.lote.fecha_caducidad} : {})}));
   const regsCad = caducados.map(x=>({id:uid(), tipo:'caducidad', usuario:currentUser.usuario, persona:currentUser.nombre, fecha_registro:ahora, tienda:d.st.tienda, cadena:d.st.cadena||'', clave:x.clave, fecha_caducada:x.fecha, piezas:x.piezas, caducado:true, accion:x.accion, foto:[], seg_v:1}));
   try{
     const arr = getCapturas(); [...registros, ...regsSeg, ...regsCad].forEach(r=>arr.push(r)); saveCapturas(arr);
@@ -13675,8 +13705,23 @@ function hubTut(){ const t = HUB_TUT[_hubTp], b = document.getElementById('hubTu
   b.innerHTML = `<div class="h-tut"><div class="h-bigi">${t[0]}</div><h2>${t[1]}</h2><p>${t[2]}</p><div class="h-tdots">${HUB_TUT.map((_,i)=>'<i class="'+(i===_hubTp?'on':'')+'"></i>').join('')}</div><div class="h-tutnav">${_hubTp>0?'<button class="g" onclick="_hubTp--;hubTut()">‹ Atrás</button>':''}<button onclick="${_hubTp<HUB_TUT.length-1?'_hubTp++;hubTut()':'_hubTp=0;hubTut();hubIr(\'inicio\')'}">${_hubTp<HUB_TUT.length-1?'Siguiente ›':'¡Listo!'}</button></div></div>`; }
 
 /* ---- activar / desactivar según vista ---- */
+/* v132: algunos celulares (Redmi, o con "sitio de escritorio") abren la página como si la pantalla midiera ~900 px de ancho, y todo se ve diminuto.
+   Si es un celular y la página cree que es muy ancha, se agranda todo proporcionalmente hasta quedar como en un celular normal (~400 px). */
+function hubEscala(){
+  try{
+    let z = 1;
+    if(hubOn()){
+      const ua = /Mobile|Android|iPhone/i.test(navigator.userAgent) || (navigator.maxTouchPoints>0 && window.matchMedia('(pointer:coarse)').matches);
+      const base = Math.min(window.innerWidth, window.innerHeight);
+      if(ua && base>560) z = Math.min(base/400, 3);
+    }
+    document.documentElement.style.zoom = z===1 ? '' : String(z);
+  }catch(e){}
+}
+window.addEventListener('resize', ()=>{ clearTimeout(window._hubEsT); window._hubEsT = setTimeout(hubEscala, 200); });
 function hubAplicar(){
   const on = (typeof getVista==='function') && getVista()==='celular';
+  setTimeout(hubEscala, 0);
   document.body.classList.toggle('hub-on', on);
   if(!on){ document.body.classList.remove('hub-mod','hub-ini','hub-plan','hub-eje','hub-com'); return false; }
   hubBuild(); hubUIAplicar();
