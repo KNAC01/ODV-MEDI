@@ -2527,7 +2527,7 @@ function iniciarSincronizacionCapturas(){
   // (antes se bajaba TODA la historia con todas sus fotos y el navegador se quedaba sin memoria).
   const desdeVentana = new Date(Date.now() - DIAS_VENTANA_CAPTURAS_EQUIPO*86400000).toISOString();
   const query = !db ? null : (soloMias ? db.collection('capturas_medi').where('usuario','==', currentUser.usuario)
-                                        : db.collection('capturas_medi').where('fecha_registro','>=', desdeVentana).orderBy('fecha_registro','desc').limit(150));
+                                        : db.collection('capturas_medi').where('fecha_registro','>=', desdeVentana).orderBy('fecha_registro','desc').limit(80));
   // La primera vez que se conecta (o tras varios días sin abrir la app), Firestore puede entregar de
   // golpe cientos de documentos "nuevos" en el mismo instante — antes cada uno disparaba POR SEPARADO
   // un guardado completo a localStorage (serializando cada vez TODO el arreglo, fotos incluidas) más
@@ -2562,7 +2562,8 @@ function iniciarSincronizacionCapturas(){
     doc._en_nube = true; // vino de la nube, así que ya está allá
     if(!soloMias){
       const fd = doc.fecha_registro || doc.fecha;
-      if(fd && fd < new Date(Date.now() - DIAS_FOTOS_EN_MEMORIA*86400000).toISOString()) doc = aligerarRegistro(doc);
+      /* v135: de las capturas de OTRAS personas ya no se guardan las fotos en este celular (miles de KB cada una, y al guardarlas se trababa/tronaba la app). Se bajan de la nube al darles clic en Reportes. Solo se conservan completas las propias. */
+      if(doc.usuario !== currentUser.usuario || (fd && fd < new Date(Date.now() - DIAS_FOTOS_EN_MEMORIA*86400000).toISOString())) doc = aligerarRegistro(doc);
     }
     _pendientes.push(doc);
     programarFlush();
@@ -6004,7 +6005,7 @@ function renderGastoTicketModal(){
   const opts = tiendasParaSelect();
   const total = ticketLineas.reduce((s,l)=> s + (parseFloat(l.costo)||0), 0);
   let html = `<button class="close-x" onclick="closeModal()">✕</button>
-    <h3>🧾 Gasto (ticket)</h3>
+    <h3>🧾 Registro ticket</h3>
     <p class="d">Un solo ticket puede traer varias líneas (producto Delico, insumos, material) — así no repites tienda/foto por cada cosa que compraste.</p>
     <div class="form-grid">
       <div class="field"><label>Tienda *</label>
@@ -13501,7 +13502,7 @@ function renderHubComunicar(){
   const sq = (ic, lb, k)=>hubPuede(k)?`<button class="h-sq" onclick="hubMod('${k}','com')">${hubIc(ic)}<small>${lb}</small></button>`:'';
   el.innerHTML = `<h2>Cómo voy</h2><div class="h-grid3">${sq('chart','Cumplimiento de venta','cumpventa')}${sq('pie','Distribución','distribucion')}${sq('route','Cumplimiento de ruta','cumplimiento')}${sq('clipPen','Prioridades y tareas','cumpprioridades')}${sq('bono','Bono','bono')}${sq('store','Kárdex','kpis')}</div>
   <h2>Platico con Delico</h2><div class="h-grid3">${sq('umb','Vacaciones','vacaciones')}${sq('check','Evaluaciones','evaluaciones')}${sq('chat','Délico te escucha','escucha')}</div>
-  <h2>Capturas fuera de tienda</h2><div class="h-grid3"><button class="h-sq" onclick="hubFuera('caducidad')">${hubIc('exp')}<small>Caducidad</small></button><button class="h-sq" onclick="hubFuera('ticket')">${hubIc('receipt')}<small>Ticket / gasto</small></button></div>
+  <h2>Capturas fuera de tienda</h2><div class="h-grid3"><button class="h-sq" onclick="hubFuera('caducidad')">${hubIc('exp')}<small>Caducidad</small></button><button class="h-sq" onclick="hubFuera('ticket')">${hubIc('receipt')}<small>Registro ticket</small></button></div>
   <p style="font-size:12px;opacity:.85;margin:-6px 4px 0">Para lo que no alcanzaste a capturar en la tienda. Es el mismo formulario: eliges la tienda y se guarda igual.</p>`;
 }
 /* v134: capturar caducidad o ticket sin estar dentro de una tienda (mismo módulo que en Ejecutar) */
@@ -13629,7 +13630,7 @@ function renderHubEjecutar(){
   document.getElementById('hubRevisa').innerHTML =
     t('abrirPipeline()','box','Inventarios')+t("openForm('caducidad')",'exp','Caducidad','caducidad')+t("openForm('precio_delico')",'dollar','Precios','precio_delico')+t("openForm('precio_competencia')",'vs','Competencia','precio_competencia')+t("hubMod('kpis','eje','tienda')",'store','Kárdex (mi tienda)');
   document.getElementById('hubLabor').innerHTML =
-    t('abrirMercadeo()','shelf','Auto evaluación','mercadeo')+t("openForm('degustacion')",'hand','Degustación','degustacion')+t("hubShopper()",'shopper','Shopper')+t('abrirPrioridadesCaptura()','clipPen','Prioridades y tareas')+t("openForm('foto')",'star','Exh adicionales','foto')+t("openForm('incidencia')",'lock','Incidencias','incidencia')+t('openGastoTicket()','receipt','Registrar gasto','gasto_ticket')+t('abrirLeySilla()','chair','Registrar Ley silla')+t('abrirCargaAnaquel()','shelf','Carga de anaquel','carga_anaquel');
+    t('abrirMercadeo()','shelf','Auto evaluación','mercadeo')+t("openForm('degustacion')",'hand','Degustación','degustacion')+t("hubShopper()",'shopper','Shopper')+t('abrirPrioridadesCaptura()','clipPen','Prioridades y tareas')+t("openForm('foto')",'star','Exh adicionales','foto')+t("openForm('incidencia')",'lock','Incidencias','incidencia')+t('openGastoTicket()','receipt','Registro ticket','gasto_ticket')+t('abrirLeySilla()','chair','Registrar Ley silla')+t('abrirCargaAnaquel()','shelf','Carga de anaquel','carga_anaquel');
   const eqw = document.getElementById('hubEqWrap'); if(eqw){ eqw.style.display = hubEsSup() ? '' : 'none';
     if(hubEsSup()) document.getElementById('hubEquipo').innerHTML = t('abrirOnboarding()','clip','Onboarding')+t("hubMod('auditoria','eje')",'eye','Registrar supervisión')+t("hubMod('eval360','eje')",'star','Evaluación 360°'); }
   hubPintarCapturasHoy();
