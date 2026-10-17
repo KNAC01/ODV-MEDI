@@ -11612,7 +11612,7 @@ async function exportPDFReporte(){
     for(let j=0;j<fotos.length;j++){
       if(!primera) pdf.addPage();
       primera = false;
-      const chica = await reducirImagen(fotos[j], 900);
+      const chica = await reducirImagen(fotos[j], 1100);
       pdf.setFont('helvetica','bold'); pdf.setFontSize(14);
       pdf.text(`DELICO . ODV — ${TIPO_LABEL[c.tipo]||c.tipo}${fotos.length>1?` (foto ${j+1}/${fotos.length})`:''}`, 40, 44);
       pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5);
@@ -11623,11 +11623,35 @@ async function exportPDFReporte(){
       try{
         const img = new Image(); img.src = chica;
         await new Promise(r=>{ img.onload=r; img.onerror=r; });
-        const maxImgW = pageW - 80;
-        const ratio = img.height / img.width;
-        const w = maxImgW, h = w*ratio;
         if(!/^data:image/.test(chica)) throw new Error('foto no descargada');
-        pdf.addImage(chica, 'JPEG', 40, 130, w, h);
+        // v150: la foto se ajusta COMPLETA a la hoja (antes las fotos verticales se salían por abajo y se cortaba
+        // el sello con fecha/GPS) y debajo lleva un pie de foto con fecha, GPS y distancia a la tienda.
+        const pageH = pdf.internal.pageSize.getHeight();
+        const yIni = 130, margenAbajo = 40, altoPie = 54;
+        const maxW = pageW - 80, maxH = pageH - yIni - margenAbajo - altoPie;
+        const ratio = (img.height||3) / (img.width||4);
+        let w = maxW, h = w*ratio;
+        if(h > maxH){ h = maxH; w = h/ratio; }
+        const x = 40 + (maxW - w)/2;
+        pdf.addImage(chica, 'JPEG', x, yIni, w, h);
+        // ---- pie de foto ----
+        const gm = (Array.isArray(c.foto_geo) ? c.foto_geo[j] : (j===0 ? c.foto_geo : null)) || null;
+        const estado = (gm && gm.estado) || c.geo_estado || '';
+        const dist = (gm && gm.dist_m!=null) ? gm.dist_m : c.geo_dist_m;
+        const lineas = [];
+        lineas.push('Foto tomada: ' + fechaHoraLocal((gm && gm.ts) || c.fecha_registro));
+        if(gm && gm.lat!=null && gm.lon!=null) lineas.push('GPS: '+Number(gm.lat).toFixed(5)+', '+Number(gm.lon).toFixed(5)+(gm.acc!=null?'  (precision +/- '+gm.acc+' m)':''));
+        else lineas.push('GPS: '+(estado==='sin_ubicacion' ? 'sin ubicacion (el celular no dio la ubicacion)' : 'no registrado en esta foto'));
+        const etiqueta = estado==='ok' ? 'EN TIENDA' : estado==='lejos' ? 'FUERA DE ZONA' : estado==='sin_referencia' ? 'tienda sin coordenadas en el catalogo' : estado==='sin_ubicacion' ? 'SIN UBICACION' : '';
+        if(etiqueta) lineas.push('Ubicacion: '+etiqueta+((dist!=null && (estado==='ok'||estado==='lejos')) ? ' - a '+fmtDistancia(dist)+' de la tienda' : ''));
+        let yy = yIni + h + 16;
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5);
+        lineas.forEach((t,k)=>{
+          if(k===lineas.length-1 && etiqueta){ if(estado==='ok') pdf.setTextColor(30,120,60); else if(estado==='lejos') pdf.setTextColor(190,30,30); else pdf.setTextColor(170,110,0); pdf.setFont('helvetica','bold'); }
+          else { pdf.setTextColor(60,60,60); }
+          pdf.text(String(t).slice(0,120), 40, yy); yy += 13;
+        });
+        pdf.setTextColor(0,0,0); pdf.setFont('helvetica','normal');
       }catch(e){
         pdf.setFontSize(10); pdf.setTextColor(170,0,0);
         pdf.text('(No se pudo incluir la foto en el PDF)', 40, 140);
