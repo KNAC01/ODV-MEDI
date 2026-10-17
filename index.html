@@ -6528,7 +6528,7 @@ function populateRepFiltrosExtra(){
   }
   registrarFiltroMesesCompletos('rep','repMesDdPanel','repMesDdBtn','repDesde','repHasta',renderReportes);
 }
-function capturasFiltradasReporte(ignorarTipo){
+function capturasFiltradasReporte(ignorarTipo, fuente){
   const tipo = ignorarTipo ? '' : document.getElementById('repTipo').value;
   const persona = document.getElementById('repPersona').value;
   const cadena = document.getElementById('repCadena').value;
@@ -6536,7 +6536,7 @@ function capturasFiltradasReporte(ignorarTipo){
   const supervisor = document.getElementById('repSupervisor').value;
   const desde = (document.getElementById('repDesde')||{}).value;
   const hasta = (document.getElementById('repHasta')||{}).value;
-  let arr = getCapturas();
+  let arr = fuente ? [...fuente] : getCapturas();
   if(tipo) arr = arr.filter(c=>c.tipo===tipo && !(tipo==='incidencia' && esIncidenciaVisita(c)));
   if(persona) arr = arr.filter(c=>c.usuario===persona);
   if(cadena) arr = arr.filter(c=>c.cadena===cadena);
@@ -11490,10 +11490,17 @@ function renderPanelExportReportes(){
 async function reducirImagen(dataUrl, maxW){
   // v144: si la foto es una liga de Storage, primero se baja (necesita el permiso CORS del bucket, ver instrucciones)
   if(typeof dataUrl==='string' && /^https?:/.test(dataUrl)){
-    try{
-      const r = await fetch(dataUrl); const b = await r.blob();
-      dataUrl = await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(b); });
-    }catch(e){ return dataUrl; }
+    const original = dataUrl;
+    // v149: se pide SIN usar la copia guardada del navegador (una copia vieja, bajada antes del permiso CORS, no trae el permiso)
+    const sep = original.includes('?') ? '&' : '?';
+    const intentos = [
+      async ()=>{ const r = await fetch(original, {mode:'cors', cache:'reload'}); if(!r.ok) throw new Error('http '+r.status); return await r.blob(); },
+      async ()=>{ const r = await fetch(original+sep+'cb='+Date.now(), {mode:'cors', cache:'no-store'}); if(!r.ok) throw new Error('http '+r.status); return await r.blob(); }
+    ];
+    let blob = null, ultimoErr = null;
+    for(const t of intentos){ try{ blob = await t(); if(blob && blob.size) break; }catch(e){ ultimoErr = e; } }
+    if(!blob){ window._corsFallo = true; window._corsError = String((ultimoErr&&ultimoErr.message)||ultimoErr||'sin detalle'); return original; }
+    dataUrl = await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(blob); });
   }
   return new Promise(resolve=>{
     const img = new Image();
@@ -11515,8 +11522,63 @@ function fotosDeCaptura(c){
   if(!c.foto) return [];
   return Array.isArray(c.foto) ? c.foto.filter(Boolean) : [c.foto];
 }
+/* v148: las capturas viejas guardan en el celular SOLO un aviso ("foto en la nube") y no la foto (para no llenar la
+   memoria). Por eso "Exportar imágenes" y "PDF reporte" decían "no hay registros". Ahora, antes de exportar, se
+   bajan de la nube las fotos que faltan (de pocas en pocas), sin guardarlas en el celular. */
+async function arrConFotosReporte(){
+  /* v149: el reporte con fotos se arma con TODO el equipo y respeta tus filtros (persona, cadena, región, supervisor,
+     fechas, tipo). Antes solo usaba lo que este celular/compu ya tenía guardado (en la práctica, casi solo lo tuyo).
+     Ahora se consulta la nube directamente por el rango de fechas y se mezcla con lo local. */
+  let fuente = getCapturas();
+  const desde = (document.getElementById('repDesde')||{}).value;
+  const hasta = (document.getElementById('repHasta')||{}).value;
+  if(db && currentUser && currentUser.perfil !== 'Embajador'){
+    try{
+      const ini = desde ? new Date(Date.parse(desde+'T00:00:00Z')-86400000).toISOString().slice(0,10) : new Date(Date.now()-31*86400000).toISOString().slice(0,10);   // 1 día de margen por zona horaria (el filtro fino se aplica después)
+      const fin = (hasta || new Date(Date.now()+86400000).toISOString().slice(0,10)) + 'T23:59:59.999Z';
+      toast('☁️ Consultando a todo el equipo en la nube…', 5000);
+      const traidas = [];
+      let ultimo = null;
+      for(let pag=0; pag<30; pag++){   // hasta ~3000 registros, de 100 en 100
+        let q = db.collection('capturas_medi').where('fecha_registro','>=',ini).where('fecha_registro','<=',fin).orderBy('fecha_registro','desc').limit(100);
+        if(ultimo) q = q.startAfter(ultimo);
+        const snap = await q.get();
+        snap.docs.forEach(d=> traidas.push({...d.data(), id:d.id, _en_nube:true}));
+        if(snap.docs.length < 100) break;
+        ultimo = snap.docs[snap.docs.length-1];
+        if(pag % 3 === 2) toast('☁️ Consultando la nube… '+traidas.length+' registros', 2500);
+      }
+      const mapa = new Map(fuente.map(c=>[c.id, c]));
+      traidas.forEach(c=>{ const l = mapa.get(c.id); mapa.set(c.id, (l && fotosDeCaptura(l).length && !fotosDeCaptura(c).length) ? l : c); });
+      fuente = [...mapa.values()];
+    }catch(e){
+      console.warn('No se pudo consultar la nube para el reporte, se usa lo local:', e);
+      toast('⚠️ No pude consultar la nube ('+String((e&&e.code)||(e&&e.message)||e).slice(0,60)+'). Se exporta solo lo que hay en este equipo.', 7000);
+    }
+  }
+  const base = capturasFiltradasReporte(false, fuente);
+  const faltan = base.filter(c=> !fotosDeCaptura(c).length && c._fotos_solo_en_la_nube);
+  const traidas2 = new Map();
+  if(faltan.length && db){
+    let i = 0;
+    const trabajador = async ()=>{
+      while(i < faltan.length){
+        const c = faltan[i++];
+        try{
+          const snap = await db.collection('capturas_medi').doc(String(c.id)).get();
+          const dd = snap && snap.exists ? snap.data() : null;
+          const f = dd ? fotosDeCaptura(dd) : [];
+          if(f.length) traidas2.set(c.id, f);
+        }catch(e){}
+      }
+    };
+    await Promise.all([trabajador(), trabajador(), trabajador(), trabajador(), trabajador()]);
+  }
+  return base.map(c=> traidas2.has(c.id) ? {...c, foto: traidas2.get(c.id).length===1 ? traidas2.get(c.id)[0] : traidas2.get(c.id)} : c)
+             .filter(c=>fotosDeCaptura(c).length);
+}
 async function exportImagenesReporte(){
-  const arr = capturasFiltradasReporte().filter(c=>fotosDeCaptura(c).length);
+  window._corsFallo = false; const arr = await arrConFotosReporte();
   if(!arr.length){ toast('No hay capturas con foto para este filtro.'); return; }
   const total = arr.reduce((a,c)=>a+fotosDeCaptura(c).length, 0);
   toast(`Exportando ${total} imagen(es)...`);
@@ -11532,12 +11594,12 @@ async function exportImagenesReporte(){
       await new Promise(r=>setTimeout(r, 250));
     }
   }
-  toast('Imágenes exportadas ✓');
+  toast(window._corsFallo ? '⚠️ Las fotos no se pudieron descargar: falta activar el permiso CORS de Storage (pásale a Claude el aviso).' : 'Imágenes exportadas ✓', window._corsFallo?9000:undefined);
 }
 async function exportPDFReporte(){
   await cargarJsPDF();
   if(typeof window.jspdf === 'undefined'){ toast('No se pudo cargar el exportador de PDF (sin conexión).'); return; }
-  const arr = capturasFiltradasReporte().filter(c=>fotosDeCaptura(c).length);
+  window._corsFallo = false; const arr = await arrConFotosReporte();
   if(!arr.length){ toast('No hay capturas con foto para este filtro.'); return; }
   toast('Generando PDF...');
   const { jsPDF } = window.jspdf;
@@ -11564,12 +11626,18 @@ async function exportPDFReporte(){
         const maxImgW = pageW - 80;
         const ratio = img.height / img.width;
         const w = maxImgW, h = w*ratio;
+        if(!/^data:image/.test(chica)) throw new Error('foto no descargada');
         pdf.addImage(chica, 'JPEG', 40, 130, w, h);
-      }catch(e){}
+      }catch(e){
+        pdf.setFontSize(10); pdf.setTextColor(170,0,0);
+        pdf.text('(No se pudo incluir la foto en el PDF)', 40, 140);
+        pdf.setTextColor(0,0,0);
+        try{ if(/^https?:/.test(fotos[j])) pdf.textWithLink('Abrir foto en el navegador', 40, 156, {url: fotos[j]}); }catch(e2){}
+      }
     }
   }
   pdf.save(`delico_odv_reporte_fotos_${todayISO()}.pdf`);
-  toast('PDF generado ✓');
+  toast(window._corsFallo ? '⚠️ El PDF salió sin fotos: no se pudieron bajar las fotos ('+(window._corsError||'')+').' : 'PDF generado ✓', window._corsFallo?9000:undefined);
 }
 
 /* ---------- ASIGNACIÓN DE RUTA ---------- */
