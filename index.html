@@ -1192,8 +1192,10 @@ body.hub-on #catalogoGrid{grid-template-columns:repeat(auto-fill,minmax(220px,1f
           <option value="carga_anaquel">Carga de anaquel</option>
           <option value="salida_tienda">Registro — Check-out</option>
         </select>
-        <label>Persona:</label>
+        <label>Embajador(a):</label>
         <select id="repPersona"><option value="">Todas</option></select>
+        <label># Sector:</label>
+        <select id="repSector"><option value="">Todos</option></select>
         <label>Cadena:</label>
         <select id="repCadena"><option value="">Todas</option></select>
         <label>Región:</label>
@@ -6505,10 +6507,21 @@ function guardarRetroShopper(capturaId){
 /* ---------- REPORTES (equipo) ---------- */
 function populateRepPersona(){
   const sel = document.getElementById('repPersona');
+  const previo = sel.value;
   sel.innerHTML = '<option value="">Todas</option>';
-  APP_DATA.equipo.filter(u=>u.perfil==='Embajador').forEach(u=>{
-    const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre; sel.appendChild(o);
+  APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es')).forEach(u=>{
+    const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre+(u.sector?'  ('+u.sector+')':''); sel.appendChild(o);
   });
+  if(previo) sel.value = previo;
+  // v151: filtro por # de sector (código del sector: el de la embajadora y el que trae cada tienda en el catálogo)
+  const ss = document.getElementById('repSector');
+  if(ss){
+    const pv = ss.value;
+    const nombrePorSector = {}; APP_DATA.equipo.forEach(u=>{ if(u.sector) nombrePorSector[u.sector] = u.nombre; });
+    const sectores = [...new Set([...APP_DATA.equipo.map(u=>u.sector), ...APP_DATA.stores.map(x=>x.sector)].filter(Boolean))].sort();
+    ss.innerHTML = '<option value="">Todos</option>' + sectores.map(x=>`<option value="${x}">${x}${nombrePorSector[x]?' · '+nombrePorSector[x]:''}</option>`).join('');
+    if(pv) ss.value = pv;
+  }
 }
 function populateRepFiltrosExtra(){
   const cadenaSel = document.getElementById('repCadena');
@@ -6531,6 +6544,7 @@ function populateRepFiltrosExtra(){
 function capturasFiltradasReporte(ignorarTipo, fuente){
   const tipo = ignorarTipo ? '' : document.getElementById('repTipo').value;
   const persona = document.getElementById('repPersona').value;
+  const sectorSel = (document.getElementById('repSector')||{}).value || '';
   const cadena = document.getElementById('repCadena').value;
   const region = document.getElementById('repRegion').value;
   const supervisor = document.getElementById('repSupervisor').value;
@@ -6539,6 +6553,12 @@ function capturasFiltradasReporte(ignorarTipo, fuente){
   let arr = fuente ? [...fuente] : getCapturas();
   if(tipo) arr = arr.filter(c=>c.tipo===tipo && !(tipo==='incidencia' && esIncidenciaVisita(c)));
   if(persona) arr = arr.filter(c=>c.usuario===persona);
+  if(sectorSel) arr = arr.filter(c=>{
+    const u = APP_DATA.equipo.find(x=>x.usuario===c.usuario);
+    if(u && u.sector===sectorSel) return true;
+    const st = (typeof storeInfo==='function') ? storeInfo(c.cadena, c.tienda) : null;
+    return !!(st && st.sector===sectorSel);
+  });
   if(cadena) arr = arr.filter(c=>c.cadena===cadena);
   if(region) arr = arr.filter(c=>{ const u = APP_DATA.equipo.find(x=>x.usuario===c.usuario); return u && u.region===region; });
   if(supervisor) arr = arr.filter(c=> supervisorDePersona(c.persona)===supervisor);
@@ -6589,10 +6609,11 @@ function badgeGeo(c){
   return ` <span style="font-size:11px; font-weight:700; color:${col}; white-space:nowrap;">${GEO_ETIQUETA[c.geo_estado]||''}${c.geo_dist_m!=null?' · a '+fmtDistancia(c.geo_dist_m):''}</span>`;
 }
 function renderReportes(){
-  if(!document.getElementById('repPersona').options.length) populateRepPersona();
+  if(document.getElementById('repPersona').options.length<=1 || (document.getElementById('repSector')&&document.getElementById('repSector').options.length<=1)) populateRepPersona();
   populateRepFiltrosExtra();
   document.getElementById('repTipo').onchange = renderReportes;
   document.getElementById('repPersona').onchange = renderReportes;
+  { const _rs = document.getElementById('repSector'); if(_rs) _rs.onchange = renderReportes; }
   const zonaAdmin = document.getElementById('reinicioZonaAdmin');
   if(zonaAdmin) zonaAdmin.classList.toggle('hidden', currentUser.usuario !== RESET_TOTAL_USUARIO);
   const zonaPw = document.getElementById('passwordsZonaAdmin');
