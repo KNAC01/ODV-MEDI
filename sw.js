@@ -2,7 +2,7 @@
 // IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
 // también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
 // celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v141';
+const CACHE_NAME = 'delico-odv-v142';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-v2-192.png', './icon-v2-512.png', './splash_mujer.svg'];
 // El SDK de Firebase se carga desde gstatic.com cada vez que arranca la app. Si no se guarda también
 // aquí, un celular que abre la app SIN internet (o con el caché del navegador ya vencido) se puede
@@ -55,3 +55,23 @@ self.addEventListener('fetch', (event) => {
   const peticionRed = esMismoOrigen ? new Request(event.request.url, {cache:'no-cache', credentials:'same-origin'}) : event.request;
   const desdeRed = fetch(peticionRed).then((resp) => {
     if (esMismoOrigen || resp.type === 'opaque') {
+      const copy = resp.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+    }
+    return resp;
+  });
+  const enCache = () => caches.match(event.request).then((cached) => cached || (esNavegacion ? caches.match('./index.html') : undefined));
+  event.respondWith(
+    caches.match(event.request).then((hayCopia) => {
+      if (!hayCopia) {
+        // Sin copia guardada: se espera a la red (no hay otra opción)
+        return desdeRed.catch(() => enCache().then((c) => c || (esNavegacion ? Response.error() : Response.error())));
+      }
+      // Con copia guardada: la red tiene ESPERA_RED_MS para contestar; si no, se usa la copia
+      return Promise.race([
+        desdeRed,
+        new Promise((resolve) => setTimeout(() => resolve(hayCopia), ESPERA_RED_MS)),
+      ]).catch(() => enCache().then((c) => c || Response.error()));
+    })
+  );
+});

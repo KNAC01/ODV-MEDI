@@ -2049,6 +2049,32 @@ function _avisoErrorGlobal(msg){
   try{ toast('⚠️ Algo falló: ' + (msg||'error desconocido') + ' — avísale a soporte con este mensaje.', 6500); }catch(e){}
 }
 window.addEventListener('error', (ev)=>{ _avisoErrorGlobal(ev && ev.message); });
+/* v142: DETECTOR DE CIERRES. Si el celular mata la app (memoria), no queda ningún error. Aquí se deja una marca
+   "sesión abierta" con el último paso y la memoria; al cerrarse bien (pagehide/oculta) se borra. Si al abrir la
+   app la marca sigue ahí, es que la vez anterior se cerró sola: se guarda un registro con dónde fue. */
+window._paso = function(txt){ try{ localStorage.setItem('delico_sesion', JSON.stringify({t:Date.now(), paso:String(txt).slice(0,80), mem:(navigator.deviceMemory||'?'), ram:(performance&&performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):'?'), v:'v142'})); }catch(e){} };
+(function(){
+  try{
+    const prev = localStorage.getItem('delico_sesion');
+    if(prev){
+      const d = JSON.parse(prev);
+      const log = JSON.parse(localStorage.getItem('delico_cierres')||'[]');
+      log.push({cuando:new Date(d.t).toISOString(), paso:d.paso, mem_gb:d.mem, js_mb:d.ram, ua:(navigator.userAgent||'').slice(0,90)});
+      localStorage.setItem('delico_cierres', JSON.stringify(log.slice(-15)));
+    }
+  }catch(e){}
+  window._paso('abriendo app');
+  // intenta mandar los cierres a la nube (si las reglas lo permiten); si no, se queda en el celular
+  setTimeout(()=>{ try{
+    const log = JSON.parse(localStorage.getItem('delico_cierres')||'[]');
+    if(!log.length || typeof db==='undefined' || !db) return;
+    const u = (typeof currentUser!=='undefined' && currentUser && currentUser.usuario) || 'sin_usuario';
+    db.collection('cierres_app').add({usuario:u, cierres:log, enviado:new Date().toISOString()}).then(()=>{ localStorage.removeItem('delico_cierres'); }).catch(()=>{});
+  }catch(e){} }, 15000);
+  document.addEventListener('visibilitychange', ()=>{ window._paso((document.hidden?'[oculta] ':'[visible] ')+(window._pasoActual||'inicio')); });
+  setInterval(()=>{ if(!document.hidden && window._pasoActual) window._paso(window._pasoActual); }, 4000);
+})();
+
 window.addEventListener('unhandledrejection', (ev)=>{ _avisoErrorGlobal(ev && ev.reason ? (ev.reason.message||ev.reason) : ''); });
 /* Confirmación personalizada — evita usar window.confirm(), que en varios celulares con la app
    instalada como app (modo standalone/PWA) NO funciona: la llamada no hace nada visible y el código
@@ -3412,6 +3438,7 @@ function toggleMobileNav(force){
   overlay.classList.toggle('open', open);
 }
 function showView(key, btnEl){
+  window._pasoActual='pantalla '+key; if(window._paso) window._paso(window._pasoActual);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+key).classList.add('active');
   document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
@@ -5207,6 +5234,7 @@ async function comprimirArchivo(file, maxDim, calidad){
   return comprimirImagen(dataUrl, maxDim, calidad);
 }
 function previewFile(key){
+  window._pasoActual='foto '+key; if(window._paso) window._paso(window._pasoActual);
   // el id real del <input> puede venir como "f_"+key (formularios estándar) o ya venir completo (ej. prioridades)
   const input = document.getElementById('f_'+key) || document.getElementById(key);
   const img = document.getElementById('prev_'+key);
