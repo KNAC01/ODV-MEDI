@@ -2326,7 +2326,12 @@ function passwordFirebaseDe(passwordOriginal){ return passwordOriginal + '_odvDe
 let db = null;
 try{
   db = firebase.firestore();
-  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  /* v143: en celulares básicos (poca RAM) NO se activa la copia pesada de Firestore en el celular (IndexedDB):
+     era lo que más memoria/espacio gastaba y a veces se corrompía. La app ya guarda su propia copia ligera. */
+  const _ramGB = navigator.deviceMemory || 0;
+  const _celularBasico = (_ramGB>0 && _ramGB<=3) || /Android [4-9]\b|Android 1[0-1]\b/.test(navigator.userAgent||'') && _ramGB<=4 && _ramGB>0;
+  window._celularBasico = _celularBasico;
+  if(!_celularBasico) db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 }catch(e){ console.warn('Firestore no disponible — se sigue guardando solo en este dispositivo.', e); db = null; }
 
 const SYNC_LISTENERS = {};
