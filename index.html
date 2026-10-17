@@ -5350,6 +5350,59 @@ async function comprimirArchivo(file, maxDim, calidad){
   const dataUrl = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ev=>res(ev.target.result); r.onerror = ()=>rej(new Error('lectura')); r.readAsDataURL(file); });
   return comprimirImagen(dataUrl, maxDim, calidad);
 }
+/* v147: CÁMARA DENTRO DE LA APP. Antes, al tocar "tomar foto" el celular abría la app de cámara y la app de Délico pasaba a
+   segundo plano; en celulares con poca memoria Android MATABA la página de Délico para darle memoria a la cámara, y se
+   perdía lo que se estaba capturando (los cierres en "Ejecutar" del reporte de cierres). Ahora la cámara se abre
+   DENTRO de la app (la app nunca sale de primer plano). Si el celular no deja usar la cámara así, se usa la
+   forma de siempre. Sin botón de galería: solo foto directa (Retro Shopper conserva su propia galería). */
+let _camBypass = false;
+function _selectorNativo(inp){ _camBypass = true; try{ inp.click(); }finally{ setTimeout(()=>{ _camBypass = false; },0); } }
+document.addEventListener('click', (ev)=>{
+  if(_camBypass) return;
+  const t = ev.target;
+  const inp = (t && t.tagName==='INPUT' && t.type==='file') ? t : null;
+  if(!inp) return;
+  if(!/image/i.test(inp.getAttribute('accept')||'') || !inp.hasAttribute('capture')) return;   // solo los que piden cámara; los de galería quedan igual
+  if(inp.dataset.sinCamaraApp==='1') return;
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return;
+  ev.preventDefault(); ev.stopPropagation();
+  abrirCamaraApp(inp);
+}, true);
+async function abrirCamaraApp(inp){
+  let stream = null;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:(inp.getAttribute('capture')==='user'?'user':'environment')}, width:{ideal:1280}, height:{ideal:960}}, audio:false});
+  }catch(e){ _selectorNativo(inp); return; }   // sin permiso o sin cámara: método de siempre
+  if(window._paso) window._paso('camara en la app');
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed; inset:0; z-index:100000; background:#000; display:flex; flex-direction:column;';
+  ov.innerHTML = '<video id="camVid" autoplay playsinline muted style="flex:1; min-height:0; width:100%; object-fit:contain; background:#000;"></video>'
+    + '<div style="display:flex; gap:10px; padding:14px 12px calc(14px + env(safe-area-inset-bottom)); background:#111; justify-content:center; align-items:center;">'
+    + '<button type="button" id="camShot" style="padding:14px 26px; border-radius:40px; border:0; background:#fff; color:#000; font-size:17px; font-weight:700;">📸 Tomar foto</button>'
+    + '<button type="button" id="camX" style="padding:12px 14px; border-radius:12px; border:1px solid #888; background:#222; color:#fff; font-size:14px;">✖</button></div>';
+  document.body.appendChild(ov);
+  const vid = ov.querySelector('#camVid'); vid.srcObject = stream; try{ await vid.play(); }catch(e){}
+  const cerrar = ()=>{ try{ stream.getTracks().forEach(t=>t.stop()); }catch(e){} try{ vid.srcObject = null; }catch(e){} ov.remove(); document.removeEventListener('visibilitychange', alOcultar); };
+  const alOcultar = ()=>{ if(document.hidden) cerrar(); };
+  document.addEventListener('visibilitychange', alOcultar);
+  ov.querySelector('#camX').onclick = cerrar;
+  ov.querySelector('#camShot').onclick = ()=>{
+    try{
+      let w = vid.videoWidth || 1280, h = vid.videoHeight || 960;
+      const m = 1280; if(Math.max(w,h) > m){ const k = m/Math.max(w,h); w = Math.round(w*k); h = Math.round(h*k); }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(vid, 0, 0, w, h);
+      c.toBlob((blob)=>{
+        if(!blob){ cerrar(); _selectorNativo(inp); return; }
+        const f = new File([blob], 'foto_'+Date.now()+'.jpg', {type:'image/jpeg'});
+        const dt = new DataTransfer(); dt.items.add(f);
+        inp.files = dt.files;
+        cerrar();
+        inp.dispatchEvent(new Event('change', {bubbles:true}));
+      }, 'image/jpeg', 0.85);
+    }catch(e){ cerrar(); _selectorNativo(inp); }
+  };
+}
 function previewFile(key){
   window._pasoActual='foto '+key; if(window._paso) window._paso(window._pasoActual);
   // el id real del <input> puede venir como "f_"+key (formularios estándar) o ya venir completo (ej. prioridades)
