@@ -2280,7 +2280,8 @@ function pintarEstadoNube(){
       html = `☁️ Nube conectada · <b>${est.recibidos}</b> captura(s) recibidas de la nube · ${locales} guardadas en este equipo.`
         + (est.recibidos===0 ? ' <span style="color:#a60;">La nube respondió vacía: si el equipo ya capturó, sus celulares NO están subiendo (que abran la app con internet para que se reintente la subida).</span>' : '');
     }
-    html += '<br><span style="font-size:12px;">🖼️ Fotos (v145): ' + (typeof _storageFB==='undefined'||!_storageFB ? '<b style="color:#a33;">Storage no cargó en este celular (actualiza la app)</b>' : (window._storageOk ? '<b style="color:#2a7a2a;">en Storage ✓ ('+window._storageOk+' subidas en esta sesión)</b>' : (window._storageUltimoError ? '<b style="color:#a33;">Storage rechazó: '+String(window._storageUltimoError).slice(0,120)+'</b>' : 'sin subidas todavía en esta sesión'))) + '</span>';
+    if(typeof currentUser!=='undefined' && currentUser && currentUser.usuario==='KNAC01') html += '<br><button id="btnMigrarFotos" class="btn btn-ghost" style="padding:3px 10px; font-size:12px; margin-top:4px;" onclick="migrarFotosViejas()">'+(_migrando?'⏹ Detener':'🖼️ Mover fotos viejas a Storage')+'</button> <span id="migFotosInfo" style="font-size:12px;"></span>';
+    html += '<br><span style="font-size:12px;">🖼️ Fotos (v146): ' + (typeof _storageFB==='undefined'||!_storageFB ? '<b style="color:#a33;">Storage no cargó en este celular (actualiza la app)</b>' : (window._storageOk ? '<b style="color:#2a7a2a;">en Storage ✓ ('+window._storageOk+' subidas en esta sesión)</b>' : (window._storageUltimoError ? '<b style="color:#a33;">Storage rechazó: '+String(window._storageUltimoError).slice(0,120)+'</b>' : 'sin subidas todavía en esta sesión'))) + '</span>';
     if(pend>0) html += ` · <b style="color:#a60;">${pend} tuya(s) pendiente(s) de subir</b> <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button>`;
     box.innerHTML = html;
   }
@@ -2431,6 +2432,63 @@ async function subirFotosAStorage(coleccion, data){
     window._storageUltimoError = msg;
     return data;
   }
+}
+/* v146: MOVER FOTOS VIEJAS A STORAGE (solo KNAC01). Recorre las colecciones de 10 en 10 documentos (para no llenar la
+   memoria), sube cada foto pesada a Storage y SOLO si la subida salió bien reemplaza esa foto por su liga en el
+   registro. Se puede detener y continuar cuando sea: lo que ya se movió no se vuelve a tocar. */
+let _migrando = false, _migParar = false;
+function _migMsg(t){ const e = document.getElementById('migFotosInfo'); if(e) e.innerHTML = t; }
+function migrarFotosViejas(){
+  if(_migrando){ _migParar = true; _migMsg('Deteniendo… espera a que termine el registro actual.'); return; }
+  if(!db || !_storageFB || !currentUser || currentUser.usuario!=='KNAC01'){ toast('Solo el administrador principal puede mover las fotos (y se necesita internet).'); return; }
+  confirmarPersonalizado('Se van a mover las fotos viejas de la nube a Storage, de poquito en poquito. No borra nada: solo cambia cada foto pesada por su liga. Deja esta pantalla abierta mientras corre (puedes detenerla y seguir después). ¿Empezar?', ()=>{ _migrarFotosViejasEjecutar(); });
+}
+async function _migrarFotosViejasEjecutar(){
+  _migrando = true; _migParar = false; window._storageUltimoError = null; _storageApagadoHasta = 0;
+  const colecciones = ['capturas_medi','noticias','delico_escucha','recetas','rutas','cartas','materiales','uniformes','auditorias','caducidad_lotes','inventario'];
+  let revisados = 0, movidos = 0, fotos = 0, fallos = 0;
+  const btn = document.getElementById('btnMigrarFotos'); if(btn) btn.textContent = '⏹ Detener';
+  try{
+    for(const col of colecciones){
+      let ultimo = null;
+      while(!_migParar){
+        let q = db.collection(col).orderBy(firebase.firestore.FieldPath.documentId()).limit(10);
+        if(ultimo) q = q.startAfter(ultimo);
+        let snap;
+        try{ snap = await q.get(); }catch(e){ break; }   // colección sin permiso o inexistente: se sigue con la siguiente
+        if(snap.empty) break;
+        for(const doc of snap.docs){
+          if(_migParar) break;
+          revisados++;
+          const data = doc.data();
+          const claves = Object.keys(data).filter(k=> _esFotoData(data[k]) || (Array.isArray(data[k]) && data[k].some(_esFotoData)));
+          if(claves.length){
+            const out = await subirFotosAStorage(col, {...data, id: doc.id});
+            const cambios = {};
+            claves.forEach(k=>{
+              const nuevo = out[k], viejo = data[k];
+              const ok = Array.isArray(nuevo) ? nuevo.every(v=>!_esFotoData(v)) : !_esFotoData(nuevo);
+              if(ok && JSON.stringify(nuevo)!==JSON.stringify(viejo)){ cambios[k] = nuevo; fotos += Array.isArray(nuevo)?nuevo.length:1; }
+            });
+            if(Object.keys(cambios).length){
+              try{ await doc.ref.update(cambios); movidos++; }catch(e){ fallos++; window._storageUltimoError = (e&&e.code)||String(e); }
+            }else{ fallos++; }
+            if(fallos>=5 && movidos===0){ _migParar = true; _migMsg('<b style="color:#a33;">Se detuvo: Storage no está aceptando las fotos ('+String(window._storageUltimoError||'sin detalle').slice(0,100)+').</b>'); break; }
+          }
+          _migMsg('Colección <b>'+col+'</b> · revisados '+revisados+' · registros aligerados <b>'+movidos+'</b> · fotos movidas '+fotos+(fallos?' · con problema '+fallos:''));
+          await new Promise(r=>setTimeout(r,60));
+        }
+        ultimo = snap.docs[snap.docs.length-1];
+        if(snap.docs.length<10) break;
+      }
+      if(_migParar) break;
+    }
+    _migMsg((_migParar?'⏹ Detenido. ':'✅ Terminado. ')+'Revisados '+revisados+' · registros aligerados <b>'+movidos+'</b> · fotos movidas '+fotos+(fallos?' · con problema '+fallos:''));
+  }catch(e){
+    _migMsg('<b style="color:#a33;">Se interrumpió: '+String((e&&e.message)||e).slice(0,140)+'</b> — puedes volver a presionar el botón, continúa donde se quedó.');
+  }
+  _migrando = false; _migParar = false;
+  const b2 = document.getElementById('btnMigrarFotos'); if(b2) b2.textContent = '🖼️ Mover fotos viejas a Storage';
 }
 async function subirAColeccion(coleccion, documento){
   if(!db || !documento || !documento.id) return {ok:true};
