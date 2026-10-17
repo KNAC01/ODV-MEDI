@@ -25,6 +25,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <style>
   :root{
     /* Paleta oficial Delico, en orden de prioridad: 1 oliva, 2 crema, 3 lila, 4 naranja (solo acentos, con medida) */
@@ -2209,13 +2210,21 @@ function conTiempoMax(promesa, ms){
 async function subirCapturaNube(d){
   if(!db || !d || !d.id) return {ok:false, error:'la nube no está disponible en este dispositivo'};
   let listo = {...d}; delete listo._en_nube;
+  try{ listo = await subirFotosAStorage('capturas_medi', listo); }catch(e){}   // v144: fotos a Storage, en el registro queda solo la liga
   if(tamanoAprox(listo) > LIMITE_DOC_NUBE) listo = await reducirFotosParaNube(listo);
   if(tamanoAprox(listo) > LIMITE_DOC_NUBE){
     // Último recurso: subir el registro SIN fotos antes que perder el registro completo.
     listo = aligerarRegistro(listo); delete listo._fotos_solo_en_la_nube; listo._fotos_omitidas_por_tamano = true;
   }
   const r = await conTiempoMax(subirAColeccion('capturas_medi', listo), 25000);
-  if(r && r.ok) marcarCapturaEnNube(d.id);
+  if(r && r.ok){
+    marcarCapturaEnNube(d.id);
+    // v144: ya está en Storage → en el celular se cambia la foto pesada por su liga (libera memoria y espacio)
+    try{
+      const c = _capturasCache.find(x=>x && x.id===d.id);
+      if(c) Object.keys(listo).forEach(k=>{ const v=listo[k]; if((typeof v==='string' && /^https?:/.test(v) && typeof c[k]==='string' && c[k].startsWith('data:')) || (Array.isArray(v) && v.length && typeof v[0]==='string' && /^https?:/.test(v[0]) && Array.isArray(c[k]))) c[k]=v; });
+    }catch(e){}
+  }
   return r || {ok:false, error:'sin respuesta'};
 }
 let _ultimoAvisoSubida = 0;
@@ -2379,12 +2388,55 @@ function iniciarSincronizacion(coleccion, onCambio, onBorrado, queryPersonalizad
    aunque no tuviera nada que ver con internet. Por eso todo el intento va envuelto en try/catch: pase
    lo que pase con la nube, esta función NUNCA debe tronar hacia afuera — el guardado local (que es
    el que de verdad le importa a la persona en el momento) tiene que poder seguir siempre. */
-function subirAColeccion(coleccion, documento){
-  if(!db || !documento || !documento.id) return Promise.resolve({ok:true});
-  const data = {...documento};
+/* v144: FOTOS EN FIREBASE STORAGE. Antes cada foto viajaba como texto gigante (base64) DENTRO del registro, y todos los
+   celulares la descargaban con el registro (memoria, lentitud, cierres). Ahora, al subir un registro, cada foto se
+   manda a Storage y en el registro solo queda su liga (unos 150 caracteres). Si Storage no responde (no activado,
+   reglas, sin señal) se usa el método anterior, así que nada se pierde. */
+let _storageFB = null;
+try{ if(typeof firebase.storage==='function') _storageFB = firebase.storage(); }catch(e){ _storageFB = null; }
+let _storageApagadoHasta = 0;
+const _esFotoData = v => typeof v==='string' && v.startsWith('data:image') && v.length>20000;
+function _limpiaRuta(t){ return String(t||'x').replace(/[^a-zA-Z0-9_\-]/g,'_').slice(0,80); }
+async function _subirUnaFoto(ruta, dataUrl){
+  const ref = _storageFB.ref(ruta);
+  const tarea = ref.putString(dataUrl, 'data_url', {cacheControl:'public,max-age=31536000'});
+  const snap = await Promise.race([tarea, new Promise((_,rej)=>setTimeout(()=>rej(new Error('tiempo agotado subiendo foto')), 45000))]);
+  return await snap.ref.getDownloadURL();
+}
+async function subirFotosAStorage(coleccion, data){
+  if(!_storageFB || Date.now() < _storageApagadoHasta) return data;
+  const claves = Object.keys(data).filter(k=> _esFotoData(data[k]) || (Array.isArray(data[k]) && data[k].some(_esFotoData)));
+  if(!claves.length) return data;
+  const out = {...data};
+  try{
+    for(const k of claves){
+      const base = 'fotos/'+_limpiaRuta(coleccion)+'/'+_limpiaRuta(data.id)+'/'+_limpiaRuta(k);
+      if(Array.isArray(out[k])){
+        const nuevo = [];
+        for(let i=0;i<out[k].length;i++){ const v = out[k][i]; nuevo.push(_esFotoData(v) ? await _subirUnaFoto(base+'_'+i+'.jpg', v) : v); }
+        out[k] = nuevo;
+      }else{
+        out[k] = await _subirUnaFoto(base+'.jpg', out[k]);
+      }
+    }
+    if(window._paso) window._paso('fotos en storage ok');
+    return out;
+  }catch(e){
+    const msg = (e && (e.code||e.message)) || String(e);
+    console.warn('Storage no disponible, se sube la foto dentro del registro (método anterior):', msg);
+    // si es un problema de configuración/permisos, no se vuelve a intentar por 10 min (no frena cada captura)
+    if(/unauthorized|unauthenticated|no-default-bucket|bucket-not-found|project-not-found|unknown|not-found|retry-limit/i.test(msg)) _storageApagadoHasta = Date.now()+10*60000;
+    window._storageUltimoError = msg;
+    return data;
+  }
+}
+async function subirAColeccion(coleccion, documento){
+  if(!db || !documento || !documento.id) return {ok:true};
+  let data = {...documento};
+  try{ data = await subirFotosAStorage(coleccion, data); }catch(e){}
   try{
     return db.collection(coleccion).doc(String(data.id)).set(data, {merge:true})
-      .then(()=>({ok:true}))
+      .then(()=>({ok:true, doc:data}))
       .catch(err=>{ console.warn('No se pudo subir a la nube ('+coleccion+'):', err); return {ok:false, error:(err&&err.message)||String(err)}; });
   }catch(err){
     console.warn('Firestore truena internamente al subir a la nube ('+coleccion+') — se sigue guardando local:', err);
@@ -11322,7 +11374,14 @@ function renderPanelExportReportes(){
     <p style="font-size:11px; color:var(--ink-soft); margin:8px 0 0;">Todos incluyen: cadena, núm. de tienda, tienda, usuario, fecha y hora (separadas), tipo de reporte, geolocalización y distancia, y los comentarios del equipo. <b>Check-in</b> agrega perfil, rol e incidencia de visita (fuera de ruta) con su motivo. <b>Caducidades</b> agrega clave, producto, familia, fecha de caducidad y piezas. Las <b>incidencias de visita</b> van dentro del Check-in; en "Incidencias producto-tienda" solo están las del cuadro de MEDI.</p>`;
 }
 /* Reduce una imagen base64 a un tamaño chico (para exportar sin pesar tanto) */
-function reducirImagen(dataUrl, maxW){
+async function reducirImagen(dataUrl, maxW){
+  // v144: si la foto es una liga de Storage, primero se baja (necesita el permiso CORS del bucket, ver instrucciones)
+  if(typeof dataUrl==='string' && /^https?:/.test(dataUrl)){
+    try{
+      const r = await fetch(dataUrl); const b = await r.blob();
+      dataUrl = await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(b); });
+    }catch(e){ return dataUrl; }
+  }
   return new Promise(resolve=>{
     const img = new Image();
     img.onload = ()=>{
