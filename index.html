@@ -2061,6 +2061,7 @@ window._paso = function(txt){ try{ localStorage.setItem('delico_sesion', JSON.st
     const prev = localStorage.getItem('delico_sesion');
     if(prev){
       const d = JSON.parse(prev);
+      if(d && d.paso === 'abriendo app') window._arranqueFallido = true;   // la vez anterior no pasó de arrancar
       const log = JSON.parse(localStorage.getItem('delico_cierres')||'[]');
       log.push({cuando:new Date(d.t).toISOString(), paso:d.paso, mem_gb:d.mem, js_mb:d.ram, ua:(navigator.userAgent||'').slice(0,90)});
       localStorage.setItem('delico_cierres', JSON.stringify(log.slice(-15)));
@@ -2635,7 +2636,38 @@ function deduplicarCapturas(arr){
   });
   return out;
 }
-let _capturasCache = deduplicarCapturas(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+/* v152: ARRANQUE LIGERO. En algunos celulares (ej. los que acumularon muchas fotos guardadas en el equipo) la app se cerraba
+   con "¡Oh, no!" justo al abrir, porque leer de golpe todo el historial con fotos llenaba la memoria. Ahora, al arrancar:
+   (1) si lo guardado pesa mucho, o la vez anterior la app se cerró mientras arrancaba, a las capturas que YA están en la
+   nube se les quita la foto pesada del celular (la foto sigue en la nube y se ve desde ahí), y (2) en ese caso de
+   emergencia solo se conservan las capturas más recientes. Las capturas que todavía no se han subido NUNCA se tocan. */
+let _capturasCache = (function(){
+  let raw = null, arr = [];
+  try{ raw = localStorage.getItem(STORAGE_KEY); arr = JSON.parse(raw || '[]'); }catch(e){ arr = []; }
+  if(!Array.isArray(arr)) arr = [];
+  const grande = !!(raw && raw.length > 2500000);
+  const emergencia = window._arranqueFallido === true;
+  let cambio = false;
+  if(grande || emergencia){
+    arr = arr.map(d=>{
+      if(d && d._en_nube === true && !d._fotos_omitidas_por_tamano && !d._fotos_solo_en_la_nube){
+        const l = aligerarRegistro(d);
+        if(l && l._fotos_solo_en_la_nube){ cambio = true; return l; }
+      }
+      return d;
+    });
+    if(emergencia && arr.length > 400){
+      const fecha = d => String((d && (d.fecha_registro || d.fecha)) || '');
+      const pendientes = arr.filter(d=> d && d._en_nube !== true);
+      const sincronizadas = arr.filter(d=> !(d && d._en_nube !== true)).sort((a,b)=> fecha(b).localeCompare(fecha(a))).slice(0, 400);
+      arr = [...pendientes, ...sincronizadas];
+      cambio = true;
+    }
+  }
+  arr = deduplicarCapturas(arr);
+  if(cambio){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }catch(e){} }
+  return arr;
+})();
 try{ if(_capturasCache.length !== JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').length) guardarLocalStorageSeguro(STORAGE_KEY, _capturasCache); }catch(e){}
 /* Limpieza de lo que YA se había acumulado en este celular ANTES de este arreglo (el filtro de arriba
    solo evita que seguir creciendo hacia adelante — los celulares que ya llevaban meses juntando fotos
