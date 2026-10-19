@@ -2284,7 +2284,7 @@ function pintarEstadoNube(){
         + (est.recibidos===0 ? ' <span style="color:#a60;">La nube respondió vacía: si el equipo ya capturó, sus celulares NO están subiendo (que abran la app con internet para que se reintente la subida).</span>' : '');
     }
     if(typeof currentUser!=='undefined' && currentUser && currentUser.usuario==='KNAC01') html += '<br><button id="btnMigrarFotos" class="btn btn-ghost" style="padding:3px 10px; font-size:12px; margin-top:4px;" onclick="migrarFotosViejas()">'+(_migrando?'⏹ Detener':'🖼️ Mover fotos viejas a Storage')+'</button> <span id="migFotosInfo" style="font-size:12px;"></span>';
-    html += '<br><span style="font-size:12px;">🖼️ Fotos (v146): ' + (typeof _storageFB==='undefined'||!_storageFB ? '<b style="color:#a33;">Storage no cargó en este celular (actualiza la app)</b>' : (window._storageOk ? '<b style="color:#2a7a2a;">en Storage ✓ ('+window._storageOk+' subidas en esta sesión)</b>' : (window._storageUltimoError ? '<b style="color:#a33;">Storage rechazó: '+String(window._storageUltimoError).slice(0,120)+'</b>' : 'sin subidas todavía en esta sesión'))) + '</span>';
+    html += '<br><span style="font-size:12px;">🖼️ Fotos (app v153): ' + (typeof _storageFB==='undefined'||!_storageFB ? '<b style="color:#a33;">Storage no cargó en este celular (actualiza la app)</b>' : (window._storageOk ? '<b style="color:#2a7a2a;">en Storage ✓ ('+window._storageOk+' subidas en esta sesión)</b>' : (window._storageUltimoError ? '<b style="color:#a33;">Storage rechazó: '+String(window._storageUltimoError).slice(0,120)+'</b>' : 'sin subidas todavía en esta sesión'))) + '</span>';
     if(pend>0) html += ` · <b style="color:#a60;">${pend} tuya(s) pendiente(s) de subir</b> <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button>`;
     box.innerHTML = html;
   }
@@ -4185,7 +4185,23 @@ function submitPrioridadesCaptura(){
 
 /* ---------- CHECK-IN ---------- */
 const CHECKIN_KEY = 'delico_odv_checkin';
-function getCheckin(){ return JSON.parse(localStorage.getItem(CHECKIN_KEY) || 'null'); }
+function getCheckin(){
+  let ci = null;
+  try{ ci = JSON.parse(localStorage.getItem(CHECKIN_KEY) || 'null'); }catch(e){ ci = null; }
+  if(!ci) return null;
+  /* v153: un check-in de OTRO día ya no vale ("la tienda de ayer"): se limpia solo */
+  try{
+    const hoy = todayISO();
+    let dia = ci.dia;
+    if(!dia && typeof _capturasCache!=='undefined'){   /* check-in viejo sin fecha: se deduce de la captura de entrada */
+      const e = _capturasCache.filter(c=>c && c.tipo==='entrada_tienda' && c.tienda===ci.tienda && c.fecha_registro).map(c=>fechaLocal(c.fecha_registro)).sort().pop();
+      dia = e || null;
+    }
+    if(dia !== hoy){ localStorage.removeItem(CHECKIN_KEY); return null; }
+    if(!ci.dia){ ci.dia = hoy; localStorage.setItem(CHECKIN_KEY, JSON.stringify(ci)); }
+  }catch(e){}
+  return ci;
+}
 function setCheckin(v){ v ? localStorage.setItem(CHECKIN_KEY, JSON.stringify(v)) : localStorage.removeItem(CHECKIN_KEY); }
 function misTiendasHoy(){
   const hoy = todayISO();
@@ -5921,7 +5937,7 @@ function submitForm(type){
           toast('Captura guardada ✓');
           if(type==='entrada_tienda' && rec.tienda){
             const pre = window._prefillCheckin;
-            setCheckin({tienda:rec.tienda, cadena:rec.cadena, rol: (pre && pre.tienda===rec.tienda) ? pre.rol : '', hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})});
+            setCheckin({tienda:rec.tienda, cadena:rec.cadena, rol: (pre && pre.tienda===rec.tienda) ? pre.rol : '', hora:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), dia: todayISO()});
             if(pre && pre.fueraRuta && pre.tienda===rec.tienda) registrarIncidenciaFueraRuta(rec.tienda, rec.cadena, pre.fueraRuta.motivo);
             window._prefillCheckin = null;
           }
@@ -14014,6 +14030,11 @@ function hubEstiloFoto(type){
   if(act) act.innerHTML = `<button class="h-guardarbtn" onclick="submitForm('${type}')"><span>💾</span>Guardar</button><button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="closeModal()">Cancelar</button>`;
 }
 function renderHubEjecutar(){
+  window._pasoActual='ejecutar'; if(window._paso) window._paso('ejecutar: inicio');
+  try{ _renderHubEjecutar(); if(window._paso) window._paso('ejecutar: listo'); }
+  catch(e){ console.error(e); try{ localStorage.removeItem(CHECKIN_KEY); _renderHubEjecutar(); }catch(e2){ console.error(e2); } }
+}
+function _renderHubEjecutar(){
   const ci = getCheckin();
   const hoy = document.getElementById('hubEjHoy'), dentro = document.getElementById('hubEjDentro');
   if(!hoy||!dentro) return;
@@ -14054,7 +14075,8 @@ function renderHubEjecutar(){
     t('abrirMercadeo()','shelf','Auto evaluación','mercadeo')+t("openForm('degustacion')",'hand','Degustación','degustacion')+t("hubShopper()",'shopper','Shopper')+t('abrirPrioridadesCaptura()','clipPen','Prioridades y tareas')+t("openForm('foto')",'star','Exh adicionales','foto')+t("openForm('incidencia')",'lock','Incidencias','incidencia')+t('openGastoTicket()','receipt','Registro ticket','gasto_ticket')+t('abrirLeySilla()','chair','Registrar Ley silla')+t('abrirCargaAnaquel()','shelf','Carga de anaquel','carga_anaquel');
   const eqw = document.getElementById('hubEqWrap'); if(eqw){ eqw.style.display = hubEsSup() ? '' : 'none';
     if(hubEsSup()) document.getElementById('hubEquipo').innerHTML = t('abrirOnboarding()','clip','Onboarding')+t("hubMod('auditoria','eje')",'eye','Registrar supervisión')+t("hubMod('eval360','eje')",'star','Evaluación 360°'); }
-  hubPintarCapturasHoy();
+  if(window._paso) window._paso('ejecutar: capturas de hoy');
+  try{ hubPintarCapturasHoy(); }catch(e){ console.error(e); }
 }
 function hubCambiaTienda(){
   const sel = document.getElementById('hubTiendaSel'); const l = window._hubTiendasHoy||[]; const t = l[+sel.value]; if(!t) return;
@@ -14085,7 +14107,7 @@ function hubPintarCapturasHoy(){
     if(k && cont[k]){ const s = document.createElement('i'); s.className='h-badge ok'; s.textContent = cont[k]; b.appendChild(s); }
   });
   try{ pintarEstadoNube(); }catch(e){}
-  const recientes = mias.filter(c=>c.tipo!=='entrada_tienda').sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,40);
+  const recientes = mias.filter(c=>c.tipo!=='entrada_tienda').sort((a,b)=>b.fecha_registro.localeCompare(a.fecha_registro)).slice(0,15);
   const nube = document.getElementById('nubePendientesMis'); const nubeH = nube ? nube.innerHTML.trim() : '';
   document.getElementById('hubCapt').innerHTML = '<b>Mis últimas capturas</b><div class="h-lista">' + (recientes.length
     ? recientes.map(c=>`<div class="r"><span>✔ ${TIPO_LABEL[c.tipo]||c.tipo}</span><span style="color:#7b7a5e">${fechaHoraLocal(c.fecha_registro).slice(-5)}</span></div>`).join('')
