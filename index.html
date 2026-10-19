@@ -2284,7 +2284,7 @@ function pintarEstadoNube(){
         + (est.recibidos===0 ? ' <span style="color:#a60;">La nube respondió vacía: si el equipo ya capturó, sus celulares NO están subiendo (que abran la app con internet para que se reintente la subida).</span>' : '');
     }
     if(typeof currentUser!=='undefined' && currentUser && currentUser.usuario==='KNAC01') html += '<br><button id="btnMigrarFotos" class="btn btn-ghost" style="padding:3px 10px; font-size:12px; margin-top:4px;" onclick="migrarFotosViejas()">'+(_migrando?'⏹ Detener':'🖼️ Mover fotos viejas a Storage')+'</button> <span id="migFotosInfo" style="font-size:12px;"></span>';
-    html += '<br><span style="font-size:12px;">🖼️ Fotos (app v153): ' + (typeof _storageFB==='undefined'||!_storageFB ? '<b style="color:#a33;">Storage no cargó en este celular (actualiza la app)</b>' : (window._storageOk ? '<b style="color:#2a7a2a;">en Storage ✓ ('+window._storageOk+' subidas en esta sesión)</b>' : (window._storageUltimoError ? '<b style="color:#a33;">Storage rechazó: '+String(window._storageUltimoError).slice(0,120)+'</b>' : 'sin subidas todavía en esta sesión'))) + '</span>';
+    html += '<br><span style="font-size:12px;">🖼️ Fotos (app v154): ' + (typeof _storageFB==='undefined'||!_storageFB ? '<b style="color:#a33;">Storage no cargó en este celular (actualiza la app)</b>' : (window._storageOk ? '<b style="color:#2a7a2a;">en Storage ✓ ('+window._storageOk+' subidas en esta sesión)</b>' : (window._storageUltimoError ? '<b style="color:#a33;">Storage rechazó: '+String(window._storageUltimoError).slice(0,120)+'</b>' : 'sin subidas todavía en esta sesión'))) + '</span>';
     if(pend>0) html += ` · <b style="color:#a60;">${pend} tuya(s) pendiente(s) de subir</b> <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button>`;
     box.innerHTML = html;
   }
@@ -2561,21 +2561,36 @@ function crearColeccionSincronizada(nombreColeccion, storageKey, alRefrescar, co
     estado.iniciado = true;
     let consulta = null;
     try{ consulta = consultaFn ? consultaFn() : null; }catch(e){ consulta = null; }
+    /* v153: antes CADA documento que llegaba de la nube guardaba TODA la colección en el celular y repintaba pantallas
+       (con cientos de cambios a la vez, p. ej. después de mover fotos, el celular se ahogaba: se tardaba en abrir y
+       salía "¡Oh, no!"). Ahora se juntan todos los cambios de ese instante y se guarda y repinta UNA sola vez. */
+    let ops = [], programado = false;
+    const flush = ()=>{
+      programado = false;
+      const lote = ops; ops = [];
+      if(!lote.length) return;
+      const cache = estado.cache.slice();
+      const idxPorId = new Map(); cache.forEach((d,i)=>{ if(d) idxPorId.set(d.id,i); });
+      let cambio = false, huboBorrado = false;
+      const borrados = new Set();
+      lote.forEach(op=>{
+        if(op.b){ if(idxPorId.has(op.id)){ borrados.add(op.id); huboBorrado = true; } return; }
+        const doc = op.doc; borrados.delete(doc.id);
+        const i = idxPorId.get(doc.id);
+        if(i===undefined){ idxPorId.set(doc.id, cache.length); cache.push(doc); cambio = true; }
+        else if(JSON.stringify(cache[i]) !== JSON.stringify(doc)){ cache[i] = doc; cambio = true; }
+      });
+      let nuevo = cache;
+      if(borrados.size){ nuevo = cache.filter(d=>!(d && borrados.has(d.id))); cambio = true; }
+      if(!cambio && !huboBorrado) return;
+      estado.cache = nuevo;
+      guardarLocalStorageSeguro(storageKey, nuevo);
+      if(alRefrescar){ try{ alRefrescar(); }catch(e){ console.error(e); } }
+    };
+    const programar = ()=>{ if(programado) return; programado = true; Promise.resolve().then(flush); };
     iniciarSincronizacion(nombreColeccion,
-      (doc)=>{
-        const idx = estado.cache.findIndex(d=>d.id===doc.id);
-        const firmaLocal = idx>=0 ? JSON.stringify(estado.cache[idx]) : null;
-        if(firmaLocal === JSON.stringify(doc)) return;
-        estado.cache = idx>=0 ? estado.cache.map((d,i)=> i===idx?doc:d) : [...estado.cache, doc];
-        guardarLocalStorageSeguro(storageKey, estado.cache);
-        if(alRefrescar) alRefrescar();
-      },
-      (idBorrado)=>{
-        if(!estado.cache.some(d=>d.id===idBorrado)) return;
-        estado.cache = estado.cache.filter(d=>d.id!==idBorrado);
-        guardarLocalStorageSeguro(storageKey, estado.cache);
-        if(alRefrescar) alRefrescar();
-      },
+      (doc)=>{ ops.push({doc}); programar(); },
+      (idBorrado)=>{ ops.push({b:true, id:idBorrado}); programar(); },
       consulta
     );
   }
