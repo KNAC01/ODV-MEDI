@@ -749,7 +749,6 @@ table.sg-t .n{text-align:right; white-space:nowrap;} table.sg-t tr.tot td{font-w
 .sg-rutagrid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;} .sg-rc{background:var(--surface-2); border:1px solid var(--line); border-radius:14px; padding:14px;} .sg-rc-h{font-weight:800; font-size:16px;} .sg-rc-big{font-size:48px; font-weight:800; margin:4px 0;} .sg-rc-s{font-size:13px; color:var(--ink-soft); line-height:1.7;} .sg-rc-s b{color:var(--ink);}
 .sg-idx{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:14px;} .sg-idx button{display:flex; align-items:center; gap:18px; text-align:left; font-family:inherit; border:1px solid var(--line); background:var(--surface-2); border-radius:14px; padding:18px 22px; cursor:pointer; font-size:22px; color:var(--moss);} .sg-idx b{font-size:34px; color:var(--spring-dark);}
 .sg-empty{padding:14px; color:var(--ink-soft); text-align:center;} .sg-empty.big{padding:80px 20px; font-size:20px;}
-.sg-inp{width:78px; font-family:inherit; font-size:12px; padding:3px 6px; border:1px solid var(--line); border-radius:6px; background:#fffef6;}
 body.sg-lock{overflow:hidden;}
 #view-seguimiento.sg-pres{position:fixed; inset:0; z-index:5000; background:#1d1d0c; padding:10px 16px; display:flex; flex-direction:column;}
 #view-seguimiento.sg-pres .sg-hint, #view-seguimiento.sg-pres .sg-sec-title{display:none;}
@@ -14329,7 +14328,8 @@ function hubAplicar(){
 const SG_USUARIOS = ['CNAC01','GNAC01','KNAC01']; // Fabiola (Coordinación), Fanny (Gerencia), Ale (KAM)
 const SG_CAD = ['WALMART','LA COMER','SAMS','HEB'];
 const SG_NOM = {'WALMART':'Walmart','LA COMER':'La Comer','SAMS':"Sam's",'HEB':'HEB'};
-const SG_REG = ['Centro','Occidente'];
+const SG_REG = ['Centro','Foráneas'];
+const SG_FOR = ['Jalisco','Guanajuato','Yucatán','Aguascalientes'];
 const SG = {sem:null, idx:0, pres:false, regSku:{}, M:null, slides:[], nomKey:'delico_odv_sg_nomina_v1'};
 
 /* ---------- utilidades ---------- */
@@ -14339,7 +14339,7 @@ const sgP = (n,d=0)=> (n==null||!isFinite(n)) ? '—' : sgN(n,d)+'%';
 const sgPct = (a,b)=> b>0 ? a/b*100 : null;
 const sgEsc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const sgKey = (c,n)=> c+'|'+Number(n);
-const sgRegion = s => (s && s.region==='GDL') ? 'Occidente' : 'Centro';
+const sgRegion = s => (s && (SG_FOR.includes(s.estado) || s.region==='GDL')) ? 'Foráneas' : 'Centro';
 function sgIso(d){ return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0'); }
 function sgFechasSemana(n){ // semana ISO n de 2026 (lunes–domingo)
   const d = new Date(Date.UTC(2025,11,29)); d.setUTCDate(d.getUTCDate()+(n-1)*7);
@@ -14356,8 +14356,6 @@ function sgColor(p, esperado){ // verde si va al ritmo, ámbar cerca, rojo lejos
   if(p==null) return 'var(--ink-soft)'; const e = esperado==null ? 100 : esperado;
   return p>=e ? 'var(--good)' : (p>=e*0.8 ? 'var(--warn)' : 'var(--bad)');
 }
-function sgNomLoad(){ try{ return JSON.parse(localStorage.getItem(SG.nomKey)||'{}'); }catch(e){ return {}; } }
-function sgNomSave(o){ try{ localStorage.setItem(SG.nomKey, JSON.stringify(o)); }catch(e){} }
 
 /* ---------- modelo de datos ---------- */
 function sgModelo(sem){
@@ -14539,14 +14537,14 @@ function sgSlideResumen(M, CAD){
   return sgSlide('resumen','Resumen · Seguimiento de cuentas clave ODV', `Cuota octubre: S${M.weeks[0]}–S${M.weeks[M.weeks.length-1]} repartida pareja · Real al corte de la semana ${M.sem}`, body);
 }
 function sgSlideEquipo(M){
-  const equipo = APP_DATA.equipo.filter(u=>['Embajador'].includes(u.perfil));
+  const equipo = APP_DATA.equipo.filter(u=>u.perfil==='Embajador' && !/^VACANTE/i.test(u.nombre));
   const filas = equipo.map(u=>{
     const mapa = new Map();
     APP_DATA.stores.filter(s=>s.sector===u.usuario && SG_CAD.includes(s.cadena)).forEach(s=>mapa.set(sgKey(s.cadena,s.num_tienda),s));
     try{ tiendasDeRutaSeptiembre(u.usuario).forEach(a=>{ const s=APP_DATA.stores.find(x=>x.cadena===a.cadena && x.num_tienda===a.num_tienda); if(s && SG_CAD.includes(s.cadena)) mapa.set(sgKey(s.cadena,s.num_tienda),s); }); }catch(e){}
     const A = sgAgg(M,o=>mapa.has(sgKey(o.cadena,o.num)));
     const R = sgRuta(M,x=>x.usuario===u.usuario);
-    return {u, A, R, n:mapa.size, reg: (u.region==='FORÁNEAS'?'Occidente':'Centro')};
+    return {u, A, R, n:mapa.size, reg: (u.region==='FORÁNEAS'?'Foráneas':'Centro')};
   }).filter(f=>f.n>0 || f.R.prog>0);
   filas.sort((a,b)=>a.reg.localeCompare(b.reg)||(a.A.pctC??-1)-(b.A.pctC??-1));
   const rowsH = filas.map(f=>`<tr><td>${sgEsc(nombreCorto(f.u.nombre))}</td><td>${sgEsc(f.u.rol.charAt(0)+f.u.rol.slice(1).toLowerCase())}</td><td class="n">${f.n}</td><td class="n">${sgN(f.A.cuota)}</td>
@@ -14557,7 +14555,7 @@ function sgSlideEquipo(M){
   const altos = filas.filter(f=>f.A.cuota>0 && (f.A.pctC||0) >= M.esperado).map(f=>nombreCorto(f.u.nombre));
   const body = `<div class="sg-tblwrap"><table class="sg-t xs"><thead><tr><th>Integrante</th><th>Rol</th><th class="n"># Tiendas</th><th class="n">Cuota sueldo (pzas)</th><th class="n">Cubr. sueldo</th><th class="n">Cuota bono (pzas)</th><th class="n">Cubr. bono</th><th class="n">Objetivo distrib.</th><th class="n">Distrib.</th><th class="n">Ruta (sem)</th></tr></thead><tbody>${rowsH||'<tr><td colspan="10" class="sg-empty">Sin integrantes con tiendas asignadas</td></tr>'}</tbody></table></div>
   <div class="sg-two"><div class="sg-box ok"><b>Al ritmo o arriba (${altos.length})</b><p>${altos.slice(0,8).map(sgEsc).join(' · ')||'—'}</p></div><div class="sg-box bad"><b>Por debajo del 80% del ritmo (${bajos.length})</b><p>${bajos.slice(0,10).map(sgEsc).join(' · ')||'—'}</p></div></div>
-  <div class="sg-foot">Total equipo: cuota ${sgN(tot.cuota)} pzas · real ${sgN(tot.real)} (${sgP(tot.pctC,1)}) · ritmo esperado ${sgP(M.esperado)}. Las tiendas compartidas se cuentan en cada integrante que las atiende. Centro = CDMX/Edo. Méx/resto del país; Occidente = Guadalajara.</div>`;
+  <div class="sg-foot">Total equipo: cuota ${sgN(tot.cuota)} pzas · real ${sgN(tot.real)} (${sgP(tot.pctC,1)}) · ritmo esperado ${sgP(M.esperado)}. Las tiendas compartidas se cuentan en cada integrante que las atiende. Centro = CDMX y Edo. de México; Foráneas = Guadalajara, León, Mérida y Aguascalientes.</div>`;
   return sgSlide('equipo','Resumen · Desempeño del equipo','Cada integrante contra su cuota de octubre', body);
 }
 function sgSlideCadena(M, c, CAD){
@@ -14612,7 +14610,7 @@ function sgSlideSku(M, c){
   const insF = fl.slice(0,3).map(x=>`<b>${sgEsc(x.f)}</b>: ${sgP(x.pct)} de cuota, distribución ${sgP(x.dist)} — faltan <b>${sgN(x.falta)} pzas</b>${(x.dist!=null&&x.dist<85)?' (primero distribución)':(x.pct<M.esperado*0.8?' (hay distribución, falta rotación)':'')}`);
   const mejor = fl.slice().sort((a,b)=>(b.pct??0)-(a.pct??0))[0];
   if(mejor) insF.push(`Lo que sí jala: <b>${sgEsc(mejor.f)}</b> con ${sgP(mejor.pct)}.`);
-  const chips = ['','Centro','Occidente'].map(r=>`<button class="sg-reg ${regSel===r?'on':''}" onclick="sgSetReg('${c}','${r}')">${r||'Todas'}</button>`).join('');
+  const chips = ['','Centro','Foráneas'].map(r=>`<button class="sg-reg ${regSel===r?'on':''}" onclick="sgSetReg('${c}','${r}')">${r||'Todas'}</button>`).join('');
   const body = `<div class="sg-regs">${regA.map(x=>`<div class="sg-kpi mini"><div class="sg-card-l">${x.r.toUpperCase()}</div><div class="sg-card-big" style="color:${sgColor(x.a.pctC,M.esperado)}">${sgP(x.a.pctC,1)}</div><div class="sg-card-s">${sgN(x.a.real)} de ${sgN(x.a.cuota)} pzas · ${x.a.n} tiendas · distrib. ${sgP(x.a.dist)}</div></div>`).join('')}<div class="sg-regchips">Ver tabla: ${chips}</div></div>
   <div class="sg-split"><div class="sg-tblwrap"><table class="sg-t sm"><thead><tr><th>Clave</th><th>Descripción</th><th class="n">Cuota</th><th class="n">Real</th><th class="n">% Abasto</th><th class="n">Objetivo</th><th class="n">Real</th><th class="n">Distrib.</th></tr></thead><tbody>${rowsH||'<tr><td colspan="8" class="sg-empty">Sin datos</td></tr>'}<tr class="tot"><td colspan="2">Total ${regSel||'cadena'}</td><td class="n">${sgN(T.cuota)}</td><td class="n">${sgN(T.real)}</td><td class="n">${sgP(sgPct(T.real,T.cuota))}</td><td class="n">${sgN(T.obj)}</td><td class="n">${sgN(T.conv)}</td><td class="n">${sgP(sgPct(T.conv,T.obj))}</td></tr></tbody></table></div>
   <div class="sg-ins big"><b>Lo más cañón por familia</b>${insF.map(t=>`<p>${t}</p>`).join('')||'<p>Sin datos de cuota por SKU.</p>'}<p class="sg-note">Real por SKU al último corte cargado de sell out (S${Math.max(...M.weeks.filter(w=>(APP_DATA.cumplimiento_semanal||[]).some(r=>r.semana===w&&r.real_uni>0)))}).</p></div></div>`;
@@ -14651,7 +14649,7 @@ function sgSlidePorQue(M, c, CAD){
   if(pctInv!=null && pctInv<70) sug.push(`<b>Mejor dispersión de inventario:</b> ${sinInv} tiendas no tienen piezas para su cuota restante${conExc?` mientras ${conExc} reportan excedente → mover/ajustar surtido`:''}.`);
   if(R.prog && R.pct<90) sug.push(`<b>Recuperar visitas:</b> ${R.prog-R.real} visitas sin evidencia; reprogramar primero tiendas del 20% con más cuota${sinVisita.length?` (sin visita esta semana: ${sinVisita.map(sgEsc).join(', ')})`:''}.`);
   if(A.dist!=null && A.dist<90) sug.push(`<b>Atacar distribución:</b> ${sgN(A.obj-A.conv)} combinaciones objetivo sin venta; llevar el surtido completo en la próxima visita.`);
-  if(lift && lift.lift<0.1) sug.push(`<b>Revisar ejecución en piso:</b> la venta semanal casi no cambia con/sin visita (${sgN(lift.lift*100,0)}%); cambiar día/hora de visita o la mecánica de degustación.`);
+  if(lift && lift.lift<0.1) sug.push(`<b>Revisar ejecución en piso:</b> la venta diaria promedio casi no cambia con/sin visita (${sgN(lift.lift*100,0)}%); cambiar día/hora de visita o la mecánica de degustación.`);
   if(CAD.porCad[c] && CAD.porCad[c].riesgoV>0) sug.push(`<b>Caducidades:</b> ${sgM(CAD.porCad[c].riesgoV)} en riesgo; promoción/exhibición en las tiendas con excedente.`);
   if(A.pctC!=null && A.pctC<M.esperado*0.8) sug.push(`<b>Rol de promotoría/degustación:</b> valorar mover tiempo hacia las tiendas del Pareto que van más abajo del ritmo.`);
   if(!sug.length) sug.push('Sin banderas fuertes esta semana: mantener frecuencia y rotación.');
@@ -14662,7 +14660,7 @@ function sgSlidePorQue(M, c, CAD){
     ${bloque('Visitas con evidencia (sem '+M.sem+')', visUn, `${R.prog?sgP(R.pct)+' de las '+R.prog+' programadas':'sin programación en la app'}`)}
     ${bloque('Distribución · mix con inventario', sgP(A.dist)+' · '+sgP(A.mix), `${sgN(A.obj-A.conv)} combinaciones sin venta`)}
     ${bloque('¿Visitamos correctamente?', top20.length?`${top20vis} de ${top20.length}`:'—', 'tiendas del 20% con más cuota visitadas esta semana')}
-    ${bloque('Venta semanal: con visita vs sin visita', lift?`${lift.lift>=0?'+':''}${sgN(lift.lift*100,0)}%`:'sin base', lift?`${sgN(lift.conV)} vs ${sgN(lift.sinV)} pzas/tienda (proxy semanal)`:'faltan semanas con/sin visita para comparar')}
+    ${bloque('Venta diaria por tienda: con visita vs sin visita', lift?`${lift.lift>=0?'+':''}${sgN(lift.lift*100,0)}%`:'sin base', lift?`${sgN(lift.conV/7,1)} vs ${sgN(lift.sinV/7,1)} pzas/tienda/día (venta diaria promedio)`:'faltan semanas con y sin visita para comparar')}
   </div>
   <div class="sg-two"><div class="sg-box"><b>Qué hemos estado degustando</b><p>${deg.length?deg.join(' · '):'Sin degustaciones capturadas este mes en esta cadena.'}</p><p class="sg-note">Comparado con los SKUs de menor % de abasto (ver slide anterior): alinear la degustación hacia ahí.</p></div>
   <div class="sg-box warn"><b>¿Qué necesitamos para cumplirla?</b>${sug.map(s=>`<p>• ${s}</p>`).join('')}</div></div>`;
@@ -14724,9 +14722,9 @@ function sgSlideCad2(M, c, CAD){
   const ins = [
     `Pico de volumen: semana del <b>${pico.k.slice(5).replace('-','/')}</b> con ${sgN(pico.pz)} pzas (${sgP(sgPct(pico.pz,total))} de lo capturado).`,
     `Lo que vence en más de 90 días pesa <b>${sgP(pct90)}</b> del volumen; ≤30 días: <b>${sgP(sgPct(filas.filter(r=>r.dias<=30).reduce((a,r)=>a+r.piezas,0),total))}</b>.`,
-    fefo.length ? `<b>CEDI / FEFO:</b> en ${fefo.length} código(s) apareció un lote que caduca antes que uno visto previamente (ej. ${sgEsc((filas.find(r=>r.clave===fefo[0].clave)||{producto:fefo[0].clave}).producto)}: lote ${fefo[0].nuevo.fc.slice(5)} visto el ${fefo[0].nuevo.vis.slice(5)} vs ${fefo[0].previo.fc.slice(5)} visto el ${fefo[0].previo.vis.slice(5)}). Pedir revisión de rotación al CEDI.` : '<b>CEDI / FEFO:</b> no se ven lotes más cortos llegando después de lotes largos — la caducidad va progresiva.'];
+    fefo.length ? `<b>¿Llegan en orden desde el CEDI?</b> En ${fefo.length} código(s) apareció producto que caduca <b>antes</b> que otro que ya habíamos visto en tienda (ej. ${sgEsc((filas.find(r=>r.clave===fefo[0].clave)||{producto:fefo[0].clave}).producto)}: lote que vence ${sgFmtCorta(fefo[0].nuevo.fc)} capturado el ${sgFmtCorta(fefo[0].nuevo.vis)}, cuando antes ya había uno que vence ${sgFmtCorta(fefo[0].previo.fc)}). Pedirle al CEDI que despache primero lo que caduca primero.` : '<b>¿Llegan en orden desde el CEDI?</b> Sí: el producto nuevo que se captura caduca después que el anterior (orden progresivo).'];
   const body = `<div class="sg-split"><div><div class="sg-sec">Volumen por semana de caducidad <small>(rojo = ya vencido · ámbar ≤30 días)</small></div>${sgCurvaSvg(curva)}</div>
-    <div class="sg-ins big"><b>Insights</b>${ins.map(t=>`<p>${t}</p>`).join('')}<p class="sg-note">Revisión FEFO es un indicio con base en cuándo se captura cada lote por primera vez, no la fecha real de recibo en CEDI.</p></div></div>`;
+    <div class="sg-ins big"><b>Insights</b>${ins.map(t=>`<p>${t}</p>`).join('')}<p class="sg-note">Es un indicio: se compara la fecha de caducidad de lo nuevo que captura el equipo contra lo que ya se había visto; no es la fecha real de recibo en el CEDI.</p></div></div>`;
   return sgSlide('cad2_'+c,'CADUCIDADES '+SG_NOM[c].toUpperCase()+' – EVOLUCIÓN Y CEDI','¿Cómo viene la caducidad y llega en orden desde el CEDI?', body, c);
 }
 function sgSlideRuta(M, reg){
@@ -14735,7 +14733,7 @@ function sgSlideRuta(M, reg){
     const tp = new Set(R.noCump.concat(M.vis.filter(x=>f(x)&&x.cumplida)).map(x=>x.tienda)).size;
     const tv = new Set(M.vis.filter(x=>f(x)&&x.cumplida).map(x=>x.tienda)).size;
     return `<div class="sg-rc"><div class="sg-rc-h">${SG_NOM[c]}</div><div class="sg-rc-big" style="color:${sgColor(R.pct,90)}">${sgP(R.pct)}</div><div class="sg-rc-s"># Visitas programadas <b>${R.prog}</b><br># Visitas reales <b>${R.real}</b><br>Tiendas programadas <b>${tp}</b> · visitadas <b>${tv}</b></div></div>`; };
-  const personas = APP_DATA.equipo.filter(u=>u.perfil==='Embajador' && ((u.region==='FORÁNEAS')===(reg==='Occidente')));
+  const personas = APP_DATA.equipo.filter(u=>u.perfil==='Embajador' && !/^VACANTE/i.test(u.nombre) && ((u.region==='FORÁNEAS')===(reg==='Foráneas')));
   const tipo = u=> /DEGUST/i.test(u.rol) ? 'DEMOS' : 'PROMOTORES';
   const dem = {prog:0,real:0}, pro = {prog:0,real:0}, faltas = [];
   personas.forEach(u=>{ const R = sgRuta(M,x=>x.usuario===u.usuario); const t = tipo(u)==='DEMOS'?dem:pro; t.prog+=R.prog; t.real+=R.real; if(R.prog && R.pct<80) faltas.push(`${nombreCorto(u.nombre)} ${R.real}/${R.prog}`); });
@@ -14749,25 +14747,38 @@ function sgSlideRuta(M, reg){
   <div class="sg-box ${totR.noCump.length?'warn':'ok'}"><b>Incidencias operativas y acciones correctivas</b><p>Cumplimiento zona: <b>${sgP(totR.pct)}</b> (${totR.real}/${totR.prog}). ${Object.keys(otros).length?'Días no-visita en rol: '+Object.entries(otros).map(([k,v])=>k+' '+v).join(' · ')+'.':''}</p><p>${accion}</p></div></div>`;
   return sgSlide('ruta_'+reg, 'CUBRIMIENTO DE RUTA · ZONA '+reg.toUpperCase(), personas.length+' integrantes · semana '+M.sem, body);
 }
+/* Costo del equipo ODV (nómina real + estimado). Solo se guardan TOTALES por zona (no sueldos por persona).
+   Fuente: base de nómina oct-2026 (percepciones mensuales). Personas sin dato en la base = promedio de las demás. */
+const SG_NOMINA = {vigente:'oct-2026', zonas:{
+  'Centro':    {mensual:250628.28, personas:14, estimadas:3},
+  'Foráneas':  {mensual:159875.66, personas:9,  estimadas:1} }};
 function sgSlideInversion(M){
-  const nom = sgNomLoad();
-  const semMin = Math.min(...(APP_DATA.cumplimiento_semanal||[]).map(r=>r.semana)); const fAnio = sgFechasSemana(semMin)[0];
-  const gastoTotal = (f,t,cad)=> M.caps.filter(x=>x.tipo==='gasto_ticket' && (!cad||x.cadena===cad)).filter(x=>{const d=fechaLocal(x.fecha_registro); return d>=f&&d<=t;}).reduce((a,x)=>a+(parseFloat(x.total)||0),0);
+  const [fMes] = sgFechasSemana(M.weeks[0]);
+  const diasMes = new Date(+M.t0.slice(0,4), +M.t0.slice(5,7), 0).getDate();
+  const diasVent = M.done.length*7;
+  const zonas = ['Centro','Foráneas'];
+  const cuenta = arr => { const z={'Centro':{},'Foráneas':{}}; zonas.forEach(k=>SG_CAD.forEach(c=>z[k][c]=0)); arr.forEach(a=>{ if(!SG_CAD.includes(a.cadena)) return; z[sgRegion(storeInfo(a.cadena,a.tienda))][a.cadena]++; }); return z; };
+  const visSemZ = cuenta(M.vis), visMesZ = cuenta(M.visMesRutas);
+  const reparto = (vz, zona, c)=>{ const tot = SG_CAD.reduce((a,x)=>a+vz[zona][x],0); if(tot>0) return vz[zona][c]/tot; const ts = M.stores.filter(s=>sgRegion(s)===zona); return ts.length ? ts.filter(s=>s.cadena===c).length/ts.length : 0; };
+  const diario = z => SG_NOMINA.zonas[z].mensual/diasMes;
+  const gasto = (f,t,cad)=> M.caps.filter(x=>x.tipo==='gasto_ticket' && x.cadena===cad).filter(x=>{ const d=fechaLocal(x.fecha_registro); return d>=f&&d<=t; }).reduce((a,x)=>a+(parseFloat(x.total)||0),0);
+  const vistas = (f,t,cad)=> new Set(M.caps.filter(x=>x.cadena===cad).filter(x=>{ const d=fechaLocal(x.fecha_registro); return d>=f&&d<=t; }).map(x=>x.tienda));
   const filas = SG_CAD.map(c=>{
-    const visitadas = new Set(M.capsSem.filter(x=>x.cadena===c).map(x=>x.tienda));
-    const sellSem = [...M.st.values()].filter(o=>o.cadena===c && visitadas.has(o.tienda)).reduce((a,o)=>a+o.realSemP,0);
-    const sellAll = (APP_DATA.cumplimiento_semanal||[]).filter(r=>r.cadena===c && r.semana<=M.sem && M.st.has(sgKey(r.cadena,r.num_tienda))).reduce((a,r)=>a+(r.real_pesos||0),0);
-    const nm = nom[c]||{}; const g = gastoTotal(M.f0,M.t0,c), gY = gastoTotal(fAnio,M.t0,c);
-    const invSem = (parseFloat(nm.sem)||0)+g, invY = (parseFloat(nm.ytd)||0)+gY;
-    return {c, sellSem, sellAll, g, gY, invSem, invY, nm};
+    const vSem = vistas(M.f0,M.t0,c), vMes = vistas(fMes,M.t0,c);
+    const sellSem = [...M.st.values()].filter(o=>o.cadena===c && vSem.has(o.tienda)).reduce((a,o)=>a+o.realSemP,0);
+    const sellMes = [...M.st.values()].filter(o=>o.cadena===c && vMes.has(o.tienda)).reduce((a,o)=>a+o.realP,0);
+    const nSem = zonas.reduce((a,z)=>a+diario(z)*7*reparto(visSemZ,z,c),0), nMes = zonas.reduce((a,z)=>a+diario(z)*diasVent*reparto(visMesZ,z,c),0);
+    const gS = gasto(M.f0,M.t0,c), gM = gasto(fMes,M.t0,c);
+    return {c, sellSem, sellMes, nSem, nMes, gS, gM, iSem:nSem+gS, iMes:nMes+gM};
   });
-  const T = filas.reduce((a,f)=>({sellSem:a.sellSem+f.sellSem, invSem:a.invSem+f.invSem, sellAll:a.sellAll+f.sellAll, invY:a.invY+f.invY, g:a.g+f.g, gY:a.gY+f.gY}),{sellSem:0,invSem:0,sellAll:0,invY:0,g:0,gY:0});
-  const inp = (c,k,v)=>`<input class="sg-inp" type="number" min="0" step="100" value="${v!=null&&v!==''?sgEsc(v):''}" placeholder="$" onchange="sgSetNom('${c}','${k}',this.value)">`;
-  const rows = filas.map(f=>`<tr><td><b>${SG_NOM[f.c]}</b></td><td class="n">${sgM(f.sellSem)}</td><td>${inp(f.c,'sem',f.nm.sem)}</td><td class="n">${sgM(f.g)}</td><td class="n">${sgM(f.invSem)}</td><td class="n" style="font-weight:700">${sgP(sgPct(f.invSem,f.sellSem),1)}</td><td class="n">${sgM(f.sellAll)}</td><td>${inp(f.c,'ytd',f.nm.ytd)}</td><td class="n">${sgM(f.gY)}</td><td class="n">${sgM(f.invY)}</td><td class="n" style="font-weight:700">${sgP(sgPct(f.invY,f.sellAll),1)}</td></tr>`).join('');
-  const body = `<div class="sg-k4"><div class="sg-k"><span>SELL OUT SEMANAL (tiendas visitadas)</span><b>${sgM(T.sellSem)}</b></div><div class="sg-k"><span>INVERSIÓN SEMANAL</span><b>${sgM(T.invSem)}</b><em>nómina + gasto de degustación</em></div><div class="sg-k"><span>% INVERSIÓN / SELL OUT (SEMANA)</span><b>${sgP(sgPct(T.invSem,T.sellSem),1)}</b></div><div class="sg-k"><span>% INVERSIÓN ACUMULADA</span><b>${sgP(sgPct(T.invY,T.sellAll),1)}</b></div></div>
-  <div class="sg-tblwrap"><table class="sg-t xs"><thead><tr><th>Cadena</th><th class="n">Sell out sem</th><th>Nómina sem</th><th class="n">Gasto demo sem</th><th class="n">Inversión sem</th><th class="n">% inv/SO</th><th class="n">Sell out acum.</th><th>Nómina acum.</th><th class="n">Gasto demo acum.</th><th class="n">Inversión acum.</th><th class="n">% inv/SO</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div class="sg-foot">El <b>gasto de degustación</b> sale de los tickets que captura el equipo en la app. La <b>nómina</b> no vive en la app: escríbela aquí (se queda guardada en este navegador). Sell out semanal = venta de las tiendas con al menos una visita capturada en la semana. Acumulado = desde S${semMin} (primera semana con venta cargada en la app) hasta S${M.sem}, no el año completo: el gasto de demos también se cuenta desde esa fecha.</div>`;
-  return sgSlide('inversion','INVERSIÓN','% de inversión (nómina + degustación) sobre sell out', body);
+  const T = filas.reduce((a,f)=>{ ['sellSem','sellMes','nSem','nMes','gS','gM','iSem','iMes'].forEach(k=>a[k]+=f[k]); return a; },{sellSem:0,sellMes:0,nSem:0,nMes:0,gS:0,gM:0,iSem:0,iMes:0});
+  const fila = (n,f,cls)=>`<tr class="${cls||''}"><td>${n}</td><td class="n">${sgM(f.sellSem)}</td><td class="n">${sgM(f.nSem)}</td><td class="n">${sgM(f.gS)}</td><td class="n">${sgM(f.iSem)}</td><td class="n" style="font-weight:700">${sgP(sgPct(f.iSem,f.sellSem),1)}</td><td class="n">${sgM(f.sellMes)}</td><td class="n">${sgM(f.nMes)}</td><td class="n">${sgM(f.gM)}</td><td class="n">${sgM(f.iMes)}</td><td class="n" style="font-weight:700">${sgP(sgPct(f.iMes,f.sellMes),1)}</td></tr>`;
+  const rows = filas.map(f=>fila('<b>'+SG_NOM[f.c]+'</b>',f)).join('') + fila('Total',T,'tot');
+  const costoZ = zonas.map(z=>`${z}: <b>${sgM(diario(z))}</b> al día (${SG_NOMINA.zonas[z].personas} personas${SG_NOMINA.zonas[z].estimadas?`, ${SG_NOMINA.zonas[z].estimadas} con costo promedio`:''})`).join(' · ');
+  const body = `<div class="sg-k4"><div class="sg-k"><span>SELL OUT SEMANAL (tiendas visitadas)</span><b>${sgM(T.sellSem)}</b></div><div class="sg-k"><span>INVERSIÓN SEMANAL</span><b>${sgM(T.iSem)}</b><em>nómina + gasto de degustación</em></div><div class="sg-k"><span>% INVERSIÓN / SELL OUT (SEMANA)</span><b>${sgP(sgPct(T.iSem,T.sellSem),1)}</b></div><div class="sg-k"><span>% INVERSIÓN / SELL OUT (MES S${M.weeks[0]}–S${M.sem})</span><b>${sgP(sgPct(T.iMes,T.sellMes),1)}</b></div></div>
+  <div class="sg-tblwrap"><table class="sg-t xs"><thead><tr><th>Cadena</th><th class="n">Sell out sem</th><th class="n">Nómina sem</th><th class="n">Gasto demos sem</th><th class="n">Inversión sem</th><th class="n">% inv/SO</th><th class="n">Sell out mes</th><th class="n">Nómina mes</th><th class="n">Gasto demos mes</th><th class="n">Inversión mes</th><th class="n">% inv/SO</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="sg-foot"><b>Costo diario del equipo</b> (nómina de ${SG_NOMINA.vigente} ÷ ${diasMes} días): ${costoZ}. La nómina de cada zona se reparte entre cadenas según las visitas programadas. El <b>gasto de degustación</b> sale de los tickets que captura el equipo en la app. Sell out = venta de las tiendas con al menos una visita capturada en el periodo. El acumulado anual queda pendiente.</div>`;
+  return sgSlide('inversion','INVERSIÓN','% de inversión (nómina + degustación) sobre sell out · semanal y mensual', body);
 }
 function sgSlideIndice(M){
   const items = [['01','Resumen general KPIs'],['02','Resumen del equipo'],['03','Walmart'],['04','La Comer'],['05',"Sam's"],['06','HEB'],['07','Cumplimiento de ruta'],['08','Inversión']];
@@ -14786,7 +14797,7 @@ function sgConstruir(){
   const CAD = {filas:cd.filas, todas:cd.todas, porCad, cadRes:{total, topProd}};
   const S = [sgSlideIndice(M), sgSlideResumen(M,CAD), sgSlideEquipo(M)];
   SG_CAD.forEach(c=>{ S.push(sgSlideCadena(M,c,CAD), sgSlideSku(M,c), sgSlidePorQue(M,c,CAD), sgSlideCoreLow(M,c,'core'), sgSlideCoreLow(M,c,'low'), sgSlideCad1(M,c,CAD), sgSlideCad2(M,c,CAD)); });
-  S.push(sgSlideRuta(M,'Centro'), sgSlideRuta(M,'Occidente'), sgSlideInversion(M));
+  S.push(sgSlideRuta(M,'Centro'), sgSlideRuta(M,'Foráneas'), sgSlideInversion(M));
   SG.slides = S; SG.CAD = CAD;
 }
 function sgPaint(){
@@ -14809,7 +14820,6 @@ function sgEscala(){
 function sgIr(i){ SG.idx = Math.max(0, Math.min(SG.slides.length-1, i)); document.querySelectorAll('#sgStage .sg-slide').forEach(el=>el.classList.toggle('on', +el.dataset.i===SG.idx)); sgBarra(); }
 function sgIrId(id){ const i = SG.slides.findIndex(s=>s.id===id); if(i>=0) sgIr(i); }
 function sgSetReg(c, r){ SG.regSku[c] = r; const i = SG.slides.findIndex(s=>s.id==='sku_'+c); SG.slides[i] = sgSlideSku(SG.M,c); const el = document.querySelector('#sgStage .sg-slide[data-i="'+i+'"]'); if(el){ el.innerHTML = SG.slides[i].html; } }
-function sgSetNom(c,k,v){ const o = sgNomLoad(); o[c] = o[c]||{}; o[c][k] = v; sgNomSave(o); const i = SG.slides.findIndex(s=>s.id==='inversion'); SG.slides[i] = sgSlideInversion(SG.M); const el = document.querySelector('#sgStage .sg-slide[data-i="'+i+'"]'); if(el) el.innerHTML = SG.slides[i].html; }
 function sgCambiarSemana(v){ SG.sem = Number(v); const keep = SG.slides[SG.idx] && SG.slides[SG.idx].id; sgConstruir(); const i = SG.slides.findIndex(s=>s.id===keep); SG.idx = i>=0?i:0; sgPaint(); }
 function sgPresentar(on){
   SG.pres = typeof on==='boolean' ? on : !SG.pres;
