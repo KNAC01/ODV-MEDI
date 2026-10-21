@@ -2,7 +2,7 @@
 // IMPORTANTE: cada vez que se suba una versión nueva de index.html, sube este archivo
 // también y cambia el número de CACHE_NAME (por ejemplo v31, v32...) para que los
 // celulares descarguen la versión nueva en vez de quedarse con la vieja en caché.
-const CACHE_NAME = 'delico-odv-v158';
+const CACHE_NAME = 'delico-odv-v160';
 const ASSETS = ['./index.html', './app_data.json', './manifest.json', './icon-v2-192.png', './icon-v2-512.png', './splash_mujer.svg'];
 // El SDK de Firebase se carga desde gstatic.com cada vez que arranca la app. Si no se guarda también
 // aquí, un celular que abre la app SIN internet (o con el caché del navegador ya vencido) se puede
