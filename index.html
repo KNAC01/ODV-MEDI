@@ -824,6 +824,11 @@ a.sg-dl{color:var(--lilac-dark);font-weight:700;font-size:inherit;text-decoratio
 table.sg-t.inv1 th{font-size:9.5px;padding:5px 4px;line-height:1.15;white-space:normal;} table.sg-t.inv1 td{font-size:11.5px;padding:4px 4px;} table.sg-t.inv1{width:100%;table-layout:auto;}
 table.sg-t.inv3 td{padding:2.5px 5px !important;font-size:11px;} table.sg-t.inv3 th{padding:4px 5px;font-size:9.5px;}
 table.sg-t.inv4 th{font-size:9px;padding:4px 3px;white-space:normal;line-height:1.1;} table.sg-t.inv4 td{font-size:10.5px;padding:2.5px 3px !important;} table.sg-t.inv4{width:100%;}
+/* ===== v163 ===== */
+.sg-cards5{grid-template-columns:repeat(5,minmax(0,1fr)) !important;align-items:stretch;} .sg-cards5 .sg-card{min-width:0;overflow:hidden;}
+.sg-cbars2{display:grid;grid-template-columns:1fr 1fr;gap:2px 22px;margin-bottom:6px;} .sg-cbars2 .sg-cbar{grid-template-columns:70px 1fr 48px 150px !important;font-size:12px;margin:2px 0;} .sg-cbars2 .sg-cbar em{font-size:10px;white-space:nowrap;}
+table.sg-t.sku2 th{font-size:10px;padding:4px 5px;white-space:normal;line-height:1.1;} table.sg-t.sku2 td{font-size:11.5px;padding:2.5px 5px !important;}
+.sg-cbars2{gap:2px 16px !important;} .sg-cbars2 .sg-cbar{grid-template-columns:86px 1fr 44px 150px !important;} .sg-cbars2 .sg-cbar em{font-size:9.5px !important;}
 </style>
 </head>
 <body>
@@ -14490,7 +14495,10 @@ function sgModelo(sem){
   caps.forEach(c=>{ const d=capDia(c); weeks.concat([weeks[0]-4,weeks[0]-3,weeks[0]-2,weeks[0]-1]).forEach(w=>{ const [a,b]=sgFechasSemana(w); if(d>=a&&d<=b){ const k=c.cadena+'|'+c.tienda; if(!tiendaSemVis.has(k)) tiendaSemVis.set(k,new Set()); tiendaSemVis.get(k).add(w);} }); });
   const capsSem = caps.filter(c=>{ const d=capDia(c); return d>=f0&&d<=t0; });
   const tiendasVisSem = new Set(capsSem.map(c=>c.cadena+'|'+c.tienda));
-  return {sem, weeks, done, nW, f0, t0, st, stores, combos, cmb, sku, vis:visSem, visMesRutas, realSet, caps, capsSem, tiendasVisSem, tiendaSemVis, hist, esperado: done.length/nW*100, capDia};
+  // solo se analiza lo que está en el plan del mes: tiendas con cuota (las demás no existen para la junta)
+  [...st.keys()].forEach(k=>{ if(!(st.get(k).cuota>0)) st.delete(k); });
+  const combosPlan = combos.filter(c=>st.has(sgKey(c.cadena,c.num_tienda)));
+  return {sem, weeks, done, nW, f0, t0, st, stores, combos:combosPlan, cmb, sku, vis:visSem, visMesRutas, realSet, caps, capsSem, tiendasVisSem, tiendaSemVis, hist, esperado: done.length/nW*100, capDia};
 }
 /* agregado a nivel tienda (sin filtros por código) */
 function sgAgg(M, filtro){
@@ -14745,6 +14753,15 @@ function sgDiaSemana(M, c, reg){
   const m = avg.reduce((a,b)=>a+b,0)/7; return m>0 ? avg.map(x=>x/m) : null;
 }
 /* combinaciones que hoy NO están agotadas pero el inventario dura menos de lo que tarda el resurtido */
+function sgCortosFilas(M, c, reg){
+  const out=[];
+  M.combos.forEach(x=>{ if(x.cadena!==c || x.objetivo!=1) return; const key=sgKey(x.cadena,x.num_tienda), o=M.st.get(key); if(!o||(reg&&o.region!==reg)) return;
+    const inv=sgInvCmb(x,M.sem), av=x.prom_venta_diario||0; if(inv==null||inv<=0||av<=0) return;
+    const doh=inv/av; if(doh>=SG_LT) return; const tr=x.inv_transito||0;
+    out.push({'Cadena':SG_NOM[c],'Región':o.region,'Estado':(o.s&&o.s.estado)||'','# Tienda':o.num,'Tienda':o.tienda,'Quién la atiende':sgDuenoTxt(M,key),'Clave':x.clave,'Producto':x.item_desc,'Familia':x.familia,'Inventario hoy':Math.round(inv),'Venta diaria prom.':Math.round(av*100)/100,'Días de inventario':Math.round(doh*10)/10,'En tránsito':tr,'Venta en riesgo (pzas)':Math.round((SG_LT-doh)*av*10)/10,'Situación':tr>0?'Ya viene tránsito: confirmar fecha de llegada':'Sin tránsito: pedir resurtido'}); });
+  return out.sort((a,b)=>b['Venta en riesgo (pzas)']-a['Venta en riesgo (pzas)']);
+}
+function sgDlCortos(c, reg){ const M=SG.M; sgXlsx('nos_quedamos_cortos_'+sgSlug(c)+(reg?'_'+sgSlug(reg):'')+'_S'+M.sem, [{n:'Nos quedamos cortos', filas:sgCortosFilas(M,c,reg)}]); }
 function sgCortos(M, c, reg){
   let n=0, perd=0, perdSinTr=0, conTr=0; const tiendas=new Set(), porCod={};
   M.combos.forEach(x=>{ if(x.cadena!==c || x.objetivo!=1) return; const o=M.st.get(sgKey(x.cadena,x.num_tienda)); if(!o||(reg&&o.region!==reg)) return;
@@ -14797,7 +14814,7 @@ function sgDuenos(M){
   sgPersonas(M).forEach(p=>{ p.keys.forEach(k=>{ if(!m.has(k)) m.set(k,[]); m.get(k).push(p); }); });
   return M._du = m;
 }
-const sgDuenoTxt = (M,key)=> (sgDuenos(M).get(key)||[]).filter(p=>!p.vac).map(p=>nombreCorto(p.u.nombre)).join(' / ') || 'Sin asignar';
+const sgDuenoTxt = (M,key)=> (sgDuenos(M).get(key)||[]).filter(p=>!p.vac).map(p=>nombreCorto(p.u.nombre)).join(' / ') || 'Vacante';
 const sgRolP = u => /PROMOTOR/i.test((u&&u.rol)||'') ? 'Promotoría' : (/H[ÍI]BRIDO/i.test((u&&u.rol)||'') ? 'Híbrido' : 'Degustación');
 /* tipo de atención de la tienda: solo promotoría, solo degustación o compartida/híbrida */
 function sgGrupoTienda(M, o){
@@ -14897,32 +14914,38 @@ const SG_NOMINA = {vigente:'oct-2026', zonas:{
   'Centro':    {mensual:250628.28, personas:14, estimadas:3},
   'Foráneas':  {mensual:159875.66, personas:9,  estimadas:1} }};
 function sgInvCalc(M, reg, modo, rol){
+  // VENTA = real de TODAS las tiendas de las rutas (visitadas o no: el servicio influye en la venta).
+  // NÓMINA = sueldo promedio de la zona por persona-día, cargado solo a lo que cada persona realmente visitó (por visitas con evidencia); sin visitas, por tiendas asignadas.
   const [fMes] = sgFechasSemana(M.weeks[0]);
   const diasMes = new Date(+M.t0.slice(0,4), +M.t0.slice(5,7), 0).getDate(), diasVent = M.done.length*7;
   const P = sgInvPers(M, reg, rol), us = new Set(P.map(p=>p.u.usuario));
-  const perDia = p=>{ const Z=SG_NOMINA.zonas[p.reg]; return Z.mensual/Z.personas/diasMes; };   // nómina promedio de la zona por persona-día
-  const dia = P.reduce((a,p)=>a+perDia(p),0);
-  const cuenta = arr=>{ const z={}; SG_CAD.forEach(c=>z[c]=0); arr.forEach(a=>{ if(us.has(a.usuario) && SG_CAD.includes(a.cadena)) z[a.cadena]++; }); return z; };
-  const vSemZ = cuenta(M.vis), vMesZ = cuenta(M.visMesRutas);
-  const asig = {}; SG_CAD.forEach(c=>asig[c]=0); P.forEach(p=>p.keys.forEach(k=>{ const o=M.st.get(k); if(o) asig[o.cadena]++; }));
-  const reparto = (vz,c)=>{ const tot=SG_CAD.reduce((a,x)=>a+vz[x],0); if(tot>0) return vz[c]/tot; const t2=SG_CAD.reduce((a,x)=>a+asig[x],0); return t2?asig[c]/t2:0; };
-  const caps = M.caps.filter(x=>us.has(x.usuario));
+  const perDia = p=>{ const Z=SG_NOMINA.zonas[p.reg]; return Z.mensual/Z.personas/diasMes; };
   const enP = (x,f,t)=>{ const d=fechaLocal(x.fecha_registro); return d>=f&&d<=t; };
-  const gasto = (f,t,cad)=>caps.filter(x=>x.tipo==='gasto_ticket' && x.cadena===cad && enP(x,f,t)).reduce((a,x)=>a+(parseFloat(x.total)||0),0);
-  const vistas = (f,t,cad)=>new Set(caps.filter(x=>x.cadena===cad && enP(x,f,t)).map(x=>x.tienda));
-  const filas = SG_CAD.map(c=>{
-    const vSem = vistas(M.f0,M.t0,c), vMes = vistas(fMes,M.t0,c), st = [...M.st.values()].filter(o=>o.cadena===c);
-    const sum = (set,fld,fn)=>st.filter(o=>set.has(o.tienda)).reduce((a,o)=>a+o[fld]*fn(o),0);
-    const sellSem = sum(vSem,'realSemP',o=>sgMult(o,modo)), sellMes = sum(vMes,'realP',o=>sgMult(o,modo));
-    const sellSemSI = sum(vSem,'realSemP',sgRSI), sellMesSI = sum(vMes,'realP',sgRSI);
-    const nSem = dia*7*reparto(vSemZ,c), nMes = dia*diasVent*reparto(vMesZ,c), gS = gasto(M.f0,M.t0,c), gM = gasto(fMes,M.t0,c);
-    const d = sgDesc(c)/100;
-    return {c, sellSem, sellMes, sellSemSI, sellMesSI, nSem, nMes, gS, gM, iSem:nSem+gS, iMes:nMes+gM, descSem:sellSemSI*d, descMes:sellMesSI*d};
+  const nom = {sem:{}, mes:{}}; SG_CAD.forEach(c=>{ nom.sem[c]=0; nom.mes[c]=0; });
+  const stSet = new Set();
+  P.forEach(p=>{
+    const cu = M.caps.filter(x=>x.usuario===p.u.usuario);
+    const pesos = (f,t)=>{ const z={}; SG_CAD.forEach(c=>z[c]=0); const seen=new Set(); cu.forEach(x=>{ if(!SG_CAD.includes(x.cadena)||!x.tienda||!enP(x,f,t)) return; const k=x.cadena+'|'+x.tienda+'|'+fechaLocal(x.fecha_registro); if(seen.has(k)) return; seen.add(k); z[x.cadena]++; }); return z; };
+    const asig = {}; SG_CAD.forEach(c=>asig[c]=0); p.keys.forEach(k=>{ const o=M.st.get(k); if(o){ asig[o.cadena]++; stSet.add(k); } });
+    const rep = z=>{ const t=SG_CAD.reduce((a,c)=>a+z[c],0); if(t>0) return c=>z[c]/t; const t2=SG_CAD.reduce((a,c)=>a+asig[c],0); return c=>t2?asig[c]/t2:0; };
+    const rs = rep(pesos(M.f0,M.t0)), rm = rep(pesos(fMes,M.t0)), dia = perDia(p);
+    SG_CAD.forEach(c=>{ nom.sem[c]+=dia*7*rs(c); nom.mes[c]+=dia*diasVent*rm(c); });
   });
-  const KS = ['sellSem','sellMes','sellSemSI','sellMesSI','nSem','nMes','gS','gM','iSem','iMes','descSem','descMes'];
+  const caps = M.caps.filter(x=>us.has(x.usuario));
+  const gasto = (f,t,cad)=>caps.filter(x=>x.tipo==='gasto_ticket' && x.cadena===cad && enP(x,f,t)).reduce((a,x)=>a+(parseFloat(x.total)||0),0);
+  const filas = SG_CAD.map(c=>{
+    const st = [...stSet].map(k=>M.st.get(k)).filter(o=>o && o.cadena===c);
+    const sum = (fld,fn)=>st.reduce((a,o)=>a+o[fld]*fn(o),0);
+    const sellSem = sum('realSemP',o=>sgMult(o,modo)), sellMes = sum('realP',o=>sgMult(o,modo));
+    const sellSemSI = sum('realSemP',sgRSI), sellMesSI = sum('realP',sgRSI);
+    const nSem = nom.sem[c], nMes = nom.mes[c], gS = gasto(M.f0,M.t0,c), gM = gasto(fMes,M.t0,c);
+    const d = sgDesc(c)/100;
+    return {c, nT:st.length, sellSem, sellMes, sellSemSI, sellMesSI, nSem, nMes, gS, gM, iSem:nSem+gS, iMes:nMes+gM, descSem:sellSemSI*d, descMes:sellMesSI*d};
+  });
+  const KS = ['nT','sellSem','sellMes','sellSemSI','sellMesSI','nSem','nMes','gS','gM','iSem','iMes','descSem','descMes'];
   const T = filas.reduce((a,f)=>{ KS.forEach(k=>a[k]+=f[k]); return a; }, Object.fromEntries(KS.map(k=>[k,0])));
   filas.concat([T]).forEach(f=>{ f.rentSem = f.sellSemSI>0 ? (f.sellSemSI-f.descSem-f.iSem)/f.sellSemSI*100 : null; f.rentMes = f.sellMesSI>0 ? (f.sellMesSI-f.descMes-f.iMes)/f.sellMesSI*100 : null; });
-  return {filas, T, modo:modo||'so', diasMes, diasVent, nominaDia:dia, n:P.length};
+  return {filas, T, modo:modo||'so', diasMes, diasVent, nominaDia:P.reduce((a,p)=>a+perDia(p),0), n:P.length};
 }
 
 /* ---------- SLIDES ---------- */
@@ -14949,7 +14972,7 @@ function sgSlideResumen(M, CAD){
   const vcPorClave = {}; M.st.forEach(o=>o.vc.forEach(k=>vcPorClave[k]=(vcPorClave[k]||0)+1));
   const topVc = Object.entries(vcPorClave).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,n])=>`${k} (${n} tiendas)`).join(', ');
   const peorDist = [...porCad].sort((x,y)=>(x.a.dist??999)-(y.a.dist??999))[0];
-  const insD = [`${sgLinkSV('','','',sinVenta,sgN(sinVenta)+' combinaciones sin venta (venta cero) · descargar detalle')}. Más repetidas: ${topVc||'—'}.`, `Menor distribución: <b>${SG_NOM[peorDist.c]} ${sgP(peorDist.a.dist,1)}</b>.`, sgExplMix(A,true)];
+  const insD = [`${sgLinkSV('','','',sinVenta,sgN(sinVenta)+' sin venta (Excel)')}`, `Menor distribución: <b>${SG_NOM[peorDist.c]} ${sgP(peorDist.a.dist,1)}</b>.`, `Huecos: <b>${sgP(100-A.mix,1)}</b> de las combinaciones sin inventario.`];
   const peorRuta = SG_CAD.map(c=>({c, r:sgRuta(M,x=>x.cadena===c)})).filter(x=>x.r.prog>0).sort((a,b)=>a.r.pct-b.r.pct)[0];
   const ch = sgCharolas(M);
   const insR = R.prog ? [`${R.real} de ${R.prog} visitas programadas en la semana; <b>${R.prog-R.real}</b> sin evidencia.${peorRuta?` Cadena más baja: <b>${SG_NOM[peorRuta.c]} ${sgP(peorRuta.r.pct)}</b>.`:''}`] : ['Aún no hay visitas programadas/capturadas para esta semana en la app.'];
@@ -15073,19 +15096,23 @@ function sgSlideSku(M, c){
   const totC = all.reduce((a,r)=>a+r.cuota,0);
   const T = rows.reduce((a,r)=>({cuota:a.cuota+r.cuota, real:a.real+r.real, obj:a.obj+r.obj, conv:a.conv+r.conv, combos:a.combos.concat(r.combos)}),{cuota:0,real:0,obj:0,conv:0,combos:[]});
   const dohT = sgDohDe(T.combos, M.sem);
-  const rowsH = rows.map(r=>`<tr><td><b>${sgEsc(r.clave)}</b></td><td class="dsc" title="${sgEsc(r.desc)}">${sgEsc(r.desc)}</td><td class="n">${sgN(r.cuota)}</td><td class="n">${sgN(r.real)}</td><td class="n" style="color:${sgColor(r.pct,M.esperado)};font-weight:700">${sgP(r.pct)}</td><td class="n">${sgN(r.obj)}</td><td class="n">${sgN(r.conv)}</td><td class="n" style="color:${sgColor(r.dist,SG_OBJ_DIST)};font-weight:700">${sgP(r.dist)}</td><td class="n" style="color:${sgColorDoh(r.doh)};font-weight:700">${r.doh==null?'—':sgN(r.doh)}</td></tr>`).join('');
-  // insights por familia
-  const fam = new Map(); rows.forEach(r=>{ const f=r.fam||'Otros'; const o=fam.get(f)||{f,cuota:0,real:0,obj:0,conv:0,combos:[]}; o.cuota+=r.cuota;o.real+=r.real;o.obj+=r.obj;o.conv+=r.conv;o.combos=o.combos.concat(r.combos); fam.set(f,o); });
-  const fl = [...fam.values()].filter(x=>x.cuota>0).map(x=>({...x, pct:sgPct(x.real,x.cuota), dist:sgPct(x.conv,x.obj), falta:Math.max(0,x.cuota-x.real), doh:sgDohDe(x.combos,M.sem)})).sort((a,b)=>b.falta-a.falta);
-  const insF = fl.slice(0,3).map(x=>`<b>${sgEsc(x.f)}</b>: ${sgP(x.pct)} de cuota, distribución ${sgP(x.dist)}${x.doh!=null?`, ${sgN(x.doh)} días de inventario`:''} — faltan <b>${sgN(x.falta)} pzas</b>${(x.dist!=null&&x.dist<SG_OBJ_DIST-5)?' (primero distribución)':(x.pct<M.esperado*0.8?(x.doh!=null&&x.doh>SG_DOH_ALTO?' (hay inventario de sobra: falta rotación)':' (hay distribución, falta rotación/surtido)'):'')}`);
-  const mejor = fl.slice().sort((a,b)=>(b.pct??0)-(a.pct??0))[0];
-  if(mejor) insF.push(`Lo que sí jala: <b>${sgEsc(mejor.f)}</b> con ${sgP(mejor.pct)}.`);
+  const DG = new Map(sgDegFilas(M,c,F.reg).map(r=>[r.clave,r])); const esp = M.esperado;
+  const yy = v=> v==null ? '<span class="sg-note">—</span>' : `<b style="color:${v>=0?'var(--good)':'var(--bad)'}">${v>=0?'+':''}${sgN(v,0)}%</b>`;
+  const mxN = Math.max(1,...rows.map(r=>(DG.get(r.clave)||{}).n||0));
+  let ty25=0, ty26=0, tn=0;
+  const rowsH = rows.map(r=>{ const d = DG.get(r.clave)||{n:0,vsY:null,y25:0,y26:0}; ty25+=d.y25||0; ty26+=d.y26||0; tn+=d.n||0; const mal = d.n===0 && (r.pct||0)<esp*0.8;
+    return `<tr><td><b>${sgEsc(r.clave)}</b></td><td class="dsc" title="${sgEsc(r.desc)}">${sgEsc(r.desc)}</td><td class="n">${sgN(r.cuota)}</td><td class="n">${sgN(r.real)}</td><td class="n" style="color:${sgColor(r.pct,esp)};font-weight:700">${sgP(r.pct)}</td><td class="n">${yy(d.vsY)}</td><td class="n" style="${mal?'color:var(--bad);font-weight:700':''}" title="${mal?'Sin degustar y por debajo del ritmo':''}">${d.n?d.n+' ch.':'0'}</td><td class="n">${sgN(r.obj)}</td><td class="n">${sgN(r.conv)}</td><td class="n" style="color:${sgColor(r.dist,SG_OBJ_DIST)};font-weight:700">${sgP(r.dist)}</td><td class="n" style="color:${sgColorDoh(r.doh)};font-weight:700">${r.doh==null?'—':sgN(r.doh)}</td></tr>`; }).join('');
+  // cumplimiento por familia (misma gráfica que el resumen, pero por familia)
+  const fam = new Map(); rows.forEach(r=>{ const f=r.fam||'Otros'; const o=fam.get(f)||{f,cuota:0,real:0,y25:0,y26:0}; o.cuota+=r.cuota; o.real+=r.real; const d=DG.get(r.clave); if(d){ o.y25+=d.y25||0; o.y26+=d.y26||0; } fam.set(f,o); });
+  const fl = [...fam.values()].filter(x=>x.cuota>0).map(x=>({...x, pct:sgPct(x.real,x.cuota), vsY:x.y25>0?(x.y26/x.y25-1)*100:null})).sort((a,b)=>(b.pct||0)-(a.pct||0));
+  const barras = fl.map(x=>`<div class="sg-cbar"><span>${sgEsc(x.f)}</span><div class="sg-cbar-t"><i style="width:${Math.min(100,x.pct||0)}%;background:${sgColor(x.pct,esp)}"></i><u style="left:${esp}%"></u></div><b style="color:${sgColor(x.pct,esp)}">${sgP(x.pct,1)}</b><em>${sgN(x.real)} de ${sgN(x.cuota)} · AA ${x.vsY==null?'—':(x.vsY>=0?'+':'')+sgN(x.vsY,0)+'%'}</em></div>`).join('');
   const lastS = Math.max(...M.weeks.filter(w=>(APP_DATA.cumplimiento_semanal||[]).some(r=>r.semana===w&&r.real_uni>0)));
   const finInv = (APP_DATA.bi_meta||{}).inv_h_semana_fin || 42;
   const body = `<div class="sg-filrow">${sgChipsFil(c)}<span class="sg-note">Total ${SG_NOM[c]}: ${sgN(totC)} pzas de cuota</span></div>
-  <div class="sg-split" style="grid-template-columns:1fr"><div class="sg-tblwrap"><table class="sg-t sm nw"><thead><tr><th>Clave</th><th>Descripción</th><th class="n">Cuota (sueldo)</th><th class="n">Real</th><th class="n">% cumplimiento</th><th class="n">Objetivo distrib.</th><th class="n">Real distrib.</th><th class="n">% cumpl. distrib.</th><th class="n" title="Días de inventario (DOH) al domingo de la semana">DOH (dom.)</th></tr></thead><tbody>${rowsH||'<tr><td colspan="9" class="sg-empty">Sin datos</td></tr>'}<tr class="tot"><td colspan="2">Total ${sgFilTxt(c)||'cadena'}</td><td class="n">${sgN(T.cuota)}</td><td class="n">${sgN(T.real)}</td><td class="n">${sgP(sgPct(T.real,T.cuota))}</td><td class="n">${sgN(T.obj)}</td><td class="n">${sgN(T.conv)}</td><td class="n">${sgP(sgPct(T.conv,T.obj))}</td><td class="n">${dohT==null?'—':sgN(dohT)}</td></tr></tbody></table></div>
-  <div class="sg-ins big"><b>Insights clave</b>${insF.map(t=>`<p>${t}</p>`).join('')||'<p>Sin datos de cuota por SKU.</p>'}<p class="sg-note">Real por SKU al último corte de sell out cargado (S${lastS}). DOH = días de inventario al domingo de la semana ${Math.min(M.sem,finInv)}${M.sem>finInv?` (último pipeline disponible, S${finInv})`:''}; verde ≤${SG_DOH_ALTO} d, ámbar &gt;${SG_DOH_ALTO} d, rojo &lt;${SG_DOH_BAJO} d.</p></div></div>`;
-  return sgSlide('sku_'+c, 'Cuota '+SG_NOM[c]+' · '+sgN(totC), 'Cuota de octubre por código · cumplimiento, distribución y días de inventario', body, c);
+  <div class="sg-sec" style="margin-top:2px">Cumplimiento de cuota por familia <small>(la línea marca el ritmo esperado ${sgP(esp)})</small></div><div class="sg-cbars sg-cbars2">${barras||'<div class="sg-empty">Sin cuota por familia</div>'}</div>
+  <div class="sg-tblwrap"><table class="sg-t sm nw sku2"><thead><tr><th>Clave</th><th>Descripción</th><th class="n">Cuota (sueldo)</th><th class="n">Real</th><th class="n">% cumpl.</th><th class="n" title="Venta año actual vs año pasado, acumulado del año">Crec. vs AA (YTD)</th><th class="n" title="Charolas degustadas en el mes (capturas del equipo); rojo = sin degustar y por debajo del ritmo">Charolas degust.</th><th class="n">Objetivo distrib.</th><th class="n">Real distrib.</th><th class="n">% distrib.</th><th class="n" title="Días de inventario (DOH) al domingo de la semana">DOH (dom.)</th></tr></thead><tbody>${rowsH||'<tr><td colspan="11" class="sg-empty">Sin datos</td></tr>'}<tr class="tot"><td colspan="2">Total ${sgFilTxt(c)||'cadena'}</td><td class="n">${sgN(T.cuota)}</td><td class="n">${sgN(T.real)}</td><td class="n">${sgP(sgPct(T.real,T.cuota))}</td><td class="n">${yy(ty25>0?(ty26/ty25-1)*100:null)}</td><td class="n">${tn} ch.</td><td class="n">${sgN(T.obj)}</td><td class="n">${sgN(T.conv)}</td><td class="n">${sgP(sgPct(T.conv,T.obj))}</td><td class="n">${dohT==null?'—':sgN(dohT)}</td></tr></tbody></table></div>
+  <div class="sg-foot">Real por SKU al último corte de sell out (S${lastS}). DOH = días de inventario al domingo de la semana ${Math.min(M.sem,finInv)}${M.sem>finInv?` (último pipeline, S${finInv})`:''}. Charolas = degustaciones capturadas en el mes; crecimiento = venta acumulada del año vs el mismo periodo del año pasado.</div>`;
+  return sgSlide('sku_'+c, 'Cuota '+SG_NOM[c]+' · '+sgN(totC), 'Cuota de octubre por código · cumplimiento, crecimiento vs AA, degustación, distribución e inventario', body, c);
 }
 
 function sgDegustado(M, c, reg){
@@ -15193,7 +15220,7 @@ function sgSlidePorQue(M, c, CAD){
     heb = `<div class="sg-box"><b>La tienda HEB (${sgEsc(o.tienda)}) · como es una sola, aquí va su core y su seguimiento</b><p>Venta del año (YTD) ${sgN(t.y25)} → ${sgN(t.y26)} pzas (${vc(t.vsY)} vs AA) · mes ${sgN(t.m25)} → ${sgN(t.m26)} (${vc(t.vsM)}) · cuota ${sgP(t.pct)} · DOH ${t.doh==null?'—':sgN(t.doh)} · tránsito ${sgN(t.invT)} pzas.</p><p>Plan de acción: ${sgPlan(t,M)}</p></div>`; }
   const body = `<div class="sg-filrow">${sgChipsReg(c)}<span class="sg-note">${tds.length} ${tds.length===1?'tienda':'tiendas'}${reg?' · '+reg:''}</span></div><div class="sg-qgrid">
     ${bloque('Tiendas con inventario suficiente para su cuota', sgP(pctInv), `${okInv.length} de ${conCuota.length} ${conCuota.length===1?'tienda':'tiendas'}`, dohProm!=null ? `Días de inventario promedio: <b style="color:${sgColorDoh(dohProm)}">${sgN(dohProm)}</b> · <b>${inflado}</b> tiendas infladas (&gt;${SG_DOH_ALTO} d) · <b>${corto}</b> cortas (&lt;${SG_DOH_BAJO} d). ${diag}` : '')}
-    ${bloque('Nos quedamos cortos (aún sin agotarse)', sgN(CO.n)+' combinaciones', CO.n?`en ${CO.tiendas} ${CO.tiendas===1?'tienda':'tiendas'} el inventario dura menos de ${SG_LT} días, lo que tarda el resurtido`:'ninguna combinación objetivo se acaba antes del resurtido', CO.n?`Venta en riesgo ≈ <b>${sgN(CO.perd)} pzas</b> (${sgN(CO.perdSinTr)} sin tránsito). Más expuestos: ${CO.top.map(([k,v])=>sgEsc(k)+' ('+sgN(v)+')').join(', ')||'—'}.`:'')}
+    ${bloque('Nos quedamos cortos (aún sin agotarse)', sgN(CO.n)+' combinaciones', CO.n?`en ${CO.tiendas} ${CO.tiendas===1?'tienda':'tiendas'} el inventario dura menos de ${SG_LT} días, lo que tarda el resurtido`:'ninguna combinación objetivo se acaba antes del resurtido', CO.n?`Venta en riesgo ≈ <b>${sgN(CO.perd)} pzas</b> (${sgN(CO.perdSinTr)} sin tránsito). Más expuestos: ${CO.top.map(([k,v])=>sgEsc(k)+' ('+sgN(v)+')').join(', ')||'—'}. <a class="sg-dl" href="javascript:void(0)" onclick="sgDlCortos('${c}','${reg||''}')">⬇ Excel</a>`:'')}
     ${bloque('Visitas con evidencia (sem '+M.sem+')', visUn, `${R.prog?sgP(R.pct)+' de las '+R.prog+' programadas':'sin programación en la app'}`)}
   </div>
   ${c==='HEB'?'':`<div class="sg-q5">
@@ -15201,7 +15228,7 @@ function sgSlidePorQue(M, c, CAD){
     ${GR.map(x=>bloque('Venta diaria con vs sin visita · '+(x.g==='Híbrido'?'compartidas (híbrido)':(x.g==='Promotoría'?'tiendas con promotoría':'solo degustación')), (x.L&&x.L.ok)?`${x.L.lift>=0?'+':''}${sgN(x.L.lift*100,0)}%`:'sin base', `${x.n} ${x.n===1?'tienda':'tiendas'}${(x.L&&x.L.ok)?` · ${x.L.nS} con días comparables`:''}`)).join('')}
     ${bloque('En pzas por tienda al día (absoluto)', (L&&L.ok)?`${L.conV-L.sinV>=0?'+':''}${sgN(L.conV-L.sinV,1)}`:'—', (L&&L.ok)?`todas: ${sgN(L.conV,1)} con visita vs ${sgN(L.sinV,1)} sin`:'sin base suficiente', GR.map(x=>`${x.g==='Híbrido'?'Híbrido':(x.g==='Promotoría'?'Promotoría':'Degustación')}: ${(x.L&&x.L.ok)?`${sgN(x.L.conV,1)} vs ${sgN(x.L.sinV,1)} (${x.L.conV-x.L.sinV>=0?'+':''}${sgN(x.L.conV-x.L.sinV,1)})`:'—'}`).join(' · ')+(DS?`<br>Mejores días: ${DS.map((v,i)=>({d:SG_DIAS[i],v})).sort((p,q)=>q.v-p.v).slice(0,2).map(z=>z.d+' '+sgN(z.v,1)+'×').join(', ')}`:''))}
   </div>`}
-  <div class="sg-box warn"><b>¿Qué necesitamos para cumplirla?</b>${sugV.map(s=>`<p>• ${s}</p>`).join('')}<p class="sg-note">El detalle de degustación por código (todos los códigos, con crecimiento vs año pasado) está en la lámina siguiente.</p></div>${heb}
+  <div class="sg-box warn"><b>¿Qué necesitamos para cumplirla?</b>${sugV.map(s=>`<p>• ${s}</p>`).join('')}<p class="sg-note">El detalle de degustación por código (todos los códigos, con crecimiento vs año pasado) está en la lámina de cuota por código.</p></div>${heb}
   <div class="sg-foot sg-nota-mix">${SG_NOTA_MIX}</div>`;
   return sgSlide('porque_'+c, 'Cuota '+SG_NOM[c]+' · ¿Por qué de los resultados?', 'Cruce de inventario, visitas y venta diaria con y sin visita', body, c);
 }
@@ -15502,10 +15529,10 @@ function sgSlideInversion(M){
   const w = IZ.slice().sort((a,b)=>(sgPct(b.I.T.iMes,b.I.T.sellMes)||0)-(sgPct(a.I.T.iMes,a.I.T.sellMes)||0))[0]; const wp = w ? sgPct(w.I.T.iMes,w.I.T.sellMes) : null;
   const desc = `<div class="sg-desc">Descuento por cadena (% de la facturación): ${SG_CAD.map(c=>`<label>${SG_NOM[c]} <input type="number" step="0.1" min="0" max="100" value="${sgDesc(c)||''}" placeholder="0" onchange="sgSetDesc('${c}',this.value)">%</label>`).join('')}<span class="sg-note">se guarda en este navegador · sin captura = 0%</span></div>`;
   const body = `<div class="sg-filrow">${sgChipsInv()}<span class="sg-note">${reg||'Todas las zonas'}${rol?' · '+rol:''} · ${I.n} personas · ${LB}</span></div>${desc}
-  <div class="sg-k4"><div class="sg-k"><span>${LBU} SEMANAL (tiendas visitadas)</span><b>${sgM(T.sellSem)}</b><em>${modo==='si'?'a costo facturado 2026':'a precio público'}</em></div><div class="sg-k"><span>% INVERSIÓN / ${LBU} (SEMANA)</span><b>${sgP(sgPct(T.iSem,T.sellSem),1)}</b><em>nómina ${sgP(sgPct(T.nSem,T.sellSem),1)} + gasto ${sgP(sgPct(T.gS,T.sellSem),1)}</em></div><div class="sg-k"><span>% INVERSIÓN / ${LBU} (MES S${M.weeks[0]}–S${M.sem})</span><b>${sgP(sgPct(T.iMes,T.sellMes),1)}</b><em>nómina ${sgP(sgPct(T.nMes,T.sellMes),1)} + gasto ${sgP(sgPct(T.gM,T.sellMes),1)}</em></div><div class="sg-k"><span>RENTABILIDAD (MES, SOBRE SELL IN)</span><b style="color:${sgColRent(T.rentMes)}">${sgP(T.rentMes,1)}</b><em>(sell in − descuentos − inversión) ÷ sell in</em></div></div>
+  <div class="sg-k4"><div class="sg-k"><span>${LBU} SEMANAL (todas las tiendas de las rutas)</span><b>${sgM(T.sellSem)}</b><em>${modo==='si'?'a costo facturado 2026':'a precio público'}</em></div><div class="sg-k"><span>% INVERSIÓN / ${LBU} (SEMANA)</span><b>${sgP(sgPct(T.iSem,T.sellSem),1)}</b><em>nómina ${sgP(sgPct(T.nSem,T.sellSem),1)} + gasto ${sgP(sgPct(T.gS,T.sellSem),1)}</em></div><div class="sg-k"><span>% INVERSIÓN / ${LBU} (MES S${M.weeks[0]}–S${M.sem})</span><b>${sgP(sgPct(T.iMes,T.sellMes),1)}</b><em>nómina ${sgP(sgPct(T.nMes,T.sellMes),1)} + gasto ${sgP(sgPct(T.gM,T.sellMes),1)}</em></div><div class="sg-k"><span>RENTABILIDAD (MES, SOBRE SELL IN)</span><b style="color:${sgColRent(T.rentMes)}">${sgP(T.rentMes,1)}</b><em>(sell in − descuentos − inversión) ÷ sell in</em></div></div>
   <div class="sg-tblwrap"><table class="sg-t sm inv1"><thead><tr><th>Cadena</th><th class="n">${LB} sem</th><th class="n">Nómina % sem</th><th class="n">Gasto % sem</th><th class="n">Inversión % sem</th><th class="n">${LB} mes</th><th class="n">Nómina % mes</th><th class="n">Gasto % mes</th><th class="n">Inversión % mes</th><th class="n">Descuento %</th><th class="n">Rentabilidad % (mes)</th></tr></thead><tbody>${rows}</tbody></table></div>
   <div class="sg-ins big" style="font-size:13px"><b>Lectura por subregión</b><p>${lect||'Sin personas en este filtro.'}${wp!=null&&wp>=60?` — <b>${w.z}</b> es donde más pesa la inversión sobre la venta.`:''}</p></div>
-  <div class="sg-foot">Nómina y gasto de degustación se expresan como % de ${LB.toLowerCase()} (la nómina usa el costo promedio de la zona y se reparte entre cadenas según las visitas programadas; el gasto sale de los tickets capturados). Venta = tiendas con visita capturada en el periodo. Occidente = Guadalajara; Resto foráneas = Mérida, León y Aguascalientes. Rentabilidad = (sell in − descuentos − inversión) ÷ sell in. ${SG_NOTA_SI(M)}</div>`;
+  <div class="sg-foot">Nómina y gasto de degustación se expresan como % de ${LB.toLowerCase()} (la nómina usa el costo promedio de la zona y se carga solo a las tiendas realmente visitadas, según las visitas con evidencia; el gasto sale de los tickets capturados). Venta = real de todas las tiendas de las rutas del equipo, se hayan visitado o no. Occidente = Guadalajara; Resto foráneas = Mérida, León y Aguascalientes. Rentabilidad = (sell in − descuentos − inversión) ÷ sell in. ${SG_NOTA_SI(M)}</div>`;
   return sgSlide('inversion','INVERSIÓN · POR CADENA','% de inversión (nómina + degustación) sobre '+LB.toLowerCase()+' y rentabilidad sobre sell in', body);
 }
 /* inversión por persona: nómina promedio de su zona + su gasto contra la venta de su ruta asignada */
@@ -15539,11 +15566,14 @@ function sgSlideInversion3(M){
     <div class="sg-foot"><b>Venta = las tiendas de su ruta asignada</b> (no depende de que se capture la visita; la columna “visitadas” dice cuántas sí tienen evidencia en el mes). La nómina se muestra como % de la venta, con el costo promedio de la zona (no se publican sueldos individuales). Si dos personas comparten tienda, su venta cuenta en ambas. Un “$0” indica ruta sin venta cargada en el corte. Rojo ≥100%, ámbar ≥60%; rentabilidad = (sell in − descuentos − inversión) ÷ sell in. ${SG_NOTA_SI(M)}</div>`;
   } else {
     const p = sel.p, nom = nombreCorto(p.u.nombre); titulo = 'INVERSIÓN · RUTA DE '+nom.toUpperCase(); sub = sgRolP(p.u)+' · '+(p.sub||sgSubPersona(M,p))+' · cuánto aporta cada tienda de su ruta';
-    const enP = (x,f,t)=>{ const d=fechaLocal(x.fecha_registro); return d>=f&&d<=t; }, nT = Math.max(1,sel.st.length);
-    const filas = sel.st.map(o=>{
-      const dM = new Set(sel.cu.filter(x=>x.cadena===o.cadena&&x.tienda===o.tienda&&enP(x,fMes,M.t0)).map(x=>fechaLocal(x.fecha_registro))).size;
+    const enP = (x,f,t)=>{ const d=fechaLocal(x.fecha_registro); return d>=f&&d<=t; };
+    // el sueldo se carga SOLO a las tiendas realmente visitadas (por días de visita); si no hubo visitas, se reparte entre las asignadas
+    const dias = (o,f,t)=>new Set(sel.cu.filter(x=>x.cadena===o.cadena&&x.tienda===o.tienda&&enP(x,f,t)).map(x=>fechaLocal(x.fecha_registro))).size;
+    const base = sel.st.map(o=>({o, dM:dias(o,fMes,M.t0), dS:dias(o,M.f0,M.t0)}));
+    const totM = base.reduce((a,x)=>a+x.dM,0), totS = base.reduce((a,x)=>a+x.dS,0), nT = Math.max(1,sel.st.length);
+    const filas = base.map(({o,dM,dS})=>{
       const gas = (f,t)=>sel.cu.filter(x=>x.cadena===o.cadena&&x.tienda===o.tienda&&x.tipo==='gasto_ticket'&&enP(x,f,t)).reduce((a,x)=>a+(parseFloat(x.total)||0),0);
-      const f = {o, dM, sellSem:o.realSemP*sgMult(o,modo), sellMes:o.realP*sgMult(o,modo), nSem:sel.nSem/nT, nMes:sel.nMes/nT, gS:gas(M.f0,M.t0), gM:gas(fMes,M.t0)};
+      const f = {o, dM, sellSem:o.realSemP*sgMult(o,modo), sellMes:o.realP*sgMult(o,modo), nSem:sel.nSem*(totS>0?dS/totS:1/nT), nMes:sel.nMes*(totM>0?dM/totM:1/nT), gS:gas(M.f0,M.t0), gM:gas(fMes,M.t0)};
       f.iSem=f.nSem+f.gS; f.iMes=f.nMes+f.gM; const si=o.realP*sgRSI(o); f.rentMes = si>0 ? (si-si*sgDesc(o.cadena)/100-f.iMes)/si*100 : null; f.pMes=sgPct(f.iMes,f.sellMes); return f; })
       .sort((a,b)=>(b.pMes==null?-1:b.pMes)-(a.pMes==null?-1:a.pMes));
     const max = 16, show = filas.slice(0,max);
@@ -15748,7 +15778,7 @@ function sgConstruir(){
   const CAD = {filas:cd.filas, todas:cd.todas, porCad, cadRes:{total, topProd}};
   SG.CAD = CAD;
   const S = [sgSlideIndice(M), sgSlideResumen(M,CAD), sgSlideEquipo(M), sgSlideEquipoDet(M,'Centro'), sgSlideEquipoDet(M,'Foráneas')];
-  SG_CAD.forEach(c=>{ S.push(sgSlideCadena(M,c,CAD), sgSlideSku(M,c), sgSlidePorQue(M,c,CAD), sgSlidePorQue3(M,c), sgSlidePorQue2(M,c), ...(c==='HEB'?[]:[sgSlideCoreLow(M,c,'core'), sgSlideCoreLow(M,c,'low')]), ...(sgTieneInn(c)?[sgSlideInn(M,c)]:[]), sgSlideCad1(M,c,CAD), sgSlideCad2(M,c,CAD)); });
+  SG_CAD.forEach(c=>{ S.push(sgSlideCadena(M,c,CAD), sgSlideSku(M,c), sgSlidePorQue(M,c,CAD), sgSlidePorQue2(M,c), ...(c==='HEB'?[]:[sgSlideCoreLow(M,c,'core'), sgSlideCoreLow(M,c,'low')]), ...(sgTieneInn(c)?[sgSlideInn(M,c)]:[]), sgSlideCad1(M,c,CAD), sgSlideCad2(M,c,CAD)); });
   S.push(sgSlideRuta(M,'Centro'), sgSlideRuta(M,'Foráneas'), sgSlideInversion(M), sgSlideInversion3(M), sgSlideInversion2(M), sgSlideInversion4(M), sgSlideInversion5(M), sgSlideEjec1(M,CAD), sgSlideEjec2(M,CAD));
   SG.slides = S;
 }
@@ -15780,7 +15810,7 @@ function sgSetFil(c, g, v){
   const M = SG.M, CAD = SG.CAD, b = {};
   if(c==='inv'){ sgRehacer({inversion:()=>sgSlideInversion(M), inversion2:()=>sgSlideInversion2(M), inversion3:()=>sgSlideInversion3(M), inversion4:()=>sgSlideInversion4(M), inversion5:()=>sgSlideInversion5(M)}); return; }
   b['cad_'+c] = ()=>sgSlideCadena(M,c,CAD); b['sku_'+c] = ()=>sgSlideSku(M,c); b['core_'+c] = ()=>sgSlideCoreLow(M,c,'core'); b['low_'+c] = ()=>sgSlideCoreLow(M,c,'low');
-  b['porque_'+c] = ()=>sgSlidePorQue(M,c,CAD); b['porque3_'+c] = ()=>sgSlidePorQue3(M,c); b['porque2_'+c] = ()=>sgSlidePorQue2(M,c); b['cad1_'+c] = ()=>sgSlideCad1(M,c,CAD); b['cad2_'+c] = ()=>sgSlideCad2(M,c,CAD); b['inn_'+c] = ()=>(sgTieneInn(c)?sgSlideInn(M,c):{id:'inn_'+c,titulo:'',html:''});
+  b['porque_'+c] = ()=>sgSlidePorQue(M,c,CAD); b['porque2_'+c] = ()=>sgSlidePorQue2(M,c); b['cad1_'+c] = ()=>sgSlideCad1(M,c,CAD); b['cad2_'+c] = ()=>sgSlideCad2(M,c,CAD); b['inn_'+c] = ()=>(sgTieneInn(c)?sgSlideInn(M,c):{id:'inn_'+c,titulo:'',html:''});
   sgRehacer(b);
 }
 function sgSetCod(c, v){ SG.cod[c] = v; const b = {}; b['cad2_'+c] = ()=>sgSlideCad2(SG.M,c,SG.CAD); sgRehacer(b); }
