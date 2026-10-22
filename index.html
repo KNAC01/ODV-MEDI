@@ -838,6 +838,12 @@ td.ch{padding:2px 6px !important;min-width:150px;} .sg-cb{display:flex;align-ite
 .sg-gp-b{margin-bottom:26px !important;} .sg-gp-b b.nd{font-size:10px;font-weight:500;color:var(--ink-soft);} .sg-gp-p{margin-top:8px !important;}
 table.sg-t.ctl th{font-size:9px;padding:4px 4px;white-space:normal;line-height:1.1;} table.sg-t.ctl td{font-size:11px;padding:3px 4px !important;}
 .sg-k6 .sg-k{padding:7px 9px;} .sg-k6 .sg-k b{font-size:21px;} .sg-k6 .sg-k span{font-size:9.5px;} .sg-k6 .sg-k em{font-size:10px;line-height:1.25;}
+/* ===== v165 ===== */
+.sg-cb i{background:linear-gradient(90deg,#eadcf5,#9b6fc0) !important;border:1px solid #8a5cb3 !important;} td.ch.mal .sg-cb i{background:linear-gradient(90deg,#f7c1bd,#c0392b) !important;border-color:#c0392b !important;}
+.sg-k5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;} .sg-k5 .sg-k{padding:7px 9px;} .sg-k5 .sg-k b{font-size:22px;} .sg-k5 .sg-k span{font-size:9.5px;} .sg-k5 .sg-k em{font-size:10px;line-height:1.25;}
+.sg-qgrid{grid-template-columns:1.6fr 1fr 1fr !important;}
+.sg-vdrow{grid-template-columns:1fr 1fr !important;gap:12px !important;margin-top:10px !important;} .sg-vd{padding:12px 16px !important;} .sg-vd-t{font-size:16px !important;} .sg-vd-t small{font-size:11.5px !important;} .sg-vd-r{grid-template-columns:150px 1fr 44px !important;font-size:13px !important;margin:9px 0 !important;} .sg-vd-b{height:20px !important;} .sg-vd-r b{font-size:17px !important;} .sg-vd-x{font-size:12.5px !important;line-height:1.5 !important;margin-top:8px !important;}
+.sg-need{padding:6px 12px !important;} .sg-need-g{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;} .sg-need p{margin:2px 0 !important;font-size:11.5px !important;line-height:1.3 !important;}
 </style>
 </head>
 <body>
@@ -14922,15 +14928,11 @@ const sgMesNom = iso => ['ene','feb','mar','abr','may','jun','jul','ago','sep','
 
 /* promedio diario por tienda de las tiendas SIN servicio (sin cuota en el mes) de la cadena: referencia "sin nadie que las atienda" */
 function sgSinServicio(M, c, reg){
-  const v = APP_DATA.vta_dia; if(!v || !v.tiendas || !v.tiendas[c]) return null;
-  const stN = new Set([...M.st.values()].filter(o=>o.cadena===c).map(o=>String(o.num)));
-  const regDe = new Map(APP_DATA.stores.filter(s=>s.cadena===c).map(s=>[String(Number(s.num_tienda)), s]));
-  let suma=0, n=0, dias=0;
-  Object.entries(v.tiendas[c]).forEach(([num,arr])=>{ if(stN.has(String(Number(num)))) return;
-    const s = regDe.get(String(Number(num))); if(!s) return; if(reg && sgRegion(s)!==reg) return;
-    let t=0, d=0; arr.forEach((u,i)=>{ if(u==null) return; if(sgIso(sgVDFecha(i))>M.t0) return; t+=u; d++; }); if(d<7) return;
-    suma+=t/d; n++; dias+=d; });
-  return n>=2 ? {n, avg:suma/n, dias} : {n, avg:null};
+  // referencia: promedio diario por tienda de las tiendas de la MISMA cadena sin cuota ni servicio (todas las de la carpeta de sell out)
+  const v = APP_DATA.vta_dia; if(!v || !v.sin_servicio || !v.sin_servicio[c]) return null;
+  const S = v.sin_servicio[c]; let t=0, d=0;
+  (S.dia||[]).forEach((u,i)=>{ if(u==null) return; if(sgIso(sgVDFecha(i))>M.t0) return; t+=u; d++; });
+  return d>=7 ? {n:S.n, avg:t/d, dias:d} : {n:S.n, avg:null};
 }
 
 /* ---------- inversión (modelo compartido: resumen e inversión) ---------- */
@@ -15211,12 +15213,12 @@ function sgDegChart(skus, degM, esp){
 function sgVdCard(titulo, n, L, SS){
   const ok = L && L.ok; const ss = SS && SS.avg!=null ? SS.avg : null;
   if(!ok) return `<div class="sg-vd"><div class="sg-vd-t">${titulo} <small>${n} ${n===1?'tienda':'tiendas'}</small></div><div class="sg-note" style="margin-top:8px">Sin base suficiente: se necesitan al menos 3 tiendas con 2 o más días con visita y 2 sin visita.</div></div>`;
-  const vals = [['Día con visita',L.conV,'var(--brand-dark)'],['Día sin visita',L.sinV,'var(--warn)']]; if(ss!=null) vals.push(['Sin servicio ('+SS.n+' tdas)',ss,'#9a8fb0']);
+  const vals = [['Día con visita',L.conV,'var(--brand-dark)'],['Día sin visita',L.sinV,'var(--warn)']]; if(ss!=null) vals.push(['Sin servicio · '+SS.n+' tdas',ss,'#9a8fb0']);
   const mx = Math.max(...vals.map(v=>v[1]),0.01);
   const bars = vals.map(([l,v,col])=>`<div class="sg-vd-r"><span>${l}</span><div class="sg-vd-b"><i style="width:${Math.max(3,v/mx*100)}%;background:${col}"></i></div><b>${sgN(v,1)}</b></div>`).join('');
   const dl = (a,b)=> b>0 ? `${a-b>=0?'+':''}${sgN((a/b-1)*100,0)}% (${a-b>=0?'+':''}${sgN(a-b,1)} pzas)` : '—';
   return `<div class="sg-vd"><div class="sg-vd-t">${titulo} <small>${n} ${n===1?'tienda':'tiendas'} · pzas por tienda al día</small></div>${bars}
-    <div class="sg-vd-x">Con visita vs sin visita: <b style="color:${L.lift>=0?'var(--good)':'var(--bad)'}">${dl(L.conV,L.sinV)}</b>${ss!=null?`<br>Con visita vs sin servicio: <b style="color:${L.conV>=ss?'var(--good)':'var(--bad)'}">${dl(L.conV,ss)}</b> · sin visita vs sin servicio: <b>${dl(L.sinV,ss)}</b>`:'<br><span class="sg-note">Sin tiendas sin cuota suficientes como referencia.</span>'}</div></div>`;
+    <div class="sg-vd-x">Con visita vs sin visita: <b style="color:${L.lift>=0?'var(--good)':'var(--bad)'}">${dl(L.conV,L.sinV)}</b>${ss!=null?`<br>Con visita vs sin servicio: <b style="color:${L.conV>=ss?'var(--good)':'var(--bad)'}">${dl(L.conV,ss)}</b> · sin visita vs sin servicio: <b>${dl(L.sinV,ss)}</b><br><span class="sg-note">Sin servicio = promedio diario de ${SS.n} tiendas de la misma cadena sin cuota ni persona (sell out).</span>`:'<br><span class="sg-note">Sin referencia suficiente de tiendas sin cuota.</span>'}</div></div>`;
 }
 function sgSlidePorQue(M, c, CAD){
   const F = sgFil(c), reg = F.reg;
@@ -15273,6 +15275,7 @@ function sgSlidePorQue(M, c, CAD){
   function sinInv0(arr){ const n=arr.filter(o=>!o.invOk).length; return n+' '+(n===1?'tienda':'tiendas'); }
   const bloqueIns = `<div class="sg-q sg-q-ins"><div class="sg-q-t">Principales insights · ¿por qué llegamos a este número?</div>${insW.slice(0,4).map(t=>`<p>• ${t}</p>`).join('')}</div>`;
   const bloque = (t,v,s,x)=>`<div class="sg-q"><div class="sg-q-t">${t}</div><div class="sg-q-v">${v}</div><div class="sg-q-s">${s||''}</div>${x?`<div class="sg-q-x">${x}</div>`:''}</div>`;
+  const bloqueVis = bloque('¿Visitamos correctamente?', PA.n?`${paMes} de ${PA.n}`:'—', `tiendas del 80% de la venta YTD (${PA.n} de ${PA.nAll}) con visita en el mes · ${paSem} esta semana · ${R.prog?sgP(R.pct)+' de las '+R.prog+' visitas programadas con evidencia':'sin programación'}`, sinVisita.length?`Sin visita: ${sinVisita.map(sgEsc).join(', ')}.`:(PA.n?'Todas las del Pareto tienen visita.':''));
   let heb = '';
   if(c==='HEB' && tds.length){ const o = tds.slice().sort((a,b)=>b.cuota-a.cuota)[0]; const t = sgTienda(M,o,'');
     const vc = v=> v==null?'—':`<b style="color:${v>=0?'var(--good)':'var(--bad)'}">${v>=0?'+':''}${sgN(v,1)}%</b>`;
@@ -15280,13 +15283,12 @@ function sgSlidePorQue(M, c, CAD){
   const body = `<div class="sg-filrow">${sgChipsReg(c)}<span class="sg-note">${tds.length} ${tds.length===1?'tienda':'tiendas'}${reg?' · '+reg:''}</span></div><div class="sg-qgrid">
     ${bloqueIns}
     ${bloque('Nos quedamos cortos (aún sin agotarse)', sgN(CO.n)+' combinaciones', CO.n?`en ${CO.tiendas} ${CO.tiendas===1?'tienda':'tiendas'} el inventario dura menos de ${SG_LT} días, lo que tarda el resurtido`:'ninguna combinación objetivo se acaba antes del resurtido', CO.n?`Venta en riesgo ≈ <b>${sgN(CO.perd)} pzas</b> (${sgN(CO.perdSinTr)} sin tránsito). Más expuestos: ${CO.top.map(([k,v])=>sgEsc(k)+' ('+sgN(v)+')').join(', ')||'—'}. <a class="sg-dl" href="javascript:void(0)" onclick="sgDlCortos('${c}','${reg||''}')">⬇ Excel</a>`:'')}
-    ${bloque('Visitas con evidencia (sem '+M.sem+')', visUn, `${R.prog?sgP(R.pct)+' de las '+R.prog+' programadas':'sin programación en la app'}`)}
+    ${c==='HEB'?bloque('Visitas con evidencia (sem '+M.sem+')', visUn, `${R.prog?sgP(R.pct)+' de las '+R.prog+' programadas':'sin programación en la app'}`):bloqueVis}
   </div>
   ${c==='HEB'?'':`<div class="sg-vdrow">
-    ${bloque('¿Visitamos correctamente?', PA.n?`${paMes} de ${PA.n}`:'—', `tiendas del 80% de la venta YTD (${PA.n} de ${PA.nAll}) con visita en el mes · ${paSem} esta semana`, sinVisita.length?`Sin visita: ${sinVisita.map(sgEsc).join(', ')}.`:(PA.n?'Todas las del Pareto tienen visita.':''))}
-    ${GR.map(x=>sgVdCard(x.g==='Híbrido'?'Compartidas (2 personas) / híbrido':(x.g==='Promotoría'?'Tiendas con promotoría':'Tiendas con degustación'), x.n, x.L, SS)).join('')}
+    ${GR.filter(x=>x.g!=='Híbrido').map(x=>sgVdCard(x.g==='Promotoría'?'Tiendas con promotoría':'Tiendas con degustación', x.n, x.L, SS)).join('')}
   </div>`}
-  <div class="sg-box warn"><b>¿Qué necesitamos para cumplirla?</b>${sugV.map(s=>`<p>• ${s}</p>`).join('')}</div>${heb}
+  <div class="sg-box warn sg-need"><b>¿Qué necesitamos para cumplirla?</b><div class="sg-need-g">${sugV.map(s=>`<p>• ${s}</p>`).join('')}</div></div>${heb}
   <div class="sg-foot sg-nota-mix">${SG_NOTA_MIX}</div>`;
   return sgSlide('porque_'+c, 'Cuota '+SG_NOM[c]+' · ¿Por qué de los resultados?', 'Cruce de inventario, visitas y venta diaria con y sin visita', body, c);
 }
@@ -15610,25 +15612,26 @@ function sgSlideControl(M, reg){
   const conAcc = F.filter(x=>x.acc), app = conAcc.filter(x=>x.acc.instalada).length, nav = conAcc.length-app, sinAcc = F.length-conAcc.length;
   const gpsPerm = conAcc.filter(x=>x.acc.ubicacion==='granted').length;
   const durs = F.filter(x=>x.durProm!=null), durG = durs.length ? durs.reduce((a,x)=>a+x.durProm*x.nPares,0)/durs.reduce((a,x)=>a+x.nPares,0) : null;
-  const diasTr = F.reduce((a,x)=>a+x.diasConEnt,0), diasLs = F.reduce((a,x)=>a+Math.min(x.lsDias,x.diasConEnt),0);
-  const conLs = F.filter(x=>x.lsDias>0).length, lsDurN = F.reduce((a,x)=>a+x.lsDur.length,0), lsOkN = F.reduce((a,x)=>a+x.lsOk,0);
+  const DM = F.filter(x=>!/PROMOTOR/i.test(x.u.rol||''));   // Ley Silla no aplica a promotoría
+  const diasTr = DM.reduce((a,x)=>a+x.diasConEnt,0), diasLs = DM.reduce((a,x)=>a+Math.min(x.lsDias,x.diasConEnt),0);
+  const conLs = DM.filter(x=>x.lsDias>0).length, lsDurN = DM.reduce((a,x)=>a+x.lsDur.length,0), lsOkN = DM.reduce((a,x)=>a+x.lsOk,0);
+  const lsMin = lsDurN ? DM.reduce((a,x)=>a+x.lsDur.reduce((p,q)=>p+q,0),0)/lsDurN : null;
   const geoN = F.reduce((a,x)=>a+x.geoN,0), geoOk = F.reduce((a,x)=>a+x.geoOk,0);
   const fmtH = h=> h==null ? '—' : sgN(h,1)+' h';
   const k = (t,v,s,col)=>`<div class="sg-k"><span>${t}</span><b${col?` style="color:${col}"`:''}>${v}</b><em>${s}</em></div>`;
-  const kpis = `<div class="sg-k6">
+  const kpis = `<div class="sg-k5">
     ${k('ABREN EN APP','<b>'+app+'</b> de '+F.length,`${nav} en navegador${sinAcc?` · ${sinAcc} sin registro de acceso`:''}`)}
-    ${k('ESTADÍA EN TIENDA',durG==null?'sin dato':sgN(durG,0)+' min',durG==null?'falta check-out registrado':`promedio por visita (check-out − check-in) · ${sgN(durs.reduce((a,x)=>a+x.nPares,0))} visitas`)}
-    ${k('LEY SILLA',diasTr?sgP(sgPct(diasLs,diasTr)):'—',`${diasLs} descansos en ${diasTr} días con visita · ${conLs} de ${F.length} personas`,diasTr&&sgPct(diasLs,diasTr)<80?'var(--bad)':'var(--good)')}
-    ${k('DESCANSO ≈15 MIN',lsDurN?sgP(sgPct(lsOkN,lsDurN)):'—',lsDurN?`${lsOkN} de ${lsDurN} entre 12 y 20 min`:'sin descansos completos')}
+    ${k('ESTADÍA EN TIENDA',durG==null?'sin dato':sgN(durG/60,1)+' h',durG==null?'falta check-out registrado':`promedio por visita (check-out − check-in) · ${sgN(durs.reduce((a,x)=>a+x.nPares,0))} visitas`)}
+    ${k('LEY SILLA (DEMOS)',lsMin==null?'sin dato':sgN(lsMin,0)+' min',`promedio que toman · ${conLs} de ${DM.length} demos la registran · ${diasTr?sgP(sgPct(diasLs,diasTr)):'—'} de sus días con visita${lsDurN?` · ${sgP(sgPct(lsOkN,lsDurN))} entre 12 y 20 min`:''}`,diasTr&&sgPct(diasLs,diasTr)<80?'var(--bad)':'var(--good)')}
     ${k('GPS EN TIENDA',geoN?sgP(sgPct(geoOk,geoN)):'—',geoN?`${geoOk} de ${geoN} check-ins dentro de la tienda · permiso activo en ${gpsPerm} de ${F.length}`:`permiso activo en ${gpsPerm} de ${F.length}`)}
     ${k('REGISTRO CONSISTENTE',sgP(sgPct(F.filter(x=>x.progDias>0&&x.diasConEnt/x.progDias>=0.8).length,Math.max(1,F.filter(x=>x.progDias>0).length))),'personas con check-in en ≥80% de sus días programados')}</div>`;
   const rng = a=> a.length ? (sgHHMM(Math.min(...a))+' – '+sgHHMM(Math.max(...a))) : '—';
   const ok = b=> b?'<span style="color:var(--good)">✔</span>':'<span style="color:var(--bad)">✖</span>';
   const rows = F.slice().sort((a,b)=>a.u.nombre.localeCompare(b.u.nombre)).map(x=>{
     const a=x.acc, pct = x.progDias? x.diasConEnt/x.progDias*100 : null, cons = x.progDias>0 && pct>=80;
-    return `<tr><td><b>${sgEsc(nombreCorto(x.u.nombre))}</b></td><td>${rng(x.primeras)}</td><td>${rng(x.ultimas)}</td><td class="n">${fmtH(x.horasDia)}</td><td class="n">${x.diasConEnt}/${x.progDias||'—'}</td><td>${x.progDias?ok(cons):'—'}</td><td>${a?(a.instalada?'App':'Navegador'):'sin dato'}</td><td>${a?ok(a.ubicacion==='granted'):'—'}</td><td class="n">${x.geoN?sgP(sgPct(x.geoOk,x.geoN)):'—'}</td><td class="n">${x.lsDias}/${x.diasConEnt}</td><td class="n">${x.lsDur.length?sgN(x.lsDur.reduce((p,q)=>p+q,0)/x.lsDur.length,0)+' min':'—'}</td></tr>`; }).join('');
+    return `<tr><td><b>${sgEsc(nombreCorto(x.u.nombre))}</b></td><td>${rng(x.primeras)}</td><td>${rng(x.ultimas)}</td><td class="n">${fmtH(x.horasDia)}</td><td class="n">${x.diasConEnt}/${x.progDias||'—'}</td><td>${x.progDias?ok(cons):'—'}</td><td>${a?(a.instalada?'App':'Navegador'):'sin dato'}</td><td>${a?ok(a.ubicacion==='granted'):'—'}</td><td class="n">${x.geoN?sgP(sgPct(x.geoOk,x.geoN)):'—'}</td>${/PROMOTOR/i.test(x.u.rol||'')?'<td class="n" colspan="2" style="color:var(--ink-soft)">no aplica (promotoría)</td>':`<td class="n">${x.lsDias}/${x.diasConEnt}</td><td class="n">${x.lsDur.length?sgN(x.lsDur.reduce((p,q)=>p+q,0)/x.lsDur.length,0)+' min':'—'}</td>`}</tr>`; }).join('');
   const body = `${kpis}<div class="sg-tblwrap" style="margin-top:8px"><table class="sg-t xs nw ctl"><thead><tr><th>Persona</th><th title="Hora del primer check-in de cada día: rango del mes">Entrada (rango)</th><th title="Hora del último check-out de cada día: rango del mes">Salida (rango)</th><th class="n" title="Promedio de horas en tienda por día trabajado (suma de check-in → check-out)">Horas en tienda / día</th><th class="n" title="Días con check-in / días de visita programados en el mes">Días con registro</th><th title="Check-in en ≥80% de sus días programados">Registro en app consistente</th><th title="Última vez que entró: app instalada o navegador">Entra por</th><th title="Permiso de ubicación activo en su teléfono">GPS permitido</th><th class="n" title="Check-ins con la foto dentro del radio de la tienda">Check-in en tienda</th><th class="n" title="Descansos de Ley Silla registrados / días con visita">Ley Silla</th><th class="n">Descanso prom.</th></tr></thead><tbody>${rows||'<tr><td colspan="11" class="sg-empty">Sin integrantes</td></tr>'}</tbody></table></div>
-  <div class="sg-foot">Fuente: check-in/check-out, Ley Silla y accesos que ya registra la app (mes S40–S${M.sem}). “Entra por” y “GPS permitido” son del último acceso de cada persona. La Ley Silla es un descanso al día: se mide contra días con visita registrada. Sin check-out no se puede calcular estadía.</div>`;
+  <div class="sg-foot">Fuente: check-in/check-out, Ley Silla y accesos que ya registra la app (mes S40–S${M.sem}). “Entra por” y “GPS permitido” son del último acceso de cada persona. La Ley Silla es un descanso al día y no aplica a promotoría: se mide contra días con visita registrada de demos/híbridos. Sin check-out no se puede calcular estadía.</div>`;
   return sgSlide('control_'+reg, 'CONTROL DE RUTA · ZONA '+reg.toUpperCase(), 'Uso de la app, estadía en tienda, Ley Silla, GPS y horarios · '+F.length+' integrantes', body);
 }
 function sgPie(items){
