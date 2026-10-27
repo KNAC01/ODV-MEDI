@@ -15953,7 +15953,7 @@ function sgSetFil(c, g, v){
   sgRehacer(b);
 }
 function sgSetCod(c, v){ SG.cod[c] = v; const b = {}; b['cad2_'+c] = ()=>sgSlideCad2(SG.M,c,SG.CAD); sgRehacer(b); }
-function sgCambiarSemana(v){ SG.sem = Number(v); const keep = SG.slides[SG.idx] && SG.slides[SG.idx].id; sgConstruir(); const i = SG.slides.findIndex(s=>s.id===keep); SG.idx = i>=0?i:0; sgPaint(); }
+function sgCambiarSemana(v){ SG.sem = Number(v); if(_sgCapsEstado.cargando) return renderSeguimiento(true); const keep = SG.slides[SG.idx] && SG.slides[SG.idx].id; sgConstruir(); const i = SG.slides.findIndex(s=>s.id===keep); SG.idx = i>=0?i:0; sgPaint(); }
 function sgPresentar(on){
   SG.pres = typeof on==='boolean' ? on : !SG.pres;
   const v = document.getElementById('view-seguimiento'); v.classList.toggle('sg-pres', SG.pres);
@@ -16018,13 +16018,20 @@ async function sgCargarCapturas(forzar){
   try{ const v=document.getElementById('view-seguimiento'); if(v && v.classList.contains('active')) renderSeguimiento(true); }catch(e){}
 }
 function sgPintaEstadoCaps(){
+  const en = document.getElementById('sgCargandoN'); if(en) en.textContent = _sgCapsEstado.n;
   const el = document.getElementById('sgEstadoCaps'); if(!el) return; const E=_sgCapsEstado;
   el.textContent = E.cargando ? ('⏳ Cargando capturas del equipo del mes… '+E.n) : (E.ok ? ('✓ Capturas del mes cargadas ('+E.n+')') : (E.err ? ('⚠ No se pudieron cargar las capturas del mes ('+E.err+'). Ruta y charolas pueden salir incompletas; da Actualizar.') : ''));
   el.style.color = E.ok ? 'var(--ink-soft)' : (E.err ? 'var(--bad)' : 'var(--warn)');
 }
 function renderSeguimiento(sinRecarga){
   if(!currentUser || !SG_USUARIOS.includes(currentUser.usuario)) return;
-  if(!sinRecarga){ try{ sgCargarCapturas(sinRecarga===undefined ? false : false); }catch(e){} }
+  if(!sinRecarga){ try{ sgCargarCapturas(false); }catch(e){} }
+  /* v169: mientras se bajan las capturas del equipo NO se muestran números (saldrían parciales: ruta 8%, caducidad inflada) */
+  if(_sgCapsEstado.cargando){
+    const st0 = document.getElementById('sgStage');
+    if(st0) st0.innerHTML = '<div class="sg-empty big">⏳ Cargando las capturas del equipo para calcular ruta, charolas y caducidad… <b id="sgCargandoN">'+_sgCapsEstado.n+'</b><br><span style="font-size:13px;">Se arma sola al terminar (unos segundos).</span></div>';
+    return;
+  }
   try{
     const semanas = sgSemanasMes();
     const sel = document.getElementById('sgSemana');
