@@ -14614,11 +14614,16 @@ function sgExplMix(A, corto){
   const lect = Math.abs(d)<0.5 ? 'igual que lo que no vende: lo que está en cero es lo que no se mueve' : (d>0 ? `${sgN(d,1)} pts más que lo que no vende: hay códigos que sí vendían y hoy están en cero → <b>surtir</b>` : `${sgN(-d,1)} pts menos que lo que no vende: hay producto en tienda que no se mueve → <b>mover/promover</b>`);
   if(corto) return `<b>Huecos ${sgP(h,1)}</b> (combinaciones objetivo sin inventario hoy): ${lect}. Ver nota al pie.`;
   return `<b>Huecos ${sgP(h,1)}</b>: combinaciones objetivo con inventario en cero hoy. Sin venta: ${sgP(sv,1)}. ${lect.charAt(0).toUpperCase()+lect.slice(1)}.`; }
+const SG_CAD_MAX_PZ = 1500;
+window._sgCadExcl = [];
 function sgCaducidad(){
   let filas = [], todas = [];
   try{
     window._pcFuente = sgCapsTodas();
-    const base = pcFilasBase({}).filter(r=>SG_CAD.includes(r.cadena));
+    let base = pcFilasBase({}).filter(r=>SG_CAD.includes(r.cadena));
+    /* v170: un lote de más de SG_CAD_MAX_PZ piezas en una sola tienda/código es un error de captura (ej. 300,817 pzas de dip alcachofa en Sam's): se excluye y se avisa */
+    window._sgCadExcl = base.filter(r=>r.piezas>SG_CAD_MAX_PZ);
+    base = base.filter(r=>r.piezas<=SG_CAD_MAX_PZ);
     todas = base;
     filas = pcCalcularRiesgo(pcAplicarModo(base.map(r=>({...r})),'ultima'), 0);
   }catch(e){ console.error('sgCaducidad', e); }
@@ -16020,7 +16025,8 @@ async function sgCargarCapturas(forzar){
 function sgPintaEstadoCaps(){
   const en = document.getElementById('sgCargandoN'); if(en) en.textContent = _sgCapsEstado.n;
   const el = document.getElementById('sgEstadoCaps'); if(!el) return; const E=_sgCapsEstado;
-  el.textContent = E.cargando ? ('⏳ Cargando capturas del equipo del mes… '+E.n) : (E.ok ? ('✓ Capturas del mes cargadas ('+E.n+')') : (E.err ? ('⚠ No se pudieron cargar las capturas del mes ('+E.err+'). Ruta y charolas pueden salir incompletas; da Actualizar.') : ''));
+  const ex = window._sgCadExcl||[]; const aviso = ex.length ? (' · ⚠ '+ex.length+' captura(s) de caducidad con piezas fuera de lo normal excluida(s): '+ex.slice(0,3).map(r=>r.producto+' / '+r.tienda+' / '+r.piezas+' pzas ('+(r.persona||r.usuario)+', '+String(r.diaCap||'').slice(0,10)+')').join('; ')+(ex.length>3?'…':'')) : '';
+  el.textContent = (E.cargando ? ('⏳ Cargando capturas del equipo del mes… '+E.n) : (E.ok ? ('✓ Capturas del mes cargadas ('+E.n+')') : (E.err ? ('⚠ No se pudieron cargar las capturas del mes ('+E.err+'). Ruta y charolas pueden salir incompletas; da Actualizar.') : '')) + aviso;
   el.style.color = E.ok ? 'var(--ink-soft)' : (E.err ? 'var(--bad)' : 'var(--warn)');
 }
 function renderSeguimiento(sinRecarga){
@@ -16039,6 +16045,7 @@ function renderSeguimiento(sinRecarga){
     if(sel && !sel.options.length){ sel.innerHTML = semanas.map(w=>`<option value="${w}">Semana ${w} (${sgFmtCorta(sgFechasSemana(w)[0])}–${sgFmtCorta(sgFechasSemana(w)[1])})</option>`).join(''); }
     if(sel) sel.value = String(SG.sem);
     sgConstruir(); if(SG.idx>=SG.slides.length) SG.idx = 0; sgPaint();
+    try{ sgPintaEstadoCaps(); }catch(e){}
   }catch(e){ console.error('renderSeguimiento', e); const st=document.getElementById('sgStage'); if(st) st.innerHTML = '<div class="sg-empty big">No pude armar el seguimiento: '+sgEsc(e.message)+'</div>'; }
 }
 document.addEventListener('keydown', e=>{
