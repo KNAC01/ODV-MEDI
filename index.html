@@ -8191,7 +8191,7 @@ function pcFilasBase(f){
   const prods = {};
   APP_DATA.catalogo_productos.forEach(p=>prods[p.clave]=p);
   const out = [];
-  getCapturas().forEach(c=>{
+  (window._pcFuente || getCapturas()).forEach(c=>{
     if(c.tipo!=='caducidad' || !c.fecha_caducidad || !c.clave) return;
     const st = storeInfo(c.cadena, c.tienda) || {};
     const prod = prods[c.clave] || {};
@@ -14502,10 +14502,7 @@ function sgModelo(sem){
   st.forEach(o=>{ o.falta = Math.max(0, o.cuota-o.real); o.invOk = o.cuota>0 ? (o.invObj >= o.falta) : null; o.doh = o.avg>0 ? o.invObj/o.avg : null; });
   // visitas
   const rutas = getRutas().filter(a=>a.tipo==='visita' && a.tienda);
-  const _mapCaps = new Map(); let _sinId = [];
-  _sgCapsExtra.forEach((v,k)=>_mapCaps.set(k,v));
-  getCapturas().forEach(c=>{ if(c && c.id) _mapCaps.set(c.id,c); else if(c) _sinId.push(c); });
-  const caps = [..._mapCaps.values(), ..._sinId].filter(c=>c.tienda && c.fecha_registro);
+  const caps = sgCapsTodas().filter(c=>c.tienda && c.fecha_registro);
   const capDia = c=> fechaLocal(c.fecha_registro);
   const realSet = new Set(caps.map(c=> c.usuario+'|'+capDia(c)+'|'+c.tienda));
   const visSem = rutas.filter(a=>a.fecha>=f0 && a.fecha<=t0).map(a=>{ const s=storeInfo(a.cadena,a.tienda); return {...a, region: sgRegion(s), cumplida: realSet.has(a.usuario+'|'+a.fecha+'|'+a.tienda)}; });
@@ -14620,10 +14617,12 @@ function sgExplMix(A, corto){
 function sgCaducidad(){
   let filas = [], todas = [];
   try{
+    window._pcFuente = sgCapsTodas();
     const base = pcFilasBase({}).filter(r=>SG_CAD.includes(r.cadena));
     todas = base;
     filas = pcCalcularRiesgo(pcAplicarModo(base.map(r=>({...r})),'ultima'), 0);
   }catch(e){ console.error('sgCaducidad', e); }
+  finally{ window._pcFuente = null; }
   return {filas, todas};
 }
 const SG_BUCKETS = [['Vencido',r=>r.dias<0],['0–7 días',r=>r.dias>=0&&r.dias<=7],['8–15 días',r=>r.dias>=8&&r.dias<=15],['16–30 días',r=>r.dias>=16&&r.dias<=30],['31–60 días',r=>r.dias>=31&&r.dias<=60],['61–90 días',r=>r.dias>=61&&r.dias<=90],['Más de 90 días',r=>r.dias>90]];
@@ -15971,6 +15970,13 @@ function sgImprimir(){
 /* v167: el Seguimiento necesita TODAS las capturas del mes (ruta cumplida, charolas, visitas). La app solo escucha en vivo los últimos 3 días / 80 capturas del equipo,
    así que aquí se bajan (sin fotos) las del mes completo, en páginas, una vez por sesión (o al dar Actualizar). */
 const _sgCapsExtra = new Map();
+/* capturas locales de este equipo + las bajadas de la nube (la local gana, trae fotos). Así todos los usuarios ven lo mismo sin importar qué tenga cacheado su navegador. */
+function sgCapsTodas(){
+  const m = new Map(); const sinId = [];
+  _sgCapsExtra.forEach((v,k)=>m.set(k,v));
+  getCapturas().forEach(c=>{ if(c && c.id) m.set(c.id,c); else if(c) sinId.push(c); });
+  return [...m.values(), ...sinId];
+}
 let _sgCapsEstado = {cargando:false, ok:false, n:0, err:null, desde:''};
 async function sgCargarCapturas(forzar){
   if(_sgCapsEstado.cargando || (_sgCapsEstado.ok && !forzar)) return;
@@ -15990,6 +15996,18 @@ async function sgCargarCapturas(forzar){
       last = snap.docs[snap.docs.length-1];
       _sgCapsEstado.n = total; sgPintaEstadoCaps();
       if(snap.size<200) break;
+    }
+    /* caducidad: los lotes se capturan semanas antes, así que se baja TODO el historial de caducidad (sin fotos) */
+    let lastC = null, totC = 0;
+    for(let pg=0; pg<80; pg++){
+      let q = db.collection('capturas_medi').where('tipo','==','caducidad').limit(300);
+      if(lastC) q = q.startAfter(lastC);
+      const snap = await q.get();
+      if(snap.empty) break;
+      snap.docs.forEach(dc=>{ if(!_sgCapsExtra.has(dc.id)) _sgCapsExtra.set(dc.id, aligerarRegistro({...dc.data(), id: dc.id})); totC++; });
+      lastC = snap.docs[snap.docs.length-1];
+      _sgCapsEstado.n = _sgCapsExtra.size; sgPintaEstadoCaps();
+      if(snap.size<300) break;
     }
     _sgCapsEstado = {cargando:false, ok:true, n:_sgCapsExtra.size, err:null, desde:ini};
   }catch(e){
