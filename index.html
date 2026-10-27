@@ -1459,7 +1459,8 @@ table.sg-t.ctl th{font-size:9px;padding:4px 4px;white-space:normal;line-height:1
         <button onclick="sgIr(SG.idx+1)">Siguiente ›</button>
         <select id="sgJump" onchange="sgIr(+this.value)" style="max-width:340px;"></select>
         <span class="sp"></span>
-        <button onclick="renderSeguimiento()" title="Volver a calcular con lo último capturado">↻ Actualizar</button>
+        <button onclick="sgCargarCapturas(true); renderSeguimiento(true)" title="Volver a bajar las capturas del mes y recalcular">↻ Actualizar</button>
+        <span id="sgEstadoCaps" style="font-size:12px;"></span>
         <button onclick="sgImprimir()">🖨 Imprimir / PDF</button>
         <button class="pri" onclick="sgPresentar(true)">▶ Presentar</button>
       </div>
@@ -3620,7 +3621,7 @@ const ALL_TABS = [
   {key:'catalogo',      label:'Catálogo de productos',            perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'planeacion'},
   {key:'captura',       label:'Captura MEDI',                     perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'ejecucion'},
   {key:'monitoreo',     label:'Monitoreo tiempo real',             perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'ejecucion', disabled:true},
-  {key:'seguimiento', label:'Seguimiento semanal',            perfiles:NO_EMBAJADOR,   soloUsuarios:['CNAC01','GNAC01','KNAC01'], vista:{escritorio:true, celular:false}, bloque:'retro'},
+  {key:'seguimiento', label:'Seguimiento semanal',            perfiles:NO_EMBAJADOR,   soloUsuarios:['CNAC01','GNAC01','KNAC01','MNAC01','PNAC01'], vista:{escritorio:true, celular:false}, bloque:'retro'},
   {key:'cumpventa',     label:'Cumplimiento de venta',             perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'distribucion',  label:'Cumplimiento de distribución',      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
@@ -14405,7 +14406,7 @@ function hubAplicar(){
    Slides 16:9 generados con la data de la app (app_data.json) + capturas en vivo
    (caducidades, visitas, gasto, degustaciones, incidencias). Modo presentación a pantalla completa.
    ===================================================================== */
-const SG_USUARIOS = ['CNAC01','GNAC01','KNAC01']; // Fabiola (Coordinación), Fanny (Gerencia), Ale (KAM)
+const SG_USUARIOS = ['CNAC01','GNAC01','KNAC01','MNAC01','PNAC01']; // Fabiola (Coordinación), Fanny (Gerencia), Ale (KAM), Ingrid (Marketing), Ale Noriega (CPFR)
 const SG_CAD = ['WALMART','LA COMER','SAMS','HEB'];
 const SG_NOM = {'WALMART':'Walmart','LA COMER':'La Comer','SAMS':"Sam's",'HEB':'HEB'};
 const SG_REG = ['Centro','Foráneas'];
@@ -14501,7 +14502,10 @@ function sgModelo(sem){
   st.forEach(o=>{ o.falta = Math.max(0, o.cuota-o.real); o.invOk = o.cuota>0 ? (o.invObj >= o.falta) : null; o.doh = o.avg>0 ? o.invObj/o.avg : null; });
   // visitas
   const rutas = getRutas().filter(a=>a.tipo==='visita' && a.tienda);
-  const caps = getCapturas().filter(c=>c.tienda && c.fecha_registro);
+  const _mapCaps = new Map(); let _sinId = [];
+  _sgCapsExtra.forEach((v,k)=>_mapCaps.set(k,v));
+  getCapturas().forEach(c=>{ if(c && c.id) _mapCaps.set(c.id,c); else if(c) _sinId.push(c); });
+  const caps = [..._mapCaps.values(), ..._sinId].filter(c=>c.tienda && c.fecha_registro);
   const capDia = c=> fechaLocal(c.fecha_registro);
   const realSet = new Set(caps.map(c=> c.usuario+'|'+capDia(c)+'|'+c.tienda));
   const visSem = rutas.filter(a=>a.fecha>=f0 && a.fecha<=t0).map(a=>{ const s=storeInfo(a.cadena,a.tienda); return {...a, region: sgRegion(s), cumplida: realSet.has(a.usuario+'|'+a.fecha+'|'+a.tienda)}; });
@@ -15964,8 +15968,45 @@ function sgImprimir(){
   const fin = ()=>{ document.body.classList.remove('sg-printing'); sgEscala(); window.removeEventListener('afterprint', fin); };
   window.addEventListener('afterprint', fin); setTimeout(()=>window.print(), 150);
 }
-function renderSeguimiento(){
+/* v167: el Seguimiento necesita TODAS las capturas del mes (ruta cumplida, charolas, visitas). La app solo escucha en vivo los últimos 3 días / 80 capturas del equipo,
+   así que aquí se bajan (sin fotos) las del mes completo, en páginas, una vez por sesión (o al dar Actualizar). */
+const _sgCapsExtra = new Map();
+let _sgCapsEstado = {cargando:false, ok:false, n:0, err:null, desde:''};
+async function sgCargarCapturas(forzar){
+  if(_sgCapsEstado.cargando || (_sgCapsEstado.ok && !forzar)) return;
+  if(typeof db==='undefined' || !db){ _sgCapsEstado={cargando:false, ok:false, n:0, err:'sin conexión a la nube', desde:''}; sgPintaEstadoCaps(); return; }
+  _sgCapsEstado.cargando = true; _sgCapsEstado.err = null; sgPintaEstadoCaps();
+  try{
+    const ini = sgFechasSemana(sgSemanasMes()[0])[0];
+    const d0 = new Date(ini+'T00:00:00'); d0.setDate(d0.getDate()-1);
+    const desde = d0.toISOString(); _sgCapsEstado.desde = ini;
+    let last = null, total = 0;
+    for(let pg=0; pg<60; pg++){
+      let q = db.collection('capturas_medi').where('fecha_registro','>=',desde).orderBy('fecha_registro').limit(200);
+      if(last) q = q.startAfter(last);
+      const snap = await q.get();
+      if(snap.empty) break;
+      snap.docs.forEach(dc=>{ const x = aligerarRegistro({...dc.data(), id: dc.id}); _sgCapsExtra.set(dc.id, x); total++; });
+      last = snap.docs[snap.docs.length-1];
+      _sgCapsEstado.n = total; sgPintaEstadoCaps();
+      if(snap.size<200) break;
+    }
+    _sgCapsEstado = {cargando:false, ok:true, n:_sgCapsExtra.size, err:null, desde:ini};
+  }catch(e){
+    console.warn('sgCargarCapturas', e);
+    _sgCapsEstado = {cargando:false, ok:false, n:_sgCapsExtra.size, err:(e&&(e.code||e.message))||String(e), desde:_sgCapsEstado.desde};
+  }
+  sgPintaEstadoCaps();
+  try{ const v=document.getElementById('view-seguimiento'); if(v && v.classList.contains('active')) renderSeguimiento(true); }catch(e){}
+}
+function sgPintaEstadoCaps(){
+  const el = document.getElementById('sgEstadoCaps'); if(!el) return; const E=_sgCapsEstado;
+  el.textContent = E.cargando ? ('⏳ Cargando capturas del equipo del mes… '+E.n) : (E.ok ? ('✓ Capturas del mes cargadas ('+E.n+')') : (E.err ? ('⚠ No se pudieron cargar las capturas del mes ('+E.err+'). Ruta y charolas pueden salir incompletas; da Actualizar.') : ''));
+  el.style.color = E.ok ? 'var(--ink-soft)' : (E.err ? 'var(--bad)' : 'var(--warn)');
+}
+function renderSeguimiento(sinRecarga){
   if(!currentUser || !SG_USUARIOS.includes(currentUser.usuario)) return;
+  if(!sinRecarga){ try{ sgCargarCapturas(sinRecarga===undefined ? false : false); }catch(e){} }
   try{
     const semanas = sgSemanasMes();
     const sel = document.getElementById('sgSemana');
