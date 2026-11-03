@@ -3895,11 +3895,13 @@ function metaPesos(row){ return objMetaTipo==='escalon' ? (row.escalon_pesos ?? 
 /* SKU (ventas_cuota_sku) trae la meta mensual con otros nombres de campo que las filas de cumplimiento_semanal */
 /* Meta / real por SKU (ventas_cuota_sku) según el mes: Agosto = cuota_uni/real_uni, Septiembre = *_sep_*, Octubre = *_oct_* (real de oct aún no cargado) */
 function skuMetaMes(r, mes, tipo){
+  if(mes==='Noviembre') return tipo==='escalon' ? (r.escalon_nov_uni ?? r.cuota_nov_uni ?? 0) : (r.cuota_nov_uni ?? 0);
   if(mes==='Octubre') return tipo==='escalon' ? (r.escalon_oct_uni ?? r.cuota_oct_uni ?? 0) : (r.cuota_oct_uni ?? 0);
   if(mes==='Septiembre') return tipo==='escalon' ? (r.escalon_sep_uni ?? r.cuota_sep_uni ?? 0) : (r.cuota_sep_uni ?? 0);
   return r.cuota_uni ?? 0;
 }
 function skuRealMes(r, mes){
+  if(mes==='Noviembre') return r.real_nov_uni ?? 0;
   if(mes==='Octubre') return r.real_oct_uni ?? 0;
   if(mes==='Septiembre') return r.real_sep_uni ?? 0;
   return r.real_uni ?? 0;
@@ -10354,7 +10356,7 @@ function cvDiagFamiliasYCodigos(storesScope, semanas, semsDato){
   if(meses.includes('Agosto')){
     (APP_DATA.ventas_cuota_sku||[]).filter(r=>keys.has(r.cadena+'|'+r.num_tienda)).forEach(r=>suma(r.familia, r.clave, r.cuota_uni||0, r.real_uni||0));
   }
-  ['Septiembre','Octubre'].forEach(mesX=>{
+  ['Septiembre','Octubre','Noviembre'].forEach(mesX=>{
     if(!meses.includes(mesX)) return;
     const mesSems = semanasCuotaMes(mesX);
     const conDato = new Set(semsDato);
@@ -14435,11 +14437,24 @@ function sgFechasSemana(n){ // semana ISO n de 2026 (lunes–domingo)
 }
 function sgFmtCorta(iso){ const [y,m,d]=iso.split('-'); return d+'/'+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+m-1]; }
 function sgFmtMes(iso){ const [y,m,d]=iso.split('-'); return (+d)+' '+SG_MESES[+m-1]; }   // "28 OCT"
-function sgSemanasMes(){ const m=(APP_DATA.bi_meta||{}); return m.semanas_cuota_octubre_2026 || [40,41,42,43,44]; }
+/* Mes de cuota según la semana: S40–S44 = octubre (28 sep–1 nov), S45–S48 = noviembre (2–29 nov) */
+function sgMesDeSem(sem){ return sem>=45 ? {k:'noviembre', ab:'nov', nom:'noviembre', def:[45,46,47,48]} : {k:'octubre', ab:'oct', nom:'octubre', def:[40,41,42,43,44]}; }
+function sgSemanasMes(sem){
+  const m=(APP_DATA.bi_meta||{});
+  if(sem==null){ let s0=null; try{ s0 = SG.sem; }catch(e){} if(s0==null) s0 = (m.semana_en_curso||{}).semana || 44; sem = s0; }
+  const mm = sgMesDeSem(sem); return m['semanas_cuota_'+mm.k+'_2026'] || mm.def;
+}
+function sgTodasSemanas(){ return [].concat(sgSemanasMes(40), sgSemanasMes(45)); }
+function sgEsperadoPeso(weeks, sem){ // ritmo esperado = % de la cuota que ya debería estar vendido, ponderado por el peso de cada semana
+  let tot=0, ya=0; const set=new Set(weeks);
+  (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{ if(!set.has(r.semana)) return; const c=r.cuota_uni||0; tot+=c; if(r.semana<=sem) ya+=c; });
+  if(tot>0) return ya/tot*100;
+  return weeks.filter(w=>w<=sem).length/weeks.length*100;
+}
 function sgSemanaDefault(){
-  const sc=(APP_DATA.bi_meta||{}).semana_en_curso; const meses=sgSemanasMes();
-  if(sc && meses.includes(sc.semana)) return sc.semana;
-  return meses[0];
+  const sc=(APP_DATA.bi_meta||{}).semana_en_curso;
+  if(sc && sgTodasSemanas().includes(sc.semana)) return sc.semana;
+  return sgSemanasMes(44)[0];
 }
 function sgColor(p, esperado){ // verde si va al ritmo, ámbar cerca, rojo lejos
   if(p==null) return 'var(--ink-soft)'; const e = esperado==null ? 100 : esperado;
@@ -14466,7 +14481,7 @@ const sgPromedio = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
 
 /* ---------- modelo de datos ---------- */
 function sgModelo(sem){
-  const weeks = sgSemanasMes(), done = weeks.filter(w=>w<=sem), nW = weeks.length;
+  const weeks = sgSemanasMes(sem), done = weeks.filter(w=>w<=sem), nW = weeks.length, MM = sgMesDeSem(sem);
   const [f0,t0] = sgFechasSemana(sem);
   const stores = APP_DATA.stores.filter(s=>SG_CAD.includes(s.cadena));
   const st = new Map();
@@ -14497,7 +14512,7 @@ function sgModelo(sem){
   // cuota / bono / real por tienda y código (para filtrar innovación)
   const sku = new Map();
   (APP_DATA.ventas_cuota_sku||[]).forEach(v=>{ if(!SG_CAD.includes(v.cadena)) return; const k=sgKey(v.cadena,v.num_tienda); if(!sku.has(k)) sku.set(k,new Map());
-    sku.get(k).set(v.clave,{cuota:v.cuota_oct_uni||0, esc:v.escalon_oct_uni||0, real:v.real_oct_uni||0, fam:v.familia||''}); });
+    sku.get(k).set(v.clave,{cuota:v['cuota_'+MM.ab+'_uni']||0, esc:v['escalon_'+MM.ab+'_uni']||0, real:v['real_'+MM.ab+'_uni']||0, fam:v.familia||''}); });
   // regla: "inventario suficiente" = piezas actuales >= cuota que le falta al mes
   st.forEach(o=>{ o.falta = Math.max(0, o.cuota-o.real); o.invOk = o.cuota>0 ? (o.invObj >= o.falta) : null; o.doh = o.avg>0 ? o.invObj/o.avg : null; });
   // visitas
@@ -14515,7 +14530,7 @@ function sgModelo(sem){
   // solo se analiza lo que está en el plan del mes: tiendas con cuota (las demás no existen para la junta)
   [...st.keys()].forEach(k=>{ if(!(st.get(k).cuota>0)) st.delete(k); });
   const combosPlan = combos.filter(c=>st.has(sgKey(c.cadena,c.num_tienda)));
-  return {sem, weeks, done, nW, f0, t0, st, stores, combos:combosPlan, cmb, sku, vis:visSem, visMesRutas, realSet, caps, capsSem, tiendasVisSem, tiendaSemVis, hist, esperado: done.length/nW*100, capDia};
+  return {sem, weeks, done, nW, f0, t0, st, stores, combos:combosPlan, cmb, sku, vis:visSem, visMesRutas, realSet, caps, capsSem, tiendasVisSem, tiendaSemVis, hist, esperado: sgEsperadoPeso(weeks, sem), mes:MM, capDia};
 }
 /* agregado a nivel tienda (sin filtros por código) */
 function sgAgg(M, filtro){
@@ -15041,7 +15056,7 @@ function sgSlideResumen(M, CAD){
   <div class="sg-two2"><div><div class="sg-sec">Cubrimiento de cuota por cadena <small>(la línea marca el ritmo esperado ${sgP(M.esperado)})</small></div><div class="sg-cbars">${barras}</div><div class="sg-sec" style="margin-top:12px;">Participación de cada cadena en la cuota total</div>${stack}</div>
   <div><div class="sg-sec">Inversión del equipo <small>(sobre las tiendas atendidas)</small></div>${inv}</div></div>
   <div class="sg-foot" style="font-size:11px;line-height:1.3">${nota} · Sell in = piezas vendidas al costo facturado 2026 (≈${sgN(sgPromedio(M.stores.map(s=>s.ratio_sellin).filter(x=>x>0))*100,0)}% del precio público).</div>`;
-  return sgSlide('resumen','Resumen · Seguimiento de cuentas clave ODV', `Cuota octubre: S${M.weeks[0]}–S${M.weeks[M.weeks.length-1]} repartida pareja · Real al corte de la semana ${M.sem}`, body);
+  return sgSlide('resumen','Resumen · Seguimiento de cuentas clave ODV', `Cuota ${M.mes.nom}: S${M.weeks[0]}–S${M.weeks[M.weeks.length-1]} ${M.mes.k==='noviembre'?'repartida por peso semanal':'repartida pareja'} · Real al corte de la semana ${M.sem}`, body);
 }
 
 function sgSlideEquipo(M){
@@ -15076,7 +15091,7 @@ function sgSlideEquipoDet(M, reg){
   const body = `<div class="sg-tblwrap"><table class="sg-t md nw eq"><thead><tr><th>Integrante</th><th>Rol</th><th class="n"># Tiendas</th><th class="n">Cuota sueldo (pzas)</th><th class="n">Cubr. sueldo</th><th class="n">Cuota bono (pzas)</th><th class="n">Cubr. bono</th><th class="n">Obj. distrib.</th><th class="n">Distrib.</th><th class="n">Ruta (sem)</th><th class="n" title="Charolas degustadas por día con degustación (mes)">Charolas/día</th><th>Estrellas</th></tr></thead><tbody>${rowsH||'<tr><td colspan="12" class="sg-empty">Sin integrantes con tiendas asignadas</td></tr>'}</tbody></table></div>
   <div class="sg-three"><div class="sg-box ok"><b>Al ritmo o arriba (${altos.length})</b><p>${altos.map(sgEsc).join(' · ')||'—'}</p></div><div class="sg-box warn"><b>Entre 80% y 100% del ritmo (${medios.length})</b><p>${medios.map(sgEsc).join(' · ')||'—'}</p></div><div class="sg-box bad"><b>Por debajo del 80% del ritmo (${bajos.length})</b><p>${bajos.map(sgEsc).join(' · ')||'—'}</p></div></div>
   <div class="sg-foot">Zona ${reg}: cuota ${sgN(tot.cuota)} pzas · real ${sgN(tot.real)} (${sgP(tot.pctC,1)}) · ritmo esperado ${sgP(M.esperado)}. Las tiendas compartidas se cuentan en cada integrante que las atiende. Ordenado por cuota. Charolas/día = charolas degustadas en el mes ÷ días con degustación capturada (promotoría no aplica).</div>`;
-  return sgSlide('equipo_det_'+reg,'Desempeño del equipo · '+reg,'Cada integrante contra su cuota de octubre ('+filas.length+' personas)', body);
+  return sgSlide('equipo_det_'+reg,'Desempeño del equipo · '+reg,'Cada integrante contra su cuota de '+M.mes.nom+' ('+filas.length+' personas)', body);
 }
 
 function sgSlideCadena(M, c, CAD){
@@ -15122,7 +15137,7 @@ function sgSkuRows(M, c, reg, inn){
   const keys = new Set([...M.st.values()].filter(o=>o.cadena===c && (!reg||o.region===reg)).map(o=>sgKey(o.cadena,o.num)));
   const por = new Map();
   const g = k=>{ if(!por.has(k)) por.set(k,{clave:k, cuota:0, real:0, obj:0, conv:0, fam:'', desc:'', combos:[]}); return por.get(k); };
-  (APP_DATA.ventas_cuota_sku||[]).forEach(v=>{ if(v.cadena!==c || !keys.has(sgKey(v.cadena,v.num_tienda)) || !pI(v.clave)) return; const o=g(v.clave); o.cuota+=v.cuota_oct_uni||0; o.real+=v.real_oct_uni||0; o.fam=v.familia||o.fam; });
+  (APP_DATA.ventas_cuota_sku||[]).forEach(v=>{ if(v.cadena!==c || !keys.has(sgKey(v.cadena,v.num_tienda)) || !pI(v.clave)) return; const o=g(v.clave); o.cuota+=v['cuota_'+M.mes.ab+'_uni']||0; o.real+=v['real_'+M.mes.ab+'_uni']||0; o.fam=v.familia||o.fam; });
   M.combos.forEach(x=>{ if(x.cadena!==c || !keys.has(sgKey(x.cadena,x.num_tienda)) || !pI(x.clave)) return; const o=g(x.clave); o.fam=o.fam||x.familia; o.desc=o.desc||x.item_desc; o.combos.push(x); if(x.objetivo==1){ o.obj++; if(x.con_venta==1) o.conv++; } });
   const prods={}; APP_DATA.catalogo_productos.forEach(p=>prods[p.clave]=p);
   return [...por.values()].filter(o=>o.cuota>0||o.obj>0).map(o=>({...o, desc:o.desc||(prods[o.clave]||{}).nombre||'', pct:sgPct(o.real,o.cuota), dist:sgPct(o.conv,o.obj), doh:sgDohDe(o.combos, M.sem)})).sort((a,b)=>b.cuota-a.cuota);
@@ -15151,7 +15166,7 @@ function sgSlideSku(M, c){
   <div class="sg-sec" style="margin-top:2px">Cumplimiento de cuota por familia <small>(la línea marca el ritmo esperado ${sgP(esp)})</small></div><div class="sg-cbars sg-cbars2">${barras||'<div class="sg-empty">Sin cuota por familia</div>'}</div>
   <div class="sg-tblwrap"><table class="sg-t sm nw sku2"><thead><tr><th>Clave</th><th>Descripción</th><th class="n">Cuota (sueldo)</th><th class="n">Real</th><th class="n">% cumpl.</th><th class="n" title="Venta del mes vs el mismo periodo del año pasado. Pasa el cursor sobre cada cifra para ver YTD, MTD y última semana">Crec. vs AA (mes)</th><th title="Charolas degustadas en el mes (capturas del equipo); rojo = sin degustar y por debajo del ritmo">Charolas degustadas</th><th class="n">Objetivo distrib.</th><th class="n">Real distrib.</th><th class="n">% distrib.</th><th class="n" title="Días de inventario (DOH) al domingo de la semana">DOH (dom.)</th></tr></thead><tbody>${rowsH||'<tr><td colspan="11" class="sg-empty">Sin datos</td></tr>'}<tr class="tot"><td colspan="2">Total ${sgFilTxt(c)||'cadena'}</td><td class="n">${sgN(T.cuota)}</td><td class="n">${sgN(T.real)}</td><td class="n">${sgP(sgPct(T.real,T.cuota))}</td><td class="n" title="${sgEsc(tipAA({m25:tm25,m26:tm26,vsM:tm25>0?(tm26/tm25-1)*100:null,y25:ty25,y26:ty26,vsY:ty25>0?(ty26/ty25-1)*100:null,w:tw}))}">${yy(tm25>0?(tm26/tm25-1)*100:null)}</td><td class="ch"><b>${tn}</b></td><td class="n">${sgN(T.obj)}</td><td class="n">${sgN(T.conv)}</td><td class="n">${sgP(sgPct(T.conv,T.obj))}</td><td class="n">${dohT==null?'—':sgN(dohT)}</td></tr></tbody></table></div>
   <div class="sg-foot">Real por SKU al último corte de sell out (S${lastS}). DOH = días de inventario al domingo de la semana ${Math.min(M.sem,finInv)}${M.sem>finInv?` (último pipeline, S${finInv})`:''}. Charolas = degustaciones capturadas en el mes; crecimiento = venta del mes vs el mismo periodo del año pasado (YTD, MTD y última semana al pasar el cursor).</div>`;
-  return sgSlide('sku_'+c, 'Cuota '+SG_NOM[c]+' · '+sgN(totC), 'Cuota de octubre por código · cumplimiento, crecimiento vs AA, degustación, distribución e inventario', body, c);
+  return sgSlide('sku_'+c, 'Cuota '+SG_NOM[c]+' · '+sgN(totC), 'Cuota de '+M.mes.nom+' por código · cumplimiento, crecimiento vs AA, degustación, distribución e inventario', body, c);
 }
 
 function sgDegustado(M, c, reg){
@@ -15640,7 +15655,7 @@ function sgSlideControl(M, reg){
     const a=x.acc, pct = x.progDias? x.diasProg/x.progDias*100 : null, cons = x.progDias>0 && pct>=80;
     return `<tr><td><b>${sgEsc(nombreCorto(x.u.nombre))}</b></td><td>${rng(x.primeras)}</td><td>${rng(x.ultimas)}</td><td class="n">${fmtH(x.horasDia)}</td><td class="n" title="${x.diasProg} de ${x.progDias||0} días programados con check-in${x.diasExtra?` · ${x.diasExtra} día(s) con check-in fuera de la ruta programada`:''}">${x.diasProg}/${x.progDias||'—'}${x.diasExtra?` <span class="sg-note">(+${x.diasExtra} fuera de ruta)</span>`:''}</td><td>${x.progDias?ok(cons):'—'}</td><td>${a?(a.instalada?'App':'Navegador'):'sin dato'}</td><td>${a?ok(a.ubicacion==='granted'):'—'}</td><td class="n">${x.geoN?sgP(sgPct(x.geoOk,x.geoN)):'—'}</td>${/PROMOTOR/i.test(x.u.rol||'')?'<td class="n" colspan="2" style="color:var(--ink-soft)">no aplica (promotoría)</td>':`<td class="n">${x.lsDias}/${x.diasConEnt}</td><td class="n">${x.lsDur.length?sgN(x.lsDur.reduce((p,q)=>p+q,0)/x.lsDur.length,0)+' min':'—'}</td>`}</tr>`; }).join('');
   const body = `${kpis}<div class="sg-tblwrap" style="margin-top:8px"><table class="sg-t xs nw ctl"><thead><tr><th>Persona</th><th title="Hora del primer check-in de cada día: rango del mes">Entrada (rango)</th><th title="Hora del último check-out de cada día: rango del mes">Salida (rango)</th><th class="n" title="Promedio de horas en tienda por día trabajado (suma de check-in → check-out)">Horas en tienda / día</th><th class="n" title="Días programados con check-in / días de visita programados en el mes (los check-in en días no programados se muestran aparte)">Días con registro</th><th title="Check-in en ≥80% de sus días programados">Registro en app consistente</th><th title="Última vez que entró: app instalada o navegador">Entra por</th><th title="Permiso de ubicación activo en su teléfono">GPS permitido</th><th class="n" title="Check-ins con la foto dentro del radio de la tienda">Check-in en tienda</th><th class="n" title="Descansos de Ley Silla registrados / días con visita">Ley Silla</th><th class="n">Descanso prom.</th></tr></thead><tbody>${rows||'<tr><td colspan="11" class="sg-empty">Sin integrantes</td></tr>'}</tbody></table></div>
-  <div class="sg-foot">Fuente: check-in/check-out, Ley Silla y accesos que ya registra la app (mes S40–S${M.sem}). “Entra por” y “GPS permitido” son del último acceso de cada persona. La Ley Silla es un descanso al día y no aplica a promotoría: se mide contra días con visita registrada de demos/híbridos. Sin check-out no se puede calcular estadía.</div>`;
+  <div class="sg-foot">Fuente: check-in/check-out, Ley Silla y accesos que ya registra la app (mes S${M.weeks[0]}–S${M.sem}). “Entra por” y “GPS permitido” son del último acceso de cada persona. La Ley Silla es un descanso al día y no aplica a promotoría: se mide contra días con visita registrada de demos/híbridos. Sin check-out no se puede calcular estadía.</div>`;
   return sgSlide('control_'+reg, 'CONTROL DE RUTA · ZONA '+reg.toUpperCase(), 'Uso de la app, estadía en tienda, Ley Silla, GPS y horarios · '+F.length+' integrantes', body);
 }
 function sgPie(items){
@@ -15988,7 +16003,7 @@ async function sgCargarCapturas(forzar){
   if(typeof db==='undefined' || !db){ _sgCapsEstado={cargando:false, ok:false, n:0, err:'sin conexión a la nube', desde:''}; sgPintaEstadoCaps(); return; }
   _sgCapsEstado.cargando = true; _sgCapsEstado.err = null; sgPintaEstadoCaps();
   try{
-    const ini = sgFechasSemana(sgSemanasMes()[0])[0];
+    const ini = sgFechasSemana(40)[0]; // desde el inicio de octubre (28 sep) para cubrir octubre y noviembre
     const d0 = new Date(ini+'T00:00:00'); d0.setDate(d0.getDate()-1);
     const desde = d0.toISOString(); _sgCapsEstado.desde = ini;
     let last = null, total = 0;
@@ -16039,10 +16054,10 @@ function renderSeguimiento(sinRecarga){
     return;
   }
   try{
-    const semanas = sgSemanasMes();
+    const semanas = sgTodasSemanas();
     const sel = document.getElementById('sgSemana');
     if(SG.sem==null) SG.sem = sgSemanaDefault();
-    if(sel && !sel.options.length){ sel.innerHTML = semanas.map(w=>`<option value="${w}">Semana ${w} (${sgFmtCorta(sgFechasSemana(w)[0])}–${sgFmtCorta(sgFechasSemana(w)[1])})</option>`).join(''); }
+    if(sel && !sel.options.length){ sel.innerHTML = semanas.map(w=>`<option value="${w}">${w>=45?'Nov':'Oct'} · Semana ${w} (${sgFmtCorta(sgFechasSemana(w)[0])}–${sgFmtCorta(sgFechasSemana(w)[1])})</option>`).join(''); }
     if(sel) sel.value = String(SG.sem);
     sgConstruir(); if(SG.idx>=SG.slides.length) SG.idx = 0; sgPaint();
     try{ sgPintaEstadoCaps(); }catch(e){}
