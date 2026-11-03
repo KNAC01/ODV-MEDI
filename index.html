@@ -16026,7 +16026,7 @@ function sgPintaEstadoCaps(){
   const en = document.getElementById('sgCargandoN'); if(en) en.textContent = _sgCapsEstado.n;
   const el = document.getElementById('sgEstadoCaps'); if(!el) return; const E=_sgCapsEstado;
   const ex = window._sgCadExcl||[]; const aviso = ex.length ? (' · ⚠ '+ex.length+' captura(s) de caducidad con piezas fuera de lo normal excluida(s): '+ex.slice(0,3).map(r=>r.producto+' / '+r.tienda+' / '+r.piezas+' pzas ('+(r.persona||r.usuario)+', '+String(r.diaCap||'').slice(0,10)+')').join('; ')+(ex.length>3?'…':'')) : '';
-  el.textContent = (E.cargando ? ('⏳ Cargando capturas del equipo del mes… '+E.n) : (E.ok ? ('✓ Capturas del mes cargadas ('+E.n+')') : (E.err ? ('⚠ No se pudieron cargar las capturas del mes ('+E.err+'). Ruta y charolas pueden salir incompletas; da Actualizar.') : '')) + aviso;
+  el.textContent = (E.cargando ? ('⏳ Cargando capturas del equipo del mes… '+E.n) : (E.ok ? ('✓ Capturas del mes cargadas ('+E.n+')') : (E.err ? ('⚠ No se pudieron cargar las capturas del mes ('+E.err+'). Ruta y charolas pueden salir incompletas; da Actualizar.') : ''))) + aviso;
   el.style.color = E.ok ? 'var(--ink-soft)' : (E.err ? 'var(--bad)' : 'var(--warn)');
 }
 function renderSeguimiento(sinRecarga){
