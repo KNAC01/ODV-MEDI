@@ -620,6 +620,7 @@ body.hub-on .modal .field label{font-size:14px}
 .ls-sub{font-size:13px;opacity:.9;margin-top:6px}
 .ls-btn{width:100%;border:none;border-radius:18px;padding:22px 10px;font-family:inherit;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;gap:12px;color:#fff;margin:6px 0}
 .ls-btn span{font-size:34px;line-height:1}
+.sal-ops{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:6px 0}.sal-op{border:2px solid var(--line);background:#fff;border-radius:14px;padding:14px 6px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}.sal-op span{font-size:28px}.sal-op.sel{border-color:#3a3e19;background:#3a3e19;color:#fbf6e4}
 .ls-ini{background:#2e9e45}.ls-fin{background:#c0392b}
 .ls-paso{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
 .ls-paso > i{flex:none;width:34px;height:34px;border-radius:50%;background:#3a3e19;color:#fbf6e4;font-style:normal;font-weight:800;display:flex;align-items:center;justify-content:center}
@@ -1199,6 +1200,7 @@ table.sg-t.ctl th{font-size:9px;padding:4px 4px;white-space:normal;line-height:1
         <button class="mdi-tile mdi-oblig" onclick="openForm('caducidad')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">⏳</div><div class="t">Caducidades</div><div class="d">Producto, fecha de caducidad y piezas en riesgo.</div></button>
         <button class="mdi-tile" id="tilePrioridades" onclick="abrirPrioridadesCaptura()"><span class="mdi-badge b-oblig hidden" id="prioridadesObligBadge">Obligatoria</span><div class="icon">🎯</div><div class="t">Prioridades y tareas<span class="cal-badge-dot hidden" id="prioridadesBadge"></span></div><div class="d">Prioridades del mes (confirma activas, sube foto donde lo pidan) y tareas asignadas a ti — respóndelas aquí mismo.</div></button>
         <button class="mdi-tile" onclick="abrirPipeline()"><span class="cal-badge hidden" id="pipelineAccionablesBadge">0</span><div class="icon">📦</div><div class="t">Pipeline</div><div class="d">Inventarios por tienda — pendiente de conectar tu archivo.</div></button>
+        <button class="mdi-tile hidden" id="tileSalidas" onclick="abrirSalidas()"><div class="icon">🚶</div><div class="t">Salidas</div><div class="d">Comida, sanitario, bodega, checado u otro — con cronómetro de inicio y fin.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="abrirLeySilla()"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">🪑</div><div class="t">Ley Silla</div><div class="d">Registra tus 2 descansos de 15 min al día (obligación y derecho legal).</div></button>
         <button class="mdi-tile" onclick="openGastoTicket()"><div class="icon">🧾</div><div class="t">Gasto (ticket)</div><div class="d">Un solo ticket, varias líneas: producto Delico, insumos, material.</div></button>
         <button class="mdi-tile mdi-oblig" onclick="openForm('precio_delico')"><span class="mdi-badge b-oblig">Obligatoria</span><div class="icon">💲</div><div class="t">Precio Delico</div><div class="d">Precio en piso de nuestro producto.</div></button>
@@ -2374,7 +2376,7 @@ function guardarLocalStorageSeguro(key, valor){
    no cada objeto de adentro) es muchísimo más rápido y es seguro aquí: nadie modifica un campo de una
    captura ya existente sin inmediatamente guardar el resultado con saveCapturas(arr) (ver
    guardarRetroShopper como único caso que lo hace, y sí llama saveCapturas justo después). */
-function getCapturas(){ return [..._capturasCache]; }
+function getCapturas(){ return _capturasCache.filter(c=>!(c && (c.es_prueba || esTiendaPrueba(c.tienda)))); }
 
 /* ---------- Subida de capturas a la nube — confiable, con reintento y avisos ----------
    ANTES: saveCapturas() subía cada captura nueva UNA sola vez, y si fallaba (sin señal, permisos, o porque
@@ -2507,6 +2509,7 @@ function saveCapturas(arr){
   _capturasCache = arr;
   guardarLocalStorageSeguro(STORAGE_KEY, arr);
   arr.forEach(d=>{
+    if(d && esTiendaPrueba(d.tienda)){ d.es_prueba = true; d._en_nube = true; return; }   /* v175: dummies de KNAC01 nunca se suben */
     if(d && d.id && !idsPrevios.has(d.id)){
       try{
         subirCapturaNube(d).then(r=>{ if(!(r && r.ok)) avisarSubidaFallida(r && r.error); try{ pintarEstadoNube(); }catch(e){} })
@@ -3016,7 +3019,7 @@ function iniciarTodaLaSincronizacion(){
   if(currentUser && currentUser.perfil!=='Embajador') iniciarSincronizacionAccesos();
   [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
    _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
-   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync, _pipelineAjustesSync, _formsSync, _respFormsSync].forEach(s=>s.iniciarSync());
+   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync, _pipelineAjustesSync, _formsSync, _respFormsSync, _salidasSync].forEach(s=>s.iniciarSync());
 }
 
 /* ---------- Instalación del equipo: ¿de verdad "Agregaron a inicio" la app, o solo abren la liga en el navegador? ----------
@@ -3709,6 +3712,8 @@ function retomarCheckinInterrumpido(){
   }catch(e){}
 }
 function boot(keepView){
+  try{ inyectarTiendasPrueba(); }catch(e){ console.warn(e); }
+  try{ const ts=document.getElementById("tileSalidas"); if(ts) ts.classList.toggle("hidden", !salidasHabilitado()); }catch(e){}
   if(!window._retomarProgramado){ window._retomarProgramado = true; setTimeout(retomarCheckinInterrumpido, 2500); }
   try{ setTimeout(iniciarVigilanteUbicacion, 1200); }catch(e){}
   document.getElementById('loginScreen').style.display = 'none';
@@ -4332,7 +4337,7 @@ function exportarPrioridades(){
 }
 /* ---------- Cumplimiento de prioridades (para embajadores en campo) ---------- */
 const CUMP_PRIORIDAD_KEY = 'delico_odv_cumplimiento_prioridades_v1';
-function getCumplimientosPrioridad(){ return _cumpPrioridadSync.get(); }
+function getCumplimientosPrioridad(){ return _cumpPrioridadSync.get().filter(r=>!esTiendaPrueba(r.tienda)); }
 function saveCumplimientosPrioridad(arr){ _cumpPrioridadSync.save(arr); }
 function abrirPrioridadesCaptura(){
   const checkinTmp = getCheckin();
@@ -4431,7 +4436,7 @@ const FB_TIPO_LBL = {prioridad:'🎯 Prioridad', tarea:'✅ Tarea'};
 const _formsSync = crearColeccionSincronizada('formularios','delico_odv_formularios_v1',()=>{ if(currentUser){ try{renderFormularios();}catch(e){} try{updatePrioridadesBadge();}catch(e){} } });
 const _respFormsSync = crearColeccionSincronizada('respuestas_formularios','delico_odv_resp_formularios_v1',()=>{ if(currentUser){ try{renderFormularios();}catch(e){} try{updatePrioridadesBadge();}catch(e){} } });
 function getFormularios(){ return _formsSync.get(); }
-function getRespForms(){ return _respFormsSync.get(); }
+function getRespForms(){ return _respFormsSync.get().filter(r=>!esTiendaPrueba(r.tienda)); }
 function fEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fHoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
@@ -4709,6 +4714,112 @@ function exportarRespuestasForm(id){
   exportarCSV('formulario_'+f.titulo.replace(/[^\w]+/g,'_').slice(0,30)+'.csv',
     ['Fecha','Persona','Tienda','Cadena'].concat(qs.map(q=>q.texto)),
     rs.map(r=>[(r.fecha_registro||'').slice(0,16).replace('T',' '),r.persona,r.tienda,r.cadena].concat(qs.map(q=>fbValorTxt(q,r.respuestas?r.respuestas[q.id]:'')))));
+}
+
+/* ---------- TIENDAS DE PRUEBA (v175, solo KNAC01): para hacer dummies sin ensuciar datos del equipo ---------- */
+const PRUEBA_USUARIOS = ['KNAC01'];
+const PRUEBA_TIENDAS = [['PRUEBA COMER','LA COMER'],['PRUEBA WALMART','WALMART'],['PRUEBA SAMS','SAMS'],['PRUEBA HEB','HEB']];
+function esTiendaPrueba(t){ return typeof t==='string' && PRUEBA_TIENDAS.some(p=>p[0]===t); }
+function inyectarTiendasPrueba(){
+  if(!APP_DATA || !currentUser || !PRUEBA_USUARIOS.includes(currentUser.usuario)) return;
+  if(APP_DATA.stores.some(s=>s.prueba)) return;
+  PRUEBA_TIENDAS.forEach(([nombre,cad])=>{
+    const reales=APP_DATA.stores.filter(s=>s.cadena===cad && !s.prueba);
+    const cnt=new Map(); (APP_DATA.combinaciones||[]).forEach(c=>{ if(c.cadena===cad && !c.prueba){ const k=c.num_tienda; cnt.set(k,(cnt.get(k)||0)+1); } });
+    let best=null,n=-1; cnt.forEach((v,k)=>{ if(v>n){ n=v; best=k; } });
+    const mod=reales.find(s=>s.num_tienda===best) || reales[0] || {};
+    APP_DATA.stores.push({cadena:cad, tienda:nombre, num_tienda:'PRUEBA', cuota_uds:0, cuota_pesos:0, skus:0, tipo_servicio:'PRUEBA', sector:'', estado:'', ciudad:'', region:'', cluster:mod.cluster||'', lat:mod.lat, lon:mod.lon, prueba:true});
+    (APP_DATA.combinaciones||[]).filter(c=>c.cadena===cad && c.num_tienda===best && !c.prueba).forEach(c=>{
+      APP_DATA.combinaciones.push(Object.assign({}, c, {tienda:nombre, num_tienda:'PRUEBA', prueba:true}));
+    });
+  });
+}
+
+/* ---------- SALIDAS (v175, solo usuario KNAC01): registra inicio/fin de salidas con cronómetro ---------- */
+const SALIDAS_USUARIOS = ['KNAC01'];
+const SALIDAS_MOTIVOS = [['Comida','🍽️'],['Sanitario','🚻'],['Bodega','📦'],['Checado','🕒'],['Otro','✍️']];
+const _salidasSync = crearColeccionSincronizada('salidas','delico_odv_salidas_v1',()=>{
+  if(currentUser){ try{
+    const bg=document.getElementById('modalBg'), body=document.getElementById('modalBody');
+    if(bg && bg.classList.contains('open') && body && body.innerHTML.includes('data-salidas')) renderSalidasModal();
+  }catch(e){} }
+});
+function salidasHabilitado(){ return !!currentUser && SALIDAS_USUARIOS.includes(currentUser.usuario); }
+function getSalidas(){ return _salidasSync.get(); }
+function salidasDeHoy(){
+  const hoy=todayISO();
+  return getSalidas().filter(r=>r.usuario===currentUser.usuario && fechaLocal(r.inicio)===hoy).sort((a,b)=>a.inicio.localeCompare(b.inicio));
+}
+function salidaAbierta(){ return getSalidas().filter(r=>r.usuario===currentUser.usuario && !r.fin).sort((a,b)=>b.inicio.localeCompare(a.inicio))[0]||null; }
+function salFmt(sec){
+  sec=Math.max(0,Math.floor(sec)); const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  return (h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function abrirSalidas(){
+  if(!salidasHabilitado()){ toast('Este módulo no está habilitado para tu usuario.'); return; }
+  renderSalidasModal();
+}
+let _salMotivo = '';
+function salElegirMotivo(m){
+  _salMotivo = m;
+  document.querySelectorAll('.sal-op').forEach(b=>b.classList.toggle('sel', b.dataset.m===m));
+  const w=document.getElementById('salOtroWrap'); if(w) w.classList.toggle('hidden', m!=='Otro');
+}
+function renderSalidasModal(){
+  const body=document.getElementById('modalBody');
+  const ab=salidaAbierta();
+  const hoy=salidasDeHoy();
+  clearInterval(window._salTimer);
+  let cuerpo='';
+  if(ab){
+    const ic=(SALIDAS_MOTIVOS.find(x=>x[0]===ab.motivo)||[,'🚶'])[1];
+    cuerpo=`<div class="ls-card ls-en"><div class="ls-lbl">${ic} Salida: ${fEsc(ab.motivo)}</div><div class="ls-crono" id="salCrono">00:00</div>
+      <div class="ls-sub">${ab.comentario?fEsc(ab.comentario)+' · ':''}Inició a las ${horaLocal(ab.inicio)}</div></div>
+      <button class="ls-btn ls-fin" onclick="registrarFinSalida()"><span>⏹</span>Registrar fin de la salida</button>`;
+  } else {
+    cuerpo=`<div class="ls-paso"><i>1</i><div><b>¿A dónde vas?</b></div></div>
+      <div class="sal-ops">${SALIDAS_MOTIVOS.map(([m,ic])=>`<button type="button" class="sal-op${_salMotivo===m?' sel':''}" data-m="${m}" onclick="salElegirMotivo('${m}')"><span>${ic}</span>${m}</button>`).join('')}</div>
+      <div id="salOtroWrap" class="${_salMotivo==='Otro'?'':'hidden'}" style="margin:8px 0;"><textarea id="salComentario" rows="2" placeholder="Especifica el motivo (obligatorio)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:10px;font-size:13px;"></textarea></div>
+      <div class="ls-paso"><i>2</i><div><b>Toca para iniciar</b></div></div>
+      <button class="ls-btn ls-ini" onclick="registrarInicioSalida()"><span>▶️</span>Registrar inicio de la salida</button>`;
+  }
+  const hist=hoy.length?`<div class="ls-hist">${hoy.map(r=>`<div><span>${(SALIDAS_MOTIVOS.find(x=>x[0]===r.motivo)||[,'🚶'])[1]} ${fEsc(r.motivo)}${r.comentario?' · '+fEsc(r.comentario):''}</span><b>${horaLocal(r.inicio)}${r.fin?' → '+horaLocal(r.fin)+' ('+salFmt((new Date(r.fin)-new Date(r.inicio))/1000)+')':' · en curso'}</b></div>`).join('')}</div>`:'';
+  const tot=hoy.filter(r=>r.fin).reduce((s,r)=>s+(new Date(r.fin)-new Date(r.inicio))/1000,0);
+  body.innerHTML=`<button class="close-x" onclick="closeModal()">✕</button>
+    <h3 data-salidas="1">🚶 Salidas</h3>
+    <p class="d" style="font-size:13px;">${hoy.length?`Hoy: ${hoy.length} salida(s) · ${salFmt(tot)} en total`:'Registra cada vez que sales: comida, sanitario, bodega, checado u otro.'}</p>
+    ${cuerpo}${hist}
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="exportSalidas()">📊 Exportar</button><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+  if(ab){
+    const t0=new Date(ab.inicio).getTime();
+    const tick=()=>{ const c=document.getElementById('salCrono'); if(!c){ clearInterval(window._salTimer); return; } c.textContent=salFmt((Date.now()-t0)/1000); };
+    tick(); window._salTimer=setInterval(tick,1000);
+  }
+}
+function registrarInicioSalida(){
+  if(salidaAbierta()){ renderSalidasModal(); return; }
+  if(!_salMotivo){ toast('Elige a dónde vas.'); return; }
+  const com=(document.getElementById('salComentario')||{}).value||'';
+  if(_salMotivo==='Otro' && !com.trim()){ toast('En “Otro” especifica el motivo.'); return; }
+  const ci=getCheckin();
+  const rec={id:uid(), usuario:currentUser.usuario, persona:currentUser.nombre, motivo:_salMotivo, comentario:_salMotivo==='Otro'?com.trim():'',
+    tienda:ci?ci.tienda:'', cadena:ci?ci.cadena:'', inicio:new Date().toISOString(), fin:''};
+  const arr=getSalidas(); arr.push(rec); _salidasSync.save(arr);
+  _salMotivo='';
+  toast('Salida iniciada ✓'); renderSalidasModal();
+}
+function registrarFinSalida(){
+  const ab=salidaAbierta(); if(!ab) return;
+  const arr=getSalidas(); const r=arr.find(x=>x.id===ab.id); if(!r) return;
+  r.fin=new Date().toISOString(); _salidasSync.save(arr);
+  toast('Salida terminada ✓ ('+salFmt((new Date(r.fin)-new Date(r.inicio))/1000)+')'); renderSalidasModal();
+}
+function exportSalidas(){
+  const arr=getSalidas().filter(r=>r.usuario===currentUser.usuario);
+  if(!arr.length){ toast('Sin salidas registradas todavía.'); return; }
+  exportarCSV('delico_odv_salidas_'+todayISO()+'.csv',['Fecha','Persona','Motivo','Comentario','Tienda','Inicio','Fin','Minutos'],
+    arr.sort((a,b)=>a.inicio.localeCompare(b.inicio)).map(r=>[fechaLocal(r.inicio),r.persona,r.motivo,r.comentario,r.tienda,horaLocal(r.inicio),r.fin?horaLocal(r.fin):'',r.fin?((new Date(r.fin)-new Date(r.inicio))/60000).toFixed(1):'']));
 }
 
 /* ---------- CHECK-IN ---------- */
@@ -9795,7 +9906,7 @@ function storesScopeParaMi(){
     APP_DATA.stores.filter(s=>extra.includes(s.tienda)).forEach(s=> vistas.set(s.cadena+'|'+s.num_tienda, s));
     return [...vistas.values()];
   }
-  return APP_DATA.stores;
+  return APP_DATA.stores.filter(s=>!s.prueba);
 }
 function distribucionDeTienda(cadena, numTienda){
   return (APP_DATA.distribucion_por_tienda||[]).find(d => d.cadena===cadena && d.num_tienda===numTienda);
@@ -13066,7 +13177,7 @@ function renderRutaResumenSemana(startISO, endISO){
   // Tiendas por asignar según región (universo de tiendas de servicio vs. las que ya tienen al menos una visita programada esta vista)
   const tiendasAsignadas = new Set(arr.filter(a=>a.tipo==='visita' && a.tienda).map(a=>a.cadena+'|'+a.tienda));
   const porRegion = {};
-  APP_DATA.stores.forEach(s=>{
+  APP_DATA.stores.filter(s=>!s.prueba).forEach(s=>{
     const region = s.region || 'Sin región';
     (porRegion[region] = porRegion[region] || {total:0, asignadas:0});
     porRegion[region].total++;
@@ -14821,7 +14932,7 @@ const sgPromedio = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
 function sgModelo(sem){
   const weeks = sgSemanasMes(sem), done = weeks.filter(w=>w<=sem), nW = weeks.length, MM = sgMesDeSem(sem);
   const [f0,t0] = sgFechasSemana(sem);
-  const stores = APP_DATA.stores.filter(s=>SG_CAD.includes(s.cadena));
+  const stores = APP_DATA.stores.filter(s=>SG_CAD.includes(s.cadena) && !s.prueba);
   const st = new Map();
   stores.forEach(s=> st.set(sgKey(s.cadena,s.num_tienda), {s, cadena:s.cadena, num:Number(s.num_tienda), tienda:s.tienda, region:sgRegion(s), cluster:s.cluster||'',
     cuota:0, esc:0, cuotaP:0, escP:0, real:0, realP:0, realSem:0, realSemP:0, porSem:{}, obj:0, conv:0, vc:[], m25:0, m26:0, y25:0, y26:0, inv:0, invT:0, invObj:0, avg:0, mixInv:0, invNeg:0, exc:0}));
@@ -14834,7 +14945,7 @@ function sgModelo(sem){
   // semanas históricas (para comparar semanas con visita vs sin visita)
   const hist = new Map();
   (APP_DATA.cumplimiento_semanal||[]).forEach(r=>{ if(r.semana<=sem && r.semana>=weeks[0]-8){ const k=sgKey(r.cadena,r.num_tienda); if(!hist.has(k)) hist.set(k,{}); hist.get(k)[r.semana]=r.real_uni||0; } });
-  const combos = (APP_DATA.combinaciones||[]).filter(c=>SG_CAD.includes(c.cadena));
+  const combos = (APP_DATA.combinaciones||[]).filter(c=>SG_CAD.includes(c.cadena) && !c.prueba);
   const cmb = new Map();
   combos.forEach(c=>{
     const key = sgKey(c.cadena,c.num_tienda); if(!cmb.has(key)) cmb.set(key,[]); cmb.get(key).push(c);
