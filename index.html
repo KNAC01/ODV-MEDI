@@ -1068,6 +1068,38 @@ table.sg-t.ctl th{font-size:9px;padding:4px 4px;white-space:normal;line-height:1
         </div>
       </div>
 
+      <div id="formsSeccion">
+        <h2 class="section-title" style="margin-top:22px;">Formularios para el equipo</h2>
+        <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 12px;">Arma un formulario tipo Google Forms (preguntas, opciones, fechas, fotos…), elige si le llega al equipo como <b>prioridad</b> o como <b>tarea</b>, y publícalo. El equipo lo ve y lo responde tal cual lo armaste.</p>
+        <div id="formsBuilderWrap" class="card hidden" style="margin-bottom:14px;">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div id="fbTipoForm" style="display:flex; gap:8px;"></div>
+            <input type="text" id="fbTitulo" placeholder="Título del formulario" style="padding:9px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-weight:700;">
+            <textarea id="fbDesc" rows="2" placeholder="Descripción / instrucciones (opcional)" style="padding:9px; border:1px solid var(--line); border-radius:8px; font-size:13px;"></textarea>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft);">
+              <label>Visible desde <input type="date" id="fbDesde" style="padding:5px; border:1px solid var(--line); border-radius:8px;"></label>
+              <label>hasta <input type="date" id="fbHasta" style="padding:5px; border:1px solid var(--line); border-radius:8px;"></label>
+            </div>
+            <div>
+              <label style="font-size:11.5px; color:var(--ink-soft); display:block; margin-bottom:5px;">Cadena(s) a las que aplica (se muestra cuando hacen check-in en esa cadena):</label>
+              <div id="fbCadenas" style="display:flex; gap:7px; flex-wrap:wrap;"></div>
+            </div>
+            <div>
+              <label style="font-size:11.5px; color:var(--ink-soft); display:block; margin-bottom:5px;">Persona(s) específica(s) (vacío = todo el equipo):</label>
+              <select id="fbUsuarios" multiple size="4" style="width:100%; padding:6px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;"></select>
+            </div>
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark);">Preguntas</div>
+            <div id="fbPreguntas" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <select id="fbNuevoTipo" style="padding:7px; border:1px solid var(--line); border-radius:8px; font-size:12.5px;"></select>
+              <button type="button" class="btn btn-ghost" onclick="fbAgregarPregunta()">+ Pregunta</button>
+              <button type="button" class="btn btn-brand" style="margin-left:auto;" onclick="fbPublicar()">Publicar al equipo</button>
+            </div>
+          </div>
+        </div>
+        <div id="formsLista" style="margin-bottom:6px;"></div>
+      </div>
+
       <div id="tareaAsignarSeccion">
       <h2 class="section-title" style="margin-top:22px;">Tareas personales</h2>
       <p style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 14px;">Asigna tareas puntuales a una persona (no es obligatorio, pero le aparece en sus Prioridades). Se quedan abiertas — pueden llevar varias retroalimentaciones — hasta que se marquen como finalizadas con una conclusión.</p>
@@ -2984,7 +3016,7 @@ function iniciarTodaLaSincronizacion(){
   if(currentUser && currentUser.perfil!=='Embajador') iniciarSincronizacionAccesos();
   [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
    _cartasSync, _materialesSync, _uniformesSync, _inventarioSync, _auditoriasSync, _notificacionesSync,
-   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync, _pipelineAjustesSync].forEach(s=>s.iniciarSync());
+   _eval360Sync, _noticiasSync, _rutasSync, _escuchaSync, _pipelineAjustesSync, _formsSync, _respFormsSync].forEach(s=>s.iniciarSync());
 }
 
 /* ---------- Instalación del equipo: ¿de verdad "Agregaron a inicio" la app, o solo abren la liga en el navegador? ----------
@@ -3318,6 +3350,7 @@ const BORRADO_USUARIO_MODULOS = [
   {key:'extra_tiendas', label:'Tiendas extra de ruta', get:()=>_extraTiendasSync.get(), sync:()=>_extraTiendasSync},
   {key:'cumplimiento_prioridades', label:'Cumplimiento de prioridades', get:()=>_cumpPrioridadSync.get(), sync:()=>_cumpPrioridadSync},
   {key:'tareas', label:'Tareas', get:()=>_tareasSync.get(), sync:()=>_tareasSync},
+  {key:'respuestas_formularios', label:'Respuestas de formularios', get:()=>_respFormsSync.get(), sync:()=>_respFormsSync},
   {key:'cartas', label:'Solicitudes de cartas', get:()=>_cartasSync.get(), sync:()=>_cartasSync},
   {key:'materiales', label:'Solicitudes de materiales', get:()=>_materialesSync.get(), sync:()=>_materialesSync},
   {key:'uniformes', label:'Solicitudes de uniformes', get:()=>_uniformesSync.get(), sync:()=>_uniformesSync},
@@ -4248,6 +4281,7 @@ function renderPrioridades(){
   const editWrap = document.getElementById('prioridadEditWrap');
   if(!box) return;
   renderPrioridadCadenaPick();
+  try{ renderFormularios(); }catch(e){ console.warn('forms',e); }
   const canEdit = ['Admin','Coordinador'].includes(currentUser.perfil);
   if(editWrap) editWrap.classList.toggle('hidden', !canEdit);
   if(canEdit) poblarPrioridadUsuariosPick();
@@ -4336,7 +4370,18 @@ function abrirPrioridadesCaptura(){
         </div>`).join('')}
       </div>`;
   }
-  if(!accionables.length){
+  let formsMios = [];
+  try{ formsMios = formsVisiblesParaMi(checkin && checkin.cadena).filter(f=>f.autor_usuario!==currentUser.usuario); }catch(e){}
+  if(formsMios.length){
+    const fila = f => `<div style="border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12.5px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <div style="flex:1; min-width:140px;"><b>${fEsc(f.titulo)}</b><br><span style="color:var(--ink-soft);">de ${fEsc(nombreCorto(f.autor))}${formFechaTxt(f)?' · '+formFechaTxt(f):''}</span></div>
+      ${formRespondidoPorMi(f)?'<span style="font-size:11px; color:#2a7;">✓ Respondido</span>':`<button type="button" class="btn btn-brand" style="padding:4px 10px; font-size:11.5px;" onclick="abrirFormulario('${f.id}','lista')">Responder</button>`}</div>`;
+    ['prioridad','tarea'].forEach(t=>{
+      const g = formsMios.filter(f=>f.tipo===t);
+      if(g.length) html += `<div class="lbl" style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--brand-dark); margin:6px 0 4px;">${t==='tarea'?'✅ Tareas (formularios)':'🎯 Prioridades (formularios)'}</div><div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">${g.map(fila).join('')}</div>`;
+    });
+  }
+  if(!accionables.length && !formsMios.length){
     html += `<p style="font-size:13px; color:var(--ink-soft);">Por ahora ninguna prioridad pide foto o confirmación — solo son informativas.</p>`;
   } else {
     html += `<div class="form-grid">` + accionables.map(p=>`
@@ -4374,6 +4419,298 @@ function submitPrioridadesCaptura(){
   toast(`Se guardó el seguimiento de ${guardadas} prioridad(es) ✓`);
 }
 
+/* ---------- FORMULARIOS PARA EL EQUIPO (v174) — estilo Google Forms: Admin/Coordinador crean, el equipo responde ---------- */
+const FB_TIPOS = [
+  {v:'texto',l:'✏️ Respuesta corta'},{v:'parrafo',l:'📝 Párrafo'},{v:'opcion',l:'🔘 Opción única'},
+  {v:'casillas',l:'☑️ Casillas (varias)'},{v:'lista',l:'🔽 Lista desplegable'},{v:'fecha',l:'📅 Fecha'},
+  {v:'hora',l:'🕐 Hora'},{v:'numero',l:'🔢 Número'},{v:'escala',l:'⭐ Escala 1–5'},
+  {v:'sino',l:'👍 Sí / No'},{v:'foto',l:'📷 Foto'},{v:'info',l:'ℹ️ Solo texto informativo'}
+];
+const FB_CON_OPCIONES = ['opcion','casillas','lista'];
+const FB_TIPO_LBL = {prioridad:'🎯 Prioridad', tarea:'✅ Tarea'};
+const _formsSync = crearColeccionSincronizada('formularios','delico_odv_formularios_v1',()=>{ if(currentUser){ try{renderFormularios();}catch(e){} try{updatePrioridadesBadge();}catch(e){} } });
+const _respFormsSync = crearColeccionSincronizada('respuestas_formularios','delico_odv_resp_formularios_v1',()=>{ if(currentUser){ try{renderFormularios();}catch(e){} try{updatePrioridadesBadge();}catch(e){} } });
+function getFormularios(){ return _formsSync.get(); }
+function getRespForms(){ return _respFormsSync.get(); }
+function fEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fHoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+let _fb = {preguntas:[], tipo:'prioridad', cadenas:new Set()};
+function fbNuevaPregunta(tipo){
+  return {id:'q'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), tipo:tipo, texto:'', requerida:false, opciones:FB_CON_OPCIONES.includes(tipo)?['Opción 1','Opción 2']:[]};
+}
+function fbAgregarPregunta(){
+  const sel = document.getElementById('fbNuevoTipo');
+  _fb.preguntas.push(fbNuevaPregunta(sel?sel.value:'texto'));
+  renderFbPreguntas();
+}
+function fbSet(i,campo,val){
+  const q=_fb.preguntas[i]; if(!q) return;
+  if(campo==='opciones') q.opciones = String(val).split('\n').map(s=>s.trim()).filter(Boolean);
+  else q[campo]=val;
+}
+function fbCambiarTipo(i,tipo){
+  const q=_fb.preguntas[i]; if(!q) return;
+  q.tipo=tipo;
+  if(FB_CON_OPCIONES.includes(tipo) && (!q.opciones||q.opciones.length<2)) q.opciones=['Opción 1','Opción 2'];
+  renderFbPreguntas();
+}
+function fbMover(i,d){
+  const j=i+d; if(j<0||j>=_fb.preguntas.length) return;
+  const t=_fb.preguntas[i]; _fb.preguntas[i]=_fb.preguntas[j]; _fb.preguntas[j]=t;
+  renderFbPreguntas();
+}
+function fbQuitar(i){ _fb.preguntas.splice(i,1); renderFbPreguntas(); }
+function fbDuplicarPregunta(i){
+  const q=_fb.preguntas[i]; if(!q) return;
+  const c=JSON.parse(JSON.stringify(q)); c.id=fbNuevaPregunta('texto').id;
+  _fb.preguntas.splice(i+1,0,c); renderFbPreguntas();
+}
+function renderFbPreguntas(){
+  const box=document.getElementById('fbPreguntas'); if(!box) return;
+  if(!_fb.preguntas.length){ box.innerHTML='<p style="font-size:12px;color:var(--ink-soft);margin:0;">Aún no hay preguntas — elige un tipo abajo y toca “+ Pregunta”.</p>'; return; }
+  box.innerHTML=_fb.preguntas.map((q,i)=>{
+    const opts = FB_TIPOS.map(t=>`<option value="${t.v}"${t.v===q.tipo?' selected':''}>${t.l}</option>`).join('');
+    const conOp = FB_CON_OPCIONES.includes(q.tipo);
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:800;font-size:12px;color:var(--brand-dark);">${i+1}.</span>
+        <select onchange="fbCambiarTipo(${i},this.value)" style="padding:5px;border:1px solid var(--line);border-radius:8px;font-size:12px;">${opts}</select>
+        ${q.tipo==='info'?'':`<label style="font-size:11.5px;display:flex;align-items:center;gap:4px;"><input type="checkbox" ${q.requerida?'checked':''} onchange="fbSet(${i},'requerida',this.checked)"> Obligatoria</label>`}
+        <span style="margin-left:auto;display:flex;gap:4px;">
+          <button type="button" class="btn btn-ghost" style="padding:2px 7px;font-size:11px;" onclick="fbMover(${i},-1)">↑</button>
+          <button type="button" class="btn btn-ghost" style="padding:2px 7px;font-size:11px;" onclick="fbMover(${i},1)">↓</button>
+          <button type="button" class="btn btn-ghost" style="padding:2px 7px;font-size:11px;" onclick="fbDuplicarPregunta(${i})">⧉</button>
+          <button type="button" class="btn btn-ghost" style="padding:2px 7px;font-size:11px;" onclick="fbQuitar(${i})">🗑</button>
+        </span>
+      </div>
+      <input type="text" value="${fEsc(q.texto)}" placeholder="${q.tipo==='info'?'Texto que verá el equipo':'Pregunta'}" oninput="fbSet(${i},'texto',this.value)" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;">
+      ${conOp?`<textarea rows="3" placeholder="Una opción por renglón" oninput="fbSet(${i},'opciones',this.value)" style="width:100%;margin-top:6px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;">${fEsc(q.opciones.join('\n'))}</textarea>`:''}
+    </div>`;
+  }).join('');
+}
+function fbToggleCadena(c){
+  if(c===null) _fb.cadenas.clear(); else if(_fb.cadenas.has(c)) _fb.cadenas.delete(c); else _fb.cadenas.add(c);
+  renderFbCadenas();
+}
+function renderFbCadenas(){
+  const el=document.getElementById('fbCadenas'); if(!el) return;
+  const cadenas=[...new Set(APP_DATA.stores.map(s=>s.cadena))].sort();
+  const chip=(l,a,oc)=>`<button type="button" onclick="${oc}" style="padding:4px 12px;border-radius:999px;font-size:11.5px;font-weight:700;cursor:pointer;border:1.5px solid ${a?'var(--brand-dark)':'var(--line)'};background:${a?'var(--brand-dark)':'#fff'};color:${a?'#fff':'var(--ink)'};">${fEsc(l)}</button>`;
+  el.innerHTML=chip('Todas',_fb.cadenas.size===0,'fbToggleCadena(null)')+cadenas.map(c=>chip(c,_fb.cadenas.has(c),`fbToggleCadena('${c.replace(/'/g,"\\'")}')`)).join('');
+}
+function fbSetTipoForm(t){ _fb.tipo=t; renderFbTipo(); }
+function renderFbTipo(){
+  const el=document.getElementById('fbTipoForm'); if(!el) return;
+  el.innerHTML=['prioridad','tarea'].map(t=>{
+    const a=_fb.tipo===t;
+    return `<button type="button" onclick="fbSetTipoForm('${t}')" style="flex:1;padding:9px;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;border:2px solid ${a?'var(--brand-dark)':'var(--line)'};background:${a?'var(--brand-dark)':'#fff'};color:${a?'#fff':'var(--ink)'};">${FB_TIPO_LBL[t]}</button>`;
+  }).join('');
+}
+function renderFormBuilder(){
+  renderFbTipo(); renderFbCadenas(); renderFbPreguntas();
+  const sel=document.getElementById('fbNuevoTipo');
+  if(sel && !sel.options.length) FB_TIPOS.forEach(t=>{ const o=document.createElement('option'); o.value=t.v; o.textContent=t.l; sel.appendChild(o); });
+  const us=document.getElementById('fbUsuarios');
+  if(us && !us.options.length) APP_DATA.equipo.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{ const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; us.appendChild(o); });
+}
+function fbLimpiar(){
+  _fb={preguntas:[], tipo:'prioridad', cadenas:new Set()};
+  ['fbTitulo','fbDesc','fbDesde','fbHasta'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  const us=document.getElementById('fbUsuarios'); if(us) [...us.options].forEach(o=>o.selected=false);
+  renderFormBuilder();
+}
+function fbPublicar(){
+  const titulo=(document.getElementById('fbTitulo').value||'').trim();
+  if(!titulo){ toast('Ponle un título al formulario.'); return; }
+  const qs=_fb.preguntas;
+  if(!qs.length){ toast('Agrega al menos una pregunta.'); return; }
+  for(let i=0;i<qs.length;i++){
+    const q=qs[i];
+    if(!(q.texto||'').trim()){ toast('La pregunta '+(i+1)+' no tiene texto.'); return; }
+    if(FB_CON_OPCIONES.includes(q.tipo) && q.opciones.length<2){ toast('La pregunta '+(i+1)+' necesita al menos 2 opciones.'); return; }
+  }
+  if(qs.filter(q=>q.tipo==='foto').length>3){ toast('Máximo 3 preguntas de foto por formulario.'); return; }
+  const desde=document.getElementById('fbDesde').value||'', hasta=document.getElementById('fbHasta').value||'';
+  if(desde && hasta && hasta<desde){ toast('La fecha “hasta” es anterior a “desde”.'); return; }
+  const us=document.getElementById('fbUsuarios');
+  const usuarios=us?[...us.selectedOptions].map(o=>o.value):[];
+  const f={id:uid(), titulo:titulo, descripcion:(document.getElementById('fbDesc').value||'').trim(), tipo:_fb.tipo, desde:desde, hasta:hasta,
+    cadenas:[..._fb.cadenas], usuarios:usuarios, preguntas:JSON.parse(JSON.stringify(qs)), autor:currentUser.nombre, autor_usuario:currentUser.usuario,
+    fecha:new Date().toISOString(), activo:true};
+  const arr=getFormularios(); arr.push(f); _formsSync.save(arr);
+  fbLimpiar(); renderFormularios();
+  toast('Publicado al equipo como '+(f.tipo==='tarea'?'tarea':'prioridad')+' ✓');
+}
+function fbDuplicarForm(id){
+  const f=getFormularios().find(x=>x.id===id); if(!f) return;
+  _fb={preguntas:JSON.parse(JSON.stringify(f.preguntas)), tipo:f.tipo, cadenas:new Set(f.cadenas||[])};
+  document.getElementById('fbTitulo').value=f.titulo+' (copia)'; document.getElementById('fbDesc').value=f.descripcion||'';
+  document.getElementById('fbDesde').value=''; document.getElementById('fbHasta').value='';
+  renderFormBuilder();
+  const w=document.getElementById('formsBuilderWrap'); if(w) w.scrollIntoView({behavior:'smooth'});
+}
+function fbToggleActivo(id){ const arr=getFormularios(); const f=arr.find(x=>x.id===id); if(!f) return; f.activo=!f.activo; _formsSync.save(arr); renderFormularios(); }
+function fbQuitarForm(id){
+  if(!confirm('¿Eliminar este formulario? Las respuestas ya enviadas se conservan.')) return;
+  _formsSync.save(getFormularios().filter(x=>x.id!==id)); renderFormularios();
+}
+function formVigente(f){
+  if(!f || f.activo===false) return false;
+  const h=fHoy();
+  if(f.desde && h<f.desde) return false;
+  if(f.hasta && h>f.hasta) return false;
+  return true;
+}
+function formsVisiblesParaMi(cadenaCheckin){
+  if(!currentUser) return [];
+  return getFormularios().filter(f=>{
+    if(!formVigente(f)) return false;
+    if(f.usuarios && f.usuarios.length && !f.usuarios.includes(currentUser.usuario)) return false;
+    if(cadenaCheckin && f.cadenas && f.cadenas.length && !f.cadenas.includes(cadenaCheckin)) return false;
+    return true;
+  });
+}
+function formRespondidoPorMi(f){
+  const hoy=fHoy();
+  return getRespForms().some(r=>r.form_id===f.id && r.usuario===currentUser.usuario && (f.tipo==='tarea' || (r.fecha_registro||'').slice(0,10)===hoy));
+}
+function formsPendientesParaMi(){
+  if(!currentUser) return [];
+  const ch=(typeof getCheckin==='function' && getCheckin())?getCheckin().cadena:null;
+  return formsVisiblesParaMi(ch).filter(f=>f.autor_usuario!==currentUser.usuario && !formRespondidoPorMi(f));
+}
+function formFechaTxt(f){
+  if(f.desde && f.hasta) return 'Del '+f.desde+' al '+f.hasta;
+  if(f.hasta) return 'Hasta el '+f.hasta;
+  if(f.desde) return 'Desde el '+f.desde;
+  return '';
+}
+function renderFormularios(){
+  const sec=document.getElementById('formsSeccion'); if(!sec || !currentUser) return;
+  const canEdit=['Admin','Coordinador'].includes(currentUser.perfil);
+  const bw=document.getElementById('formsBuilderWrap');
+  if(bw){ bw.classList.toggle('hidden', !canEdit); if(canEdit) renderFormBuilder(); }
+  const lista=document.getElementById('formsLista'); if(!lista) return;
+  const resp=getRespForms();
+  const btn=(txt,oc,brand)=>`<button type="button" class="btn ${brand?'btn-brand':'btn-ghost'}" style="padding:4px 9px;font-size:11.5px;" onclick="${oc}">${txt}</button>`;
+  let html='';
+  const pend=formsPendientesParaMi();
+  if(pend.length){
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--brand-dark);margin:4px 0;">Pendientes para ti</div>`+pend.map(f=>`
+      <div style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px;background:#fff;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;"><b>${FB_TIPO_LBL[f.tipo]||''} ${fEsc(f.titulo)}</b><br><span style="font-size:11.5px;color:var(--ink-soft);">de ${fEsc(nombreCorto(f.autor))} ${formFechaTxt(f)?'· '+formFechaTxt(f):''}</span></div>
+        ${btn('Responder',`abrirFormulario('${f.id}')`,true)}</div>`).join('');
+  } else if(!canEdit){
+    html+=`<p style="font-size:12.5px;color:var(--ink-soft);">No tienes formularios pendientes 🎉</p>`;
+  }
+  if(canEdit){
+    const todos=getFormularios().slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--brand-dark);margin:10px 0 4px;">Formularios publicados (${todos.length})</div>`;
+    if(!todos.length) html+=`<p style="font-size:12.5px;color:var(--ink-soft);">Aún no has publicado ninguno.</p>`;
+    html+=todos.map(f=>{
+      const n=resp.filter(r=>r.form_id===f.id).length;
+      const dest=(f.usuarios&&f.usuarios.length)?f.usuarios.length+' persona(s)':'todo el equipo';
+      return `<div style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px;background:#fff;${f.activo===false?'opacity:.6;':''}">
+        <b>${FB_TIPO_LBL[f.tipo]||''} ${fEsc(f.titulo)}</b> ${f.activo===false?'<span style="font-size:11px;color:#b00;">(pausado)</span>':(formVigente(f)?'':'<span style="font-size:11px;color:#b00;">(fuera de fechas)</span>')}<br>
+        <span style="font-size:11.5px;color:var(--ink-soft);">${f.preguntas.length} preguntas · para ${dest}${(f.cadenas&&f.cadenas.length)?' · '+fEsc(f.cadenas.join(', ')):''} · ${n} respuesta(s) ${formFechaTxt(f)?'· '+formFechaTxt(f):''}</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+          ${btn('Vista previa',`abrirFormulario('${f.id}','preview')`)}${btn('Respuestas',`verRespuestasForm('${f.id}')`,true)}${btn('Duplicar',`fbDuplicarForm('${f.id}')`)}
+          ${btn(f.activo===false?'Reactivar':'Pausar',`fbToggleActivo('${f.id}')`)}${btn('🗑',`fbQuitarForm('${f.id}')`)}
+        </div></div>`;
+    }).join('');
+  }
+  lista.innerHTML=html;
+}
+function abrirFormulario(id, volverA){
+  const f=getFormularios().find(x=>x.id===id); if(!f) return;
+  const preview=(volverA==='preview');
+  const campo=q=>{
+    const n='ff_'+q.id, req=q.requerida?' <span style="color:#c00;">*</span>':'';
+    const lbl=`<label style="font-weight:700;font-size:13px;display:block;margin-bottom:5px;">${fEsc(q.texto)}${req}</label>`;
+    const base='width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;';
+    let c='';
+    switch(q.tipo){
+      case 'info': return `<div class="field full" style="background:#f6f7ef;border-radius:10px;padding:10px;font-size:13px;">${fEsc(q.texto)}</div>`;
+      case 'texto': c=`<input type="text" id="${n}" style="${base}">`; break;
+      case 'parrafo': c=`<textarea id="${n}" rows="3" style="${base}"></textarea>`; break;
+      case 'numero': c=`<input type="number" inputmode="decimal" id="${n}" style="${base}">`; break;
+      case 'fecha': c=`<input type="date" id="${n}" style="${base}">`; break;
+      case 'hora': c=`<input type="time" id="${n}" style="${base}">`; break;
+      case 'lista': c=`<select id="${n}" style="${base}"><option value="">Elige...</option>${q.opciones.map(o=>`<option>${fEsc(o)}</option>`).join('')}</select>`; break;
+      case 'sino': c=`<select id="${n}" style="${base}"><option value="">Elige...</option><option>Sí</option><option>No</option></select>`; break;
+      case 'opcion': c=q.opciones.map(o=>`<label style="display:flex;gap:7px;align-items:center;font-size:13px;margin:3px 0;"><input type="radio" name="${n}" value="${fEsc(o)}"> ${fEsc(o)}</label>`).join(''); break;
+      case 'casillas': c=q.opciones.map(o=>`<label style="display:flex;gap:7px;align-items:center;font-size:13px;margin:3px 0;"><input type="checkbox" name="${n}" value="${fEsc(o)}"> ${fEsc(o)}</label>`).join(''); break;
+      case 'escala': c=`<div style="display:flex;gap:8px;">`+[1,2,3,4,5].map(k=>`<label style="display:flex;flex-direction:column;align-items:center;font-size:12px;"><input type="radio" name="${n}" value="${k}">${k}</label>`).join('')+`</div>`; break;
+      case 'foto': c=`<input type="file" id="ffoto_${q.id}" accept="image/*" onchange="previewFile('ffoto_${q.id}')"><img id="prev_ffoto_${q.id}" class="thumb hidden">`; break;
+    }
+    return `<div class="field full" style="border:1px solid var(--line);border-radius:10px;padding:10px;">${lbl}${c}</div>`;
+  };
+  const body=document.getElementById('modalBody');
+  body.innerHTML=`<button class="close-x" onclick="closeModal()">✕</button>
+    <h3>${FB_TIPO_LBL[f.tipo]||''} ${fEsc(f.titulo)}</h3>
+    ${f.descripcion?`<p class="d">${fEsc(f.descripcion)}</p>`:''}
+    ${preview?'<p style="font-size:11.5px;color:#a60;margin:0 0 8px;">Vista previa — así lo verá el equipo (no se guarda).</p>':''}
+    <div class="form-grid">${f.preguntas.map(campo).join('')}</div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="${volverA==='lista'?'abrirPrioridadesCaptura()':'closeModal()'}">${volverA==='lista'?'← Volver':'Cerrar'}</button>
+    ${preview?'':`<button class="btn btn-brand" onclick="enviarFormulario('${f.id}','${volverA||''}')">Enviar</button>`}</div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function fbLeer(q){
+  const n='ff_'+q.id;
+  if(q.tipo==='opcion'||q.tipo==='escala'){ const r=document.querySelector(`input[name="${n}"]:checked`); return r?r.value:''; }
+  if(q.tipo==='casillas'){ return [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x=>x.value); }
+  if(q.tipo==='foto'){ const i=document.getElementById('ffoto_'+q.id); return i?(i.dataset.b64||''):''; }
+  const e=document.getElementById(n); return e?String(e.value).trim():'';
+}
+function enviarFormulario(id, volverA){
+  const f=getFormularios().find(x=>x.id===id); if(!f) return;
+  if(window._fotosPendientes && window._fotosPendientes.size){ toast('Espera un momento — tu foto todavía se está guardando.'); return; }
+  const respuestas={};
+  for(const q of f.preguntas){
+    if(q.tipo==='info') continue;
+    const v=fbLeer(q);
+    const vacio=Array.isArray(v)?!v.length:!v;
+    if(q.requerida && vacio){ toast('Falta contestar: '+q.texto); return; }
+    respuestas[q.id]=v;
+  }
+  const checkin=getCheckin();
+  const reg={id:uid(), form_id:f.id, form_titulo:f.titulo, tipo:f.tipo, usuario:currentUser.usuario, persona:currentUser.nombre,
+    tienda:checkin?checkin.tienda:'', cadena:checkin?checkin.cadena:'', respuestas:respuestas, fecha_registro:new Date().toISOString()};
+  if(JSON.stringify(reg).length>900000){ toast('Las fotos pesan demasiado — quita alguna o toma una más ligera.'); return; }
+  const arr=getRespForms(); arr.push(reg); _respFormsSync.save(arr);
+  toast('Enviado ✓ Gracias');
+  if(volverA==='lista') abrirPrioridadesCaptura(); else closeModal();
+  try{renderFormularios();}catch(e){} try{updatePrioridadesBadge();}catch(e){}
+}
+function fbValorTxt(q,v){
+  if(q.tipo==='foto') return v?'[foto]':'';
+  return Array.isArray(v)?v.join(' | '):(v==null?'':String(v));
+}
+function verRespuestasForm(id){
+  const f=getFormularios().find(x=>x.id===id); if(!f) return;
+  const rs=getRespForms().filter(r=>r.form_id===id).sort((a,b)=>(b.fecha_registro||'').localeCompare(a.fecha_registro||''));
+  const body=document.getElementById('modalBody');
+  body.innerHTML=`<button class="close-x" onclick="closeModal()">✕</button><h3>Respuestas — ${fEsc(f.titulo)}</h3>
+    <p class="d">${rs.length} respuesta(s)</p>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto;">`+
+    (rs.length?rs.map(r=>`<div style="border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px;">
+      <b>${fEsc(nombreCorto(r.persona))}</b> <span style="color:var(--ink-soft);">· ${fEsc((r.fecha_registro||'').slice(0,16).replace('T',' '))}${r.tienda?' · '+fEsc(r.tienda):''}</span>
+      ${f.preguntas.filter(q=>q.tipo!=='info').map(q=>{ const v=r.respuestas?r.respuestas[q.id]:'';
+        return `<div style="margin-top:4px;"><span style="color:var(--ink-soft);">${fEsc(q.texto)}:</span> ${q.tipo==='foto'?(v?`<br><img src="${v}" style="max-width:100%;max-height:200px;border-radius:8px;">`:'—'):(fEsc(fbValorTxt(q,v))||'—')}</div>`; }).join('')}
+    </div>`).join(''):'<p style="font-size:13px;color:var(--ink-soft);">Todavía nadie responde.</p>')+
+    `</div><div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button><button class="btn btn-brand" onclick="exportarRespuestasForm('${id}')">Descargar CSV</button></div>`;
+  document.getElementById('modalBg').classList.add('open');
+}
+function exportarRespuestasForm(id){
+  const f=getFormularios().find(x=>x.id===id); if(!f) return;
+  const qs=f.preguntas.filter(q=>q.tipo!=='info');
+  const rs=getRespForms().filter(r=>r.form_id===id);
+  exportarCSV('formulario_'+f.titulo.replace(/[^\w]+/g,'_').slice(0,30)+'.csv',
+    ['Fecha','Persona','Tienda','Cadena'].concat(qs.map(q=>q.texto)),
+    rs.map(r=>[(r.fecha_registro||'').slice(0,16).replace('T',' '),r.persona,r.tienda,r.cadena].concat(qs.map(q=>fbValorTxt(q,r.respuestas?r.respuestas[q.id]:'')))));
+}
+
 /* ---------- CHECK-IN ---------- */
 const CHECKIN_KEY = 'delico_odv_checkin';
 function getCheckin(){
@@ -4408,7 +4745,8 @@ function updatePrioridadesBadge(){
     accionables = accionables.filter(p => !p.usuarios || !p.usuarios.length || p.usuarios.includes(currentUser.usuario));
   }
   const misTareas = getTareas().filter(t=>t.asignado_a===currentUser.usuario && t.estado==='abierta');
-  const count = accionables.length + misTareas.length;
+  let nForms = 0; try{ nForms = formsPendientesParaMi().length; }catch(e){}
+  const count = accionables.length + misTareas.length + nForms;
   badge.classList.toggle('hidden', count===0);
   tile.classList.toggle('mdi-tile-alert', count>0);
   /* Obligatoria solo cuando aplica: hay prioridades/tareas pendientes que exigen acción */
