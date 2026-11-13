@@ -528,6 +528,10 @@ body.hub-on.hub-mod #hubModBar{display:flex}
 
 /* ===== v122: pantallas de siempre dentro de una tarjeta crema (se leen bien sobre cualquier color) ===== */
 :root{--navh:64px}
+#relojFijo{position:fixed;z-index:131;display:none;pointer-events:none;right:12px;bottom:8px;font-size:12px;font-weight:700;color:#3b3a1f;background:rgba(251,247,225,.96);border:1px solid #d9d2a8;border-radius:999px;padding:3px 12px;box-shadow:0 1px 4px rgba(0,0,0,.15);white-space:nowrap}
+#relojFijo.mal{background:#c62828;color:#fff;border-color:#8e1b1b}
+body.hub-on #relojFijo{right:auto;left:50%;transform:translateX(-50%);bottom:72px;max-width:96vw;overflow:hidden;text-overflow:ellipsis}
+body.hub-on main{padding-bottom:120px !important}
 body.hub-on.hub-mod main > .view.active:not(.hubv){background:var(--h-cream);color:var(--ink);margin:70px 8px 0;border-radius:18px;padding:14px 12px 22px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
 body.hub-on main > .view:not(.hubv){padding:14px 12px 22px}
 /* nada se mueve de lado */
@@ -2505,6 +2509,7 @@ function saveCapturas(arr){
   // Guardado local PRIMERO, siempre — así una captura nunca se pierde aunque la nube (Firestore)
   // esté fallando o tronando en ese momento (ver nota junto a subirAColeccion más arriba).
   const idsPrevios = new Set(_capturasCache.map(d=>d.id));
+  arr.forEach(d=>{ if(d && d.id && !idsPrevios.has(d.id) && d.reloj_desfase_ms===undefined && _relojDesfaseMs!==null) d.reloj_desfase_ms = _relojDesfaseMs; });   /* v176 */
   arr = deduplicarCapturas(arr);
   _capturasCache = arr;
   guardarLocalStorageSeguro(STORAGE_KEY, arr);
@@ -3009,6 +3014,108 @@ const _rutasSync = crearColeccionSincronizada('rutas', 'delico_odv_rutas_v1', ()
   ()=> (currentUser && currentUser.perfil==='Embajador' && db) ? db.collection('rutas').where('usuario','==',currentUser.usuario) : null);
 const _escuchaSync = crearColeccionSincronizada('delico_escucha', 'delico_odv_escucha_v1', ()=>{ if(currentUser) renderEscucha(); });
 const _pipelineAjustesSync = crearColeccionSincronizada('pipeline_ajustes', 'delico_odv_pipeline_ajustes_v1', ()=>{ if(currentUser){ try{ renderPipelineTabla(); }catch(e){} } });
+
+/* ---------- v176: RELOJ FIJO + verificación de la hora del celular ----------
+   Siempre visible (arriba del menú Inicio/Planear/Ejecutar/Comunicar en celular; esquina en escritorio) para que
+   cualquier captura de pantalla muestre día y hora. Se compara la hora del celular contra la hora del servidor
+   (Firestore); si difiere más de 3 min se pone en rojo y cada captura nueva guarda ese desfase (reloj_desfase_ms). */
+let _relojDesfaseMs = (function(){ try{ const v = parseInt(localStorage.getItem('delico_reloj_desfase')||'',10); return isNaN(v) ? null : v; }catch(e){ return null; } })();
+const _fmtRelojFecha = new Intl.DateTimeFormat('es-MX',{timeZone:'America/Mexico_City',weekday:'short',day:'numeric',month:'short',year:'numeric'});
+const _fmtRelojHora = new Intl.DateTimeFormat('es-MX',{timeZone:'America/Mexico_City',hour:'2-digit',minute:'2-digit',hour12:false});
+function pintarRelojFijo(){
+  const el = document.getElementById('relojFijo'); if(!el) return;
+  const ahora = new Date();
+  let txt = '📅 ' + _fmtRelojFecha.format(ahora).replace(/\./g,'') + ' · 🕒 ' + _fmtRelojHora.format(ahora);
+  const mal = _relojDesfaseMs !== null && Math.abs(_relojDesfaseMs) > 180000;
+  if(mal){
+    const real = new Date(Date.now() - _relojDesfaseMs);
+    txt = '⚠️ Reloj del celular mal · hora real: ' + _fmtRelojFecha.format(real).replace(/\./g,'') + ' ' + _fmtRelojHora.format(real);
+  }
+  el.textContent = txt; el.classList.toggle('mal', mal);
+  const b = document.getElementById('hubBar');
+  if(b && document.body.classList.contains('hub-on') && b.offsetHeight) el.style.bottom = (b.offsetHeight + 4) + 'px'; else el.style.bottom = '';
+}
+async function medirRelojServidor(){
+  if(!db || !currentUser || typeof firebase==='undefined' || !firebase.firestore) return;
+  try{
+    const ref = db.collection('reloj_dispositivos').doc(String(currentUser.usuario));
+    const t0 = Date.now();
+    await ref.set({usuario:currentUser.usuario, nombre:currentUser.nombre, t: firebase.firestore.FieldValue.serverTimestamp(), dispositivo_iso: new Date(t0).toISOString()}, {merge:true});
+    const s = await ref.get({source:'server'}); const t1 = Date.now();
+    const d = s.data(); const srv = d && d.t && d.t.toMillis ? d.t.toMillis() : null;
+    if(srv === null) return;
+    _relojDesfaseMs = Math.round((t0 + t1)/2 - srv);   // + = el celular va adelantado
+    try{ localStorage.setItem('delico_reloj_desfase', String(_relojDesfaseMs)); }catch(e){}
+    ref.set({desfase_ms:_relojDesfaseMs, revisado_iso:new Date().toISOString()}, {merge:true}).catch(()=>{});
+    pintarRelojFijo();
+  }catch(e){ /* sin señal: se queda con el último desfase conocido */ }
+}
+function iniciarRelojFijo(){
+  if(!document.getElementById('relojFijo')){ const d = document.createElement('div'); d.id = 'relojFijo'; document.body.appendChild(d); }
+  document.getElementById('relojFijo').style.display = 'block';
+  pintarRelojFijo();
+  if(!window._relojTimer){
+    window._relojTimer = setInterval(pintarRelojFijo, 15000);
+    setInterval(()=>{ try{ medirRelojServidor(); }catch(e){} }, 600000);
+    window.addEventListener('online', ()=>{ try{ medirRelojServidor(); }catch(e){} });
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ pintarRelojFijo(); try{ medirRelojServidor(); }catch(e){} } });
+  }
+  setTimeout(()=>{ try{ medirRelojServidor(); }catch(e){} }, 3000);
+}
+
+/* ---------- v176: CUMPLIMIENTO DE RUTA con capturas de la nube ----------
+   BUG: este reporte solo leía las capturas guardadas en ESTE aparato, y en Supervisor/Coordinador/Admin el aparato solo escucha
+   las últimas 3 días y máx. 80 capturas de TODO el equipo. Resultado: cualquier visita más vieja salía "Sin captura registrada"
+   aunque la persona sí capturó. Ahora se consulta la nube por el rango de fechas del filtro (sin fotos) y se mezcla. */
+const _cumpNube = {map:new Map(), ini:null, fin:null, cargando:false, err:null, n:0};
+function cumpCapturasTodas(){
+  const m = new Map(); const sinId = [];
+  try{ _sgCapsExtra.forEach((v,k)=>m.set(k,v)); }catch(e){}
+  _cumpNube.map.forEach((v,k)=>m.set(k,v));
+  getCapturas().forEach(c=>{ if(c && c.id) m.set(c.id,c); else if(c) sinId.push(c); });
+  return [...m.values(), ...sinId].filter(c=> c && !(c.es_prueba || esTiendaPrueba(c.tienda)));
+}
+function cumpPintaEstado(){
+  let el = document.getElementById('cumpNubeEstado');
+  if(!el){
+    const cb = document.querySelector('#view-cumplimiento .controls-bar'); if(!cb) return;
+    el = document.createElement('div'); el.id = 'cumpNubeEstado'; el.style.cssText = 'font-size:12.5px; margin:0 0 10px; padding:8px 12px; border-radius:10px;';
+    cb.parentNode.insertBefore(el, cb);
+  }
+  if(currentUser && currentUser.perfil === 'Embajador'){ el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  if(_cumpNube.cargando){ el.style.background = '#fff3d6'; el.style.color = '#8a5a00'; el.innerHTML = '☁️ Trayendo las capturas del equipo desde la nube… ('+_cumpNube.n+') — el % se corrige solo al terminar.'; }
+  else if(_cumpNube.err){ el.style.background = '#fde3e0'; el.style.color = '#a02820'; el.innerHTML = '⚠️ No se pudieron traer las capturas de la nube ('+String(_cumpNube.err).slice(0,80)+'). El % puede salir más bajo de lo real. <button class="btn btn-ghost" style="padding:2px 8px; font-size:11px;" onclick="cumpAsegurarNube(document.getElementById(\'cumpDesde\').value, document.getElementById(\'cumpHasta\').value, true)">Reintentar</button>'; }
+  else if(_cumpNube.ini){ el.style.background = '#e9f3dd'; el.style.color = '#3d6b1f'; el.innerHTML = '✓ Incluye las capturas de la nube de todo el equipo ('+_cumpNube.n+' del '+_cumpNube.ini.slice(0,10)+' al '+_cumpNube.fin.slice(0,10)+').'; }
+  else el.style.display = 'none';
+}
+async function cumpAsegurarNube(desde, hasta, forzar){
+  if(!db || !currentUser || currentUser.perfil === 'Embajador'){ cumpPintaEstado(); return; }
+  const d0 = new Date((desde || todayISO().slice(0,8)+'01')+'T00:00:00Z'); d0.setUTCDate(d0.getUTCDate()-1);
+  const d1 = new Date((hasta || todayISO())+'T00:00:00Z'); d1.setUTCDate(d1.getUTCDate()+2);
+  let ini = d0.toISOString(), fin = d1.toISOString();
+  if(_cumpNube.err && !forzar){ cumpPintaEstado(); return; }
+  if(!forzar && _cumpNube.ini && ini >= _cumpNube.ini && fin <= _cumpNube.fin){ cumpPintaEstado(); return; }
+  if(_cumpNube.cargando) return;
+  if(_cumpNube.ini){ if(_cumpNube.ini < ini) ini = _cumpNube.ini; if(_cumpNube.fin > fin) fin = _cumpNube.fin; }
+  _cumpNube.cargando = true; _cumpNube.err = null; cumpPintaEstado();
+  try{
+    let last = null, total = 0;
+    for(let pg=0; pg<80; pg++){
+      let q = db.collection('capturas_medi').where('fecha_registro','>=',ini).where('fecha_registro','<=',fin).orderBy('fecha_registro').limit(150);
+      if(last) q = q.startAfter(last);
+      const snap = await q.get();
+      if(snap.empty) break;
+      snap.docs.forEach(dc=>{ const x = dc.data(); _cumpNube.map.set(dc.id, {id:dc.id, usuario:x.usuario, nombre:x.nombre, tienda:x.tienda, cadena:x.cadena, fecha_registro:x.fecha_registro, tipo:x.tipo, tipo_incidencia:x.tipo_incidencia, descripcion:x.descripcion, reloj_desfase_ms:x.reloj_desfase_ms}); total++; });
+      last = snap.docs[snap.docs.length-1]; _cumpNube.n = total; cumpPintaEstado();
+      if(snap.size < 150) break;
+    }
+    _cumpNube.ini = ini; _cumpNube.fin = fin; _cumpNube.n = _cumpNube.map.size;
+  }catch(e){ console.warn('cumpAsegurarNube', e); _cumpNube.err = (e && (e.code || e.message)) || String(e); }
+  _cumpNube.cargando = false; cumpPintaEstado();
+  try{ const vc = document.getElementById('view-calendario'); if(vc && vc.classList.contains('active')) renderCalendario(); }catch(e){}
+  try{ const v = document.getElementById('view-cumplimiento'); if(v && v.classList.contains('active')) renderCumplimiento(); }catch(e){}
+}
 
 let _syncIniciado = false;
 function iniciarTodaLaSincronizacion(){
@@ -3718,6 +3825,7 @@ function boot(keepView){
   try{ setTimeout(iniciarVigilanteUbicacion, 1200); }catch(e){}
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  try{ iniciarRelojFijo(); }catch(e){ console.warn(e); }
   document.getElementById('whoName').textContent = currentUser.nombre;
   const badge = document.getElementById('whoPerfil');
   badge.textContent = currentUser.perfil + ' · ' + currentUser.rol;
@@ -7628,14 +7736,18 @@ function renderCumplimiento(){
   else if(fTienda) plan = plan.filter(a=> a.tienda===fTienda);
   if(q) plan = plan.filter(a=> a.nombre.toLowerCase().includes(q) || (a.tienda||'').toLowerCase().includes(q));
 
-  const capturas = getCapturas();
-  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
+  cumpAsegurarNube(desde, hasta);   /* v176: trae de la nube las capturas del rango */
+  const capturas = cumpCapturasTodas();
+  const _nT = x=>String(x||'').trim().replace(/\s+/g,' ').toUpperCase();
+  const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+_nT(c.tienda)));
+  const tiendasPorDia = {};
+  capturas.filter(c=>c.tienda && c.fecha_registro).forEach(c=>{ const k=c.usuario+'|'+fechaLocal(c.fecha_registro); (tiendasPorDia[k]=tiendasPorDia[k]||new Set()).add(c.tienda); });
 
   let cumplidas = 0;
   const porPersona = {}, porCadena = {}, porCluster = {};
   const noCumplidas = [];
   plan.forEach(a=>{
-    const key = a.usuario+'|'+a.fecha+'|'+a.tienda;
+    const key = a.usuario+'|'+a.fecha+'|'+_nT(a.tienda);
     const cumplida = realSet.has(key);
     if(cumplida) cumplidas++; else noCumplidas.push(a);
     (porPersona[a.usuario] = porPersona[a.usuario] || {nombre:a.nombre, rol:'', planeadas:0, cumplidas:0});
@@ -7721,7 +7833,7 @@ function renderCumplimiento(){
     const kCampo = a.usuario+'|'+a.fecha+'|'+a.tienda;
     let motivo = (otrosTiposPorPersonaFecha[kDia] && TIPO_DIA_MAP[otrosTiposPorPersonaFecha[kDia]])
       || incidenciasCampoPorPersonaFechaTienda[kCampo]
-      || 'Sin captura registrada — posible falta de visita o registro pendiente';
+      || (tiendasPorDia[kDia] ? 'Capturó ese día en otra tienda: '+[...tiendasPorDia[kDia]].join(', ')+' — revisar si cambió de tienda o el nombre no coincide' : 'Sin captura registrada — posible falta de visita o registro pendiente');
     return {...a, motivo};
   });
   document.getElementById('cumpIncidenciasCount').textContent = incump.length;
@@ -7737,6 +7849,17 @@ function renderCumplimiento(){
   };
   window.render_cumpIncumplimientoBody();
 
+  try{  /* v176: capturas con el reloj del celular desfasado */
+    let rb = document.getElementById('cumpRelojBox');
+    if(!rb){ const ref = document.getElementById('cumpReconocimientos'); if(ref){ rb = document.createElement('div'); rb.id = 'cumpRelojBox'; rb.style.cssText = 'margin:0 0 16px;'; ref.parentNode.insertBefore(rb, ref); } }
+    if(rb){
+      const ok = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+      const sosp = capturas.filter(c=> c && c.reloj_desfase_ms!==undefined && c.reloj_desfase_ms!==null && Math.abs(c.reloj_desfase_ms)>300000 && c.fecha_registro && fechaLocal(c.fecha_registro)>=desde && fechaLocal(c.fecha_registro)<=hasta && ok.has(c.usuario)).sort((a,b)=> String(b.fecha_registro).localeCompare(String(a.fecha_registro)));
+      rb.innerHTML = sosp.length
+        ? `<div style="background:#fde3e0; border:1px solid #e6aaa4; border-radius:10px; padding:10px 14px;"><div style="font-weight:700; font-size:13px; color:#a02820; margin-bottom:6px;">⏱️ ${sosp.length} captura(s) con la hora del celular desfasada más de 5 min respecto al servidor</div><div style="max-height:220px; overflow:auto;"><table style="width:100%; font-size:12px;"><tr><th align="left">Persona</th><th align="left">Fecha/hora que marcó el celular</th><th align="left">Tienda</th><th align="right">Desfase (min)</th></tr>${sosp.slice(0,200).map(c=>`<tr><td>${nombreCorto(c.nombre||c.usuario)}</td><td>${fechaLocal(c.fecha_registro)} ${new Date(c.fecha_registro).toLocaleTimeString('es-MX',{timeZone:'America/Mexico_City',hour:'2-digit',minute:'2-digit'})}</td><td>${c.tienda||''}</td><td align="right">${Math.round(c.reloj_desfase_ms/60000)}</td></tr>`).join('')}</table></div><div style="font-size:11px; color:#7a4a45; margin-top:4px;">+ = el celular iba adelantado. Aplica a capturas hechas desde la v176.</div></div>`
+        : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">⏱️ Sin capturas con reloj desfasado en este periodo (se registra desde la v176).</p>`;
+    }
+  }catch(e){ console.warn(e); }
   const reconocer = filasPersona.filter(p=>p.pct===100 && p.planeadas>=1);
   document.getElementById('cumpReconocimientos').innerHTML = reconocer.length
     ? `<div style="background:var(--good-soft); border:1px solid #c6d9a3; border-radius:10px; padding:10px 14px;">
@@ -7856,7 +7979,8 @@ function renderCalendario(){
   if(fCadena) plan = plan.filter(a=>a.cadena===fCadena);
   if(fSupervisor) plan = plan.filter(a=> mismaPersona(supervisorDePersona(a.nombre), fSupervisor));
   if(fCluster) plan = plan.filter(a=>{ const s = storeInfo(a.cadena, a.tienda); return s && s.cluster===fCluster; });
-  const capturas = getCapturas();
+  try{ cumpAsegurarNube(isoDate(start), isoDate(end)); }catch(e){}   /* v176 */
+  const capturas = cumpCapturasTodas();
   const realSet = new Set(capturas.filter(c=>c.tienda && c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda));
   // Días especiales (descanso, vacaciones, incapacidad...) también se muestran, para que no parezca que "no hay ruta"
   const especiales = (fCadena||fCluster||fSupervisor) ? [] : getRutas().filter(a=>a.tipo && a.tipo!=='visita' && visibleUsuarios.has(a.usuario));
