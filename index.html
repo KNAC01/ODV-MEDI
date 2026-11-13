@@ -532,6 +532,8 @@ body.hub-on.hub-mod #hubModBar{display:flex}
 #relojFijo.mal{background:#c62828;color:#fff;border-color:#8e1b1b}
 body.hub-on #relojFijo{right:auto;left:50%;transform:translateX(-50%);bottom:72px;max-width:96vw;overflow:hidden;text-overflow:ellipsis}
 body.hub-on main{padding-bottom:120px !important}
+body.puede-vista .vista-toggle{display:flex !important}
+body.puede-vista .topbar .who{flex-wrap:wrap;justify-content:flex-end}
 body.hub-on.hub-mod main > .view.active:not(.hubv){background:var(--h-cream);color:var(--ink);margin:70px 8px 0;border-radius:18px;padding:14px 12px 22px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
 body.hub-on main > .view:not(.hubv){padding:14px 12px 22px}
 /* nada se mueve de lado */
@@ -2213,7 +2215,10 @@ function fechaHoraLocal(iso){ if(!iso) return '—'; return fechaLocal(iso) + ' 
 function fechaSoloDia(valor){ if(!valor) return ''; return String(valor).includes('T') ? fechaLocal(valor) : String(valor).slice(0,10); }
 function uid(){ return 'c' + Date.now() + Math.random().toString(16).slice(2,8); }
 /* Nuestros nombres vienen "APELLIDO1 APELLIDO2 NOMBRE(S)" — para mostrar queremos "Nombre Apellido1" */
+function _ncNorm(t){ return String(t||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').toUpperCase(); }
+function cmpSector(a,b){ const g=x=>(x && x.sector===undefined && x.u) ? x.u : x; const A=g(a)||{}, B=g(b)||{}; return String(A.sector||'~').localeCompare(String(B.sector||'~'),'es',{numeric:true}) || String(A.nombre||'').localeCompare(String(B.nombre||'')); }   /* v177: siempre por # de sector */
 function nombreCorto(nombreCompleto){
+  try{ if(window._NC_MAP){ const v = _NC_MAP.get(_ncNorm(nombreCompleto)); if(v) return v; } }catch(e){}
   if(/^GARCIA GARCIA MARIA DE JESUS$/i.test((nombreCompleto||'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,''))) return 'MARÍA GARCIA';
   const partes = (nombreCompleto||'').trim().split(/\s+/);
   if(partes.length<2) return nombreCompleto||'';
@@ -3046,7 +3051,7 @@ async function medirRelojServidor(){
     if(srv === null) return;
     _relojDesfaseMs = Math.round((t0 + t1)/2 - srv);   // + = el celular va adelantado
     try{ localStorage.setItem('delico_reloj_desfase', String(_relojDesfaseMs)); }catch(e){}
-    ref.set({desfase_ms:_relojDesfaseMs, revisado_iso:new Date().toISOString()}, {merge:true}).catch(()=>{});
+    medirSaludDispositivo().then(sd=>{ ref.set({desfase_ms:_relojDesfaseMs, revisado_iso:new Date().toISOString(), ...sd}, {merge:true}).catch(()=>{}); try{ pintarAvisoSalud(sd); }catch(e){} }).catch(()=>{ ref.set({desfase_ms:_relojDesfaseMs, revisado_iso:new Date().toISOString()}, {merge:true}).catch(()=>{}); });
     pintarRelojFijo();
   }catch(e){ /* sin señal: se queda con el último desfase conocido */ }
 }
@@ -3061,6 +3066,8 @@ function iniciarRelojFijo(){
     document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ pintarRelojFijo(); try{ medirRelojServidor(); }catch(e){} } });
   }
   setTimeout(()=>{ try{ medirRelojServidor(); }catch(e){} }, 3000);
+  setTimeout(()=>{ try{ revisarSaludDispositivo(); }catch(e){} }, 6000);
+  setInterval(()=>{ try{ revisarSaludDispositivo(); }catch(e){} }, 300000);
 }
 
 /* ---------- v176: CUMPLIMIENTO DE RUTA con capturas de la nube ----------
@@ -3072,7 +3079,7 @@ function cumpCapturasTodas(){
   const m = new Map(); const sinId = [];
   try{ _sgCapsExtra.forEach((v,k)=>m.set(k,v)); }catch(e){}
   _cumpNube.map.forEach((v,k)=>m.set(k,v));
-  getCapturas().forEach(c=>{ if(c && c.id) m.set(c.id,c); else if(c) sinId.push(c); });
+  getCapturasVer().forEach(c=>{ if(c && c.id) m.set(c.id,c); else if(c) sinId.push(c); });
   return [...m.values(), ...sinId].filter(c=> c && !(c.es_prueba || esTiendaPrueba(c.tienda)));
 }
 function cumpPintaEstado(){
@@ -3117,11 +3124,101 @@ async function cumpAsegurarNube(desde, hasta, forzar){
   try{ const v = document.getElementById('view-cumplimiento'); if(v && v.classList.contains('active')) renderCumplimiento(); }catch(e){}
 }
 
+/* ---------- v177: CAPTURAS DEL EQUIPO IGUALES PARA TODOS LOS ADMIN ----------
+   BUG: Supervisor/Coordinador/Admin solo escuchaban en vivo los últimos 3 días y máx. 80 capturas del equipo; lo demás dependía de
+   lo que ese aparato hubiera acumulado antes (por eso a unos les salían más check-in / próximos a caducar que a otros).
+   AHORA: cada aparato baja de la nube (sin fotos) los últimos 45 días (21 en celular) la primera vez, lo guarda en IndexedDB y después
+   solo trae lo nuevo. Todos los reportes de lectura usan getCapturasVer() (= lo de este aparato + lo del equipo). */
+const _capsEquipo = new Map(); let _capsEquipoVer = 0, _capsEquipoEstado = {cargando:false, ok:null, n:0, err:null, desde:''};
+let _mvCache = null, _mvSig = '';
+function getCapturasVer(){
+  if(!_capsEquipo.size) return getCapturas();
+  const sig = _capturasCache.length+':'+_capsEquipo.size+':'+_capsEquipoVer;
+  if(_mvCache && sig===_mvSig) return _mvCache;
+  const m = new Map(_capsEquipo); const sin = [];
+  _capturasCache.forEach(c=>{ if(c && c.id) m.set(c.id,c); else if(c) sin.push(c); });
+  _mvCache = [...m.values(), ...sin].filter(c=>!(c && (c.es_prueba || esTiendaPrueba(c.tienda)))); _mvSig = sig; return _mvCache;
+}
+function _idbAbrirCaps(){ return new Promise((res,rej)=>{ try{ const r = indexedDB.open('delico_capsequipo',1); r.onupgradeneeded = ()=>{ const d=r.result; d.createObjectStore('caps',{keyPath:'id'}); d.createObjectStore('meta'); }; r.onsuccess = ()=>res(r.result); r.onerror = ()=>rej(r.error); }catch(e){ rej(e); } }); }
+function _idbPedir(req){ return new Promise((res,rej)=>{ req.onsuccess = ()=>res(req.result); req.onerror = ()=>rej(req.error); }); }
+function _ligeraEquipo(d){ const x = aligerarRegistro(d); x._en_nube = true; return x; }
+let _capsEquipoCorriendo = false;
+async function iniciarCapturasEquipo(){
+  if(_capsEquipoCorriendo || !db || !currentUser || currentUser.perfil==='Embajador') return;
+  _capsEquipoCorriendo = true; _capsEquipoEstado.cargando = true; _capsEquipoEstado.err = null;
+  let idb = null;
+  try{
+    try{ idb = await _idbAbrirCaps(); const todos = await _idbPedir(idb.transaction('caps').objectStore('caps').getAll()); todos.forEach(c=>_capsEquipo.set(c.id,c)); _capsEquipoVer++; }catch(e){ idb = null; }
+    let ultimo = null; try{ if(idb) ultimo = await _idbPedir(idb.transaction('meta').objectStore('meta').get('ultimo')); }catch(e){}
+    const dias = (getVista && getVista()==='celular') ? 21 : 45;
+    let desde = ultimo ? new Date(Date.parse(ultimo)-120000).toISOString() : new Date(Date.now()-dias*86400000).toISOString();
+    _capsEquipoEstado.desde = desde.slice(0,10);
+    let last = null, nuevos = 0, maxF = ultimo || '';
+    for(let pg=0; pg<120; pg++){
+      let q = db.collection('capturas_medi').where('fecha_registro','>',desde).orderBy('fecha_registro').limit(200);
+      if(last) q = q.startAfter(last);
+      const snap = await q.get();
+      if(snap.empty) break;
+      const lote = [];
+      snap.docs.forEach(dc=>{ const x = _ligeraEquipo({...dc.data(), id:dc.id}); _capsEquipo.set(dc.id, x); lote.push(x); if(String(x.fecha_registro||'')>maxF) maxF = String(x.fecha_registro); nuevos++; });
+      if(idb){ try{ const tx = idb.transaction('caps','readwrite'); lote.forEach(x=>tx.objectStore('caps').put(x)); }catch(e){} }
+      last = snap.docs[snap.docs.length-1]; _capsEquipoVer++; _capsEquipoEstado.n = _capsEquipo.size;
+      if(pg%5===4){ try{ renderReportes(); }catch(e){} }
+      if(snap.size<200) break;
+    }
+    if(idb && maxF){ try{ idb.transaction('meta','readwrite').objectStore('meta').put(maxF,'ultimo'); }catch(e){} }
+    _capsEquipoEstado.ok = true; _capsEquipoEstado.n = _capsEquipo.size;
+  }catch(e){ console.warn('iniciarCapturasEquipo', e); _capsEquipoEstado.ok = false; _capsEquipoEstado.err = (e && (e.code||e.message)) || String(e); }
+  _capsEquipoEstado.cargando = false; _capsEquipoCorriendo = false; _capsEquipoVer++;
+  try{ renderReportes(); }catch(e){} try{ renderCheckinBar(); }catch(e){} try{ pintarEstadoNube(); }catch(e){}
+}
+setInterval(()=>{ try{ if(currentUser && currentUser.perfil!=='Embajador') iniciarCapturasEquipo(); }catch(e){} }, 600000);
+window.addEventListener('online', ()=>{ try{ if(currentUser && currentUser.perfil!=='Embajador') iniciarCapturasEquipo(); }catch(e){} });
+
+/* ---------- v177: SALUD DEL CELULAR (espacio / memoria / capturas sin subir) ---------- */
+function lsTamanoKB(){ let t = 0; try{ for(let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); t += (k||'').length + (localStorage.getItem(k)||'').length; } }catch(e){} return Math.round(t/1024); }
+async function medirSaludDispositivo(){
+  const s = {};
+  try{ if(navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); s.uso_mb = Math.round((e.usage||0)/1048576); s.cupo_mb = Math.round((e.quota||0)/1048576); s.uso_pct = e.quota ? Math.round(e.usage/e.quota*100) : null; } }catch(e){}
+  try{ if(navigator.storage && navigator.storage.persisted){ s.persistente = await navigator.storage.persisted(); if(!s.persistente && navigator.storage.persist) s.persistente = await navigator.storage.persist(); } }catch(e){}
+  try{ s.memoria_gb = navigator.deviceMemory || null; }catch(e){}
+  try{ s.pendientes_nube = contarCapturasPendientesNube(); }catch(e){ s.pendientes_nube = null; }
+  s.ls_kb = lsTamanoKB(); s.version = 'v177';
+  try{ s.ua = String(navigator.userAgent).slice(0,90); }catch(e){}
+  return s;
+}
+function pintarAvisoSalud(s){
+  let b = document.getElementById('saludBanner');
+  const riesgo = s && ((s.uso_pct!=null && s.uso_pct>=85) || s.ls_kb>4200 || (s.pendientes_nube||0)>=5);
+  if(!riesgo){ if(b) b.remove(); return; }
+  if(!b){ b = document.createElement('div'); b.id = 'saludBanner'; b.style.cssText = 'position:fixed; left:8px; right:8px; top:8px; z-index:99990; background:#fde3e0; color:#7a1f18; border:1px solid #e6aaa4; border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.35; box-shadow:0 4px 16px rgba(0,0,0,.25);'; document.body.appendChild(b); }
+  b.innerHTML = '📱 <b>Tu celular está casi sin espacio'+((s.pendientes_nube||0)?' y tienes '+s.pendientes_nube+' captura(s) sin subir':'')+'.</b> Conéctate a Wi-Fi y toca <b>Subir ahora</b>; después libera espacio (fotos/videos/apps que no uses). No cierres la app mientras capturas. <div style="margin-top:6px;"><button class="btn btn-brand" style="padding:4px 12px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button> <button class="btn btn-ghost" style="padding:4px 12px;" onclick="this.parentNode.parentNode.remove()">Entendido</button></div>';
+}
+async function revisarSaludDispositivo(){ try{ const s = await medirSaludDispositivo(); window._saludUlt = s; pintarAvisoSalud(s); return s; }catch(e){ return null; } }
+let _saludDispCache = {t:0, filas:null};
+async function cumpSaludDispositivos(){
+  let box = document.getElementById('cumpSaludBox');
+  if(!box){ const ref = document.getElementById('cumpRelojBox'); if(!ref) return; box = document.createElement('div'); box.id = 'cumpSaludBox'; box.style.cssText = 'margin:0 0 16px;'; ref.parentNode.insertBefore(box, ref.nextSibling); }
+  if(!db || !currentUser || currentUser.perfil==='Embajador'){ box.innerHTML = ''; return; }
+  try{
+    if(!_saludDispCache.filas || Date.now()-_saludDispCache.t > 300000){ const snap = await db.collection('reloj_dispositivos').get(); _saludDispCache = {t:Date.now(), filas:snap.docs.map(d=>({id:d.id, ...d.data()}))}; }
+    const ok = new Set(equipoVisibleParaMi().map(u=>u.usuario));
+    const mal = _saludDispCache.filas.filter(r=> ok.has(r.id) && ((r.uso_pct!=null && r.uso_pct>=80) || r.ls_kb>4000 || (r.pendientes_nube||0)>0 || Math.abs(r.desfase_ms||0)>180000));
+    const nombre = id=>{ const u = APP_DATA.equipo.find(x=>x.usuario===id); return u ? nombreCorto(u.nombre) : id; };
+    const sec = id=>{ const u = APP_DATA.equipo.find(x=>x.usuario===id); return u ? u.sector : id; };
+    mal.sort((a,b)=>String(sec(a.id)).localeCompare(String(sec(b.id)),'es',{numeric:true}));
+    box.innerHTML = mal.length ? '<div style="background:#fff3d6; border:1px solid #e0a800; border-radius:10px; padding:10px 14px;"><div style="font-weight:700; font-size:13px; color:#8a5a00; margin-bottom:6px;">📱 '+mal.length+' celular(es) con poco espacio, capturas sin subir o reloj mal</div><table style="width:100%; font-size:12px;"><tr><th align="left">Persona</th><th align="right">Espacio usado</th><th align="right">Datos de la app (KB)</th><th align="right">Sin subir</th><th align="right">Reloj (min)</th><th align="left">Última revisión</th></tr>'
+      + mal.map(r=>'<tr><td>'+nombre(r.id)+'</td><td align="right">'+(r.uso_pct!=null?r.uso_pct+'%':'—')+'</td><td align="right">'+(r.ls_kb!=null?r.ls_kb:'—')+'</td><td align="right">'+(r.pendientes_nube!=null?r.pendientes_nube:'—')+'</td><td align="right">'+(r.desfase_ms!=null?Math.round(r.desfase_ms/60000):'—')+'</td><td>'+String(r.revisado_iso||'').slice(0,16).replace('T',' ')+'</td></tr>').join('') + '</table></div>'
+      : '<p style="font-size:12px; color:var(--ink-soft); margin:0;">📱 Ningún celular reporta poco espacio ni capturas sin subir (revisión automática desde la v177).</p>';
+  }catch(e){ box.innerHTML = ''; }
+}
+
 let _syncIniciado = false;
 function iniciarTodaLaSincronizacion(){
   if(_syncIniciado) return;
   _syncIniciado = true;
   iniciarSincronizacionCapturas();
+  setTimeout(()=>{ try{ iniciarCapturasEquipo(); }catch(e){} }, 3500);   /* v177 */
   /* v113: la tabla de instalación solo la ve la gente de oficina — una Embajadora no necesita bajar los accesos de todo el equipo */
   if(currentUser && currentUser.perfil!=='Embajador') iniciarSincronizacionAccesos();
   [_prioridadesSync, _tareasSync, _vacacionesSync, _extraTiendasSync, _cumpPrioridadSync, _leySillaSync,
@@ -3182,7 +3279,7 @@ function renderInstalacionEquipo(){
   if(!body) return;
   const porUsuario = new Map(_accesosCache.map(a=>[a.usuario, a]));
   let ok=0, nav=0, nunca=0;
-  const filas = [...APP_DATA.equipo].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>{
+  const filas = [...APP_DATA.equipo].sort((a,b)=>cmpSector(a,b)).map(u=>{
     const a = porUsuario.get(u.usuario);
     let estadoHtml, orden;
     if(!a){ estadoHtml = '<span style="color:var(--bad); font-weight:600;">❌ Nunca ha entrado</span>'; nunca++; orden=0; }
@@ -3272,7 +3369,7 @@ function poblarPwZonaUsuarios(){
   const sel = document.getElementById('pwZonaUsuario');
   if(!sel || sel.options.length) return;
   sel.innerHTML = '';
-  [...APP_DATA.equipo].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+  [...APP_DATA.equipo].sort((a,b)=>cmpSector(a,b)).forEach(u=>{
     const o = document.createElement('option');
     o.value = u.usuario;
     o.textContent = `${u.nombre} (${u.usuario})`;
@@ -3530,7 +3627,7 @@ function bpuFiltrarUsuarios(){
 function abrirBorradoPorUsuario(){
   if(currentUser.usuario !== RESET_TOTAL_USUARIO){ toast('Solo tú puedes hacer este borrado.'); return; }
   const caps = getCapturas();
-  const gente = APP_DATA.equipo.filter(u=>u.usuario!==RESET_TOTAL_USUARIO).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const gente = APP_DATA.equipo.filter(u=>u.usuario!==RESET_TOTAL_USUARIO).slice().sort((a,b)=>cmpSector(a,b));
   const body = document.getElementById('modalBody');
   body.innerHTML = `<button class="close-x" onclick="closeModal()">✕</button>
     <h3>👤 Borrar información por usuario</h3>
@@ -3787,7 +3884,11 @@ const VISTA_KEY = 'delico_odv_vista';
 function getVista(){
   let manual = null;
   try{ manual = localStorage.getItem(VISTA_KEY+'_manual')==='1' ? localStorage.getItem(VISTA_KEY) : null; }catch(e){}
-  if(manual) return manual;
+  if(manual){
+    let _mv = false; try{ _mv = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>0 && window.matchMedia('(pointer:coarse)').matches); }catch(e){}
+    const _pf = (typeof currentUser!=='undefined' && currentUser) ? currentUser.perfil : null;
+    if(manual!=='escritorio' || !_mv || _pf==='Admin' || _pf==='Coordinador') return manual;   /* v177: solo Admin/Coordinador eligen escritorio en celular */
+  }
   /* v131: en un teléfono o tableta SIEMPRE la versión de celular (app). En compu: Supervisor, Coordinador y Admin ven la de escritorio; Embajador la de celular. */
   let movil = false;
   try{ movil = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>0 && window.matchMedia('(pointer:coarse)').matches); }catch(e){}
@@ -3826,6 +3927,7 @@ function boot(keepView){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   try{ iniciarRelojFijo(); }catch(e){ console.warn(e); }
+  try{ document.body.classList.toggle('puede-vista', ['Admin','Coordinador'].includes(currentUser.perfil)); }catch(e){}   /* v177 */
   document.getElementById('whoName').textContent = currentUser.nombre;
   const badge = document.getElementById('whoPerfil');
   badge.textContent = currentUser.perfil + ' · ' + currentUser.rol;
@@ -4347,7 +4449,7 @@ function toggleFiltroPrioridadCadena(cadena){
 function poblarPrioridadUsuariosPick(){
   const sel = document.getElementById('prioridadUsuariosPick');
   if(!sel || sel.options.length) return;
-  APP_DATA.equipo.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+  APP_DATA.equipo.slice().sort((a,b)=>cmpSector(a,b)).forEach(u=>{
     const o = document.createElement('option'); o.value = u.usuario; o.textContent = nombreCorto(u.nombre)+' · '+u.rol; sel.appendChild(o);
   });
 }
@@ -4384,7 +4486,7 @@ function visitasEnVentanaParaPrioridad(p){
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
   const desde = p.desde || '0000-01-01';
   const hasta = p.hasta || '9999-12-31';
-  const entradas = getCapturas().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
+  const entradas = getCapturasVer().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
     && fechaLocal(c.fecha_registro)>=desde && fechaLocal(c.fecha_registro)<=hasta
     && (!p.cadenas || !p.cadenas.length || p.cadenas.includes(c.cadena)));
   return new Set(entradas.map(c=>c.usuario+'|'+fechaLocal(c.fecha_registro)+'|'+c.tienda)).size;
@@ -4625,7 +4727,7 @@ function renderFormBuilder(){
   const sel=document.getElementById('fbNuevoTipo');
   if(sel && !sel.options.length) FB_TIPOS.forEach(t=>{ const o=document.createElement('option'); o.value=t.v; o.textContent=t.l; sel.appendChild(o); });
   const us=document.getElementById('fbUsuarios');
-  if(us && !us.options.length) APP_DATA.equipo.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{ const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; us.appendChild(o); });
+  if(us && !us.options.length) APP_DATA.equipo.slice().sort((a,b)=>cmpSector(a,b)).forEach(u=>{ const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; us.appendChild(o); });
 }
 function fbLimpiar(){
   _fb={preguntas:[], tipo:'prioridad', cadenas:new Set()};
@@ -6288,7 +6390,16 @@ async function ubicRevisar(abrirGuiaSiBloqueada){
 }
 async function ubicPermitir(){
   /* si sigue en "prompt", esto vuelve a mostrar el aviso nativo del navegador */
-  const r = await pedirUbicacion(true);
+  /* v177: el permiso se pide DIRECTO en el toque (antes podía reutilizar una petición vieja colgada y el navegador no mostraba el aviso) */
+  _geoPromesa = null;
+  let r;
+  if(navigator.geolocation){
+    r = await new Promise(res=>{
+      let hecho = false; const fin = v=>{ if(!hecho){ hecho = true; res(v); } };
+      setTimeout(()=>fin({error:'timeout'}), 20000);
+      try{ navigator.geolocation.getCurrentPosition(p=>{ _geoUltima = {lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.round(p.coords.accuracy||0), t:Date.now()}; fin(_geoUltima); }, er=>fin({error: (er && er.code===1) ? 'permiso' : 'no_disponible'}), {enableHighAccuracy:true, timeout:18000, maximumAge:0}); }catch(x){ fin({error:'no_disponible'}); }
+    });
+  }else r = {error:'sin_gps'};
   const e = await ubicRevisar();
   if(r && r.error==='permiso' || e==='denied') ubicMostrarGuia();
   try{ registrarAcceso(); }catch(x){}
@@ -7305,7 +7416,7 @@ function populateRepPersona(){
   const sel = document.getElementById('repPersona');
   const previo = sel.value;
   sel.innerHTML = '<option value="">Todas</option>';
-  APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es')).forEach(u=>{
+  APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>cmpSector(a,b)).forEach(u=>{
     const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre+(u.sector?'  ('+u.sector+')':''); sel.appendChild(o);
   });
   if(previo) sel.value = previo;
@@ -7346,7 +7457,7 @@ function capturasFiltradasReporte(ignorarTipo, fuente){
   const supervisor = document.getElementById('repSupervisor').value;
   const desde = (document.getElementById('repDesde')||{}).value;
   const hasta = (document.getElementById('repHasta')||{}).value;
-  let arr = fuente ? [...fuente] : getCapturas();
+  let arr = fuente ? [...fuente] : getCapturasVer();
   if(tipo) arr = arr.filter(c=>c.tipo===tipo && !(tipo==='incidencia' && esIncidenciaVisita(c)));
   if(persona) arr = arr.filter(c=>c.usuario===persona);
   if(sectorSel) arr = arr.filter(c=>{
@@ -7378,7 +7489,7 @@ function celdaFotosReporte(c){
   return '<span style="color:var(--ink-soft);">—</span>';
 }
 async function verFotosCaptura(id){
-  const c = getCapturas().find(x=>x.id===id); if(!c) return;
+  const c = getCapturasVer().find(x=>x.id===id); if(!c) return;
   let f = fotosDeCaptura(c);
   const body = document.getElementById('modalBody');
   if(!f.length && c._fotos_solo_en_la_nube){
@@ -7498,7 +7609,7 @@ const BLOQUES_HORA = [['Mañana (8-12)',8,12],['Mediodía (12-15)',12,15],['Tard
 function renderDegustacionPorHora(){
   const box = document.getElementById('degustacionPorHoraCard');
   if(!box) return;
-  const degus = getCapturas().filter(c=>c.tipo==='degustacion');
+  const degus = getCapturasVer().filter(c=>c.tipo==='degustacion');
   if(!degus.length){ box.innerHTML = `<p style="font-size:13px; color:var(--ink-soft); margin:0;">Aún no hay capturas de degustación en este dispositivo.</p>`; return; }
   const conteo = BLOQUES_HORA.map(()=>0);
   degus.forEach(c=>{
@@ -7697,7 +7808,7 @@ function poblarFiltrosCumplimiento(){
   }
   const embSel = document.getElementById('cumpEmbajador');
   if(embSel && embSel.options.length<=1){
-    equipoVisibleParaMi().filter(u=>ROLES_EMBAJADOR.includes(u.rol)).sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    equipoVisibleParaMi().filter(u=>ROLES_EMBAJADOR.includes(u.rol)).sort((a,b)=>cmpSector(a,b)).forEach(u=>{
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
     });
   }
@@ -7767,7 +7878,7 @@ function renderCumplimiento(){
   document.getElementById('cumpCumplidas').textContent = cumplidas;
   document.getElementById('cumpPct').textContent = plan.length ? Math.round(cumplidas/plan.length*100)+'%' : '—';
 
-  const filasPersona = Object.values(porPersona).map(p=>({...p, rol: (APP_DATA.equipo.find(u=>u.nombre===p.nombre)||{}).rol || '', supervisor: supervisorDePersona(p.nombre), pct: p.planeadas ? Math.round(p.cumplidas/p.planeadas*100) : 0}));
+  const filasPersona = Object.values(porPersona).map(p=>({...p, sector: ((APP_DATA.equipo.find(u=>u.nombre===p.nombre)||{}).sector)||'~', rol: (APP_DATA.equipo.find(u=>u.nombre===p.nombre)||{}).rol || '', supervisor: supervisorDePersona(p.nombre), pct: p.planeadas ? Math.round(p.cumplidas/p.planeadas*100) : 0}));
   filasPersona.sort((a,b)=> b.pct - a.pct || b.planeadas - a.planeadas);
   const totPersona = filasPersona.reduce((a,p)=>({planeadas:a.planeadas+p.planeadas, cumplidas:a.cumplidas+p.cumplidas}),{planeadas:0,cumplidas:0});
   const totPersonaPct = totPersona.planeadas ? Math.round(totPersona.cumplidas/totPersona.planeadas*100) : 0;
@@ -7776,7 +7887,8 @@ function renderCumplimiento(){
     const rows2 = (window._cumpPersonaBodyRows || []).map(p=>({...p, nombre_corto: nombreCorto(p.nombre)}));
     const head = document.getElementById('cumpPersonaBodyHead');
     if(head) head.innerHTML = `${colHead('cumpPersonaBody','nombre_corto','Persona',false)}${colHead('cumpPersonaBody','rol','Rol',false)}${colHead('cumpPersonaBody','supervisor','Supervisor',false)}${colHead('cumpPersonaBody','planeadas','Planeadas',true)}${colHead('cumpPersonaBody','cumplidas','Cumplidas',true)}${colHead('cumpPersonaBody','pct','%',true)}`;
-    const filas = ordenarFilas('cumpPersonaBody', rows2, 'pct');
+    if(!anzSortState['cumpPersonaBody']) anzSortState['cumpPersonaBody'] = {campo:'sector', asc:true};
+    const filas = ordenarFilas('cumpPersonaBody', rows2, 'sector');
     document.getElementById('cumpPersonaBody').innerHTML = (filas.map(p=>
       `<tr><td>${nombreCorto(p.nombre)}</td><td>${p.rol}</td><td>${p.supervisor||'—'}</td><td class="num">${p.planeadas}</td><td class="num">${p.cumplidas}</td><td class="num" style="font-weight:700; color:${p.pct===100?'var(--good)':p.pct<60?'var(--bad)':'var(--warn)'};">${p.pct}%</td></tr>`
     ).join('') || `<tr><td colspan="6" class="empty-state">Sin visitas planeadas para este filtro.</td></tr>`)
@@ -7859,6 +7971,7 @@ function renderCumplimiento(){
         ? `<div style="background:#fde3e0; border:1px solid #e6aaa4; border-radius:10px; padding:10px 14px;"><div style="font-weight:700; font-size:13px; color:#a02820; margin-bottom:6px;">⏱️ ${sosp.length} captura(s) con la hora del celular desfasada más de 5 min respecto al servidor</div><div style="max-height:220px; overflow:auto;"><table style="width:100%; font-size:12px;"><tr><th align="left">Persona</th><th align="left">Fecha/hora que marcó el celular</th><th align="left">Tienda</th><th align="right">Desfase (min)</th></tr>${sosp.slice(0,200).map(c=>`<tr><td>${nombreCorto(c.nombre||c.usuario)}</td><td>${fechaLocal(c.fecha_registro)} ${new Date(c.fecha_registro).toLocaleTimeString('es-MX',{timeZone:'America/Mexico_City',hour:'2-digit',minute:'2-digit'})}</td><td>${c.tienda||''}</td><td align="right">${Math.round(c.reloj_desfase_ms/60000)}</td></tr>`).join('')}</table></div><div style="font-size:11px; color:#7a4a45; margin-top:4px;">+ = el celular iba adelantado. Aplica a capturas hechas desde la v176.</div></div>`
         : `<p style="font-size:12px; color:var(--ink-soft); margin:0;">⏱️ Sin capturas con reloj desfasado en este periodo (se registra desde la v176).</p>`;
     }
+    try{ cumpSaludDispositivos(); }catch(e){}
   }catch(e){ console.warn(e); }
   const reconocer = filasPersona.filter(p=>p.pct===100 && p.planeadas>=1);
   document.getElementById('cumpReconocimientos').innerHTML = reconocer.length
@@ -8766,7 +8879,7 @@ function pcFilasBase(f){
   const prods = {};
   APP_DATA.catalogo_productos.forEach(p=>prods[p.clave]=p);
   const out = [];
-  (window._pcFuente || getCapturas()).forEach(c=>{
+  (window._pcFuente || getCapturasVer()).forEach(c=>{
     if(c.tipo!=='caducidad' || !c.fecha_caducidad || !c.clave) return;
     const st = storeInfo(c.cadena, c.tienda) || {};
     const prod = prods[c.clave] || {};
@@ -9352,7 +9465,7 @@ const PRIORIDAD_TAREA_LABEL = {A:'🔴 Prioridad A', B:'🟡 Prioridad B', C:'�
 function poblarAsignarA(){
   const sel = document.getElementById('tareaAsignarA');
   if(sel.options.length) return;
-  APP_DATA.equipo.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+  APP_DATA.equipo.slice().sort((a,b)=>cmpSector(a,b)).forEach(u=>{
     const o = document.createElement('option'); o.value = u.usuario; o.textContent = nombreCorto(u.nombre)+' · '+u.rol; sel.appendChild(o);
   });
 }
@@ -9496,7 +9609,7 @@ function personasEvaluablesPorMi(){
 function poblarAuditoriaSelects(){
   const perSel = document.getElementById('audPersona');
   if(!perSel.options.length){
-    personasEvaluablesPorMi().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    personasEvaluablesPorMi().sort((a,b)=>cmpSector(a,b)).forEach(u=>{
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; perSel.appendChild(o);
     });
   }
@@ -9630,7 +9743,7 @@ function personasEvaluablesEval360(){ return personasEvaluablesPorMi(); }
 function poblarEval360Selects(){
   const perSel = document.getElementById('ev360Persona');
   if(!perSel.options.length){
-    personasEvaluablesEval360().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    personasEvaluablesEval360().sort((a,b)=>cmpSector(a,b)).forEach(u=>{
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre)+' · '+u.rol; perSel.appendChild(o);
     });
   }
@@ -9783,7 +9896,7 @@ function renderEval360(){
 function poblarFiltrosEvaluaciones(){
   const perSel = document.getElementById('evaPersona');
   if(perSel && perSel.options.length<=1){
-    equipoVisibleParaMi().slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    equipoVisibleParaMi().slice().sort((a,b)=>cmpSector(a,b)).forEach(u=>{
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=u.nombre; perSel.appendChild(o);
     });
   }
@@ -9840,7 +9953,7 @@ function renderEvaluaciones(){
 
   let arr360 = getEval360().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
   let arrAud = getAuditorias().filter(a=> esEmbajador ? a.persona_usuario===currentUser.usuario : (visibleUsuarios.has(a.persona_usuario) || a.evaluador===currentUser.nombre));
-  let arrOnb = getCapturas().filter(c=>c.tipo==='onboarding' && visibleUsuarios.has(c.usuario));
+  let arrOnb = getCapturasVer().filter(c=>c.tipo==='onboarding' && visibleUsuarios.has(c.usuario));
   if(!esEmbajador){
     arr360 = aplicarFiltrosEvaluaciones(arr360, 'persona_usuario', 'fecha');
     arrAud = aplicarFiltrosEvaluaciones(arrAud, 'persona_usuario', 'fecha');
@@ -10163,7 +10276,7 @@ function renderBonoTab(){
   if(embWrap) embWrap.style.display = esPropio ? 'none' : '';
   const embSel = document.getElementById('bonoTabEmbSel');
   if(embSel && !embSel.options.length){
-    embSel.innerHTML = equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(u=>`<option value="${u.usuario}">${nombreCorto(u.nombre)}</option>`).join('');
+    embSel.innerHTML = equipoVisibleParaMi().filter(u=>u.perfil==='Embajador').sort((a,b)=>cmpSector(a,b)).map(u=>`<option value="${u.usuario}">${nombreCorto(u.nombre)}</option>`).join('');
   }
   const meses = mesesConEscalonDisponibles();
   const mesSel = document.getElementById('bonoTabMesSel');
@@ -10177,7 +10290,7 @@ function renderBonoTab(){
 
   // vista de equipo (o de las personas elegidas en el multi-select): una tarjeta por embajadora
   const equipoScope = (seleccionados.length ? equipoVisibleParaMi().filter(u=>seleccionados.includes(u.usuario)) : equipoVisibleParaMi().filter(u=>u.perfil==='Embajador'))
-    .sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    .sort((a,b)=>cmpSector(a,b));
   if(!equipoScope.length){ box.innerHTML = `<p style="font-size:12.5px; color:var(--ink-soft);">No hay embajadoras en tu equipo.</p>`; return; }
   const resultados = equipoScope.map(u=>{
     const scope = APP_DATA.stores.filter(s=>s.sector===u.usuario);
@@ -10249,7 +10362,7 @@ function poblarFiltrosObjetivos(){
   poblarSelectFiltro('objSupervisor', nombresSupervisorUnicos());
   const embSel = document.getElementById('objEmbajador');
   if(embSel && embSel.options.length<=1){
-    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>cmpSector(a,b)).forEach(u=>{
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
     });
   }
@@ -10266,7 +10379,7 @@ function visitasPorTienda(storesScope){
   const inicioMes = isoDate(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
   const semanasTranscurridas = Math.max(1, Math.ceil(hoy.getDate()/7));
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
-  const capturas = getCapturas().filter(c=>c.fecha_registro && fechaLocal(c.fecha_registro)>=inicioMes && fechaLocal(c.fecha_registro)<=hoyISO && visibleUsuarios.has(c.usuario));
+  const capturas = getCapturasVer().filter(c=>c.fecha_registro && fechaLocal(c.fecha_registro)>=inicioMes && fechaLocal(c.fecha_registro)<=hoyISO && visibleUsuarios.has(c.usuario));
   const diasConCaptura = new Map(); // cadena|tienda -> Set(dias)
   capturas.forEach(c=>{
     if(!c.tienda) return;
@@ -10746,7 +10859,7 @@ function poblarFiltrosCumpVenta(){
   poblarSelectFiltro('cvSupervisor', nombresSupervisorUnicos());
   const embSel = document.getElementById('cvEmbajador');
   if(embSel && embSel.options.length<=1){
-    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>cmpSector(a,b)).forEach(u=>{
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
     });
   }
@@ -11001,7 +11114,7 @@ function renderCvDiagnostico(storesScope, semanas){
   const porTienda = cvDiagAgrupar(filas, r=>r.cadena+'|'+r.num_tienda).filter(a=>a.meta>0);
   const rez = porTienda.filter(a=>a.pct<80);
   const mesesAnioMes = new Set([...cvFiltroMeses].map(m=>MES_NUM_BONO[m]).filter(Boolean).map(n=>'2026-'+String(n).padStart(2,'0')));
-  const caps = getCapturas().filter(c=>c.fecha_registro && mesesAnioMes.has(fechaLocal(c.fecha_registro).slice(0,7)));
+  const caps = getCapturasVer().filter(c=>c.fecha_registro && mesesAnioMes.has(fechaLocal(c.fecha_registro).slice(0,7)));
   const visitas = new Set(caps.filter(c=>c.tipo==='entrada_tienda').map(c=>c.cadena+'|'+c.tienda));
   const demos = new Set(caps.filter(c=>c.tipo==='degustacion').map(c=>c.cadena+'|'+c.tienda));
   const hayCapturas = caps.some(c=>c.tipo==='entrada_tienda');
@@ -11295,7 +11408,7 @@ function cpVisitasEnVentana(p, storesScope, mesesSet){
   const tiendaNames = new Set(storesScope.map(s=>s.tienda));
   const desde = p.desde || '0000-01-01';
   const hasta = p.hasta || '9999-12-31';
-  return getCapturas().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
+  return getCapturasVer().filter(c=> c.tipo==='entrada_tienda' && c.fecha_registro && visibleUsuarios.has(c.usuario)
     && fechaLocal(c.fecha_registro)>=desde && fechaLocal(c.fecha_registro)<=hasta
     && mesesSet.has(fechaLocal(c.fecha_registro).slice(0,7))
     && tiendaNames.has(c.tienda)
@@ -11529,7 +11642,7 @@ function renderDistribucion(){
   poblarSelectFiltro('distSupervisor', nombresSupervisorUnicos());
   const embSel = document.getElementById('distEmbajador');
   if(embSel && embSel.options.length<=1){
-    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(u=>{
+    APP_DATA.equipo.filter(u=>u.perfil==='Embajador').sort((a,b)=>cmpSector(a,b)).forEach(u=>{
       const o=document.createElement('option'); o.value=u.usuario; o.textContent=nombreCorto(u.nombre); embSel.appendChild(o);
     });
   }
@@ -11626,7 +11739,7 @@ function renderDistribucionCampo(storesScope){
   if(!box) return;
   const mesesSet = mesesSeleccionadosDistComoAnioMes();
   const tiendasScope = new Set(storesScope.map(s=>s.tienda));
-  let capturas = getCapturas().filter(c=> (c.tipo==='mercadeo' || c.tipo==='onboarding') && Array.isArray(c.distribucion) && c.distribucion.length && tiendasScope.has(c.tienda));
+  let capturas = getCapturasVer().filter(c=> (c.tipo==='mercadeo' || c.tipo==='onboarding') && Array.isArray(c.distribucion) && c.distribucion.length && tiendasScope.has(c.tienda));
   capturas = capturas.filter(c=> mesesSet.has((c.fecha_registro||'').slice(0,7)));
   const dCampoDesdeEl = document.getElementById('distCampoDesde');
   const dCampoHastaEl = document.getElementById('distCampoHasta');
@@ -11781,7 +11894,7 @@ function renderKpis(){
   const rangoPersonalizado = !!((document.getElementById('kpiDesde')||{}).value || (document.getElementById('kpiHasta')||{}).value);
   registrarFiltroMesesCompletos('kdx','kdxMesDdPanel','kdxMesDdBtn','kpiDesde','kpiHasta',renderKpis);
   const visibleUsuarios = new Set(equipoVisibleParaMi().map(u=>u.usuario));
-  const capturasTodas = getCapturas().filter(c=>c.tienda===tienda);
+  const capturasTodas = getCapturasVer().filter(c=>c.tienda===tienda);
   const capturas = capturasTodas.filter(c=> !c.fecha_registro || (fechaLocal(c.fecha_registro)>=fDesde && fechaLocal(c.fecha_registro)<=fHasta));
   const planMes = getRutas().filter(a=>a.tipo==='visita' && a.tienda===tienda && a.fecha>=fDesde && a.fecha<=fHasta && visibleUsuarios.has(a.usuario));
   const realDiasSet = new Set(capturasTodas.filter(c=>c.fecha_registro).map(c=> c.usuario+'|'+fechaLocal(c.fecha_registro)));
@@ -12197,7 +12310,7 @@ function repExportContexto(){
   const equipo = new Map((APP_DATA.equipo||[]).map(e=>[e.usuario, e]));
   const cat = new Map((APP_DATA.catalogo_productos||[]).map(p=>[p.clave, p]));
   const visita = new Map();
-  getCapturas().forEach(c=>{ if(esIncidenciaVisita(c)) visita.set([c.usuario, fechaLocal(c.fecha_registro), c.tienda].join('|'), c.descripcion||'(sin motivo)'); });
+  getCapturasVer().forEach(c=>{ if(esIncidenciaVisita(c)) visita.set([c.usuario, fechaLocal(c.fecha_registro), c.tienda].join('|'), c.descripcion||'(sin motivo)'); });
   return {
     tienda: c => porCadTienda.get((c.cadena||'')+'|'+(c.tienda||'')) || porTienda.get(c.tienda||'') || null,
     persona: u => equipo.get(u) || null,
@@ -12362,7 +12475,7 @@ async function arrConFotosReporte(){
   /* v149: el reporte con fotos se arma con TODO el equipo y respeta tus filtros (persona, cadena, región, supervisor,
      fechas, tipo). Antes solo usaba lo que este celular/compu ya tenía guardado (en la práctica, casi solo lo tuyo).
      Ahora se consulta la nube directamente por el rango de fechas y se mezcla con lo local. */
-  let fuente = getCapturas();
+  let fuente = getCapturasVer();
   const desde = (document.getElementById('repDesde')||{}).value;
   const hasta = (document.getElementById('repHasta')||{}).value;
   if(db && currentUser && currentUser.perfil !== 'Embajador'){
@@ -12617,7 +12730,7 @@ function renderPersonaPool(){
   const fCluster = (document.getElementById('rutaFiltroCluster')||{}).value;
   const {startISO, endISO} = visibleDateRange();
   const arr = getRutas();
-  let lista = [...equipoVisibleParaMi()].sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  let lista = [...equipoVisibleParaMi()].sort((a,b)=>cmpSector(a,b));
   if(q) lista = lista.filter(u => u.nombre.toLowerCase().startsWith(q) || u.nombre.toLowerCase().includes(' '+q));
   if(fSup) lista = lista.filter(u => mismaPersona(supervisorDePersona(u.nombre), fSup));
   if(fRegion) lista = lista.filter(u => u.region===fRegion);
@@ -13446,7 +13559,7 @@ function buildResumenNode(scope){
       ${dias.map(d=>`<th style="text-align:left; padding:6px 8px; border-bottom:2px solid #a7ab27;">${d.label}<br><span style="font-weight:500; color:#6d6a4a;">${d.num}</span></th>`).join('')}
     </tr></thead><tbody>`;
     rolesPresentes.forEach(rol=>{
-      const items = grupos[rol].sort((a,b)=>a.u.nombre.localeCompare(b.u.nombre));
+      const items = grupos[rol].sort((a,b)=>cmpSector(a,b));
       html += `<tr><td colspan="8" style="padding:10px 8px 4px; font-family:Oswald,sans-serif; font-weight:700; font-size:11px; color:#767a1a; text-transform:uppercase; letter-spacing:.03em;">${rol}</td></tr>`;
       items.forEach(({u,entradas})=>{
         const shortName = nombreCorto(u.nombre);
@@ -13520,6 +13633,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "SCDM01",
   "nombre": "VACANTE* (SCDM01)",
+  "nombre_corto": "Vacante",
   "usuario": "SCDM01",
   "perfil": "Supervisor"
  },
@@ -13528,6 +13642,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM01",
   "nombre": "CASTILLO HERNANDEZ BELEM",
+  "nombre_corto": "Belem Hernández",
   "usuario": "DCDM01",
   "perfil": "Embajador"
  },
@@ -13536,6 +13651,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM02",
   "nombre": "DOTOR CABRERA YASMIN",
+  "nombre_corto": "Yasmín Dotor",
   "usuario": "DCDM02",
   "perfil": "Embajador"
  },
@@ -13544,6 +13660,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM03",
   "nombre": "ESTEBAN GARCIA YULISSA JAQUELIN",
+  "nombre_corto": "Yulissa Esteban",
   "usuario": "DCDM03",
   "perfil": "Embajador"
  },
@@ -13552,6 +13669,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM04",
   "nombre": "GONZALEZ BRITO ROCIO",
+  "nombre_corto": "Rocío Brito",
   "usuario": "DCDM04",
   "perfil": "Embajador"
  },
@@ -13560,6 +13678,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM05",
   "nombre": "HERNANDEZ GUTIERREZ YOLANDA",
+  "nombre_corto": "Yolanda Hernández",
   "usuario": "DCDM05",
   "perfil": "Embajador"
  },
@@ -13568,6 +13687,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM06",
   "nombre": "MORA SANCHEZ ENGRACIA",
+  "nombre_corto": "Engracia Mora",
   "usuario": "DCDM06",
   "perfil": "Embajador"
  },
@@ -13576,6 +13696,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM07",
   "nombre": "RAMIREZ DOMINGUEZ YASMIN",
+  "nombre_corto": "Yasmín Ramírez",
   "usuario": "DCDM07",
   "perfil": "Embajador"
  },
@@ -13584,6 +13705,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM08",
   "nombre": "RODRIGUEZ DIAZ MARIA ELENA",
+  "nombre_corto": "María Elena Rodríguez",
   "usuario": "DCDM08",
   "perfil": "Embajador"
  },
@@ -13592,6 +13714,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM09",
   "nombre": "SANTA SONIA",
+  "nombre_corto": "Santa Sonia",
   "usuario": "DCDM09",
   "perfil": "Embajador"
  },
@@ -13600,6 +13723,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM10",
   "nombre": "ZAMUDIO PIEDRA MARIA IMELDA",
+  "nombre_corto": "Imelda Zamudio",
   "usuario": "DCDM10",
   "perfil": "Embajador"
  },
@@ -13608,6 +13732,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM11",
   "nombre": "BARRIOS CARBAJAL CARMEN SANDRA",
+  "nombre_corto": "Carmen Barrios",
   "usuario": "DCDM11",
   "perfil": "Embajador"
  },
@@ -13616,6 +13741,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "DCDM12",
   "nombre": "PÉREZ CAUDILLO BLANCA XÓCHITL",
+  "nombre_corto": "Xóchitl Pérez",
   "usuario": "DCDM12",
   "perfil": "Embajador"
  },
@@ -13624,6 +13750,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "HCDM01",
   "nombre": "VACANTE* (HCDM01)",
+  "nombre_corto": "Vacante",
   "usuario": "HCDM01",
   "perfil": "Embajador"
  },
@@ -13632,6 +13759,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "PCDM101",
   "nombre": "GARCIA GARCIA MARIA DE JESUS",
+  "nombre_corto": "María García",
   "usuario": "PCDM101",
   "perfil": "Embajador"
  },
@@ -13640,6 +13768,7 @@ const EQUIPO_ODV = [
   "region": "CDMX/METROPOLITANA",
   "sector": "PCDM102",
   "nombre": "SALAZAR MARIN GILBERTO",
+  "nombre_corto": "Gilberto Salazar",
   "usuario": "PCDM102",
   "perfil": "Embajador"
  },
@@ -13648,6 +13777,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "SGDL01",
   "nombre": "MÓNICA ROMO GÓMEZ",
+  "nombre_corto": "Mónica Romo",
   "usuario": "SGDL01",
   "perfil": "Supervisor"
  },
@@ -13656,6 +13786,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "DGDL01",
   "nombre": "CASTILLO MORALES ALICIA",
+  "nombre_corto": "Alicia Castillo",
   "usuario": "DGDL01",
   "perfil": "Embajador"
  },
@@ -13664,6 +13795,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "DGDL02",
   "nombre": "CERVANTES PADILLA SILVIA ALICIA",
+  "nombre_corto": "Silvia Cervantes",
   "usuario": "DGDL02",
   "perfil": "Embajador"
  },
@@ -13672,6 +13804,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "DGDL03",
   "nombre": "CORTES HERNANDEZ JULIA ISABEL",
+  "nombre_corto": "Julia Cortés",
   "usuario": "DGDL03",
   "perfil": "Embajador"
  },
@@ -13680,6 +13813,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "DGDL04",
   "nombre": "ESQUIVEL OROZCO IRENE",
+  "nombre_corto": "Irene Esquivel",
   "usuario": "DGDL04",
   "perfil": "Embajador"
  },
@@ -13688,6 +13822,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "DGDL05",
   "nombre": "GUZMAN GOMEZ CINTHIA NAITZE",
+  "nombre_corto": "Cinthia Guzmán",
   "usuario": "DGDL05",
   "perfil": "Embajador"
  },
@@ -13696,6 +13831,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "DGDL06",
   "nombre": "LOPEZ SOTO NADIA",
+  "nombre_corto": "Nadia López",
   "usuario": "DGDL06",
   "perfil": "Embajador"
  },
@@ -13704,6 +13840,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "DGDL07",
   "nombre": "PADILLA PLASCENCIA BRENDA ADRIANA",
+  "nombre_corto": "Brenda Padilla",
   "usuario": "DGDL07",
   "perfil": "Embajador"
  },
@@ -13712,6 +13849,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "HLEO01",
   "nombre": "MENDOZA LUNA MARIA MAGDALENA",
+  "nombre_corto": "Magda Mendoza",
   "usuario": "HLEO01",
   "perfil": "Embajador"
  },
@@ -13720,6 +13858,7 @@ const EQUIPO_ODV = [
   "region": "FORÁNEAS",
   "sector": "PGDL101",
   "nombre": "VACANTE* (PGDL101)",
+  "nombre_corto": "Vacante",
   "usuario": "PGDL101",
   "perfil": "Embajador"
  },
@@ -13728,6 +13867,7 @@ const EQUIPO_ODV = [
   "region": "NACIONAL",
   "sector": "CNAC01",
   "nombre": "COBA FABIOLA",
+  "nombre_corto": "Fabiola Coba",
   "usuario": "CNAC01",
   "perfil": "Coordinador"
  },
@@ -13736,6 +13876,7 @@ const EQUIPO_ODV = [
   "region": "NACIONAL",
   "sector": "GNAC01",
   "nombre": "JIMÉNEZ FANNY",
+  "nombre_corto": "Fanny Jiménez",
   "usuario": "GNAC01",
   "perfil": "Admin"
  },
@@ -13744,6 +13885,7 @@ const EQUIPO_ODV = [
   "region": "NACIONAL",
   "sector": "KNAC01",
   "nombre": "SANTIAGO ALEJANDRA",
+  "nombre_corto": "Alejandra Santiago",
   "usuario": "KNAC01",
   "perfil": "Admin"
  },
@@ -13752,6 +13894,7 @@ const EQUIPO_ODV = [
   "region": "NACIONAL",
   "sector": "PNAC01",
   "nombre": "NORIEGA ALEJANDRA",
+  "nombre_corto": "Alejandra Noriega",
   "usuario": "PNAC01",
   "perfil": "Admin"
  },
@@ -13760,6 +13903,7 @@ const EQUIPO_ODV = [
   "region": "NACIONAL",
   "sector": "BNAC01",
   "nombre": "CAMACHO EVELIN",
+  "nombre_corto": "Evelin Camacho",
   "usuario": "BNAC01",
   "perfil": "Admin"
  },
@@ -13768,6 +13912,7 @@ const EQUIPO_ODV = [
   "region": "NACIONAL",
   "sector": "MNAC01",
   "nombre": "HEDDERICH INGRID",
+  "nombre_corto": "Ingrid Hedderich",
   "usuario": "MNAC01",
   "perfil": "Admin"
  }
@@ -13777,9 +13922,10 @@ function aplicarEquipoODV(){
   const porUsuario = new Map(APP_DATA.equipo.map(u=>[u.usuario,u]));
   EQUIPO_ODV.forEach(r=>{
     const u = porUsuario.get(r.usuario);
-    if(u){ u.nombre=r.nombre; u.rol=r.rol; u.region=r.region; u.sector=r.sector; u.perfil=r.perfil; }
+    if(u){ u.nombre_corto=r.nombre_corto; u.nombre=r.nombre; u.rol=r.rol; u.region=r.region; u.sector=r.sector; u.perfil=r.perfil; }
     else { const nuevo = {...r}; APP_DATA.equipo.push(nuevo); porUsuario.set(r.usuario, nuevo); }
   });
+  window._NC_MAP = new Map(); EQUIPO_ODV.forEach(r=>{ const c = /^vacante/i.test(r.nombre_corto||'') ? 'Vacante '+r.sector : r.nombre_corto; if(c) _NC_MAP.set(_ncNorm(r.nombre), c); });   /* v177: nombre corto del Excel */
   // el orden del equipo = el del Excel (así las columnas de Asignación de ruta salen agrupadas igual)
   const orden = new Map(EQUIPO_ODV.map((r,i)=>[r.usuario,i]));
   APP_DATA.equipo.sort((a,b)=>(orden.has(a.usuario)?orden.get(a.usuario):999)-(orden.has(b.usuario)?orden.get(b.usuario):999));
@@ -14117,6 +14263,7 @@ let _hubSec = 'ini', _hubFrom = 'hubinicio', _hubBuilt = false, _hubCartasSec = 
 /* ---- tamaño de letra / iconos ---- */
 function hubUILeer(){ try{ return Object.assign({s:1.15, ic:1.25}, JSON.parse(localStorage.getItem(HUB_UI_KEY)||'{}')); }catch(e){ return {s:1.15, ic:1.25}; } }
 function hubUIAplicar(){
+  try{ const vb = document.getElementById('hubVistaBloq'); if(vb){ vb.style.display = (currentUser && ['Admin','Coordinador'].includes(currentUser.perfil)) ? '' : 'none'; document.querySelectorAll('#hubSegV button').forEach(b=>b.classList.toggle('on', b.dataset.v===getVista())); } }catch(e){}
   const u = hubUILeer(), r = document.documentElement.style;
   r.setProperty('--hs', u.s); r.setProperty('--hic', u.ic); r.setProperty('--mz', u.s);
   document.querySelectorAll('#hubSegS button').forEach(b=>b.classList.toggle('on', +b.dataset.v===+u.s));
@@ -14197,6 +14344,7 @@ function hubBuild(){
     <div class="h-aj">
       <div class="h-perfil"><button class="h-avatar" onclick="document.getElementById('hubFotoIn').click()"><span class="hubAv" style="display:contents"></span><i>📷</i></button><input type="file" id="hubFotoIn" accept="image/*" hidden onchange="hubFotoElegida(this)"><small style="color:#6b6a50;font-size:calc(12px*var(--hs))">Toca la foto para cambiarla</small></div>
       <div class="h-bloq" id="hubDatos"></div>
+      <div class="h-bloq" id="hubVistaBloq" style="display:none"><h4>Versión de la app</h4><p>Solo Admin y Coordinación: elige cómo abrir la app en este aparato.</p><div class="h-seg" id="hubSegV"><button data-v="celular" onclick="setVista('celular')">📱 Celular</button><button data-v="escritorio" onclick="setVista('escritorio')">🖥️ Escritorio</button></div></div>
       <div class="h-bloq"><h4>Tamaño de letra</h4><p>Elige el que se te haga más fácil de leer.</p>
         <div class="h-seg" id="hubSegS"><button data-v="1" onclick="hubUIGuardar('s',1)"><span style="font-size:13px">A</span></button><button data-v="1.15" onclick="hubUIGuardar('s',1.15)"><span style="font-size:17px">A</span></button><button data-v="1.3" onclick="hubUIGuardar('s',1.3)"><span style="font-size:21px">A</span></button><button data-v="1.5" onclick="hubUIGuardar('s',1.5)"><span style="font-size:26px">A</span></button></div>
         <div class="h-seg" style="margin-top:4px;font-size:10.5px;color:#7b7a5e;text-align:center"><span style="flex:1">Normal</span><span style="flex:1">Grande</span><span style="flex:1">Muy grande</span><span style="flex:1">Máxima</span></div></div>
@@ -16224,7 +16372,7 @@ function sgSlideControl(M, reg){
     ${k('REGISTRO CONSISTENTE',sgP(sgPct(F.filter(x=>x.progDias>0&&x.diasProg/x.progDias>=0.8).length,Math.max(1,F.filter(x=>x.progDias>0).length))),'personas con check-in en ≥80% de sus días programados')}</div>`;
   const rng = a=> a.length ? (sgHHMM(Math.min(...a))+' – '+sgHHMM(Math.max(...a))) : '—';
   const ok = b=> b?'<span style="color:var(--good)">✔</span>':'<span style="color:var(--bad)">✖</span>';
-  const rows = F.slice().sort((a,b)=>a.u.nombre.localeCompare(b.u.nombre)).map(x=>{
+  const rows = F.slice().sort((a,b)=>cmpSector(a,b)).map(x=>{
     const a=x.acc, pct = x.progDias? x.diasProg/x.progDias*100 : null, cons = x.progDias>0 && pct>=80;
     return `<tr><td><b>${sgEsc(nombreCorto(x.u.nombre))}</b></td><td>${rng(x.primeras)}</td><td>${rng(x.ultimas)}</td><td class="n">${fmtH(x.horasDia)}</td><td class="n" title="${x.diasProg} de ${x.progDias||0} días programados con check-in${x.diasExtra?` · ${x.diasExtra} día(s) con check-in fuera de la ruta programada`:''}">${x.diasProg}/${x.progDias||'—'}${x.diasExtra?` <span class="sg-note">(+${x.diasExtra} fuera de ruta)</span>`:''}</td><td>${x.progDias?ok(cons):'—'}</td><td>${a?(a.instalada?'App':'Navegador'):'sin dato'}</td><td>${a?ok(a.ubicacion==='granted'):'—'}</td><td class="n">${x.geoN?sgP(sgPct(x.geoOk,x.geoN)):'—'}</td>${/PROMOTOR/i.test(x.u.rol||'')?'<td class="n" colspan="2" style="color:var(--ink-soft)">no aplica (promotoría)</td>':`<td class="n">${x.lsDias}/${x.diasConEnt}</td><td class="n">${x.lsDur.length?sgN(x.lsDur.reduce((p,q)=>p+q,0)/x.lsDur.length,0)+' min':'—'}</td>`}</tr>`; }).join('');
   const body = `${kpis}<div class="sg-tblwrap" style="margin-top:8px"><table class="sg-t xs nw ctl"><thead><tr><th>Persona</th><th title="Hora del primer check-in de cada día: rango del mes">Entrada (rango)</th><th title="Hora del último check-out de cada día: rango del mes">Salida (rango)</th><th class="n" title="Promedio de horas en tienda por día trabajado (suma de check-in → check-out)">Horas en tienda / día</th><th class="n" title="Días programados con check-in / días de visita programados en el mes (los check-in en días no programados se muestran aparte)">Días con registro</th><th title="Check-in en ≥80% de sus días programados">Registro en app consistente</th><th title="Última vez que entró: app instalada o navegador">Entra por</th><th title="Permiso de ubicación activo en su teléfono">GPS permitido</th><th class="n" title="Check-ins con la foto dentro del radio de la tienda">Check-in en tienda</th><th class="n" title="Descansos de Ley Silla registrados / días con visita">Ley Silla</th><th class="n">Descanso prom.</th></tr></thead><tbody>${rows||'<tr><td colspan="11" class="sg-empty">Sin integrantes</td></tr>'}</tbody></table></div>
@@ -16567,7 +16715,7 @@ const _sgCapsExtra = new Map();
 function sgCapsTodas(){
   const m = new Map(); const sinId = [];
   _sgCapsExtra.forEach((v,k)=>m.set(k,v));
-  getCapturas().forEach(c=>{ if(c && c.id) m.set(c.id,c); else if(c) sinId.push(c); });
+  getCapturasVer().forEach(c=>{ if(c && c.id) m.set(c.id,c); else if(c) sinId.push(c); });
   return [...m.values(), ...sinId];
 }
 let _sgCapsEstado = {cargando:false, ok:false, n:0, err:null, desde:''};
