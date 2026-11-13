@@ -297,7 +297,7 @@
 
   .empty-state{text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:14px;}
   footer.appfoot{padding:16px 20px; text-align:center; font-size:11.5px; color:var(--ink-soft);}
-  .toast{position:fixed; top:38px; left:50%; transform:translateX(-50%); width:max-content; max-width:92vw; text-align:center; background:var(--ink); color:#fff; padding:14px 20px; border-radius:14px; font-size:16.5px; font-weight:700; line-height:1.3; z-index:200; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .25s;}
+  .toast{position:fixed; bottom:48px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 18px; border-radius:10px; font-size:13.5px; z-index:200; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .25s;}
   .toast.show{opacity:1;}
   .thumb{width:100%; max-height:220px; object-fit:cover; border-radius:8px; margin-top:6px;}
   .file-note{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
@@ -528,9 +528,9 @@ body.hub-on.hub-mod #hubModBar{display:flex}
 
 /* ===== v122: pantallas de siempre dentro de una tarjeta crema (se leen bien sobre cualquier color) ===== */
 :root{--navh:64px}
-#relojFijo{position:fixed;z-index:131;display:none;pointer-events:none;left:50%;transform:translateX(-50%);top:4px;max-width:96vw;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:700;color:#3b3a1f;background:rgba(251,247,225,.96);border:1px solid #d9d2a8;border-radius:999px;padding:3px 12px;box-shadow:0 1px 4px rgba(0,0,0,.15);white-space:nowrap}
+#relojFijo{position:fixed;z-index:131;display:none;pointer-events:none;right:12px;bottom:8px;font-size:12px;font-weight:700;color:#3b3a1f;background:rgba(251,247,225,.96);border:1px solid #d9d2a8;border-radius:999px;padding:3px 12px;box-shadow:0 1px 4px rgba(0,0,0,.15);white-space:nowrap}
 #relojFijo.mal{background:#c62828;color:#fff;border-color:#8e1b1b}
-body.hub-on #relojFijo{top:4px}
+body.hub-on #relojFijo{right:auto;left:50%;transform:translateX(-50%);bottom:72px;max-width:96vw;overflow:hidden;text-overflow:ellipsis}
 body.hub-on main{padding-bottom:120px !important}
 body.puede-vista .vista-toggle{display:flex !important}
 body.puede-vista .topbar .who{flex-wrap:wrap;justify-content:flex-end}
@@ -547,7 +547,7 @@ body.hub-on .modal-bg{bottom:var(--navh) !important}
 body.hub-on .modal-bg .modal{max-height:none}
 #hubFiesta{bottom:var(--navh)}
 body.hub-on #ubicBanner{bottom:calc(var(--navh) + 8px) !important}
-body.hub-on .toast{top:38px;bottom:auto}
+body.hub-on .toast{bottom:calc(var(--navh) + 44px)}
 .toast.warn{background:#9a3412}
 /* filtros plegables */
 body.hub-on details.h-filtros{background:#efe7c8;border-radius:12px;margin:0 0 14px;padding:0;color:var(--h-dark)}
@@ -3195,10 +3195,10 @@ async function medirSaludDispositivo(){
 }
 function pintarAvisoSalud(s){
   let b = document.getElementById('saludBanner');
-  const riesgo = s && ((s.uso_pct!=null && s.uso_pct>=97) || s.ls_kb>4700 || (s.pendientes_nube||0)>=10);   /* v178: solo cuando de verdad es crítico */
+  const riesgo = false;   /* v179: aviso desactivado por ahora (el reporte para admins sigue) */   /* v178: solo cuando de verdad es crítico */
   let _snooze = 0; try{ _snooze = +localStorage.getItem('odv_salud_snooze')||0; }catch(e){}
   if(!riesgo || Date.now() < _snooze){ if(b) b.remove(); return; }
-  if(!b){ b = document.createElement('div'); b.id = 'saludBanner'; b.style.cssText = 'position:fixed; left:8px; right:8px; top:34px; z-index:99990; background:#fde3e0; color:#7a1f18; border:1px solid #e6aaa4; border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.35; box-shadow:0 4px 16px rgba(0,0,0,.25);'; document.body.appendChild(b); }
+  if(!b){ b = document.createElement('div'); b.id = 'saludBanner'; b.style.cssText = 'position:fixed; left:8px; right:8px; top:8px; z-index:99990; background:#fde3e0; color:#7a1f18; border:1px solid #e6aaa4; border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.35; box-shadow:0 4px 16px rgba(0,0,0,.25);'; document.body.appendChild(b); }
   b.innerHTML = '📱 <b>Hay capturas esperando subirse'+((s.pendientes_nube||0)?' y tienes '+s.pendientes_nube+' captura(s) sin subir':'')+'.</b> Conéctate a Wi-Fi y toca <b>Subir ahora</b>; después libera espacio (fotos/videos/apps que no uses). No cierres la app mientras capturas. <div style="margin-top:6px;"><button class="btn btn-brand" style="padding:4px 12px;" onclick="reintentarSubidasPendientes(true)">Subir ahora</button> <button class="btn btn-ghost" style="padding:4px 12px;" onclick="try{localStorage.setItem(\'odv_salud_snooze\', Date.now()+86400000)}catch(e){} this.parentNode.parentNode.remove()">Entendido</button></div>';
 }
 async function revisarSaludDispositivo(){ try{ const s = await medirSaludDispositivo(); window._saludUlt = s; pintarAvisoSalud(s); return s; }catch(e){ return null; } }
