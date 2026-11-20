@@ -783,12 +783,18 @@ body.sg-lock{overflow:hidden;}
 #view-seguimiento.sg-pres .sg-hint, #view-seguimiento.sg-pres .sg-sec-title{display:none;}
 #view-seguimiento.sg-pres #sgFrame{flex:1; min-height:0; display:flex; align-items:center; justify-content:center;}
 #view-seguimiento.sg-pres #sgStage{border:none; border-radius:0; box-shadow:none;}
-#view-seguimiento.sg-pres .sg-bar{opacity:.0; transition:opacity .2s; position:absolute; left:16px; right:16px; bottom:8px; top:auto; z-index:3; background:#fffffff0; padding:6px 10px; border-radius:10px;}
+#view-seguimiento.sg-pres .sg-bar{position:fixed; left:0; top:50%; bottom:auto; right:auto; width:224px; z-index:6000; flex-direction:column; flex-wrap:nowrap; align-items:stretch; gap:6px; margin:0; padding:10px; background:#fffffff5; border-radius:0 12px 12px 0; box-shadow:0 6px 24px #0006; transform:translate(-100%,-50%); transition:transform .18s ease; opacity:1;}
+#view-seguimiento.sg-pres .sg-bar::after{content:'☰'; position:absolute; right:-30px; top:50%; transform:translateY(-50%); width:30px; height:64px; display:flex; align-items:center; justify-content:center; background:#3d3d12; color:#fff; font-size:16px; border-radius:0 10px 10px 0; opacity:.35; transition:opacity .18s; cursor:pointer;}
+#view-seguimiento.sg-pres .sg-bar:hover, #view-seguimiento.sg-pres .sg-bar:focus-within{transform:translate(0,-50%);}
+#view-seguimiento.sg-pres .sg-bar:hover::after, #view-seguimiento.sg-pres .sg-bar:focus-within::after{opacity:0;}
+#view-seguimiento.sg-pres .sg-bar label{display:flex; flex-direction:column; gap:2px; font-size:11px; color:var(--ink-soft);}
+#view-seguimiento.sg-pres .sg-bar select, #view-seguimiento.sg-pres .sg-bar button{width:100%; font-size:12px; padding:5px 8px; max-width:none !important; text-align:left;}
+#view-seguimiento.sg-pres .sg-bar .sp, #view-seguimiento.sg-pres .sg-bar #sgEstadoCaps{display:none;}
+#view-seguimiento.sg-pres .sg-bar #sgPos{text-align:center;}
 #view-seguimiento.sg-pres.sg-teams{padding-top:82px;}   /* v180: deja libre la franja de arriba para la barra de Teams */
 .sg-cadres{margin-top:8px; font-size:12px; line-height:1.3;} .sg-cadres p{margin:3px 0;} .sg-cadres .sg-trio{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:4px 0;} .sg-cadres .sg-trio span{font-size:10px; display:block;} .sg-cadres .sg-trio b{font-size:20px; display:block;}
 .sg-rp .sg-rp-grid{grid-template-columns:repeat(3,1fr); gap:6px;} .sg-rp .sg-k2{padding:4px 9px;} .sg-honor{grid-template-columns:repeat(4,minmax(0,1fr)) !important;} .sg-hn-d{font-size:10px !important;} .sg-hn-t small{font-size:10px;} .sg-rp .sg-k2 b{font-size:21px;} .sg-rp .sg-k2 em{font-size:10.5px; line-height:1.25;}
 .sg-rp .sg-k2:nth-child(1){order:1} .sg-rp .sg-k2:nth-child(2){order:2} .sg-rp .sg-k2:nth-child(5){order:3} .sg-rp .sg-k2:nth-child(3){order:4} .sg-rp .sg-k2:nth-child(4){order:5} .sg-rp .sg-k2:nth-child(6){order:6} .sg-rp .sg-k2:nth-child(7){order:7} .sg-rp .sg-k2:nth-child(8){order:8} .sg-rp .sg-k2:nth-child(9){order:9}
-#view-seguimiento.sg-pres:hover .sg-bar{opacity:1;}
 @media print{
   @page{size:1280px 720px; margin:0;}
   body.sg-printing > *:not(main), body.sg-printing main > *:not(#view-seguimiento){display:none !important;}
@@ -5461,11 +5467,14 @@ function mostrarSugerenciasTienda(input){
     ? mostrar.map(s=>`<div class="bt-opt" data-tienda="${s.tienda.replace(/"/g,'&quot;')}" data-cadena="${s.cadena.replace(/"/g,'&quot;')}"><b>${s.tienda}</b> <span style="color:var(--ink-soft); font-size:11.5px;">(${s.cadena})</span></div>`).join('')
       + (filtradas.length>LIMITE ? `<div class="bt-vacio">Sigue escribiendo para acotar — hay ${filtradas.length} tiendas que coinciden.</div>` : '')
     : `<div class="bt-vacio">Sin resultados para "${input.value}".</div>`;
-  const r = input.getBoundingClientRect();
-  dd.style.left = Math.max(4, r.left) + 'px';
-  dd.style.top = (r.bottom + 3) + 'px';
-  dd.style.width = r.width + 'px';
+  /* v182: la lista se re-coloca sin parar mientras está abierta (el teclado del celular, el scroll y las animaciones
+     movían el campo y la lista se quedaba abajo, tapada por el menú o fuera de pantalla) */
+  const nuevo = (_btInput !== input);
+  _btInput = input;
   dd.classList.remove('hidden');
+  _posBuscadorTienda();
+  if(!_btRaf) _btRaf = requestAnimationFrame(_btLoop);
+  if(nuevo){ setTimeout(()=>{ try{ if(document.activeElement===input) input.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){} }, 300); }
   // mousedown (no click) para que se seleccione ANTES de que el blur del input cierre la lista
   dd.onmousedown = (e) => {
     const opt = e.target.closest('.bt-opt');
@@ -5479,6 +5488,36 @@ function mostrarSugerenciasTienda(input){
 }
 function ocultarSugerenciasTienda(){
   if(_buscadorTiendaEl) _buscadorTiendaEl.classList.add('hidden');
+  _btInput = null;
+}
+let _btInput = null, _btRaf = 0;
+function _btLoop(){
+  _btRaf = 0;
+  if(!_btInput || !_buscadorTiendaEl || _buscadorTiendaEl.classList.contains('hidden')) return;
+  _posBuscadorTienda();
+  _btRaf = requestAnimationFrame(_btLoop);
+}
+/* coloca la lista pegada al campo, siempre dentro de la parte VISIBLE de la pantalla (arriba del teclado y del menú inferior);
+   si abajo no cabe, la abre hacia arriba */
+function _posBuscadorTienda(){
+  const dd = _buscadorTiendaEl, input = _btInput; if(!dd || !input) return;
+  if(!document.body.contains(input) || !input.offsetParent){ dd.classList.add('hidden'); _btInput=null; return; }
+  const r = input.getBoundingClientRect(), vv = window.visualViewport;
+  const vTop = vv ? vv.offsetTop : 0, vLeft = vv ? vv.offsetLeft : 0;
+  const vH = vv ? vv.height : window.innerHeight, vW = vv ? vv.width : window.innerWidth;
+  // menú inferior fijo de la app (si existe) para no quedar detrás de él
+  let nav = 0; const nb = document.getElementById('hubBar'); if(nb){ const nr = nb.getBoundingClientRect(); if(nr.height>20 && nr.top>vTop+vH*0.5) nav = Math.max(0, vTop+vH-nr.top); }
+  const bottomLimit = vTop + vH - nav - 6, topLimit = vTop + 6;
+  const spaceBelow = bottomLimit - (r.bottom + 3), spaceAbove = (r.top - 3) - topLimit;
+  const MAXH = 240, hint = Math.min(MAXH, dd.scrollHeight + 2);
+  let arriba = spaceBelow < Math.min(hint, 150) && spaceAbove > spaceBelow;
+  const room = Math.max(80, Math.min(MAXH, arriba ? spaceAbove : spaceBelow));
+  dd.style.maxHeight = room + 'px';
+  const h = Math.min(hint, room);
+  dd.style.top = (arriba ? Math.max(topLimit, r.top - 3 - h) : (r.bottom + 3)) + 'px';
+  const w = Math.min(r.width, vW - 8);
+  dd.style.width = w + 'px';
+  dd.style.left = Math.min(Math.max(vLeft + 4, r.left), vLeft + vW - w - 4) + 'px';
 }
 const ICONOS_CON_QUE = {'Baguette/Bolillo':'🥖','Galletas':'🍪','Pan artesanal Delico':'🍞','En vaso':'🥤','Bastones de verdura':'🥕','Fruta dulce':'🍓','Palitos de pan':'🥨','Espagueti':'🍝','Cebollín':'🌿','Aceite de oliva':'🫒','Totopos':'🌽','Papas':'🥔','Otro':'➕'};
 const ICONOS_CLIMA = {'Soleado':'☀️','Nublado':'☁️','Lluvia':'🌧️','Frío':'🥶','Calor extremo':'🔥'};
@@ -15324,7 +15363,7 @@ function sgRuta(M, filtro){
      aunque haya ido a otra tienda. El cumplimiento de ruta (sgRuta) sigue al pie de la letra: solo cuenta la tienda programada.
    - Cambio de ruta = día en que NO hizo alguna tienda programada y SÍ capturó en otra que no estaba en su ruta. */
 function sgAsis(M, uf, desde, hasta){
-  const hoy = todayISO(); const h = (hasta && hasta<hoy) ? hasta : hoy; const d0 = desde || M.f0;
+  const hoy = todayISO(); let h = hasta || M.t0 || hoy; if(h>hoy) h=hoy; const d0 = desde || M.f0;   /* v181: tope = fin de la semana analizada */
   const plan = new Map();   // usuario|fecha -> Set(tiendas programadas)
   getRutas().forEach(a=>{ if(a.tipo!=='visita' || !a.tienda || a.fecha<d0 || a.fecha>h || (uf && !uf(a.usuario))) return; const k=a.usuario+'|'+a.fecha; if(!plan.has(k)) plan.set(k,new Set()); plan.get(k).add(a.tienda); });
   if(!M.capsAll) M.capsAll = sgCapsTodas().filter(c=>c && c.usuario && c.fecha_registro);
