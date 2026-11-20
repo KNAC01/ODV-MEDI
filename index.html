@@ -5502,6 +5502,9 @@ function _btLoop(){
 function _posBuscadorTienda(){
   const dd = _buscadorTiendaEl, input = _btInput; if(!dd || !input) return;
   if(!document.body.contains(input) || !input.offsetParent){ dd.classList.add('hidden'); _btInput=null; return; }
+  /* v183: en celulares la app agranda todo con zoom en <html> (hubEscala). Un elemento fijo dentro de ese zoom multiplica
+     sus coordenadas otra vez, por eso la lista salía mucho más abajo/derecha. Se calcula en píxeles de pantalla y se divide entre el zoom. */
+  let z = parseFloat(getComputedStyle(document.documentElement).zoom) || parseFloat(document.documentElement.style.zoom) || 1; if(!(z>0)) z = 1;
   const r = input.getBoundingClientRect(), vv = window.visualViewport;
   const vTop = vv ? vv.offsetTop : 0, vLeft = vv ? vv.offsetLeft : 0;
   const vH = vv ? vv.height : window.innerHeight, vW = vv ? vv.width : window.innerWidth;
@@ -5509,15 +5512,15 @@ function _posBuscadorTienda(){
   let nav = 0; const nb = document.getElementById('hubBar'); if(nb){ const nr = nb.getBoundingClientRect(); if(nr.height>20 && nr.top>vTop+vH*0.5) nav = Math.max(0, vTop+vH-nr.top); }
   const bottomLimit = vTop + vH - nav - 6, topLimit = vTop + 6;
   const spaceBelow = bottomLimit - (r.bottom + 3), spaceAbove = (r.top - 3) - topLimit;
-  const MAXH = 240, hint = Math.min(MAXH, dd.scrollHeight + 2);
+  const MAXH = 240*z, hint = Math.min(MAXH, dd.scrollHeight*z + 2);
   let arriba = spaceBelow < Math.min(hint, 150) && spaceAbove > spaceBelow;
   const room = Math.max(80, Math.min(MAXH, arriba ? spaceAbove : spaceBelow));
-  dd.style.maxHeight = room + 'px';
+  dd.style.maxHeight = (room/z) + 'px';
   const h = Math.min(hint, room);
-  dd.style.top = (arriba ? Math.max(topLimit, r.top - 3 - h) : (r.bottom + 3)) + 'px';
+  dd.style.top = ((arriba ? Math.max(topLimit, r.top - 3 - h) : (r.bottom + 3))/z) + 'px';
   const w = Math.min(r.width, vW - 8);
-  dd.style.width = w + 'px';
-  dd.style.left = Math.min(Math.max(vLeft + 4, r.left), vLeft + vW - w - 4) + 'px';
+  dd.style.width = (w/z) + 'px';
+  dd.style.left = (Math.min(Math.max(vLeft + 4, r.left), vLeft + vW - w - 4)/z) + 'px';
 }
 const ICONOS_CON_QUE = {'Baguette/Bolillo':'🥖','Galletas':'🍪','Pan artesanal Delico':'🍞','En vaso':'🥤','Bastones de verdura':'🥕','Fruta dulce':'🍓','Palitos de pan':'🥨','Espagueti':'🍝','Cebollín':'🌿','Aceite de oliva':'🫒','Totopos':'🌽','Papas':'🥔','Otro':'➕'};
 const ICONOS_CLIMA = {'Soleado':'☀️','Nublado':'☁️','Lluvia':'🌧️','Frío':'🥶','Calor extremo':'🔥'};
