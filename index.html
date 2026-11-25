@@ -709,6 +709,22 @@ body.hub-on #catalogoGrid{grid-template-columns:repeat(auto-fill,minmax(220px,1f
 #view-seguimiento .sg-bar button.pri{background:var(--brand-dark); color:#fff; border-color:var(--brand-dark); font-weight:700;}
 #view-seguimiento .sg-bar .sp{flex:1;}
 #view-seguimiento .sg-hint{font-size:12px; color:var(--ink-soft); margin:0 0 10px;}
+#view-avances .sg-bar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 10px;}
+#view-avances .sg-bar select, #view-avances .sg-bar button{font-family:inherit; font-size:13px; padding:7px 12px; border-radius:9px; border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer;}
+#view-avances .sg-bar button.pri{background:var(--brand-dark); color:#fff; border-color:var(--brand-dark); font-weight:700;}
+#view-avances .sg-empty{padding:24px; text-align:center; color:var(--ink-soft);} #view-avances .sg-empty.big{font-size:15px; padding:60px 20px;}
+#view-avances .sg-sec{font-weight:800; font-size:14px; margin:0 0 8px;} #view-avances .sg-sec small{font-weight:400; color:var(--ink-soft); font-size:11px;}
+.av-hero{background:var(--h-dark,#3a3e19); color:#fff; border-radius:14px; padding:14px 18px; margin-bottom:12px;} .av-hero b{display:block; font-size:18px;} .av-hero span{font-size:12.5px; opacity:.85;}
+.av-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;}
+.av-k{background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px;} .av-k span{display:block; font-size:10.5px; letter-spacing:.04em; color:var(--ink-soft); font-weight:700;} .av-k b{display:block; font-size:28px; line-height:1.15;} .av-k small{font-size:11.5px; color:var(--ink-soft);}
+.av-k em{font-style:normal; font-weight:800;} .av-k em.up{color:var(--good,#2e8b57);} .av-k em.dn{color:var(--bad,#c0392b);}
+.av-two{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;} .av-panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+.av-ul{list-style:none; margin:0; padding:0;} .av-i{font-size:13px; line-height:1.4; padding:5px 0; border-bottom:1px dashed var(--line);} .av-i:last-child{border-bottom:none;}
+.av-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;} .av-card{background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px 8px;} .av-t{font-weight:800; font-size:14px;} .av-s{font-size:11.5px; color:var(--ink-soft); margin-bottom:2px;}
+.av-svg{width:100%; height:auto; display:block;} .av-leg{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11.5px; color:var(--ink-soft); padding:2px 0 4px;} .av-leg i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px;}
+.av-tb{width:100%; border-collapse:collapse; font-size:12.5px;} .av-tb th{background:var(--surface-2); text-align:left; padding:6px 8px; font-size:11px; color:var(--ink-soft);} .av-tb td{padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:middle;} .av-pos{font-weight:800; color:var(--spring-dark,#6b7a2a); width:24px;}
+.av-tb .avu{color:var(--good,#2e8b57);} .av-tb .avd{color:var(--bad,#c0392b);} .av-foot{font-size:11px; color:var(--ink-soft); margin-top:6px;} .av-na{color:var(--ink-soft);}
+@media(max-width:1100px){ .av-kpis{grid-template-columns:repeat(2,1fr);} .av-two,.av-grid{grid-template-columns:1fr;} }
 #sgFrame{width:100%;}
 #sgStage{position:relative; overflow:hidden; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); margin:0 auto;}
 .sg-slide{position:absolute; left:0; top:0; width:1280px; height:720px; transform-origin:top left; display:none; box-sizing:border-box; background:#fff; color:var(--ink); overflow:hidden;}
@@ -1521,6 +1537,17 @@ table.sg-t.ctl th{font-size:9px;padding:4px 4px;white-space:normal;line-height:1
         <button class="pri" onclick="sgPresentar(true)">▶ Presentar</button>
       </div>
       <div id="sgFrame"><div id="sgStage"></div></div>
+    </section>
+
+    <!-- ---------- AVANCES KPIs (v184, solo KNAC01) ---------- -->
+    <section class="view" id="view-avances">
+      <h2 class="section-title">📈 Avances KPIs · cómo la app nos ayuda a gestionar mejor al equipo</h2>
+      <div class="sg-bar av-bar">
+        <label>Periodo <select id="avPeriodo" onchange="avCambiarPeriodo(this.value)"><option value="0">Desde que arrancaron (todo)</option><option value="16">Últimas 16 semanas</option><option value="8">Últimas 8 semanas</option><option value="4">Últimas 4 semanas</option></select></label>
+        <button class="pri" onclick="avCargar(true)" title="Volver a bajar todo el historial de capturas">↻ Actualizar historial</button>
+        <span id="avEstado" style="font-size:12px;"></span>
+      </div>
+      <div id="avBody"><div class="sg-empty big">Abre esta pestaña con internet para bajar el historial de capturas.</div></div>
     </section>
 
     <!-- ---------- PRÓXIMOS A CADUCAR (Supervisor+) ---------- -->
@@ -3884,6 +3911,7 @@ const ALL_TABS = [
   {key:'captura',       label:'Captura MEDI',                     perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'ejecucion'},
   {key:'monitoreo',     label:'Monitoreo tiempo real',             perfiles:NO_EMBAJADOR,   vista:{escritorio:true, celular:true},  bloque:'ejecucion', disabled:true},
   {key:'seguimiento', label:'Seguimiento semanal',            perfiles:NO_EMBAJADOR,   soloUsuarios:['CNAC01','GNAC01','KNAC01','MNAC01','PNAC01'], vista:{escritorio:true, celular:false}, bloque:'retro'},
+  {key:'avances',     label:'Avances KPIs',                   perfiles:NO_EMBAJADOR,   soloUsuarios:['KNAC01'], vista:{escritorio:true, celular:false}, bloque:'retro'},
   {key:'cumpventa',     label:'Cumplimiento de venta',             perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'distribucion',  label:'Cumplimiento de distribución',      perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
   {key:'cumplimiento',  label:'Cumplimiento de ruta',              perfiles:TODOS_PERFILES, vista:{escritorio:true, celular:true},  bloque:'retro'},
@@ -4038,6 +4066,257 @@ function boot(keepView){
      manual), solo ya no manda ese aviso automático. */
 }
 
+/* =====================================================================
+   v184 · AVANCES KPIs (solo KNAC01): cómo ha ido mejorando el equipo desde que adoptó la app.
+   Fuente: TODAS las capturas de la nube (capturas_medi, sin fotos) + rutas + cumplimiento_semanal (cuotas).
+   ===================================================================== */
+const AV_USUARIOS = ['KNAC01'];
+const AV = {caps:new Map(), est:{cargando:false, ok:false, n:0, err:null}, ult:0, C:null};
+const avPct = (a,b)=> b>0 ? a/b*100 : null;
+const avAvg = a=>{ const x=a.filter(v=>v!=null&&isFinite(v)); return x.length ? x.reduce((s,v)=>s+v,0)/x.length : null; };
+const avSemDe = iso=> Math.floor((new Date(iso+'T00:00:00Z').getTime() - Date.UTC(2025,11,29))/(7*864e5)) + 1;
+const avEtq = n=> n>=1 ? 'S'+n : sgFmtCorta(sgFechasSemana(n)[0]);
+const AV_GRUPOS = [['Check-in / out',['entrada_tienda','salida_tienda'],'#3a3e19'],['Caducidades',['caducidad'],'#dd6b3a'],['Degustación',['degustacion'],'#b6ad49'],['Incidencias',['incidencia'],'#a176b1'],['Precios / categoría / mercadeo',['precio_delico','precio_competencia','foto','mercadeo','carga_anaquel','factores_ambiente','onboarding'],'#5b8fa8'],['Gasto (ticket)',['gasto_ticket'],'#8a6d3b']];
+
+function avMin(d){
+  const f = d.foto, n1 = Array.isArray(f) ? f.filter(Boolean).length : (f ? 1 : 0), n2 = Array.isArray(d.fotos) ? d.fotos.length : 0;
+  return {id:d.id, tipo:d.tipo, usuario:d.usuario, persona:d.persona, fecha_registro:d.fecha_registro, tienda:d.tienda, cadena:d.cadena, geo_estado:d.geo_estado, clave:d.clave, fecha_caducidad:d.fecha_caducidad, piezas:d.piezas, seguimiento:d.seguimiento, caducado:d.caducado, piezas_caducadas:d.piezas_caducadas, total:d.total, es_prueba:d.es_prueba, foto_n:n1+n2+(d._fotos_solo_en_la_nube?1:0)};
+}
+function avPintaEstado(){
+  const el = document.getElementById('avEstado'); if(!el) return; const E = AV.est;
+  el.textContent = E.cargando ? ('⏳ Bajando TODO el historial de capturas del equipo (puede tardar un par de minutos la primera vez)… '+E.n) : (E.ok ? ('✓ Historial completo cargado ('+E.n+' capturas en la nube)') : (E.err ? ('⚠ No se pudo bajar el historial ('+E.err+'). Se muestra solo lo que ya está en este equipo.') : ''));
+  el.style.color = E.ok ? 'var(--ink-soft)' : (E.err ? 'var(--bad)' : 'var(--warn)');
+}
+async function avCargar(forzar){
+  if(AV.est.cargando || (AV.est.ok && !forzar)) return;
+  if(typeof db==='undefined' || !db){ AV.est = {cargando:false, ok:false, n:AV.caps.size, err:'sin conexión a la nube'}; avPintaEstado(); return; }
+  AV.est = {cargando:true, ok:false, n:AV.caps.size, err:null}; avPintaEstado();
+  try{
+    let last = null, total = 0;
+    for(let pg=0; pg<700; pg++){
+      let q = db.collection('capturas_medi').orderBy('fecha_registro').limit(150);
+      if(last) q = q.startAfter(last);
+      const snap = await q.get();
+      if(snap.empty) break;
+      snap.docs.forEach(dc=>{ AV.caps.set(dc.id, avMin({...dc.data(), id:dc.id})); total++; });
+      last = snap.docs[snap.docs.length-1]; AV.est.n = total; avPintaEstado();
+      if(snap.size<150) break;
+    }
+    AV.est = {cargando:false, ok:true, n:total, err:null};
+  }catch(e){ console.warn('avCargar', e); AV.est = {cargando:false, ok:false, n:AV.caps.size, err:(e&&(e.code||e.message))||String(e)}; }
+  avPintaEstado();
+  try{ const v = document.getElementById('view-avances'); if(v && v.classList.contains('active')) renderAvances(true); }catch(e){}
+}
+function avCapsTodas(embSet){
+  const m = new Map();
+  AV.caps.forEach((v,k)=>m.set(k,v));
+  try{ _sgCapsExtra.forEach((v,k)=>{ if(!m.has(k)) m.set(k, avMin({...v,id:k})); }); }catch(e){}
+  try{ getCapturasVer().forEach(c=>{ if(c && c.id && !m.has(c.id)) m.set(c.id, avMin(c)); }); }catch(e){}
+  const out = [];
+  m.forEach(c=>{ if(c && c.usuario && embSet.has(c.usuario) && c.fecha_registro && !c.es_prueba && !esTiendaPrueba(c.tienda) && c.tipo!=='incapacidad' && c.tipo!=='inasistencia') out.push(c); });
+  return out;
+}
+/* ---------- cálculo de todas las series por semana ---------- */
+function avCalcular(){
+  const hoy = todayISO(), nHoy = avSemDe(hoy);
+  const emb = APP_DATA.equipo.filter(u=>u.perfil==='Embajador' && !/^VACANTE/i.test(u.nombre));
+  const embSet = new Set(emb.map(u=>u.usuario));
+  const caps = avCapsTodas(embSet);
+  const W = {}, U = {};
+  const wk = n=> W[n] || (W[n] = {n, cap:0, users:new Set(), ci:0, co:0, rFoto:0, rN:0, geoOk:0, geoN:0, vis:new Map(), cad:0, cadPz:0, cadSeg:0, cadVenc:0, ant:[], gT:0, gN:0, tipos:{}});
+  const uw = (u,n)=>{ U[u] = U[u] || {}; return U[u][n] || (U[u][n] = {cap:0, vis:new Map(), ruta:null, cuota:null}); };
+  const realSet = new Set(), capsDia = new Map();
+  caps.forEach(c=>{
+    const d = fechaLocal(c.fecha_registro), n = avSemDe(d), w = wk(n), p = uw(c.usuario,n);
+    w.cap++; p.cap++; w.users.add(c.usuario); w.tipos[c.tipo] = (w.tipos[c.tipo]||0)+1;
+    if(c.tienda){ realSet.add(c.usuario+'|'+d+'|'+c.tienda); }
+    { const k = c.usuario+'|'+d; let e = capsDia.get(k); if(!e){ e=new Set(); capsDia.set(k,e); } if(c.tienda) e.add(c.tienda); }
+    if(c.tipo==='entrada_tienda' || c.tipo==='salida_tienda'){
+      const k = c.usuario+'|'+d+'|'+c.tienda;
+      for(const mp of [w.vis, p.vis]){ let o = mp.get(k); if(!o){ o={e:[], s:[]}; mp.set(k,o); } (c.tipo==='entrada_tienda' ? o.e : o.s).push(new Date(c.fecha_registro).getTime()); }
+      if(c.tipo==='entrada_tienda') w.ci++; else w.co++;
+      w.rN++; if((c.foto_n||0)>0) w.rFoto++;
+      if(c.geo_estado){ w.geoN++; if(c.geo_estado==='ok') w.geoOk++; }
+    } else if(c.tipo==='caducidad'){
+      if(c.caducado) w.cadVenc++;
+      else if(c.seguimiento) w.cadSeg++;
+      else { w.cad++; w.cadPz += parseFloat(c.piezas)||0; if(c.fecha_caducidad){ const a = (new Date(c.fecha_caducidad+'T00:00:00Z') - new Date(d+'T00:00:00Z'))/864e5; if(isFinite(a) && a>-400 && a<1000) w.ant.push(a); } }
+    } else if(c.tipo==='gasto_ticket'){ w.gT += parseFloat(c.total)||0; w.gN++; }
+  });
+  const estadia = vis=>{ const x=[]; vis.forEach(o=>{ if(o.e.length && o.s.length){ const e0=Math.min(...o.e), s1=o.s.filter(t=>t>e0); if(s1.length){ const m=(Math.max(...s1)-e0)/60000; if(m>=3 && m<=720) x.push(m); } } }); return x; };
+  const rutas = getRutas().filter(a=>a.tipo==='visita' && a.tienda && embSet.has(a.usuario) && a.fecha<=hoy);
+  const Mx = {capDia:c=>fechaLocal(c.fecha_registro), capsAll:caps, capsDia};
+  const cs = (APP_DATA.cumplimiento_semanal||[]).filter(r=>SG_CAD.includes(r.cadena));
+  const semMax = Math.min(nHoy, Math.max(...cs.map(r=>r.semana), 0));
+  const nums = Object.keys(W).map(Number).filter(n=>n<=nHoy).sort((a,b)=>a-b);
+  const filas = {};
+  nums.forEach(n=>{
+    const w = W[n], [f,t] = sgFechasSemana(n), v = [...w.vis.values()];
+    const visitas = v.filter(o=>o.e.length).length, cerr = v.filter(o=>o.e.length && o.s.some(s=>s>Math.min(...o.e))).length, est = estadia(w.vis);
+    const rr = rutas.filter(a=>a.fecha>=f && a.fecha<=t), rcum = rr.filter(a=>realSet.has(a.usuario+'|'+a.fecha+'|'+a.tienda)).length;
+    let as = null; try{ as = sgAsis(Mx, null, f, t); }catch(e){}
+    filas[n] = {n, f, t, parcial:(t>hoy), cap:w.cap, act:w.users.size, adop:avPct(w.users.size, emb.length), porPers:w.users.size ? w.cap/w.users.size : null,
+      visitas, cierre:avPct(cerr,visitas), estadia:avAvg(est), foto:avPct(w.rFoto,w.rN), geo:avPct(w.geoOk,w.geoN), ci:w.ci, co:w.co,
+      ruta:avPct(rcum,rr.length), rutaProg:rr.length, asis:(as&&as.lab)?as.pct:null, asisLab:as?as.lab:0,
+      cad:w.cad, cadPz:w.cadPz, cadSeg:w.cadSeg, cadVenc:w.cadVenc, ant:avAvg(w.ant), gasto:w.gT, gastoN:w.gN, gastoVis:visitas>0&&w.gT>0 ? w.gT/visitas : null, tipos:w.tipos};
+    const cr = cs.filter(r=>r.semana===n), cu = cr.reduce((a,r)=>a+(r.cuota_uni||0),0), re = cr.reduce((a,r)=>a+(r.real_uni||0),0);
+    filas[n].cuotaU = cu; filas[n].realU = re; filas[n].cuota = (cu>0 && re>0 && n<=semMax) ? avPct(re,cu) : null;
+  });
+  /* semanas con cuota pero sin capturas aún también se muestran en la gráfica de cuotas */
+  [...new Set(cs.map(r=>r.semana))].forEach(n=>{ if(n>semMax || filas[n]) return; const cr = cs.filter(r=>r.semana===n), cu = cr.reduce((a,r)=>a+(r.cuota_uni||0),0), re = cr.reduce((a,r)=>a+(r.real_uni||0),0); filas[n] = {n, f:sgFechasSemana(n)[0], t:sgFechasSemana(n)[1], parcial:false, cuotaU:cu, realU:re, cuota:(cu>0&&re>0)?avPct(re,cu):null, cap:0, act:0, tipos:{}}; });
+  /* inicio de adopción = primera semana con al menos 5 capturas */
+  const orden = Object.keys(filas).map(Number).sort((a,b)=>a-b);
+  const ini = orden.find(n=>filas[n].cap>=5) || orden[0];
+  /* personas */
+  const per = {};
+  emb.forEach(u=>{ per[u.usuario] = {u, nombre:nombreCorto(u.nombre), reg:(u.region==='FORÁNEAS'?'Foráneas':'Centro'), sem:{}}; });
+  let P0 = []; try{ const M0 = sgModelo(typeof SG!=='undefined' && SG.sem ? SG.sem : sgSemanaDefault()); P0 = sgPersonas(M0).filter(p=>!p.vac).map(p=>({usuario:p.u.usuario, keys:p.keys, score:sgScore(p,M0), A:p.A})); AV.M0 = M0; }catch(e){ console.warn('avances: sgPersonas', e); }
+  const keysDe = {}; P0.forEach(p=>keysDe[p.usuario]=p.keys);
+  orden.forEach(n=>{
+    const [f,t] = sgFechasSemana(n);
+    emb.forEach(u=>{
+      const o = (U[u.usuario]||{})[n] || {cap:0, vis:new Map()}; const vv = [...o.vis.values()];
+      const rr = rutas.filter(a=>a.usuario===u.usuario && a.fecha>=f && a.fecha<=t), rc = rr.filter(a=>realSet.has(a.usuario+'|'+a.fecha+'|'+a.tienda)).length;
+      let cuota = null; const ks = keysDe[u.usuario];
+      if(ks && n<=semMax && filas[n] && filas[n].cuota!=null){ let cu=0, re=0; cs.forEach(r=>{ if(r.semana===n && ks.has(sgKey(r.cadena,r.num_tienda))){ cu+=r.cuota_uni||0; re+=r.real_uni||0; } }); if(cu>0) cuota = avPct(re,cu); }
+      const vis = vv.filter(x=>x.e.length).length, cerr = vv.filter(x=>x.e.length && x.s.some(s=>s>Math.min(...x.e))).length;
+      const ruta = avPct(rc, rr.length), cierre = avPct(cerr, vis);
+      let idx = null; const c = [];
+      if(cuota!=null) c.push([SG_PESOS.bono, Math.min(100,cuota)]); if(ruta!=null) c.push([SG_PESOS.ruta, Math.min(100,ruta)]);
+      if(c.length){ const ws = c.reduce((a,x)=>a+x[0],0); idx = c.reduce((a,x)=>a+x[0]*x[1],0)/ws; }
+      per[u.usuario].sem[n] = {cap:o.cap, ruta, cierre, cuota, idx, vis};
+    });
+  });
+  P0.forEach(p=>{ if(per[p.usuario]){ per[p.usuario].score = p.score; per[p.usuario].A = p.A; } });
+  return {hoy, nHoy, emb, filas, orden, ini, per, semMax, nCaps:caps.length};
+}
+/* ---------- gráficas SVG ---------- */
+function avFmt(v, o){ if(v==null||!isFinite(v)) return '—'; if(o.pct) return Math.round(v)+'%'; if(o.money) return '$'+Math.round(v).toLocaleString('es-MX'); return (o.dec ? v.toFixed(o.dec) : Math.round(v).toLocaleString('es-MX')) + (o.suf||''); }
+function avLinea(titulo, sub, labels, series, o){
+  o = o||{}; const W=560, H=210, L=44, R=16, T=14, B=34, iw=W-L-R, ih=H-T-B;
+  const all = series.flatMap(s=>s.v).filter(v=>v!=null&&isFinite(v));
+  if(!all.length) return `<div class="av-card"><div class="av-t">${sgEsc(titulo)}</div><div class="av-s">${sgEsc(sub||'')}</div><div class="sg-empty">Sin datos todavía</div></div>`;
+  let mx = o.pct ? Math.max(100, ...all) : Math.max(...all)*1.12, mn = o.pct ? 0 : Math.min(0, ...all); if(mx<=mn) mx = mn+1;
+  const x = i=> L + (labels.length>1 ? i/(labels.length-1)*iw : iw/2), y = v=> T + ih - (v-mn)/(mx-mn)*ih;
+  let g=''; for(let k=0;k<=4;k++){ const val = mn+(mx-mn)*k/4, yy = y(val); g += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#e8e3cc" stroke-width="1"/><text x="${L-6}" y="${yy+3.5}" text-anchor="end" font-size="10" fill="#8a876d">${avFmt(val,{pct:o.pct,money:o.money,dec:o.dec&&val<20?o.dec:0})}</text>`; }
+  const step = Math.max(1, Math.ceil(labels.length/9)); labels.forEach((lb,i)=>{ if(i%step===0 || i===labels.length-1) g += `<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="10" fill="#8a876d">${sgEsc(lb)}</text>`; });
+  if(o.meta!=null) g += `<line x1="${L}" x2="${W-R}" y1="${y(o.meta)}" y2="${y(o.meta)}" stroke="#2e8b57" stroke-dasharray="5 4" stroke-width="1.2"/><text x="${W-R}" y="${y(o.meta)-4}" text-anchor="end" font-size="9.5" fill="#2e8b57">meta ${o.meta}${o.pct?'%':''}</text>`;
+  const ends = [];
+  series.forEach(s=>{
+    let d='', pen=false; s.v.forEach((v,i)=>{ if(v==null||!isFinite(v)){ pen=false; return; } d += (pen?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' '; pen=true; });
+    g += `<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    s.v.forEach((v,i)=>{ if(v!=null&&isFinite(v)) g += `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.8" fill="${s.c}"><title>${sgEsc(s.n)} · ${sgEsc(labels[i])}: ${avFmt(v,o)}</title></circle>`; });
+    let li=-1; s.v.forEach((v,i)=>{ if(v!=null&&isFinite(v)) li=i; }); if(li>=0) ends.push({x:x(li), y:y(s.v[li]), t:avFmt(s.v[li],o), c:s.c, li});
+  });
+  ends.sort((a,b)=>a.y-b.y); for(let i=1;i<ends.length;i++){ if(ends[i].y-ends[i-1].y<12) ends[i].y = ends[i-1].y+12; }
+  ends.forEach(e=>{ g += `<text x="${Math.min(W-R-2,e.x+6)}" y="${(e.y-5).toFixed(1)}" text-anchor="${e.li>labels.length-3?'end':'start'}" font-size="11" font-weight="700" fill="${e.c}" stroke="#fff" stroke-width="3" paint-order="stroke">${e.t}</text>`; });
+  const leg = series.length>1 ? '<div class="av-leg">'+series.map(s=>`<span><i style="background:${s.c}"></i>${sgEsc(s.n)}</span>`).join('')+'</div>' : '';
+  return `<div class="av-card"><div class="av-t">${sgEsc(titulo)}</div><div class="av-s">${sgEsc(sub||'')}</div><svg viewBox="0 0 ${W} ${H}" class="av-svg" role="img" aria-label="${sgEsc(titulo)}">${g}</svg>${leg}</div>`;
+}
+function avBarras(titulo, sub, labels, series, o){
+  o = o||{}; const W=560, H=210, L=44, R=16, T=14, B=34, iw=W-L-R, ih=H-T-B;
+  const tot = labels.map((_,i)=>series.reduce((a,s)=>a+(s.v[i]||0),0)); let mx = Math.max(...tot,1)*1.1;
+  if(!tot.some(v=>v>0)) return `<div class="av-card"><div class="av-t">${sgEsc(titulo)}</div><div class="av-s">${sgEsc(sub||'')}</div><div class="sg-empty">Sin datos todavía</div></div>`;
+  const bw = Math.min(30, iw/labels.length*0.7), x = i=> L + (i+0.5)/labels.length*iw, y = v=> T + ih - v/mx*ih;
+  let g=''; for(let k=0;k<=4;k++){ const val = mx*k/4, yy = y(val); g += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#e8e3cc"/><text x="${L-6}" y="${yy+3.5}" text-anchor="end" font-size="10" fill="#8a876d">${avFmt(val,{money:o.money})}</text>`; }
+  labels.forEach((lb,i)=>{ let acc=0; series.forEach(s=>{ const v=s.v[i]||0; if(v>0){ g += `<rect x="${(x(i)-bw/2).toFixed(1)}" y="${y(acc+v).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,y(acc)-y(acc+v)).toFixed(1)}" fill="${s.c}"><title>${sgEsc(s.n)} · ${sgEsc(lb)}: ${avFmt(v,{money:o.money})}</title></rect>`; } acc += v; });
+    g += `<text x="${x(i)}" y="${(y(tot[i])-4).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#6b6850">${tot[i]>0?avFmt(tot[i],{money:o.money}):''}</text>`; });
+  const step = Math.max(1, Math.ceil(labels.length/12)); labels.forEach((lb,i)=>{ if(i%step===0 || i===labels.length-1) g += `<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="10" fill="#8a876d">${sgEsc(lb)}</text>`; });
+  const leg = series.length>1 ? '<div class="av-leg">'+series.map(s=>`<span><i style="background:${s.c}"></i>${sgEsc(s.n)}</span>`).join('')+'</div>' : '';
+  return `<div class="av-card"><div class="av-t">${sgEsc(titulo)}</div><div class="av-s">${sgEsc(sub||'')}</div><svg viewBox="0 0 ${W} ${H}" class="av-svg" role="img" aria-label="${sgEsc(titulo)}">${g}</svg>${leg}</div>`;
+}
+function avSpark(vals, w, h){
+  const x = vals.filter(v=>v!=null); if(x.length<2) return '<span class="av-na">—</span>'; w=w||90; h=h||24;
+  const mn = Math.min(...x,0), mx = Math.max(...x,100), px = i=> 2 + i/(vals.length-1)*(w-4), py = v=> h-2-(v-mn)/(mx-mn)*(h-4);
+  let d='', pen=false; vals.forEach((v,i)=>{ if(v==null){ pen=false; return; } d += (pen?'L':'M')+px(i).toFixed(1)+' '+py(v).toFixed(1)+' '; pen=true; });
+  const last = x[x.length-1], col = last>=80 ? '#2e8b57' : (last>=60 ? '#d29a1a' : '#c0392b');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+/* ---------- insights automáticos ---------- */
+function avInsights(C, nums){
+  const F = C.filas, cerradas = nums.filter(n=>!F[n].parcial);
+  const out = []; if(cerradas.length<4) return [{t:'info', x:'Todavía hay pocas semanas cerradas para comparar el inicio contra hoy.'}];
+  const ini = cerradas.slice(0,3), fin = cerradas.slice(-3);
+  const m = (arr,k)=> avAvg(arr.map(n=>F[n][k]));
+  const defs = [['adop','Equipo activo en la app',1,'pp','Cada vez más personas capturan: la app ya es parte de la rutina.'],['porPers','Capturas por persona por semana',0,'n',''],['cierre','Visitas cerradas con check-out',1,'pp','El check-out permite medir estadía y confirmar que la visita terminó.'],['foto','Check-in/out con foto',1,'pp','La foto es la evidencia de la visita.'],['geo','Check-in/out dentro de la tienda (GPS)',1,'pp','Menos registros fuera de zona = más confianza en el dato.'],['ruta','Cumplimiento de ruta',1,'pp',''],['asis','Asistencia (día trabajado vs laborado)',1,'pp',''],['cuota','Cumplimiento de cuota semanal',1,'pp','']];
+  defs.forEach(([k,nom,pc,u,why])=>{
+    const a = m(ini,k), b = m(fin,k); if(a==null||b==null) return; const d = b-a;
+    if(u==='pp'){ const t = d>=5?'good':(d<=-5?'bad':'info'); out.push({t, x:`${nom}: ${d>=5?'subió':(d<=-5?'bajó':'se mantiene')} de ${Math.round(a)}% a ${Math.round(b)}% (${d>=0?'+':''}${Math.round(d)} pp desde el arranque).${t==='good'&&why?' '+why:''}`}); }
+    else { const r = a>0 ? (b/a-1)*100 : null; out.push({t:r!=null&&r>=10?'good':(r!=null&&r<=-10?'bad':'info'), x:`${nom}: de ${a.toFixed(1)} a ${b.toFixed(1)}${r!=null?` (${r>=0?'+':''}${Math.round(r)}%)`:''}.`}); }
+  });
+  const c1 = m(ini,'cad'), c2 = m(fin,'cad'); if(c1!=null&&c2!=null) out.push({t:c2>c1?'good':'info', x:`Caducidades: se capturan ${c2.toFixed(0)} lotes por semana (antes ${c1.toFixed(0)}). Más lotes visibles = más oportunidad de rotarlos a tiempo.`});
+  const an = m(fin,'ant'); if(an!=null) out.push({t:an>=45?'good':(an<20?'bad':'warn'), x:`Anticipación al capturar caducidades: ${Math.round(an)} días antes de la fecha en promedio.${an<30?' Conviene capturar con más margen (FEFO).':''}`});
+  const g1 = m(ini,'gasto'), g2 = m(fin,'gasto'), gv1 = m(ini,'gastoVis'), gv2 = m(fin,'gastoVis'); if(g2!=null) out.push({t:'info', x:`Gasto capturado en tickets: ${sgM(g2)} por semana${g1!=null?` (antes ${sgM(g1)})`:''}${gv2!=null?`; ${sgM(gv2)} por visita${gv1!=null?` (antes ${sgM(gv1)})`:''}`:''}.`});
+  return out;
+}
+/* ---------- render ---------- */
+function avCambiarPeriodo(v){ AV.ult = Number(v)||0; renderAvances(true); }
+function renderAvances(sinRecarga){
+  if(!currentUser || !AV_USUARIOS.includes(currentUser.usuario)) return;
+  if(!sinRecarga){ try{ avCargar(false); }catch(e){} }
+  const box = document.getElementById('avBody'); if(!box) return;
+  try{
+    if(AV.est.cargando){ avPintaEstado(); box.innerHTML = '<div class="sg-empty big">⏳ Bajando el historial completo de capturas del equipo… <b>'+AV.est.n+'</b><br><span style="font-size:13px;">Se arma sola al terminar. La primera vez tarda más; después queda en memoria.</span></div>'; return; }
+    const C = AV.C = avCalcular(); avPintaEstado();
+    const sel = document.getElementById('avPeriodo'); if(sel) sel.value = String(AV.ult);
+    let nums = C.orden.filter(n=>n>=C.ini && n<=C.nHoy); if(AV.ult>0) nums = nums.slice(-AV.ult);
+    if(!nums.length){ box.innerHTML = '<div class="sg-empty big">Aún no hay capturas suficientes para mostrar avances.</div>'; return; }
+    const F = C.filas, lab = nums.map(avEtq).map((l,i)=> F[nums[i]].parcial ? l+'*' : l), V = k=> nums.map(n=>F[n][k]==null||(F[n].cap===0&&k!=='cuota')?null:F[n][k]);
+    const cerr = nums.filter(n=>!F[n].parcial), ult = cerr[cerr.length-1], pri = cerr[0];
+    const comp = k=>{ const ok = n=> F[n][k]!=null && (F[n].cap>0 || k==='cuota'); const ws = cerr.filter(ok); const p0 = ws[0], p1 = ws[ws.length-1]; const a = p0!=null?F[p0][k]:null, b = p1!=null?F[p1][k]:null; return {a,b,p0,d:(a!=null&&b!=null&&p0!==p1)?b-a:null}; };
+    const kpi = (nom,k,fmt,bueno)=>{ const c = comp(k); const flecha = c.d==null ? '' : `<em class="${(bueno?c.d>=0:c.d<=0)?'up':'dn'}">${c.d>=0?'▲':'▼'} ${fmt==='pct'?Math.abs(Math.round(c.d))+' pp':Math.abs(c.d).toFixed(1)}</em>`;
+      return `<div class="av-k"><span>${nom}</span><b>${c.b==null?'—':(fmt==='pct'?Math.round(c.b)+'%':(fmt==='min'?Math.round(c.b)+' min':(fmt==='money'?sgM(c.b):c.b.toFixed(1))))}</b><small>${c.p0!=null?avEtq(c.p0):'—'}: ${c.a==null?'—':(fmt==='pct'?Math.round(c.a)+'%':(fmt==='min'?Math.round(c.a)+' min':(fmt==='money'?sgM(c.a):c.a.toFixed(1))))} ${flecha}</small></div>`; };
+    const kpis = `<div class="av-kpis">${kpi('EQUIPO ACTIVO','adop','pct',true)}${kpi('CAPTURAS / PERSONA','porPers','n',true)}${kpi('VISITAS CON CHECK-OUT','cierre','pct',true)}${kpi('CON FOTO','foto','pct',true)}${kpi('DENTRO DE TIENDA (GPS)','geo','pct',true)}${kpi('CUMPL. DE RUTA','ruta','pct',true)}${kpi('ASISTENCIA','asis','pct',true)}${kpi('CUOTA SEMANAL','cuota','pct',true)}</div>`;
+    const mix = AV_GRUPOS.map(([nom,tipos,c])=>({n:nom, c, v:nums.map(n=>tipos.reduce((a,t)=>a+((F[n].tipos||{})[t]||0),0))}));
+    const cuotaNums = C.orden.filter(n=>F[n].cuota!=null && n<=C.semMax); const cuotaLab = cuotaNums.map(avEtq);
+    const graf = [
+      avLinea('Adopción: equipo activo en la app','% de embajadoras/es con al menos 1 captura en la semana',lab,[{n:'Equipo activo',c:'#3a3e19',v:V('adop')}],{pct:true,meta:90}),
+      avBarras('Todo lo que captura el equipo','Capturas por semana, por tipo',lab,mix),
+      avLinea('Calidad del registro de visitas','Check-out cerrado · con foto · dentro de la tienda (GPS)',lab,[{n:'Visitas con check-out',c:'#3a3e19',v:V('cierre')},{n:'Con foto',c:'#dd6b3a',v:V('foto')},{n:'Dentro de tienda',c:'#5b8fa8',v:V('geo')}],{pct:true}),
+      avLinea('Estadía promedio en tienda','Minutos entre check-in y check-out',lab,[{n:'Minutos',c:'#a176b1',v:V('estadia')}],{dec:0,suf:' min'}),
+      avLinea('Disciplina de ruta','Cumplimiento de ruta (tienda programada) y asistencia (día trabajado)',lab,[{n:'Cumplimiento de ruta',c:'#3a3e19',v:V('ruta')},{n:'Asistencia',c:'#b6ad49',v:V('asis')}],{pct:true,meta:90}),
+      avLinea('Cuotas: cumplimiento semanal','Pzas vendidas ÷ cuota de la semana (4 cadenas ODV)',cuotaLab,[{n:'% de cuota',c:'#2e8b57',v:cuotaNums.map(n=>F[n].cuota)}],{pct:true}),
+      avBarras('Caducidades capturadas','Lotes nuevos y seguimientos por semana',lab,[{n:'Lotes nuevos',c:'#dd6b3a',v:V('cad').map(v=>v||0)},{n:'Seguimientos',c:'#b6ad49',v:V('cadSeg').map(v=>v||0)}]),
+      avLinea('Anticipación al capturar caducidades','Días entre la captura y la fecha de caducidad (más = mejor)',lab,[{n:'Días de anticipación',c:'#dd6b3a',v:V('ant')}],{dec:0,suf:' d'}),
+      avBarras('Gasto capturado (tickets)','Pesos por semana',lab,[{n:'Gasto',c:'#8a6d3b',v:V('gasto').map(v=>v||0)}],{money:true}),
+      avLinea('Gasto por visita','Pesos de gasto ÷ visitas con check-in',lab,[{n:'$ por visita',c:'#8a6d3b',v:V('gastoVis')}],{money:true})
+    ].join('');
+    /* insights */
+    const ins = avInsights(C, nums.length>=4 ? C.orden.filter(n=>n>=C.ini && n<=C.nHoy) : nums);
+    const icono = {good:'✅', bad:'🔴', warn:'🟡', info:'ℹ️'};
+    const inHtml = ins.map(i=>`<li class="av-i ${i.t}">${icono[i.t]||''} ${sgEsc(i.x)}</li>`).join('');
+    /* qué corregir (personas) */
+    const ult3 = cerr.slice(-3), P = Object.values(C.per).filter(p=>p.sem && ult3.some(n=>p.sem[n]));
+    const med = (p,k)=>avAvg(ult3.map(n=>p.sem[n]&&p.sem[n][k]));
+    P.forEach(p=>{ p.r3 = med(p,'ruta'); p.c3 = med(p,'cierre'); p.q3 = med(p,'cuota'); p.i3 = med(p,'idx'); p.cap3 = med(p,'cap'); p.iAnt = avAvg(cerr.slice(0,3).map(n=>p.sem[n]&&p.sem[n].idx)); });
+    const filasP = P.slice().sort((a,b)=>((b.score!=null?b.score:b.i3)||0)-((a.score!=null?a.score:a.i3)||0));
+    const cuadro = filasP.map((p,i)=>{ const s = p.score!=null ? p.score : p.i3; const d = (p.i3!=null && p.iAnt!=null) ? p.i3-p.iAnt : null;
+      return `<tr><td class="av-pos">${i+1}</td><td><b>${sgEsc(p.nombre)}</b><br><small>${p.reg}</small></td><td>${s!=null?sgStars(s)+' <small>'+sgN(s)+' pts</small>':'—'}</td><td>${p.cap3!=null?p.cap3.toFixed(0):'—'}</td><td>${p.r3!=null?sgP(p.r3):'—'}</td><td>${p.c3!=null?sgP(p.c3):'—'}</td><td>${p.q3!=null?sgP(p.q3):'—'}</td><td>${avSpark(cerr.slice(-10).map(n=>p.sem[n]?p.sem[n].idx:null))}</td><td>${d==null?'—':`<b class="${d>=0?'avu':'avd'}">${d>=0?'▲':'▼'} ${Math.abs(Math.round(d))}</b>`}</td></tr>`; }).join('');
+    const rojos = filasP.filter(p=>(p.r3!=null&&p.r3<80) || (p.c3!=null&&p.c3<70)).slice(-5).reverse();
+    const verdes = filasP.slice(0,3).filter(p=>(p.score||p.i3||0)>=80);
+    const acciones = [];
+    const fin = F[ult] || {};
+    if(fin.cierre!=null && fin.cierre<85) acciones.push(`Reforzar el check-out: hoy solo ${Math.round(fin.cierre)}% de las visitas lo cierra. Sin check-out no hay estadía medible.`);
+    if(fin.geo!=null && fin.geo<85) acciones.push(`${Math.round(100-fin.geo)}% de los registros se hacen fuera de la tienda: revisar con quienes lo hacen antes de entrar/salir.`);
+    if(fin.foto!=null && fin.foto<90) acciones.push(`Subir la evidencia: ${Math.round(100-fin.foto)}% de los check-in/out no trae foto.`);
+    if(fin.adop!=null && fin.adop<90) acciones.push(`Activar al equipo faltante: solo ${Math.round(fin.adop)}% capturó algo la última semana cerrada.`);
+    if(fin.ant!=null && fin.ant<30) acciones.push(`Capturar caducidades con más anticipación: hoy se registran a ${Math.round(fin.ant)} días de la fecha.`);
+    rojos.forEach(p=>acciones.push(`${p.nombre}: ${p.r3!=null&&p.r3<80?'ruta '+Math.round(p.r3)+'%':''}${p.r3!=null&&p.r3<80&&p.c3!=null&&p.c3<70?' · ':''}${p.c3!=null&&p.c3<70?'check-out '+Math.round(p.c3)+'%':''} en las últimas 3 semanas — platicar y acordar plan.`));
+    if(!acciones.length) acciones.push('Sin alertas fuertes en las últimas 3 semanas cerradas. Mantener el ritmo y subir la vara de la meta.');
+    const nCerr = cerr.length;
+    box.innerHTML = `
+      <div class="av-hero"><b>Evolución desde que el equipo adoptó la app</b><span>Arranque: semana ${avEtq(C.ini)} (${sgFmtCorta(sgFechasSemana(C.ini)[0])}) · ${nCerr} semanas cerradas · ${C.emb.length} embajadoras/es en la medición · ${sgN(C.nCaps)} capturas analizadas. Las tarjetas comparan ${avEtq(pri)} contra ${avEtq(ult)}.</span></div>
+      ${kpis}
+      <div class="av-two"><div class="av-panel"><div class="sg-sec">💡 Insights: qué mejoró y qué no</div><ul class="av-ul">${inHtml}</ul></div>
+      <div class="av-panel"><div class="sg-sec">🔧 Qué corregir ya</div><ul class="av-ul">${acciones.map(a=>`<li class="av-i warn">• ${sgEsc(a)}</li>`).join('')}</ul>${verdes.length?`<div class="sg-sec" style="margin-top:10px;">⭐ Lo que está funcionando</div><ul class="av-ul"><li class="av-i good">${verdes.map(p=>sgEsc(p.nombre)).join(', ')} sostienen resultados de 4–5 estrellas.</li></ul>`:''}</div></div>
+      <div class="av-grid">${graf}</div>
+      <div class="av-panel" style="margin-top:12px;"><div class="sg-sec">⭐ Cuadro de honor y su evolución <small>(puntos oficiales de la semana ${SG&&SG.sem?SG.sem:sgSemanaDefault()}: bono ${Math.round(SG_PESOS.bono*100)}% · distribución ${Math.round(SG_PESOS.dist*100)}% · ruta ${Math.round(SG_PESOS.ruta*100)}%; la línea es el índice semanal bono+ruta de las últimas 10 semanas)</small></div>
+      <div style="overflow:auto;"><table class="av-tb"><thead><tr><th>#</th><th>Persona</th><th>Calificación</th><th>Capt./sem</th><th>Ruta</th><th>Check-out</th><th>Cuota</th><th>Evolución</th><th>vs arranque</th></tr></thead><tbody>${cuadro}</tbody></table></div>
+      <div class="av-foot">Promedios de las últimas 3 semanas cerradas. "vs arranque" compara el índice semanal contra las primeras 3 semanas. * = semana en curso (no se usa para comparar).</div></div>`;
+  }catch(e){ console.error('renderAvances', e); box.innerHTML = '<div class="sg-empty big">No pude armar los avances: '+sgEsc(e.message)+'</div>'; }
+}
+
+
 function toggleMobileNav(force){
   const nav = document.getElementById('tabsNav');
   const overlay = document.getElementById('navOverlay');
@@ -4057,6 +4336,7 @@ function showView(key, btnEl){
   if(key==='reportes') renderReportes();
   if(key==='proxcaducar') renderProxCaducar();
   if(key==='seguimiento') renderSeguimiento();
+  if(key==='avances') renderAvances();
   if(key==='captura'){ renderCheckinBar(); renderMisCapturas(); renderExtraTiendaBox(); }
   if(key==='planeacion'){ renderPlaneacion(); renderTareas(); }
   if(key==='ruta') renderRuta();
