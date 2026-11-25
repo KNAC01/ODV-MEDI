@@ -724,6 +724,7 @@ body.hub-on #catalogoGrid{grid-template-columns:repeat(auto-fill,minmax(220px,1f
 .av-svg{width:100%; height:auto; display:block;} .av-leg{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11.5px; color:var(--ink-soft); padding:2px 0 4px;} .av-leg i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px;}
 .av-tb{width:100%; border-collapse:collapse; font-size:12.5px;} .av-tb th{background:var(--surface-2); text-align:left; padding:6px 8px; font-size:11px; color:var(--ink-soft);} .av-tb td{padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:middle;} .av-pos{font-weight:800; color:var(--spring-dark,#6b7a2a); width:24px;}
 .av-tb .avu{color:var(--good,#2e8b57);} .av-tb .avd{color:var(--bad,#c0392b);} .av-foot{font-size:11px; color:var(--ink-soft); margin-top:6px;} .av-na{color:var(--ink-soft);}
+/* v185 */ .av-who{font-size:11.5px; line-height:1.35; margin-top:6px; padding:5px 7px; border-radius:7px;} .av-who.bad{background:#fdecea; color:#8a2a1e;} .av-who.ok{background:#eaf5ee; color:#1f6b40;} .av-k .av-who b{display:inline; font-size:inherit; line-height:inherit; font-weight:800;} .av-who i{opacity:.75;}
 @media(max-width:1100px){ .av-kpis{grid-template-columns:repeat(2,1fr);} .av-two,.av-grid{grid-template-columns:1fr;} }
 #sgFrame{width:100%;}
 #sgStage{position:relative; overflow:hidden; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); margin:0 auto;}
@@ -1539,7 +1540,7 @@ table.sg-t.ctl th{font-size:9px;padding:4px 4px;white-space:normal;line-height:1
       <div id="sgFrame"><div id="sgStage"></div></div>
     </section>
 
-    <!-- ---------- AVANCES KPIs (v184, solo KNAC01) ---------- -->
+    <!-- ---------- AVANCES KPIs (v185, solo KNAC01) ---------- -->
     <section class="view" id="view-avances">
       <h2 class="section-title">📈 Avances KPIs · cómo la app nos ayuda a gestionar mejor al equipo</h2>
       <div class="sg-bar av-bar">
@@ -4080,7 +4081,7 @@ const AV_GRUPOS = [['Check-in / out',['entrada_tienda','salida_tienda'],'#3a3e19
 
 function avMin(d){
   const f = d.foto, n1 = Array.isArray(f) ? f.filter(Boolean).length : (f ? 1 : 0), n2 = Array.isArray(d.fotos) ? d.fotos.length : 0;
-  return {id:d.id, tipo:d.tipo, usuario:d.usuario, persona:d.persona, fecha_registro:d.fecha_registro, tienda:d.tienda, cadena:d.cadena, geo_estado:d.geo_estado, clave:d.clave, fecha_caducidad:d.fecha_caducidad, piezas:d.piezas, seguimiento:d.seguimiento, caducado:d.caducado, piezas_caducadas:d.piezas_caducadas, total:d.total, es_prueba:d.es_prueba, foto_n:n1+n2+(d._fotos_solo_en_la_nube?1:0)};
+  return {id:d.id, tipo:d.tipo, usuario:d.usuario, persona:d.persona, fecha_registro:d.fecha_registro, tienda:d.tienda, cadena:d.cadena, geo_estado:d.geo_estado, clave:d.clave, fecha_caducidad:d.fecha_caducidad, piezas:d.piezas, seguimiento:d.seguimiento, caducado:d.caducado, piezas_caducadas:d.piezas_caducadas, total:d.total, es_prueba:d.es_prueba, lineas:(Array.isArray(d.lineas)?d.lineas.map(l=>({tipo:l.tipo, detalle:l.detalle, costo:l.costo})):undefined), foto_n:n1+n2+(d._fotos_solo_en_la_nube?1:0)};
 }
 function avPintaEstado(){
   const el = document.getElementById('avEstado'); if(!el) return; const E = AV.est;
@@ -4124,7 +4125,8 @@ function avCalcular(){
   const caps = avCapsTodas(embSet);
   const W = {}, U = {};
   const wk = n=> W[n] || (W[n] = {n, cap:0, users:new Set(), ci:0, co:0, rFoto:0, rN:0, geoOk:0, geoN:0, vis:new Map(), cad:0, cadPz:0, cadSeg:0, cadVenc:0, ant:[], gT:0, gN:0, tipos:{}});
-  const uw = (u,n)=>{ U[u] = U[u] || {}; return U[u][n] || (U[u][n] = {cap:0, vis:new Map(), ruta:null, cuota:null}); };
+  const uw = (u,n)=>{ U[u] = U[u] || {}; return U[u][n] || (U[u][n] = {cap:0, vis:new Map(), rN:0, rFoto:0, geoN:0, geoOk:0, tk:0, tkM:0, deg:0, cad:0}); };
+  const TK = [];
   const realSet = new Set(), capsDia = new Map();
   caps.forEach(c=>{
     const d = fechaLocal(c.fecha_registro), n = avSemDe(d), w = wk(n), p = uw(c.usuario,n);
@@ -4135,13 +4137,14 @@ function avCalcular(){
       const k = c.usuario+'|'+d+'|'+c.tienda;
       for(const mp of [w.vis, p.vis]){ let o = mp.get(k); if(!o){ o={e:[], s:[]}; mp.set(k,o); } (c.tipo==='entrada_tienda' ? o.e : o.s).push(new Date(c.fecha_registro).getTime()); }
       if(c.tipo==='entrada_tienda') w.ci++; else w.co++;
-      w.rN++; if((c.foto_n||0)>0) w.rFoto++;
-      if(c.geo_estado){ w.geoN++; if(c.geo_estado==='ok') w.geoOk++; }
+      w.rN++; p.rN++; if((c.foto_n||0)>0){ w.rFoto++; p.rFoto++; }
+      if(c.geo_estado){ w.geoN++; p.geoN++; if(c.geo_estado==='ok'){ w.geoOk++; p.geoOk++; } }
     } else if(c.tipo==='caducidad'){
       if(c.caducado) w.cadVenc++;
       else if(c.seguimiento) w.cadSeg++;
-      else { w.cad++; w.cadPz += parseFloat(c.piezas)||0; if(c.fecha_caducidad){ const a = (new Date(c.fecha_caducidad+'T00:00:00Z') - new Date(d+'T00:00:00Z'))/864e5; if(isFinite(a) && a>-400 && a<1000) w.ant.push(a); } }
-    } else if(c.tipo==='gasto_ticket'){ w.gT += parseFloat(c.total)||0; w.gN++; }
+      else { w.cad++; p.cad++; w.cadPz += parseFloat(c.piezas)||0; if(c.fecha_caducidad){ const a = (new Date(c.fecha_caducidad+'T00:00:00Z') - new Date(d+'T00:00:00Z'))/864e5; if(isFinite(a) && a>-400 && a<1000) w.ant.push(a); } }
+    } else if(c.tipo==='gasto_ticket'){ const tt = parseFloat(c.total)||0; w.gT += tt; w.gN++; p.tk++; p.tkM += tt; TK.push({u:c.usuario, n, d, tot:tt, lineas:c.lineas, cadena:c.cadena, tienda:c.tienda}); }
+    else if(c.tipo==='degustacion'){ p.deg++; }
   });
   const estadia = vis=>{ const x=[]; vis.forEach(o=>{ if(o.e.length && o.s.length){ const e0=Math.min(...o.e), s1=o.s.filter(t=>t>e0); if(s1.length){ const m=(Math.max(...s1)-e0)/60000; if(m>=3 && m<=720) x.push(m); } } }); return x; };
   const rutas = getRutas().filter(a=>a.tipo==='visita' && a.tienda && embSet.has(a.usuario) && a.fecha<=hoy);
@@ -4181,14 +4184,15 @@ function avCalcular(){
       if(ks && n<=semMax && filas[n] && filas[n].cuota!=null){ let cu=0, re=0; cs.forEach(r=>{ if(r.semana===n && ks.has(sgKey(r.cadena,r.num_tienda))){ cu+=r.cuota_uni||0; re+=r.real_uni||0; } }); if(cu>0) cuota = avPct(re,cu); }
       const vis = vv.filter(x=>x.e.length).length, cerr = vv.filter(x=>x.e.length && x.s.some(s=>s>Math.min(...x.e))).length;
       const ruta = avPct(rc, rr.length), cierre = avPct(cerr, vis);
+      let asL = 0, asT = 0; if(n>=nHoy-5 && n<=nHoy){ try{ const a = sgAsis(Mx, x=>x===u.usuario, f, t); asL = a.lab; asT = a.trab; }catch(e){} }
       let idx = null; const c = [];
       if(cuota!=null) c.push([SG_PESOS.bono, Math.min(100,cuota)]); if(ruta!=null) c.push([SG_PESOS.ruta, Math.min(100,ruta)]);
       if(c.length){ const ws = c.reduce((a,x)=>a+x[0],0); idx = c.reduce((a,x)=>a+x[0]*x[1],0)/ws; }
-      per[u.usuario].sem[n] = {cap:o.cap, ruta, cierre, cuota, idx, vis};
+      per[u.usuario].sem[n] = {cap:o.cap, ruta, cierre, cuota, idx, vis, rN:o.rN||0, rFoto:o.rFoto||0, geoN:o.geoN||0, geoOk:o.geoOk||0, rProg:rr.length, rCum:rc, tk:o.tk||0, tkM:o.tkM||0, deg:o.deg||0, cad:o.cad||0, visN:vis, cerrN:cerr, asL, asT};
     });
   });
   P0.forEach(p=>{ if(per[p.usuario]){ per[p.usuario].score = p.score; per[p.usuario].A = p.A; } });
-  return {hoy, nHoy, emb, filas, orden, ini, per, semMax, nCaps:caps.length};
+  return {hoy, nHoy, emb, filas, orden, ini, per, semMax, nCaps:caps.length, TK, capsDia, realSet, Mx};
 }
 /* ---------- gráficas SVG ---------- */
 function avFmt(v, o){ if(v==null||!isFinite(v)) return '—'; if(o.pct) return Math.round(v)+'%'; if(o.money) return '$'+Math.round(v).toLocaleString('es-MX'); return (o.dec ? v.toFixed(o.dec) : Math.round(v).toLocaleString('es-MX')) + (o.suf||''); }
@@ -4264,9 +4268,23 @@ function renderAvances(sinRecarga){
     const F = C.filas, lab = nums.map(avEtq).map((l,i)=> F[nums[i]].parcial ? l+'*' : l), V = k=> nums.map(n=>F[n][k]==null||(F[n].cap===0&&k!=='cuota')?null:F[n][k]);
     const cerr = nums.filter(n=>!F[n].parcial), ult = cerr[cerr.length-1], pri = cerr[0];
     const comp = k=>{ const ok = n=> F[n][k]!=null && (F[n].cap>0 || k==='cuota'); const ws = cerr.filter(ok); const p0 = ws[0], p1 = ws[ws.length-1]; const a = p0!=null?F[p0][k]:null, b = p1!=null?F[p1][k]:null; return {a,b,p0,d:(a!=null&&b!=null&&p0!==p1)?b-a:null}; };
-    const kpi = (nom,k,fmt,bueno)=>{ const c = comp(k); const flecha = c.d==null ? '' : `<em class="${(bueno?c.d>=0:c.d<=0)?'up':'dn'}">${c.d>=0?'▲':'▼'} ${fmt==='pct'?Math.abs(Math.round(c.d))+' pp':Math.abs(c.d).toFixed(1)}</em>`;
-      return `<div class="av-k"><span>${nom}</span><b>${c.b==null?'—':(fmt==='pct'?Math.round(c.b)+'%':(fmt==='min'?Math.round(c.b)+' min':(fmt==='money'?sgM(c.b):c.b.toFixed(1))))}</b><small>${c.p0!=null?avEtq(c.p0):'—'}: ${c.a==null?'—':(fmt==='pct'?Math.round(c.a)+'%':(fmt==='min'?Math.round(c.a)+' min':(fmt==='money'?sgM(c.a):c.a.toFixed(1))))} ${flecha}</small></div>`; };
-    const kpis = `<div class="av-kpis">${kpi('EQUIPO ACTIVO','adop','pct',true)}${kpi('CAPTURAS / PERSONA','porPers','n',true)}${kpi('VISITAS CON CHECK-OUT','cierre','pct',true)}${kpi('CON FOTO','foto','pct',true)}${kpi('DENTRO DE TIENDA (GPS)','geo','pct',true)}${kpi('CUMPL. DE RUTA','ruta','pct',true)}${kpi('ASISTENCIA','asis','pct',true)}${kpi('CUOTA SEMANAL','cuota','pct',true)}</div>`;
+    const kpi = (nom,k,fmt,bueno,who)=>{ const c = comp(k); const flecha = c.d==null ? '' : `<em class="${(bueno?c.d>=0:c.d<=0)?'up':'dn'}">${c.d>=0?'▲':'▼'} ${fmt==='pct'?Math.abs(Math.round(c.d))+' pp':Math.abs(c.d).toFixed(1)}</em>`;
+      return `<div class="av-k"><span>${nom}</span><b>${c.b==null?'—':(fmt==='pct'?Math.round(c.b)+'%':(fmt==='min'?Math.round(c.b)+' min':(fmt==='money'?sgM(c.b):c.b.toFixed(1))))}</b><small>${c.p0!=null?avEtq(c.p0):'—'}: ${c.a==null?'—':(fmt==='pct'?Math.round(c.a)+'%':(fmt==='min'?Math.round(c.a)+' min':(fmt==='money'?sgM(c.a):c.a.toFixed(1))))} ${flecha}</small>${who||''}</div>`; };
+    /* ---- quiénes no: últimas 3 semanas cerradas, por persona ---- */
+    const u3 = cerr.slice(-3), EP = Object.values(C.per);
+    const sm = (p,k)=>u3.reduce((a,n)=>a+(((p.sem||{})[n]||{})[k]||0),0);
+    const nomP = p=>sgEsc(p.nombre);
+    const quien = (lista, meta, txtMeta, fmtV)=>{
+      if(!lista.length) return `<div class="av-who ok">✅ Nadie por debajo de ${txtMeta||(meta+'%')}</div>`;
+      const ord = lista.sort((a,b)=>a.v-b.v), mostr = ord.slice(0,4).map(x=>`${nomP(x.p)} <b>${fmtV?fmtV(x.v):Math.round(x.v)+'%'}</b>`).join(' · ');
+      return `<div class="av-who bad" title="${sgEsc(ord.map(x=>x.p.nombre+' '+(fmtV?fmtV(x.v):Math.round(x.v)+'%')).join(' | '))}">⚠ ${ord.length} por debajo de ${txtMeta||meta+'%'}: ${mostr}${ord.length>4?' <i>+'+(ord.length-4)+' más</i>':''}</div>`;
+    };
+    const rat = (fa,fb,minB,meta)=> EP.map(p=>({p, a:sm(p,fa), b:sm(p,fb)})).filter(x=>x.b>=minB).map(x=>({p:x.p, v:x.a/x.b*100})).filter(x=>x.v<meta);
+    const W_ad = (()=>{ const sin = EP.filter(p=>!((p.sem||{})[ult]||{}).cap); if(!sin.length) return '<div class="av-who ok">✅ Todo el equipo capturó</div>'; return `<div class="av-who bad" title="${sgEsc(sin.map(p=>p.nombre).join(' | '))}">⚠ ${sin.length} sin capturar ${avEtq(ult)}: ${sin.slice(0,4).map(nomP).join(' · ')}${sin.length>4?' <i>+'+(sin.length-4)+' más</i>':''}</div>`; })();
+    const W_pp = (()=>{ const x = EP.map(p=>({p, v:sm(p,'cap')/Math.max(1,u3.length)})).filter(o=>o.p.sem && u3.some(n=>o.p.sem[n])); if(!x.length) return ''; const prom = avAvg(x.map(o=>o.v)); const baj = x.filter(o=>o.v<prom*0.5); return quien(baj, 0, '50% del promedio ('+Math.round(prom)+')', v=>Math.round(v)+' caps'); })();
+    const W_as = (()=>{ const x = EP.map(p=>({p, a:sm(p,'asT'), b:sm(p,'asL')})).filter(o=>o.b>=3).map(o=>({p:o.p, v:o.a/o.b*100})).filter(o=>o.v<90); return quien(x, 90); })();
+    const W_cu = (()=>{ const x = EP.map(p=>({p, v:avAvg(u3.map(n=>(p.sem||{})[n]&&p.sem[n].cuota))})).filter(o=>o.v!=null && o.v<80); return quien(x, 80); })();
+    const kpis = `<div class="av-kpis">${kpi('EQUIPO ACTIVO','adop','pct',true,W_ad)}${kpi('CAPTURAS / PERSONA','porPers','n',true,W_pp)}${kpi('VISITAS CON CHECK-OUT','cierre','pct',true,quien(rat('cerrN','visN',3,70),70))}${kpi('CON FOTO','foto','pct',true,quien(rat('rFoto','rN',4,85),85))}${kpi('DENTRO DE TIENDA (GPS)','geo','pct',true,quien(rat('geoOk','geoN',4,85),85))}${kpi('CUMPL. DE RUTA','ruta','pct',true,quien(rat('rCum','rProg',3,80),80))}${kpi('ASISTENCIA','asis','pct',true,W_as)}${kpi('CUOTA SEMANAL','cuota','pct',true,W_cu)}</div><div class="av-foot" style="margin:-6px 0 12px;">Los avisos "por debajo" miran a cada persona en las últimas 3 semanas cerradas (${u3.map(avEtq).join(', ')}).</div>`;
     const mix = AV_GRUPOS.map(([nom,tipos,c])=>({n:nom, c, v:nums.map(n=>tipos.reduce((a,t)=>a+((F[n].tipos||{})[t]||0),0))}));
     const cuotaNums = C.orden.filter(n=>F[n].cuota!=null && n<=C.semMax); const cuotaLab = cuotaNums.map(avEtq);
     const graf = [
@@ -4304,11 +4322,65 @@ function renderAvances(sinRecarga){
     rojos.forEach(p=>acciones.push(`${p.nombre}: ${p.r3!=null&&p.r3<80?'ruta '+Math.round(p.r3)+'%':''}${p.r3!=null&&p.r3<80&&p.c3!=null&&p.c3<70?' · ':''}${p.c3!=null&&p.c3<70?'check-out '+Math.round(p.c3)+'%':''} en las últimas 3 semanas — platicar y acordar plan.`));
     if(!acciones.length) acciones.push('Sin alertas fuertes en las últimas 3 semanas cerradas. Mantener el ritmo y subir la vara de la meta.');
     const nCerr = cerr.length;
+    /* ---- gastos y captura de tickets ---- */
+    const gastosHtml = (()=>{
+      const demos = C.emb.filter(sgEsDemo), dSet = new Set(demos.map(u=>u.usuario));
+      if(!demos.length) return '';
+      const w4 = new Set(cerr.slice(-4)), w4p = new Set(cerr.slice(-8,-4)), wPer = new Set(nums.filter(n=>!F[n].parcial));
+      const tk = C.TK.filter(t=>dSet.has(t.u));
+      const tkA = tk.filter(t=>w4.has(t.n)), tkP = tk.filter(t=>w4p.has(t.n)), tkPer = tk.filter(t=>wPer.has(t.n));
+      const suma = a=>a.reduce((x,t)=>x+t.tot,0);
+      const chA = demos.reduce((a,u)=>a+[...w4].reduce((b,n)=>b+((((C.per[u.usuario]||{}).sem||{})[n]||{}).deg||0),0),0);
+      const chP = demos.reduce((a,u)=>a+[...w4p].reduce((b,n)=>b+((((C.per[u.usuario]||{}).sem||{})[n]||{}).deg||0),0),0);
+      const gA = suma(tkA), gP = suma(tkP), gPer = suma(tkPer);
+      const dif = (a,b)=> (b>0 ? ((a-b)/b*100) : null);
+      const flechaG = (a,b,malo)=>{ const d = dif(a,b); if(d==null) return ''; const sube = d>=0; return `<em class="${(malo?!sube:sube)?'up':'dn'}">${sube?'▲':'▼'} ${Math.abs(Math.round(d))}% vs 4 sem. antes</em>`; };
+      const lbl = `${avEtq(cerr[Math.max(0,cerr.length-4)])}–${avEtq(ult)}`;
+      /* por persona (4 semanas) */
+      const filas = demos.map(u=>{ const pp = C.per[u.usuario]||{sem:{}}; const mis = tkA.filter(t=>t.u===u.usuario); const g = suma(mis);
+        const ch = [...w4].reduce((b,n)=>b+((pp.sem[n]||{}).deg||0),0), cap = [...w4].reduce((b,n)=>b+((pp.sem[n]||{}).cap||0),0);
+        const ult_t = tk.filter(t=>t.u===u.usuario).reduce((m,t)=>t.d>m?t.d:m,''); const dias = ult_t ? Math.floor((new Date(C.hoy+'T00:00:00Z')-new Date(ult_t+'T00:00:00Z'))/864e5) : null;
+        return {u, nombre:nombreCorto(u.nombre), tk:mis.length, g, ch, cap, cch:(ch>0&&g>0)?g/ch:null, ult:ult_t, dias, reg:(u.region==='FORÁNEAS'?'Foráneas':'Centro')}; });
+      const activos = filas.filter(f=>f.cap>0);
+      const conTk = activos.filter(f=>f.tk>0), sinTk = activos.filter(f=>f.tk===0).sort((a,b)=>b.ch-a.ch);
+      const adopTk = activos.length ? conTk.length/activos.length*100 : null;
+      /* categorías (periodo seleccionado) y cadenas (4 sem) */
+      const cat = {}; SG_CATS.forEach(k=>cat[k]=0);
+      tkPer.forEach(t=>{ if(t.lineas&&t.lineas.length) t.lineas.forEach(l=>{ cat[sgCatLinea(l)] += parseFloat(l.costo)||0; }); else cat['Sin desglose'] += t.tot; });
+      const totCat = SG_CATS.reduce((a,k)=>a+cat[k],0), maxCat = Math.max(1,...SG_CATS.map(k=>cat[k]));
+      const barras = (obj, total, mx)=> Object.keys(obj).filter(k=>obj[k]>0).sort((a,b)=>obj[b]-obj[a]).map(k=>`<div class="sg-bh"><span class="sg-bh-l">${sgEsc(k)}</span><span class="sg-bh-t"><i style="width:${Math.max(1,obj[k]/mx*100)}%;background:${k==='Sin desglose'?'#c0392b':(k==='Producto Delico'?'var(--brand-dark)':'var(--lilac-dark)')}"></i></span><b>${sgM(obj[k])} · ${Math.round(obj[k]/Math.max(1,total)*100)}%</b></div>`).join('') || '<div class="av-na">Sin datos</div>';
+      const porCad = {}; tkA.forEach(t=>{ const k = t.cadena||'Sin cadena'; porCad[k] = (porCad[k]||0)+t.tot; }); const maxCad = Math.max(1,...Object.values(porCad),1);
+      /* insights */
+      const med = (()=>{ const a = filas.filter(f=>f.cch!=null).map(f=>f.cch).sort((x,y)=>x-y); return a.length ? a[Math.floor(a.length/2)] : null; })();
+      const caros = med ? filas.filter(f=>f.cch!=null && f.cch>=med*2 && f.g>=300).sort((a,b)=>b.cch-a.cch).slice(0,4) : [];
+      const sinDeg = filas.filter(f=>f.g>=150 && f.ch===0);
+      const ins = [];
+      if(!tkA.length) ins.push(['bad','No hay tickets de gasto en las últimas 4 semanas cerradas: sin ellos no se puede medir cuánto cuesta cada charola.']);
+      else {
+        ins.push(['info',`Últimas 4 semanas cerradas (${lbl}): ${sgM(gA)} en ${tkA.length} tickets (ticket promedio ${sgM(gA/tkA.length)})${chA?` y ${sgN(chA)} charolas degustadas → <b>${sgM(gA/chA)} por charola</b>`:''}.`]);
+        if(gP>0){ const d = dif(gA,gP); ins.push([Math.abs(d)<10?'info':(d>0?'warn':'good'), `El gasto ${d>=0?'subió':'bajó'} ${Math.abs(Math.round(d))}% contra las 4 semanas anteriores${chP&&chA?` y las charolas ${chA>=chP?'subieron':'bajaron'} ${Math.abs(Math.round(dif(chA,chP)))}%`:''}. ${d>10 && chA<=chP ? 'Se gasta más sin degustar más: revisar compras.' : ''}`]); }
+        if(adopTk!=null) ins.push([adopTk>=85?'good':(adopTk>=60?'warn':'bad'), `${conTk.length} de ${activos.length} demostradoras/es activas capturaron al menos un ticket (${Math.round(adopTk)}%).${sinTk.length?` Faltan: ${sinTk.slice(0,6).map(f=>sgEsc(f.nombre)).join(', ')}${sinTk.length>6?' y '+(sinTk.length-6)+' más':''}.`:''}`]);
+        const sd = cat['Sin desglose']; if(totCat>0 && sd/totCat>0.1) ins.push(['warn', `${Math.round(sd/totCat*100)}% del gasto (${sgM(sd)}) se capturó sin desglose por línea: no se puede ver en qué se gastó.`]);
+        if(caros.length) ins.push(['bad', `Compran de más para lo que degustan ($/charola ≥ 2× la mediana de ${sgM(med)}): ${caros.map(f=>`${sgEsc(f.nombre)} ${sgM(f.cch)}`).join(' · ')}.`]);
+        if(sinDeg.length) ins.push(['warn', `Gasto sin charolas registradas: ${sinDeg.slice(0,5).map(f=>`${sgEsc(f.nombre)} ${sgM(f.g)}`).join(' · ')}. Revisar si falta capturar la degustación.`]);
+      }
+      const sinHtml = sinTk.length ? `<div class="av-who bad" style="margin-top:6px;">⚠ Sin ticket en 4 semanas: ${sinTk.map(f=>`${sgEsc(f.nombre)}${f.ch?` <i>(${f.ch} charolas)</i>`:''}`).join(' · ')}</div>` : '<div class="av-who ok" style="margin-top:6px;">✅ Todas las activas capturaron tickets</div>';
+      const orden = filas.slice().sort((a,b)=>(b.g-a.g)||(b.cap-a.cap)).filter(f=>f.cap>0||f.tk>0);
+      const rowsT = orden.map(f=>`<tr><td><b>${sgEsc(f.nombre)}</b><br><small>${f.reg}</small></td><td>${f.tk}</td><td>${sgM(f.g)}</td><td>${f.ch}</td><td class="${f.cch!=null&&med&&f.cch>=med*2?'avd':''}">${f.cch!=null?sgM(f.cch):'—'}</td><td>${f.ult?sgFmtCorta(f.ult):'<span class="av-na">nunca</span>'}</td><td class="${f.dias!=null&&f.dias>14?'avd':''}">${f.dias!=null?f.dias+' d':'—'}</td></tr>`).join('');
+      const kp = (l,v,sub)=>`<div class="av-k"><span>${l}</span><b>${v}</b><small>${sub||''}</small></div>`;
+      return `<div class="av-panel" style="margin-bottom:12px;"><div class="sg-sec">💳 Gastos y captura de tickets <small>(demostradoras/es · últimas 4 semanas cerradas ${lbl})</small></div>
+        <div class="av-kpis" style="grid-template-columns:repeat(5,1fr);">${kp('GASTO 4 SEM.',sgM(gA),flechaG(gA,gP,true))}${kp('TICKETS',sgN(tkA.length),tkA.length?'promedio '+sgM(gA/tkA.length):'')}${kp('$ POR CHAROLA',chA&&gA?sgM(gA/chA):'—',chA?sgN(chA)+' charolas':'')}${kp('CAPTURAN TICKET',adopTk!=null?Math.round(adopTk)+'%':'—',activos.length?conTk.length+' de '+activos.length+' activas':'')}${kp('GASTO DEL PERIODO',sgM(gPer),'semanas '+avEtq(nums[0])+'–'+avEtq(ult))}</div>
+        <ul class="av-ul">${ins.map(([t,x])=>`<li class="av-i ${t}">${icono[t]||''} ${x}</li>`).join('')}</ul>${sinHtml}
+        <div class="av-two" style="margin-top:10px;"><div><div class="sg-sec">En qué se gasta <small>(periodo seleccionado)</small></div>${barras(cat,totCat,maxCat)}</div><div><div class="sg-sec">Gasto por cadena <small>(4 semanas)</small></div>${barras(porCad,gA,maxCad)}</div></div>
+        <div style="overflow:auto;margin-top:10px;"><table class="av-tb"><thead><tr><th>Persona</th><th>Tickets</th><th>Gasto</th><th>Charolas</th><th>$/charola</th><th>Último ticket</th><th>Sin ticket hace</th></tr></thead><tbody>${rowsT||'<tr><td colspan="7" class="av-na">Sin datos</td></tr>'}</tbody></table></div>
+        <div class="av-foot">Solo demostradoras/es (las promotoras no capturan gasto). Charolas = degustaciones registradas. $/charola en rojo = 2× la mediana del equipo (${sgM(med)}).</div></div>`;
+    })();
     box.innerHTML = `
       <div class="av-hero"><b>Evolución desde que el equipo adoptó la app</b><span>Arranque: semana ${avEtq(C.ini)} (${sgFmtCorta(sgFechasSemana(C.ini)[0])}) · ${nCerr} semanas cerradas · ${C.emb.length} embajadoras/es en la medición · ${sgN(C.nCaps)} capturas analizadas. Las tarjetas comparan ${avEtq(pri)} contra ${avEtq(ult)}.</span></div>
       ${kpis}
       <div class="av-two"><div class="av-panel"><div class="sg-sec">💡 Insights: qué mejoró y qué no</div><ul class="av-ul">${inHtml}</ul></div>
       <div class="av-panel"><div class="sg-sec">🔧 Qué corregir ya</div><ul class="av-ul">${acciones.map(a=>`<li class="av-i warn">• ${sgEsc(a)}</li>`).join('')}</ul>${verdes.length?`<div class="sg-sec" style="margin-top:10px;">⭐ Lo que está funcionando</div><ul class="av-ul"><li class="av-i good">${verdes.map(p=>sgEsc(p.nombre)).join(', ')} sostienen resultados de 4–5 estrellas.</li></ul>`:''}</div></div>
+      ${gastosHtml}
       <div class="av-grid">${graf}</div>
       <div class="av-panel" style="margin-top:12px;"><div class="sg-sec">⭐ Cuadro de honor y su evolución <small>(puntos oficiales de la semana ${SG&&SG.sem?SG.sem:sgSemanaDefault()}: bono ${Math.round(SG_PESOS.bono*100)}% · distribución ${Math.round(SG_PESOS.dist*100)}% · ruta ${Math.round(SG_PESOS.ruta*100)}%; la línea es el índice semanal bono+ruta de las últimas 10 semanas)</small></div>
       <div style="overflow:auto;"><table class="av-tb"><thead><tr><th>#</th><th>Persona</th><th>Calificación</th><th>Capt./sem</th><th>Ruta</th><th>Check-out</th><th>Cuota</th><th>Evolución</th><th>vs arranque</th></tr></thead><tbody>${cuadro}</tbody></table></div>
